@@ -1,0 +1,23 @@
+# Backend API (depot separe smart-academy-of-congo-API)
+backend-python/
+
+# Notes internes
+docs/
+agent-transcripts/
+
+# Firebase / Vercel local
+.firebase/
+.firebaserc
+firebase-debug.log
+.vercel/
+
+# Dependances
+node_modules/
+
+# Secrets locaux
+.env
+.env.local
+
+# OS
+.DS_Store
+Thumbs.db

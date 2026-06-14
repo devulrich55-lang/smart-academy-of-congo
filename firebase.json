@@ -1,0 +1,66 @@
+{
+  "hosting": {
+    "public": ".",
+    "ignore": [
+      "firebase.json",
+      ".firebaserc",
+      ".firebaserc.example",
+      "**/.*",
+      "**/node_modules/**",
+      "backend-python/**",
+      "docs/**",
+      "vscode/**",
+      "agent-transcripts/**",
+      "vercel.json",
+      "package.json",
+      "package-lock.json",
+      "DEPLOYMENT.md",
+      "FIREBASE.md",
+      "README.md"
+    ],
+    "headers": [
+      {
+        "source": "**/*.@(js|css)",
+        "headers": [
+          { "key": "Cache-Control", "value": "public,max-age=604800" }
+        ]
+      },
+      {
+        "source": "**/*.@(png|jpg|jpeg|gif|webp|svg|ico)",
+        "headers": [
+          { "key": "Cache-Control", "value": "public,max-age=2592000" }
+        ]
+      },
+      {
+        "source": "**/*.html",
+        "headers": [
+          { "key": "Cache-Control", "value": "no-cache" }
+        ]
+      }
+    ],
+    "rewrites": [
+      {
+        "source": "/api/**",
+        "run": {
+          "serviceId": "sac-api",
+          "region": "europe-west1"
+        }
+      },
+      { "source": "/connexion", "destination": "/connexion.html" },
+      { "source": "/inscription", "destination": "/inscription.html" },
+      { "source": "/mot-de-passe-oublie", "destination": "/mot-de-passe-oublie.html" },
+      { "source": "/reinitialisation", "destination": "/reinitialisation.html" },
+      { "source": "/plateforme", "destination": "/plateforme.html" },
+      { "source": "/verifier-diplome", "destination": "/verifier-diplome.html" },
+      { "source": "/dashboard-etudiant", "destination": "/dashboard-etudiant.html" },
+      { "source": "/dashboard-professeur", "destination": "/dashboard-professeur.html" },
+      { "source": "/dashboard-assistant", "destination": "/dashboard-assistant.html" },
+      { "source": "/dashboard-universite", "destination": "/dashboard-universite.html" },
+      { "source": "/dashboard-section", "destination": "/dashboard-section.html" },
+      { "source": "/fiche-cote", "destination": "/fiche-cote.html" },
+      { "source": "/bulletin-semestre", "destination": "/bulletin-semestre.html" }
+    ],
+    "cleanUrls": false,
+    "trailingSlash": false
+  }
+}

@@ -1,0 +1,1511 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Portail Université — Smart Academy of Congo</title>
+  <script src="js/sac-config.js"></script>
+  <script src="js/sac-theme.js"></script>
+  <link rel="icon" href="logos.svg" type="image/svg+xml" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/logo.css" />
+  <link rel="stylesheet" href="css/dashboard.css" />
+  <link rel="stylesheet" href="css/reclamations.css" />
+  <link rel="stylesheet" href="css/home-news.css" />
+  <link rel="stylesheet" href="css/meetings.css" />
+  <link rel="stylesheet" href="css/live.css" />
+  <style>
+    .badge-role { background: rgba(13,122,74,0.12); color: var(--uni); }
+    .btn--role { background: var(--uni); }
+    .nav-tab--priority.active { border-bottom-color: var(--uni); color: var(--uni); }
+    .profile-hero { background: linear-gradient(135deg, #0d7a4a, #10b981); }
+    .profile-hero__badge { display: inline-block; margin-top: 0.5rem; padding: 0.25rem 0.65rem; background: rgba(255,255,255,0.2); border-radius: 100px; font-size: 0.78rem; font-weight: 600; }
+    .profile-hero__badge--warn { background: rgba(180,83,9,0.4); }
+    .task-stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(125px, 1fr)); gap: 0.75rem; margin-bottom: 1.25rem; }
+    .task-stat { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 0.85rem; text-align: center; box-shadow: var(--shadow); }
+    .task-stat strong { display: block; font-size: 1.35rem; color: var(--primary); font-family: "Playfair Display", serif; }
+    .task-stat span { font-size: 0.76rem; color: var(--muted); }
+    .task-stat--warn strong { color: var(--warning); }
+    .task-stat--ok strong { color: var(--uni); }
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(155px, 1fr)); gap: 1rem; margin-bottom: 1.25rem; }
+    .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem; box-shadow: var(--shadow); }
+    .stat-card strong { display: block; font-size: 1.35rem; color: var(--primary); font-family: "Playfair Display", serif; }
+    .stat-card span { font-size: 0.8rem; color: var(--muted); }
+    .panel--workspace { border-left: 4px solid var(--uni); }
+    .panel--comm { border-left: 4px solid #0d7a4a; }
+    .panel--national { border-left: 4px solid #1e40af; }
+    .guide-steps { display: grid; gap: 0.65rem; margin: 0; padding: 0; list-style: none; }
+    .guide-steps li { padding: 0.65rem 0.85rem; background: var(--bg); border-radius: 8px; font-size: 0.88rem; border: 1px solid var(--border); }
+    .guide-steps strong { color: var(--uni); }
+    .comm-filter { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; }
+    .comm-filter button { padding: 0.45rem 0.9rem; border-radius: 100px; border: 1.5px solid var(--border); background: #fff; font-size: 0.82rem; font-weight: 600; cursor: pointer; font-family: inherit; color: var(--muted); }
+    .comm-filter button.active { border-color: var(--uni); color: var(--uni); background: rgba(13,122,74,0.08); }
+    .task-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.85rem 0; border-bottom: 1px solid var(--border); }
+    .task-row:last-child { border-bottom: none; }
+    .task-row__meta { font-size: 0.82rem; color: var(--muted); margin-top: 0.2rem; }
+    .btn--ok { background: var(--success); color: #fff; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-family: inherit; padding: 0.35rem 0.75rem; font-size: 0.78rem; }
+    .btn--reject { background: rgba(185,28,28,0.1); color: #b91c1c; border: 1px solid rgba(185,28,28,0.3); border-radius: 6px; font-weight: 600; cursor: pointer; font-family: inherit; padding: 0.35rem 0.75rem; font-size: 0.78rem; }
+    .sections-layout { display: grid; grid-template-columns: 280px 1fr; gap: 1.25rem; align-items: start; }
+    @media (max-width: 900px) { .sections-layout { grid-template-columns: 1fr; } }
+    .section-pick-list { display: flex; flex-direction: column; gap: 0.4rem; max-height: 420px; overflow-y: auto; }
+    .section-pick { text-align: left; padding: 0.75rem 0.85rem; border: 1.5px solid var(--border); border-radius: 8px; background: var(--surface); cursor: pointer; font-family: inherit; font-size: 0.88rem; transition: border-color 0.2s, background 0.2s; }
+    .section-pick:hover { border-color: var(--uni); }
+    .section-pick.active { border-color: var(--uni); background: rgba(13,122,74,0.08); }
+    .section-pick strong { display: block; color: var(--primary); font-size: 0.9rem; }
+    .section-pick span { font-size: 0.78rem; color: var(--muted); }
+    .section-pick .badge-count { float: right; background: #b45309; color: #fff; font-size: 0.7rem; padding: 0.1rem 0.45rem; border-radius: 100px; font-weight: 700; }
+    tr.section-row-clickable { cursor: pointer; }
+    tr.section-row-clickable:hover { background: rgba(13,122,74,0.05); }
+    tr.section-row-clickable.active { background: rgba(13,122,74,0.1); }
+    .section-edit-dialog {
+      border: none; border-radius: var(--radius); padding: 0; max-width: 520px; width: calc(100% - 2rem);
+      box-shadow: 0 20px 60px rgba(12,61,110,0.2);
+    }
+    .section-edit-dialog::backdrop { background: rgba(26,43,60,0.45); }
+    .section-edit-dialog__inner { padding: 1.5rem; }
+    .section-edit-dialog__head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+    .section-edit-dialog__head h3 { font-family: "Playfair Display", serif; color: var(--primary); font-size: 1.15rem; }
+    .section-chip-list { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.75rem; }
+    .section-chip {
+      display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem;
+      padding: 0.65rem 0.85rem; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; font-size: 0.88rem;
+    }
+    .section-chip strong { color: var(--primary); display: block; }
+    .section-chip span { font-size: 0.8rem; color: var(--muted); }
+    .btn--xs { font-size: 0.75rem; padding: 0.3rem 0.65rem; }
+    .toast { position: fixed; bottom: 1.25rem; right: 1.25rem; z-index: 200; padding: 0.85rem 1.15rem; background: var(--primary); color: #fff; border-radius: 10px; font-size: 0.9rem; font-weight: 600; box-shadow: 0 8px 24px rgba(0,0,0,0.2); display: none; max-width: 360px; }
+    .toast.show { display: block; animation: fadeIn 0.25s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+    .empty-tasks { text-align: center; color: var(--muted); padding: 1.25rem; font-size: 0.9rem; }
+    .comm-panel { display: none; }
+    .comm-panel.active { display: block; }
+
+    /* Tarifs campus */
+    .tariff-form-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      margin-bottom: 0.5rem;
+    }
+    .tariff-row {
+      display: grid;
+      grid-template-columns: auto 1fr auto auto;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.9rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .tariff-row:last-of-type { border-bottom: none; }
+    .tariff-row__icon {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      background: var(--bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.95rem;
+    }
+    .tariff-row__label {
+      font-size: 0.92rem;
+      font-weight: 600;
+      color: var(--primary);
+    }
+    .tariff-row__controls {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+    .tariff-currency {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.45rem 0.5rem;
+      font-size: 0.82rem;
+      font-family: inherit;
+      background: #fff;
+      color: var(--muted);
+    }
+    .tariff-amount {
+      width: 72px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.45rem 0.55rem;
+      font-size: 0.9rem;
+      font-family: inherit;
+      text-align: right;
+    }
+    .tariff-row__cdf {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--uni);
+      white-space: nowrap;
+      min-width: 110px;
+      text-align: right;
+    }
+    .tariff-info {
+      margin: 0.85rem 1.25rem 1.1rem;
+      padding: 0.85rem 1rem;
+      background: rgba(13,122,74,0.08);
+      border: 1px solid rgba(13,122,74,0.18);
+      border-radius: 10px;
+      font-size: 0.8rem;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+    .tariff-info strong { color: var(--uni); }
+    .tariffs-save-row {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin-top: 0.5rem;
+    }
+  </style>
+  <link rel="stylesheet" href="css/theme.css" />
+  <meta name="theme-color" content="#0c3d6e" />
+</head>
+<body>
+  <header class="header">
+    <div class="header__top">
+      <a href="index.html" class="logo"><img src="logos.svg" alt="Smart Academy of Congo" class="logo__img" width="44" height="44" /><span class="logo__text">Smart Academy</span></a>
+      <div style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;">
+        <span class="badge-role">🏛️ Administration université</span>
+        <span id="userName" style="font-size:0.9rem;color:var(--muted);"></span>
+        <button type="button" class="btn btn--ghost" id="btnLogout">Déconnexion</button>
+      </div>
+    </div>
+    <nav class="nav-tabs" aria-label="Navigation université">
+      <button type="button" class="nav-tab active" data-section="accueil">Tableau de bord</button>
+      <button type="button" class="nav-tab nav-tab--priority" data-section="communiquer">📢 Communiquer</button>
+      <button type="button" class="nav-tab nav-tab--priority" data-section="sections">🏫 Sections & réclamations</button>
+      <button type="button" class="nav-tab nav-tab--priority" data-section="reunions">🎥 Réunions</button>
+      <button type="button" class="nav-tab" data-section="administration">⚙️ Campus & tarifs</button>
+    </nav>
+  </header>
+
+  <div class="toast" id="toast" role="status"></div>
+
+  <main class="layout">
+    <!-- TABLEAU DE BORD -->
+    <section class="page-section active" id="section-accueil">
+      <div class="profile-hero">
+        <div class="profile-avatar profile-avatar--logo" style="background:rgba(255,255,255,0.2);padding:0.35rem;">
+          <img src="logos.svg" alt="" width="80" height="80" style="width:100%;height:100%;object-fit:contain;border-radius:50%;" />
+        </div>
+        <div>
+          <h1 id="profileName">Université</h1>
+          <p style="opacity:0.9;font-size:0.9rem;" id="profileMeta">Portail officiel Smart Academy of Congo</p>
+          <span class="profile-hero__badge" id="profileBadge">Campus connecté</span>
+        </div>
+      </div>
+
+      <p class="page-desc" id="welcomeDesc">Vue d'ensemble de votre établissement sur la plateforme.</p>
+
+      <div class="task-stats" id="dashTaskStats"></div>
+
+      <div class="profile-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1.25rem;margin-bottom:1.25rem;">
+        <div class="panel panel--workspace">
+          <div class="panel__head"><h2>Priorités du jour</h2></div>
+          <div class="panel__body" id="priorityList"></div>
+        </div>
+        <div class="panel">
+          <div class="panel__head"><h2>Guide — bien communiquer</h2></div>
+          <div class="panel__body">
+            <ul class="guide-steps">
+              <li><strong>1. Mon université</strong> — annonces texte sur le profil de vos étudiants uniquement.</li>
+              <li><strong>2. Portail campus</strong> — fichiers, photos, vidéos pour tout le campus.</li>
+              <li><strong>3. Espace national</strong> — informations pour toutes les universités partenaires.</li>
+              <li><strong>4. Par section</strong> — messages ciblés filière + réponses aux réclamations.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel__head"><h2>Actions rapides</h2></div>
+        <div class="panel__body" style="display:flex;flex-wrap:wrap;gap:0.5rem;">
+          <button type="button" class="btn btn--role" data-goto="communiquer">📢 Publier un communiqué</button>
+          <button type="button" class="btn btn--role" data-goto="sections" data-focus="rec">📩 Traiter les réclamations</button>
+          <button type="button" class="btn btn--ghost" data-goto="administration" data-focus="payments">💳 Valider les paiements</button>
+          <button type="button" class="btn btn--ghost" data-goto="administration" data-focus="professors">👨‍🏫 Enseignants & nominations</button>
+          <button type="button" class="btn btn--ghost" data-goto="administration" data-focus="sections">🏫 Sections & responsables</button>
+          <button type="button" class="btn btn--ghost" data-goto="administration" data-focus="tariffs">💰 Tarifs campus</button>
+        </div>
+      </div>
+
+      <div class="panel" id="panelRecentRec" style="display:none;">
+        <div class="panel__head"><h2>Réclamations récentes</h2><button type="button" class="btn btn--ghost btn--sm" data-goto="sections">Tout voir</button></div>
+        <div class="panel__body"><div class="rec-list" id="recentRecList"></div></div>
+      </div>
+    </section>
+
+    <!-- COMMUNIQUER -->
+    <section class="page-section" id="section-communiquer">
+      <h1 class="page-title">Communiquer</h1>
+      <p class="page-desc">
+        Centralisez toutes vos publications : choisissez le canal adapté à votre message.
+        Chaque canal a une portée différente — lisez les descriptions avant de publier.
+      </p>
+
+      <div class="comm-filter" id="commFilter">
+        <button type="button" class="active" data-comm="etu">📋 Annonces étudiants</button>
+        <button type="button" data-comm="portail">📁 Portail campus</button>
+        <button type="button" data-comm="national">🇨🇩 Espace national</button>
+        <button type="button" data-comm="docs">📄 Documents officiels</button>
+      </div>
+
+      <div class="comm-panel active panel--comm" id="commEtu" data-comm-panel="etu">
+        <div class="panel__head"><h2>Annonces — profil étudiants (mon université)</h2></div>
+        <div class="panel__body">
+          <p class="page-desc" style="margin:0 0 1rem;font-size:0.88rem;">Texte court visible <strong>uniquement</strong> sur le profil des étudiants de votre établissement.</p>
+          <div id="campusHomeNewsRoot"></div>
+        </div>
+      </div>
+
+      <div class="comm-panel panel--comm" id="commPortail" data-comm-panel="portail">
+        <div class="panel__head"><h2>Portail campus — fichiers & médias</h2></div>
+        <div class="panel__body">
+          <p class="page-desc" style="margin:0 0 1rem;font-size:0.88rem;">Documents, images, audio et vidéos pour tous les membres du campus.</p>
+          <div id="campusPortalPublisherRoot"></div>
+        </div>
+      </div>
+
+      <div class="comm-panel panel--national" id="commNational" data-comm-panel="national">
+        <div class="panel__head"><h2>Espace national</h2></div>
+        <div class="panel__body">
+          <p class="page-desc" style="margin:0 0 1rem;font-size:0.88rem;">Visible par toutes les universités, tous les étudiants et sur la page d'accueil du site.</p>
+          <div id="nationalPublisherRoot"></div>
+          <div id="nationalFeedReadonly" style="margin-top:1.25rem;padding-top:1.25rem;border-top:1px dashed var(--border);"></div>
+        </div>
+      </div>
+
+      <div class="comm-panel" id="commDocs" data-comm-panel="docs">
+        <div class="panel__head"><h2>Documents officiels</h2></div>
+        <div class="panel__body">
+          <p class="page-desc" style="margin:0 0 1rem;font-size:0.88rem;">Calendriers, règlements et circulaires administratives du campus.</p>
+          <div id="publisherRoot"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTIONS -->
+    <section class="page-section" id="section-sections">
+      <h1 class="page-title">Sections & réclamations</h1>
+      <p class="page-desc">Organisez vos facultés, nommez un responsable par section, traitez les réclamations et publiez par filière.</p>
+
+      <div class="rec-stats" id="uniRecStats"></div>
+
+      <div class="panel panel--workspace" style="margin-bottom:1.25rem;">
+        <div class="panel__head">
+          <h2>Sections de l'établissement</h2>
+          <span id="secCountHead" style="font-size:0.82rem;color:var(--muted);"></span>
+        </div>
+        <div class="panel__body">
+          <form id="formCreateSection" class="rec-form" style="margin-bottom:1.25rem;padding-bottom:1.25rem;border-bottom:1px solid var(--border);">
+            <div class="form-row-2">
+              <div class="fg">
+                <label>Nom de la section / faculté *</label>
+                <input type="text" class="fi" id="secName" required placeholder="Ex. Faculté des Sciences économiques" />
+              </div>
+              <div class="fg">
+                <label>Filière(s) couverte(s) *</label>
+                <input type="text" class="fi" id="secFiliere" required placeholder="Ex. Sciences économiques — Gestion" />
+              </div>
+            </div>
+            <div class="form-row-2">
+              <div class="fg">
+                <label>Nom du responsable *</label>
+                <input type="text" class="fi" id="secResp" required placeholder="Ex. Dr. Mukendi — Chef de section" />
+              </div>
+              <div class="fg">
+                <label>E-mail section</label>
+                <input type="email" class="fi" id="secEmail" placeholder="section@universite.cd" />
+              </div>
+            </div>
+            <div class="fg">
+              <label>Téléphone</label>
+              <input type="tel" class="fi" id="secTel" placeholder="+243 …" style="max-width:280px;" />
+            </div>
+            <div class="fg" style="margin-top:0.5rem;">
+              <label class="chk" style="display:flex;align-items:center;gap:0.5rem;font-weight:600;">
+                <input type="checkbox" id="secCreateAccount" />
+                Créer un compte de connexion pour le chef de section
+              </label>
+              <p style="font-size:0.82rem;color:var(--muted);margin-top:0.35rem;">
+                La section pourra se connecter et inscrire les étudiants de sa filière.
+              </p>
+            </div>
+            <div id="secAccountFields" style="display:none;margin-top:0.75rem;padding:1rem;background:var(--bg);border-radius:8px;border:1px dashed var(--border);">
+              <div class="form-row-2">
+                <div class="fg">
+                  <label>E-mail de connexion *</label>
+                  <input type="email" class="fi" id="secHeadEmail" placeholder="chef.section@universite.cd" />
+                </div>
+                <div class="fg">
+                  <label>Mot de passe initial *</label>
+                  <input type="password" class="fi" id="secHeadPassword" placeholder="Min. 8 caractères" minlength="8" autocomplete="new-password" />
+                </div>
+              </div>
+            </div>
+            <button type="submit" class="btn btn--role">Ajouter la section</button>
+          </form>
+          <div style="overflow-x:auto;">
+            <table class="section-table">
+              <thead><tr><th>Section</th><th>Filière</th><th>Responsable</th><th>Contact</th><th>Ouvertes</th></tr></thead>
+              <tbody id="sectionsTable"></tbody>
+            </table>
+          </div>
+          <p class="empty" id="sectionsEmpty" style="display:none;">Aucune section. Ajoutez vos facultés ci-dessus.</p>
+        </div>
+      </div>
+
+      <div class="sections-layout">
+        <div class="panel">
+          <div class="panel__head"><h2>Sections</h2><span id="secCount" style="font-size:0.82rem;color:var(--muted);"></span></div>
+          <div class="panel__body"><div class="section-pick-list" id="sectionPickList"></div></div>
+        </div>
+        <div>
+          <div class="panel">
+            <div class="panel__head">
+              <h2 id="recPanelTitle">Réclamations</h2>
+              <select id="filterStatut" class="fi" style="width:auto;padding:0.4rem 0.6rem;font-size:0.85rem;display:none;">
+                <option value="all">Tous</option>
+                <option value="ouverte">Ouvertes</option>
+                <option value="en_cours">En cours</option>
+                <option value="resolue">Résolues</option>
+                <option value="fermee">Fermées</option>
+              </select>
+            </div>
+            <div class="panel__body">
+              <p id="recPanelHint" class="page-desc" style="margin:0 0 1rem;">Sélectionnez une section à gauche.</p>
+              <div class="rec-list" id="uniRecList"></div>
+              <p class="empty" id="uniRecEmpty" style="display:none;">Aucune réclamation pour cette section.</p>
+            </div>
+          </div>
+          <div id="sectionPublisherRoot" style="margin-top:1.25rem;"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- RÉUNIONS INSTITUTIONNELLES -->
+    <section class="page-section" id="section-reunions">
+      <h1 class="page-title">Réunions institutionnelles</h1>
+      <p class="page-desc">
+        Chef de section ↔ Professeurs · Doyen ↔ Chefs de section — vidéo en direct, partage de documents,
+        votes, compte rendu automatique par l'IA SAC.
+      </p>
+      <div id="meetingsRoot"></div>
+    </section>
+
+    <!-- ADMINISTRATION -->
+    <section class="page-section" id="section-administration">
+      <h1 class="page-title">Campus & tarifs</h1>
+      <p class="page-desc">Profil de l'établissement, sections & responsables, frais d'inscription et validation des paiements.</p>
+
+      <div class="panel">
+        <div class="panel__head"><h2>Établissement</h2></div>
+        <div class="panel__body" id="profileInfo"></div>
+        <div class="panel__body" style="border-top:1px solid var(--border);padding-top:0;">
+          <h3 style="font-size:0.95rem;color:var(--primary);margin-bottom:0.35rem;">Sections enregistrées</h3>
+          <p style="font-size:0.85rem;color:var(--muted);margin-bottom:0.5rem;">Facultés et services de votre campus, chacun avec un responsable nommé.</p>
+          <div id="profileSectionsList" class="section-chip-list"></div>
+        </div>
+      </div>
+
+      <div class="panel panel--workspace" id="panelSectionsProfile">
+        <div class="panel__head">
+          <h2>Sections & responsables</h2>
+          <span id="secCountProfile" style="font-size:0.82rem;color:var(--muted);"></span>
+        </div>
+        <div class="panel__body">
+          <p class="page-desc" style="margin:0 0 1rem;font-size:0.88rem;">
+            Ajoutez les sections de votre université (faculté, institut, service…) et désignez le <strong>responsable</strong> de chacune.
+            Ce responsable pourra recevoir un compte de connexion pour inscrire les étudiants de sa filière.
+          </p>
+          <form id="formCreateSectionProfile" class="rec-form" style="margin-bottom:1.25rem;padding-bottom:1.25rem;border-bottom:1px solid var(--border);">
+            <div class="form-row-2">
+              <div class="fg">
+                <label>Nom de la section / faculté *</label>
+                <input type="text" class="fi" id="secProfName" required placeholder="Ex. Faculté des Sciences économiques" />
+              </div>
+              <div class="fg">
+                <label>Filière(s) couverte(s) *</label>
+                <input type="text" class="fi" id="secProfFiliere" required placeholder="Ex. Sciences économiques — Gestion" />
+              </div>
+            </div>
+            <div class="form-row-2">
+              <div class="fg">
+                <label>Nom du responsable *</label>
+                <input type="text" class="fi" id="secProfResp" required placeholder="Ex. Dr. Mukendi — Chef de section" />
+              </div>
+              <div class="fg">
+                <label>E-mail de contact</label>
+                <input type="email" class="fi" id="secProfEmail" placeholder="section@universite.cd" />
+              </div>
+            </div>
+            <div class="fg">
+              <label>Téléphone du responsable</label>
+              <input type="tel" class="fi" id="secProfTel" placeholder="+243 …" style="max-width:280px;" />
+            </div>
+            <div class="fg" style="margin-top:0.5rem;">
+              <label class="chk" style="display:flex;align-items:center;gap:0.5rem;font-weight:600;">
+                <input type="checkbox" id="secProfCreateAccount" />
+                Créer un compte de connexion pour ce responsable
+              </label>
+            </div>
+            <div id="secProfAccountFields" style="display:none;margin-top:0.75rem;padding:1rem;background:var(--bg);border-radius:8px;border:1px dashed var(--border);">
+              <div class="form-row-2">
+                <div class="fg">
+                  <label>E-mail de connexion *</label>
+                  <input type="email" class="fi" id="secProfHeadEmail" placeholder="chef.section@universite.cd" />
+                </div>
+                <div class="fg">
+                  <label>Mot de passe initial *</label>
+                  <input type="password" class="fi" id="secProfHeadPassword" placeholder="Min. 8 caractères" minlength="8" autocomplete="new-password" />
+                </div>
+              </div>
+            </div>
+            <button type="submit" class="btn btn--role">Ajouter la section</button>
+          </form>
+          <div style="overflow-x:auto;">
+            <table class="section-table">
+              <thead><tr><th>Section</th><th>Filière</th><th>Responsable</th><th>Contact</th><th></th></tr></thead>
+              <tbody id="sectionsProfileTable"></tbody>
+            </table>
+          </div>
+          <p class="empty" id="sectionsProfileEmpty" style="display:none;">Aucune section. Ajoutez votre première faculté ci-dessus.</p>
+        </div>
+      </div>
+
+      <div class="panel panel--workspace" id="panelProfessors">
+        <div class="panel__head">
+          <h2>Enseignants & nominations</h2>
+          <span id="profCountHead" style="font-size:0.82rem;color:var(--muted);"></span>
+        </div>
+        <div class="panel__body">
+          <p class="page-desc" style="margin:0 0 1rem;font-size:0.88rem;">
+            Liste de tous les <strong>professeurs inscrits</strong> sur votre campus : grade à l'inscription, statut de paiement et nomination institutionnelle.
+            Nommez un professeur <strong>chef de section</strong> — les fonctionnalités section (inscriptions étudiants, réclamations) s'ajoutent automatiquement à son compte professeur.
+          </p>
+          <div style="overflow-x:auto;">
+            <table class="section-table">
+              <thead>
+                <tr>
+                  <th>Enseignant</th>
+                  <th>Grade</th>
+                  <th>Département</th>
+                  <th>Inscription</th>
+                  <th>Nomination</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="professorsTable"></tbody>
+            </table>
+          </div>
+          <p class="empty" id="professorsEmpty" style="display:none;">Aucun professeur inscrit sur ce campus.</p>
+        </div>
+      </div>
+
+      <div class="panel panel--workspace" id="panelTariffs">
+        <div class="panel__head">
+          <h2>Tarifs d'inscription campus</h2>
+          <span style="font-size:0.82rem;color:var(--muted);">Synchronisés sur les profils du campus</span>
+        </div>
+        <div class="panel__body">
+          <p class="page-desc" style="margin:0 0 1.25rem;">
+            Gérez les frais d'inscription Smart Academy et validez les paiements des membres de votre établissement.
+          </p>
+
+          <form id="formCampusTariffs">
+            <div class="tariff-form-card">
+              <div class="tariff-row">
+                <span class="tariff-row__icon" aria-hidden="true">🎓</span>
+                <span class="tariff-row__label">Étudiant</span>
+                <div class="tariff-row__controls">
+                  <select class="tariff-currency" disabled aria-label="Devise étudiant"><option>USD</option></select>
+                  <input type="number" class="tariff-amount" id="tarifEtu" min="0.5" max="500" step="0.01" required />
+                </div>
+                <span class="tariff-row__cdf" id="tarifEtuCdf">≈ 2 800 CDF</span>
+              </div>
+
+              <div class="tariff-row">
+                <span class="tariff-row__icon" aria-hidden="true">📋</span>
+                <span class="tariff-row__label">Assistant</span>
+                <div class="tariff-row__controls">
+                  <select class="tariff-currency" disabled aria-label="Devise assistant"><option>USD</option></select>
+                  <input type="number" class="tariff-amount" id="tarifAssist" min="0.5" max="500" step="0.01" required />
+                </div>
+                <span class="tariff-row__cdf" id="tarifAssistCdf">≈ 14 000 CDF</span>
+              </div>
+
+              <div class="tariff-row">
+                <span class="tariff-row__icon" aria-hidden="true">📚</span>
+                <span class="tariff-row__label">Professeur</span>
+                <div class="tariff-row__controls">
+                  <select class="tariff-currency" disabled aria-label="Devise professeur"><option>USD</option></select>
+                  <input type="number" class="tariff-amount" id="tarifProf" min="0.5" max="500" step="0.01" required />
+                </div>
+                <span class="tariff-row__cdf" id="tarifProfCdf">≈ 28 000 CDF</span>
+              </div>
+
+              <p class="tariff-info">
+                <strong>ℹ️ Conversion indicative</strong><br />
+                Les montants CDF affichés utilisent le taux 1 USD = 2 800 CDF.
+              </p>
+            </div>
+
+            <div class="tariffs-save-row">
+              <button type="submit" class="btn btn--role">Enregistrer les tarifs</button>
+              <p id="tarifSaveMsg" style="display:none;margin:0;font-size:0.88rem;color:var(--uni);"></p>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <div class="panel" id="panelPayments">
+        <div class="panel__head"><h2>💳 Paiements à valider</h2><span id="countPayments" style="font-size:0.82rem;color:var(--muted);"></span></div>
+        <div class="panel__body" id="listPayments"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel__head"><h2>Membres inscrits sur le campus</h2></div>
+        <div class="panel__body" style="overflow-x:auto;">
+          <table>
+            <thead><tr><th>Nom</th><th>Rôle</th><th>E-mail</th><th>Paiement</th></tr></thead>
+            <tbody id="membersTable"></tbody>
+          </table>
+          <p class="empty-tasks" id="membersEmpty" style="display:none;">Aucun membre inscrit pour ce campus.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <dialog id="nominateDialog" class="section-edit-dialog">
+    <div class="section-edit-dialog__inner">
+      <div class="section-edit-dialog__head">
+        <h3>Nommer chef de section</h3>
+        <button type="button" class="btn btn--ghost btn--xs" id="btnCloseNominate">Fermer</button>
+      </div>
+      <p id="nominateProfLabel" style="font-size:0.9rem;color:var(--muted);margin-bottom:1rem;"></p>
+      <form id="formNominate" class="rec-form">
+        <input type="hidden" id="nominateProfEmail" />
+        <div class="fg">
+          <label>Section à diriger *</label>
+          <select class="fi" id="nominateSectionId" required></select>
+        </div>
+        <p style="font-size:0.82rem;color:var(--muted);margin-bottom:0.75rem;">
+          Le professeur conservera son compte <strong>professeur</strong> et accédera aux outils chef de section (inscriptions, réclamations).
+        </p>
+        <button type="submit" class="btn btn--role">Confirmer la nomination</button>
+      </form>
+    </div>
+  </dialog>
+
+  <dialog id="sectionEditDialog" class="section-edit-dialog">
+    <div class="section-edit-dialog__inner">
+      <div class="section-edit-dialog__head">
+        <h3>Modifier la section</h3>
+        <button type="button" class="btn btn--ghost btn--xs" id="btnCloseSectionEdit">Fermer</button>
+      </div>
+      <form id="formEditSection" class="rec-form">
+        <input type="hidden" id="editSectionId" />
+        <div class="fg">
+          <label>Nom de la section *</label>
+          <input type="text" class="fi" id="editSecName" required />
+        </div>
+        <div class="fg">
+          <label>Filière(s) *</label>
+          <input type="text" class="fi" id="editSecFiliere" required />
+        </div>
+        <div class="fg">
+          <label>Nom du responsable *</label>
+          <input type="text" class="fi" id="editSecResp" required />
+        </div>
+        <div class="form-row-2">
+          <div class="fg">
+            <label>E-mail</label>
+            <input type="email" class="fi" id="editSecEmail" />
+          </div>
+          <div class="fg">
+            <label>Téléphone</label>
+            <input type="tel" class="fi" id="editSecTel" />
+          </div>
+        </div>
+        <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-top:0.5rem;">
+          <button type="submit" class="btn btn--role">Enregistrer</button>
+          <button type="button" class="btn btn--ghost" id="btnDeactivateSection">Désactiver la section</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <script src="js/sac-identity.js"></script>
+  <script src="js/sac-session.js"></script>
+  <script src="js/sac-api.js"></script>
+  <script src="js/sac-tariffs.js"></script>
+  <script src="js/sac-universities.js"></script>
+  <script src="js/sac-data.js"></script>
+  <script src="js/sac-sections.js"></script>
+  <script src="js/sac-section-accounts.js"></script>
+  <script src="js/sac-nominations.js"></script>
+  <script src="js/sac-tasks.js"></script>
+  <script src="js/sac-university-workspace.js"></script>
+  <script src="js/sac-home-news.js"></script>
+  <script src="js/sac-publisher.js"></script>
+  <script src="js/sac-meetings.js"></script>
+  <script src="js/sac-live.js"></script>
+  <script src="js/sac-video-live.js"></script>
+  <script>
+    (async function () {
+      let session = await SAC_SESSION.guard("universite");
+      if (!session) return;
+
+      session = SAC_SESSION.syncSessionWithAccount("universite") || session;
+      await SAC_DATA.ensureReady();
+      await SAC_SECTIONS.ensureReady(session);
+
+      const UNI_NAMES = { ...SAC_UNIVERSITIES.NAMES };
+      let selectedSectionId = null;
+      let publishersReady = false;
+
+      function esc(s) {
+        const d = document.createElement("div");
+        d.textContent = s || "";
+        return d.innerHTML;
+      }
+
+      function showToast(msg) {
+        const t = document.getElementById("toast");
+        if (!t) return;
+        t.textContent = msg;
+        t.classList.add("show");
+        setTimeout(() => t.classList.remove("show"), 4500);
+      }
+
+      function formatMoney(p) {
+        if (!p) return "—";
+        const usd = p.amountUsd != null ? p.amountUsd + " USD" : "";
+        const cdf = p.amountCdf != null ? " · " + Number(p.amountCdf).toLocaleString("fr-FR") + " CDF" : "";
+        return (usd || "—") + cdf;
+      }
+
+      function paymentLabel(status) {
+        const map = {
+          verified: '<span style="color:var(--success);font-weight:600;">Validé</span>',
+          pending_verification: '<span style="color:var(--warning);font-weight:600;">En attente</span>',
+          rejected: '<span style="color:#b91c1c;font-weight:600;">Refusé</span>',
+        };
+        return map[status] || "—";
+      }
+
+      function renderDashboard() {
+        const s = SAC_UNIVERSITY.getSummary(session);
+        const est = SAC_UNIVERSITY.getEstablishmentProfile(session);
+        const uniLabel = UNI_NAMES[est.code] || est.nomUniversite || est.code;
+
+        document.getElementById("profileName").textContent = est.nomUniversite;
+        document.getElementById("userName").textContent = est.nomUniversite;
+        document.getElementById("profileMeta").textContent = uniLabel + " · Code " + (est.code || "—");
+        document.getElementById("welcomeDesc").textContent =
+          "Bienvenue sur le portail " + est.nomUniversite + ". Communiquez, gérez les sections et validez les inscriptions.";
+
+        const badge = document.getElementById("profileBadge");
+        if (s.totalPriority > 0) {
+          badge.textContent = s.totalPriority + " action(s) prioritaire(s)";
+          badge.classList.add("profile-hero__badge--warn");
+        } else {
+          badge.textContent = "Campus à jour";
+          badge.classList.remove("profile-hero__badge--warn");
+        }
+
+        document.getElementById("dashTaskStats").innerHTML = `
+          <div class="task-stat task-stat--warn"><strong>${s.openReclamations}</strong><span>Réclam. ouvertes</span></div>
+          <div class="task-stat task-stat--warn"><strong>${s.pendingPayments}</strong><span>Paiements</span></div>
+          <div class="task-stat task-stat--ok"><strong>${s.sectionsCount}</strong><span>Sections</span></div>
+          <div class="task-stat"><strong>${s.studentsCount}</strong><span>Étudiants</span></div>
+          <div class="task-stat"><strong>${s.professorsCount}</strong><span>Professeurs</span></div>
+          <div class="task-stat"><strong>${s.campusAnnouncements}</strong><span>Annonces campus</span></div>
+          <div class="task-stat"><strong>${s.nationalAnnouncements}</strong><span>National</span></div>`;
+
+        const priorities = [];
+        if (s.openReclamations)
+          priorities.push(`<div class="info-row"><span>Réclamations ouvertes</span><span style="color:var(--warning);font-weight:600;">${s.openReclamations}</span></div>`);
+        if (s.pendingPayments)
+          priorities.push(`<div class="info-row"><span>Paiements à valider</span><span style="color:var(--warning);font-weight:600;">${s.pendingPayments}</span></div>`);
+        if (!s.sectionsCount)
+          priorities.push(`<div class="info-row"><span>Sections</span><span style="color:var(--warning);">Aucune — ajoutez vos facultés</span></div>`);
+        if (!priorities.length)
+          priorities.push('<p style="color:var(--muted);font-size:0.9rem;margin:0;">Aucune urgence. Publiez une annonce ou consultez les statistiques.</p>');
+        document.getElementById("priorityList").innerHTML = priorities.join("");
+
+        const openRecs = SAC_SECTIONS.getReclamationsForCampus(SAC_UNIVERSITY.campusCode(session))
+          .filter((r) => r.statut === "ouverte" || r.statut === "en_cours")
+          .slice(0, 4);
+        const recPanel = document.getElementById("panelRecentRec");
+        const recList = document.getElementById("recentRecList");
+        if (openRecs.length) {
+          recPanel.style.display = "block";
+          recList.innerHTML = openRecs
+            .map(
+              (r) => `<article class="rec-card">
+                <div class="rec-card__head"><span class="rec-card__title">${esc(r.sujet)}</span>
+                <span class="rec-badge" style="background:${SAC_SECTIONS.statutColor(r.statut)}">${SAC_SECTIONS.statutLabel(r.statut)}</span></div>
+                <div class="rec-card__meta">${esc(r.sectionName)} · ${esc(r.studentNom)} · ${new Date(r.createdAt).toLocaleDateString("fr-FR")}</div>
+              </article>`
+            )
+            .join("");
+        } else {
+          recPanel.style.display = "none";
+        }
+
+        document.getElementById("profileInfo").innerHTML = `
+          <div class="info-row"><span>Établissement</span><span>${esc(est.nomUniversite)}</span></div>
+          <div class="info-row"><span>Code campus</span><span>${esc(est.code)}</span></div>
+          <div class="info-row"><span>Sigle</span><span>${esc(est.sigle)}</span></div>
+          <div class="info-row"><span>Administration</span><span>${esc(est.email)}</span></div>
+          <div class="info-row"><span>Responsable établissement</span><span>${esc(est.responsable)}</span></div>
+          <div class="info-row"><span>Ville</span><span>${esc(est.ville)}</span></div>
+          <div class="info-row"><span>Sections actives</span><span>${s.sectionsCount || 0}</span></div>
+          <div class="info-row"><span>Membres inscrits</span><span>${s.membersCount}</span></div>`;
+        renderProfileSectionsList();
+      }
+
+      function renderProfileSectionsList() {
+        const el = document.getElementById("profileSectionsList");
+        if (!el) return;
+        const list = SAC_SECTIONS.getSectionsByUniversity(session).filter((s) => s.active !== false);
+        if (!list.length) {
+          el.innerHTML =
+            '<p style="font-size:0.85rem;color:var(--muted);">Aucune section — ajoutez-en dans « Sections & responsables » ci-dessous.</p>';
+          return;
+        }
+        el.innerHTML = list
+          .map(
+            (s) =>
+              `<div class="section-chip">
+                <div><strong>${esc(s.name)}</strong><span>${esc(s.filiere)} · Responsable : ${esc(s.responsableNom || "—")}</span></div>
+                <button type="button" class="btn btn--ghost btn--xs" data-edit-section="${esc(s.id)}">Modifier</button>
+              </div>`
+          )
+          .join("");
+        el.querySelectorAll("[data-edit-section]").forEach((btn) => {
+          btn.addEventListener("click", () => openSectionEditor(btn.dataset.editSection));
+        });
+      }
+
+      function renderSectionsProfileTable() {
+        const list = SAC_SECTIONS.getSectionsByUniversity(session).filter((s) => s.active !== false);
+        const countEl = document.getElementById("secCountProfile");
+        if (countEl) countEl.textContent = list.length + " section(s)";
+        const tbody = document.getElementById("sectionsProfileTable");
+        const empty = document.getElementById("sectionsProfileEmpty");
+        if (!tbody) return;
+        if (!list.length) {
+          tbody.innerHTML = "";
+          if (empty) empty.style.display = "block";
+          return;
+        }
+        if (empty) empty.style.display = "none";
+        tbody.innerHTML = list
+          .map(
+            (s) => `<tr>
+              <td><strong>${esc(s.name)}</strong></td>
+              <td>${esc(s.filiere)}</td>
+              <td>${esc(s.responsableNom || "—")}</td>
+              <td>${esc(s.email || s.telephone || "—")}</td>
+              <td><button type="button" class="btn btn--ghost btn--xs" data-edit-section="${esc(s.id)}">Modifier</button></td>
+            </tr>`
+          )
+          .join("");
+        tbody.querySelectorAll("[data-edit-section]").forEach((btn) => {
+          btn.addEventListener("click", () => openSectionEditor(btn.dataset.editSection));
+        });
+      }
+
+      function openSectionEditor(sectionId) {
+        const sec = SAC_SECTIONS.getSectionById(sectionId);
+        if (!sec) return;
+        document.getElementById("editSectionId").value = sec.id;
+        document.getElementById("editSecName").value = sec.name || "";
+        document.getElementById("editSecFiliere").value = sec.filiere || "";
+        document.getElementById("editSecResp").value = sec.responsableNom || "";
+        document.getElementById("editSecEmail").value = sec.email || "";
+        document.getElementById("editSecTel").value = sec.telephone || "";
+        document.getElementById("sectionEditDialog").showModal();
+      }
+
+      async function submitNewSection(fields) {
+        const responsableNom = fields.responsable.trim();
+        if (!responsableNom || responsableNom.length < 2) {
+          throw new Error("Nom du responsable requis (minimum 2 caractères).");
+        }
+        const createAccount = fields.createAccount;
+        if (createAccount) {
+          const headEmail = fields.headEmail.trim();
+          const headPwd = fields.headPassword;
+          if (!headEmail || !headPwd) {
+            throw new Error("E-mail et mot de passe requis pour le compte du responsable.");
+          }
+        }
+        const sectionData = {
+          name: fields.name,
+          filiere: fields.filiere,
+          responsableNom,
+          telephone: fields.telephone,
+          email: fields.email,
+          universite: SAC_UNIVERSITY.campusCode(session) || "unkin",
+        };
+        return SAC_SECTIONS.createSectionAccount(
+          session,
+          sectionData,
+          createAccount
+            ? {
+                createAccount: true,
+                email: fields.headEmail.trim() || sectionData.email,
+                password: fields.headPassword,
+                telephone: sectionData.telephone,
+              }
+            : { createAccount: false }
+        );
+      }
+
+      function renderPayments() {
+        if (typeof SAC_TASKS === "undefined") {
+          document.getElementById("listPayments").innerHTML =
+            '<p class="empty-tasks">Module tâches indisponible.</p>';
+          return;
+        }
+        const list = SAC_TASKS.getPendingPayments(session);
+        const el = document.getElementById("listPayments");
+        document.getElementById("countPayments").textContent = list.length + " en attente";
+        if (!list.length) {
+          el.innerHTML = '<p class="empty-tasks">Aucun paiement en attente de validation.</p>';
+          return;
+        }
+        el.innerHTML = list
+          .map(
+            (u) => `<div class="task-row">
+            <div>
+              <strong>${esc(SAC_TASKS.displayName(u))}</strong>
+              <span style="font-size:0.78rem;color:var(--muted);margin-left:0.35rem;">${esc(SAC_TASKS.ROLE_LABELS[u.role])}</span>
+              <div class="task-row__meta">${esc(u.email)} · ${formatMoney(u.payment)}</div>
+            </div>
+            <div style="display:flex;gap:0.4rem;flex-wrap:wrap;">
+              <button type="button" class="btn--ok" data-verify="${esc(u.email)}">Valider</button>
+              <button type="button" class="btn--reject" data-reject="${esc(u.email)}">Refuser</button>
+            </div>
+          </div>`
+          )
+          .join("");
+
+        el.querySelectorAll("[data-verify]").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            if (!confirm("Confirmer la validation du paiement ?")) return;
+            try {
+              SAC_TASKS.verifyPayment(session, btn.dataset.verify);
+              showToast("Paiement validé.");
+              refreshAll();
+            } catch (e) {
+              alert(e.message);
+            }
+          });
+        });
+        el.querySelectorAll("[data-reject]").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const reason = prompt("Motif du refus (optionnel) :");
+            if (reason === null) return;
+            try {
+              SAC_TASKS.rejectPayment(session, btn.dataset.reject, reason);
+              showToast("Paiement refusé.");
+              refreshAll();
+            } catch (e) {
+              alert(e.message);
+            }
+          });
+        });
+      }
+
+      function renderProfessors() {
+        let professors = SAC_NOMINATIONS.getCampusProfessors(session);
+        const countEl = document.getElementById("profCountHead");
+        if (countEl) countEl.textContent = professors.length + " enseignant(s)";
+
+        const tbody = document.getElementById("professorsTable");
+        const empty = document.getElementById("professorsEmpty");
+        if (!tbody) return;
+
+        const finish = (list) => {
+          if (!list.length) {
+            tbody.innerHTML = "";
+            if (empty) empty.style.display = "block";
+            return;
+          }
+          if (empty) empty.style.display = "none";
+          tbody.innerHTML = list
+            .map((p) => {
+              const name = SAC_UNIVERSITY.displayName(p);
+              const nom = SAC_NOMINATIONS.nominationLabel(p);
+              const sectionLabel =
+                p.nomination === "chef_section" && p.sectionId
+                  ? (SAC_SECTIONS.getSectionById(p.sectionId)?.name || p.sectionName || p.sectionId)
+                  : "";
+              const nomCell =
+                p.nomination === "chef_section"
+                  ? `<strong style="color:var(--uni);">${esc(nom)}</strong><br><small>${esc(sectionLabel)}</small>`
+                  : esc(nom);
+              const actions =
+                p.nomination === "chef_section"
+                  ? `<button type="button" class="btn btn--ghost btn--xs" data-revoke-nom="${esc(p.email)}">Retirer</button>`
+                  : `<button type="button" class="btn btn--role btn--xs" data-nominate="${esc(p.email)}">Nommer chef</button>`;
+              return `<tr>
+                <td><strong>${esc(name)}</strong><br><small>${esc(p.email)}</small></td>
+                <td>${esc(SAC_NOMINATIONS.gradeLabel(p))}</td>
+                <td>${esc(p.departement || "—")}</td>
+                <td>${esc(SAC_NOMINATIONS.paymentStatusLabel(p.payment))}</td>
+                <td>${nomCell}</td>
+                <td>${actions}</td>
+              </tr>`;
+            })
+            .join("");
+
+          tbody.querySelectorAll("[data-nominate]").forEach((btn) => {
+            btn.addEventListener("click", () => openNominateDialog(btn.dataset.nominate));
+          });
+          tbody.querySelectorAll("[data-revoke-nom]").forEach((btn) => {
+            btn.addEventListener("click", async () => {
+              if (!confirm("Retirer la nomination de ce professeur ?")) return;
+              try {
+                await SAC_NOMINATIONS.revokeNomination(session, btn.dataset.revokeNom);
+                showToast("Nomination retirée.");
+                refreshAll();
+              } catch (err) {
+                alert(err.message);
+              }
+            });
+          });
+        };
+
+        if (typeof SAC_API !== "undefined") {
+          SAC_API.ensureOnline().then((online) => {
+            if (online) {
+              SAC_API.listCampusProfessors()
+                .then(finish)
+                .catch(() => finish(professors));
+              return;
+            }
+            finish(professors);
+          });
+        } else {
+          finish(professors);
+        }
+      }
+
+      function openNominateDialog(email) {
+        const prof = SAC_NOMINATIONS.getCampusProfessors(session).find(
+          (p) => p.email === email
+        );
+        if (!prof) return;
+        const sections = SAC_SECTIONS.getSectionsByUniversity(session).filter((s) => s.active !== false);
+        const select = document.getElementById("nominateSectionId");
+        if (!sections.length) {
+          alert("Créez d'abord au moins une section dans « Sections & responsables ».");
+          return;
+        }
+        select.innerHTML = sections
+          .map(
+            (s) =>
+              `<option value="${esc(s.id)}">${esc(s.name)} — ${esc(s.filiere)}</option>`
+          )
+          .join("");
+        document.getElementById("nominateProfEmail").value = prof.email;
+        document.getElementById("nominateProfLabel").textContent =
+          "Professeur : " +
+          SAC_UNIVERSITY.displayName(prof) +
+          " (" +
+          prof.email +
+          ") · Grade : " +
+          SAC_NOMINATIONS.gradeLabel(prof);
+        document.getElementById("nominateDialog").showModal();
+      }
+
+      async function renderMembers() {
+        const users = SAC_UNIVERSITY.getCampusUsers(session);
+        const tbody = document.getElementById("membersTable");
+        const empty = document.getElementById("membersEmpty");
+        if (!users.length) {
+          tbody.innerHTML = "";
+          empty.style.display = "block";
+          return;
+        }
+        empty.style.display = "none";
+        tbody.innerHTML = users
+          .map(
+            (u) => `<tr>
+            <td>${esc(SAC_UNIVERSITY.displayName(u))}</td>
+            <td>${esc(SAC_TASKS?.ROLE_LABELS?.[u.role] || u.role)}</td>
+            <td>${esc(u.email)}</td>
+            <td>${paymentLabel(u.payment?.status)}</td>
+          </tr>`
+          )
+          .join("");
+      }
+
+      function initPublishers() {
+        if (publishersReady) return;
+        SAC_HOME_NEWS.initProfilePublishers(session);
+        SAC_HOME_NEWS.renderNationalFeedReadonly("nationalFeedReadonly");
+        SAC_initPublisherPage({
+          session,
+          rootId: "publisherRoot",
+          accentColor: "#0d7a4a",
+          pageTitle: "",
+          multiFile: true,
+          maxFiles: 10,
+        });
+        publishersReady = true;
+      }
+
+      /* --- Sections (logique existante) --- */
+      function countOpenForSection(sectionId) {
+        return SAC_SECTIONS.getReclamationsForSection(sectionId).filter((r) => r.statut === "ouverte").length;
+      }
+
+      function getSelectedSectionLabel() {
+        const sec = selectedSectionId ? SAC_SECTIONS.getSectionById(selectedSectionId) : null;
+        return sec ? sec.name + " — " + sec.filiere : "";
+      }
+
+      function initSectionPublisher() {
+        const root = document.getElementById("sectionPublisherRoot");
+        if (!root) return;
+        if (!selectedSectionId) {
+          root.innerHTML =
+            '<p class="page-desc" style="margin:1rem 0 0;padding:1rem;background:var(--bg);border-radius:8px;border:1px dashed var(--border);">Sélectionnez une section pour publier un message à ses étudiants.</p>';
+          return;
+        }
+        root.innerHTML = "";
+        SAC_initSectionPublisher(session, "sectionPublisherRoot", () => selectedSectionId, getSelectedSectionLabel);
+      }
+
+      function selectSection(sectionId) {
+        selectedSectionId = sectionId;
+        const sec = SAC_SECTIONS.getSectionById(sectionId);
+        document.querySelectorAll(".section-pick").forEach((b) => {
+          b.classList.toggle("active", b.dataset.id === sectionId);
+        });
+        document.querySelectorAll(".section-row-clickable").forEach((tr) => {
+          tr.classList.toggle("active", tr.dataset.id === sectionId);
+        });
+        document.getElementById("filterStatut").style.display = sec ? "" : "none";
+        document.getElementById("recPanelTitle").textContent = sec ? "Réclamations — " + sec.name : "Réclamations";
+        document.getElementById("recPanelHint").style.display = sec ? "none" : "block";
+        renderSectionReclamations();
+        initSectionPublisher();
+      }
+
+      function renderSectionPickList() {
+        const list = SAC_SECTIONS.getSectionsByUniversity(session);
+        const countLabel = list.length + " section(s)";
+        document.getElementById("secCount").textContent = countLabel;
+        const secHead = document.getElementById("secCountHead");
+        if (secHead) secHead.textContent = countLabel;
+        const pickEl = document.getElementById("sectionPickList");
+        const empty = document.getElementById("sectionsEmpty");
+
+        if (!list.length) {
+          pickEl.innerHTML = "";
+          empty.style.display = "block";
+          selectedSectionId = null;
+          renderSectionReclamations();
+          initSectionPublisher();
+          return;
+        }
+        empty.style.display = "none";
+        pickEl.innerHTML = list
+          .map((s) => {
+            const open = countOpenForSection(s.id);
+            return `<button type="button" class="section-pick ${selectedSectionId === s.id ? "active" : ""}" data-id="${s.id}">
+              ${open ? `<span class="badge-count">${open}</span>` : ""}
+              <strong>${esc(s.name)}</strong>
+              <span>${esc(s.filiere)}${s.responsableNom ? " · " + esc(s.responsableNom) : ""}</span>
+            </button>`;
+          })
+          .join("");
+        pickEl.querySelectorAll(".section-pick").forEach((btn) => {
+          btn.addEventListener("click", () => selectSection(btn.dataset.id));
+        });
+        if (!selectedSectionId && list.length) selectSection(list[0].id);
+        else if (selectedSectionId) selectSection(selectedSectionId);
+      }
+
+      function renderSectionsTable() {
+        const list = SAC_SECTIONS.getSectionsByUniversity(session);
+        const tbody = document.getElementById("sectionsTable");
+        tbody.innerHTML = list
+          .map((s) => {
+            const open = countOpenForSection(s.id);
+            return `<tr class="section-row-clickable ${selectedSectionId === s.id ? "active" : ""}" data-id="${s.id}">
+              <td><strong>${esc(s.name)}</strong></td><td>${esc(s.filiere)}</td>
+              <td>${esc(s.responsableNom || "—")}</td><td>${esc(s.email || "—")}</td>
+              <td>${open ? `<strong style="color:#b45309">${open}</strong>` : "0"}</td>
+            </tr>`;
+          })
+          .join("");
+        tbody.querySelectorAll(".section-row-clickable").forEach((tr) => {
+          tr.addEventListener("click", () => {
+            selectSection(tr.dataset.id);
+            showSection("sections");
+          });
+        });
+      }
+
+      function renderSectionReclamations() {
+        const allRecs = SAC_SECTIONS.getReclamationsForUniversity(session);
+        const c = SAC_SECTIONS.countByStatut(allRecs);
+        document.getElementById("uniRecStats").innerHTML = `
+          <div class="rec-stat"><strong>${c.ouverte}</strong><span>Ouvertes</span></div>
+          <div class="rec-stat"><strong>${c.en_cours}</strong><span>En cours</span></div>
+          <div class="rec-stat"><strong>${c.resolue}</strong><span>Résolues</span></div>
+          <div class="rec-stat"><strong>${allRecs.length}</strong><span>Total</span></div>`;
+
+        if (!selectedSectionId) {
+          document.getElementById("uniRecList").innerHTML = "";
+          document.getElementById("uniRecEmpty").style.display = "none";
+          return;
+        }
+
+        const filter = document.getElementById("filterStatut").value;
+        let recs = SAC_SECTIONS.getReclamationsForSection(selectedSectionId);
+        if (filter !== "all") recs = recs.filter((r) => r.statut === filter);
+
+        const sec = SAC_SECTIONS.getSectionById(selectedSectionId);
+        const el = document.getElementById("uniRecList");
+        const empty = document.getElementById("uniRecEmpty");
+
+        if (!recs.length) {
+          el.innerHTML = "";
+          empty.style.display = "block";
+          return;
+        }
+        empty.style.display = "none";
+        el.innerHTML = recs
+          .map(
+            (r) => `<article class="rec-card" data-id="${r.id}">
+            <div class="rec-card__head"><span class="rec-card__title">${esc(r.sujet)}</span>
+            <span class="rec-badge" style="background:${SAC_SECTIONS.statutColor(r.statut)}">${SAC_SECTIONS.statutLabel(r.statut)}</span></div>
+            <div class="rec-card__meta">${esc(r.studentNom)} · ${esc(r.matricule)} · ${esc(SAC_SECTIONS.categoryLabel(r.categorie, r.categorieDetail))} · ${new Date(r.createdAt).toLocaleDateString("fr-FR")}</div>
+            <p class="rec-card__msg">${esc(r.message)}</p>
+            ${SAC_SECTIONS.attachmentsHtml(r.attachments, false)}
+            ${r.reponse ? `<div class="rec-card__reply"><strong>Réponse :</strong> ${esc(r.reponse)}</div>` : ""}
+            <div class="rec-actions">
+              <select data-statut-select="${r.id}">${SAC_SECTIONS.STATUTS.map((s) => `<option value="${s.id}" ${r.statut === s.id ? "selected" : ""}>${s.label}</option>`).join("")}</select>
+              <input type="text" class="fi" placeholder="Réponse à l'étudiant…" data-reply="${r.id}" style="flex:1;min-width:160px;padding:0.45rem 0.65rem;font-size:0.85rem;" />
+              <button type="button" class="btn btn--role" data-save="${r.id}" style="font-size:0.8rem;padding:0.4rem 0.85rem;">Enregistrer</button>
+            </div>
+          </article>`
+          )
+          .join("");
+
+        el.querySelectorAll("[data-reply]").forEach((inp) => {
+          const rec = recs.find((x) => x.id === inp.dataset.reply);
+          if (rec?.reponse) inp.value = rec.reponse;
+        });
+        el.querySelectorAll("[data-save]").forEach((btn) => {
+          btn.addEventListener("click", async () => {
+            const id = btn.dataset.save;
+            try {
+              await SAC_SECTIONS.updateReclamation(id, session, {
+                statut: el.querySelector(`[data-statut-select="${id}"]`).value,
+                reponse: el.querySelector(`[data-reply="${id}"]`).value.trim(),
+                sectionName: sec?.name,
+              });
+              showToast("Réclamation mise à jour — l'étudiant est notifié sur son profil.");
+              refreshAll();
+            } catch (e) {
+              alert(e.message);
+            }
+          });
+        });
+      }
+
+      /* Tarifs */
+      function updateCdfHints() {
+        [["tarifEtu", "tarifEtuCdf"], ["tarifProf", "tarifProfCdf"], ["tarifAssist", "tarifAssistCdf"]].forEach(
+          ([inpId, hintId]) => {
+            const v = parseFloat(document.getElementById(inpId)?.value);
+            const el = document.getElementById(hintId);
+            if (!el) return;
+            el.textContent =
+              Number.isFinite(v) && v > 0
+                ? "≈ " + SAC_TARIFFS.toCdf(v).toLocaleString("fr-FR") + " CDF"
+                : "";
+          }
+        );
+      }
+
+      async function loadCampusTariffForm() {
+        const defs = SAC_TARIFFS.DEFAULT_FEES;
+        let pack = session.campusTariffs;
+        const code = SAC_UNIVERSITY.campusCode(session);
+        if (code && typeof SAC_API !== "undefined" && (await SAC_API.ensureOnline())) {
+          try {
+            const data = await SAC_API.getCampusTariffs(code);
+            pack = data.tariffs || pack;
+          } catch { /* défauts */ }
+        }
+        const t = pack || {};
+        document.getElementById("tarifEtu").value = t.etudiant?.amount ?? defs.etudiant.amount;
+        document.getElementById("tarifProf").value = t.professeur?.amount ?? defs.professeur.amount;
+        document.getElementById("tarifAssist").value = t.assistant?.amount ?? defs.assistant.amount;
+        updateCdfHints();
+      }
+
+      ["tarifEtu", "tarifProf", "tarifAssist"].forEach((id) => {
+        document.getElementById(id)?.addEventListener("input", updateCdfHints);
+      });
+
+      document.getElementById("formCampusTariffs").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const msg = document.getElementById("tarifSaveMsg");
+        const tariffs = {
+          etudiant: { amount: parseFloat(document.getElementById("tarifEtu").value) },
+          professeur: { amount: parseFloat(document.getElementById("tarifProf").value) },
+          assistant: { amount: parseFloat(document.getElementById("tarifAssist").value) },
+        };
+        try {
+          const code = SAC_UNIVERSITY.campusCode(session);
+          let membersUpdated = 0;
+          if (typeof SAC_API !== "undefined" && (await SAC_API.ensureOnline())) {
+            const data = await SAC_API.updateCampusTariffs(tariffs);
+            session.campusTariffs = data.tariffs || tariffs;
+            localStorage.setItem("sac_session", JSON.stringify(session));
+            if (code && data.tariffs) {
+              const sync = SAC_TARIFFS.syncCampusTariffsToMembers(code, session.campusTariffs);
+              membersUpdated = sync.updated || data.membersUpdated || 0;
+            }
+          } else {
+            const saved = SAC_TARIFFS.saveLocalCampusTariffs(session, tariffs);
+            session.campusTariffs = saved.campusTariffs || tariffs;
+            membersUpdated = saved.membersUpdated || 0;
+          }
+          SAC_TARIFFS.clearCache();
+          msg.textContent = membersUpdated + " profil(s) mis à jour avec les nouveaux tarifs.";
+          msg.style.display = "block";
+          showToast("Tarifs campus enregistrés.");
+          setTimeout(() => { msg.style.display = "none"; }, 5000);
+        } catch (err) {
+          alert(err.message || "Impossible d'enregistrer les tarifs.");
+        }
+      });
+
+      function setCommFilter(id) {
+        document.querySelectorAll("[data-comm]").forEach((b) => {
+          b.classList.toggle("active", b.dataset.comm === id);
+        });
+        document.querySelectorAll("[data-comm-panel]").forEach((p) => {
+          p.classList.toggle("active", p.dataset.commPanel === id);
+        });
+      }
+
+      function showSection(id) {
+        document.querySelectorAll(".nav-tab").forEach((x) => x.classList.remove("active"));
+        document.querySelectorAll(".page-section").forEach((x) => x.classList.remove("active"));
+        document.querySelector(`[data-section="${id}"]`)?.classList.add("active");
+        document.getElementById("section-" + id)?.classList.add("active");
+        if (id === "communiquer") initPublishers();
+        if (id === "sections") {
+          renderSectionPickList();
+          renderSectionsTable();
+          renderSectionReclamations();
+        }
+        if (id === "accueil" || id === "administration" || id === "sections") refreshAll();
+        if (id === "administration") {
+          renderProfileSectionsList();
+          renderSectionsProfileTable();
+        }
+        if (id === "reunions" && typeof SAC_MEETINGS !== "undefined") {
+          SAC_MEETINGS.mountUI(document.getElementById("meetingsRoot"), session);
+        }
+      }
+
+      function refreshAll() {
+        renderDashboard();
+        renderPayments();
+        renderMembers();
+        renderProfileSectionsList();
+        renderSectionsProfileTable();
+        renderProfessors();
+        renderSectionPickList();
+        renderSectionsTable();
+        renderSectionReclamations();
+      }
+
+      document.querySelectorAll(".nav-tab").forEach((t) => {
+        t.addEventListener("click", () => showSection(t.dataset.section));
+      });
+      document.querySelectorAll("[data-goto]").forEach((b) => {
+        b.addEventListener("click", () => {
+          showSection(b.dataset.goto);
+          if (b.dataset.focus === "payments") {
+            document.getElementById("panelPayments")?.scrollIntoView({ behavior: "smooth" });
+          }
+          if (b.dataset.focus === "tariffs") {
+            document.getElementById("panelTariffs")?.scrollIntoView({ behavior: "smooth" });
+          }
+          if (b.dataset.focus === "rec") showSection("sections");
+          if (b.dataset.focus === "sections") {
+            showSection("administration");
+            document.getElementById("panelSectionsProfile")?.scrollIntoView({ behavior: "smooth" });
+          }
+          if (b.dataset.focus === "professors") {
+            showSection("administration");
+            document.getElementById("panelProfessors")?.scrollIntoView({ behavior: "smooth" });
+          }
+        });
+      });
+
+      document.getElementById("btnCloseNominate").addEventListener("click", () => {
+        document.getElementById("nominateDialog").close();
+      });
+
+      document.getElementById("formNominate").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        try {
+          await SAC_NOMINATIONS.nominateSectionHead(
+            session,
+            document.getElementById("nominateProfEmail").value,
+            document.getElementById("nominateSectionId").value
+          );
+          document.getElementById("nominateDialog").close();
+          showToast("Professeur nommé chef de section — accès activé sur son compte.");
+          refreshAll();
+        } catch (err) {
+          alert(err.message);
+        }
+      });
+      document.querySelectorAll("#commFilter [data-comm]").forEach((btn) => {
+        btn.addEventListener("click", () => setCommFilter(btn.dataset.comm));
+      });
+
+      document.getElementById("secCreateAccount").addEventListener("change", (e) => {
+        document.getElementById("secAccountFields").style.display = e.target.checked ? "block" : "none";
+      });
+      document.getElementById("secProfCreateAccount").addEventListener("change", (e) => {
+        document.getElementById("secProfAccountFields").style.display = e.target.checked ? "block" : "none";
+      });
+
+      document.getElementById("formCreateSection").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        try {
+          const result = await submitNewSection({
+            name: document.getElementById("secName").value,
+            filiere: document.getElementById("secFiliere").value,
+            responsable: document.getElementById("secResp").value,
+            telephone: document.getElementById("secTel").value,
+            email: document.getElementById("secEmail").value,
+            createAccount: document.getElementById("secCreateAccount").checked,
+            headEmail: document.getElementById("secHeadEmail").value,
+            headPassword: document.getElementById("secHeadPassword").value,
+          });
+          e.target.reset();
+          document.getElementById("secAccountFields").style.display = "none";
+          document.getElementById("secCreateAccount").checked = false;
+          if (result.credentials) {
+            showToast(
+              "Section ajoutée — compte responsable : " +
+                result.credentials.email
+            );
+          } else {
+            showToast("Section ajoutée avec responsable nommé.");
+          }
+          refreshAll();
+          selectSection(result.section.id);
+        } catch (err) {
+          alert(err.message);
+        }
+      });
+
+      document.getElementById("formCreateSectionProfile").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        try {
+          const result = await submitNewSection({
+            name: document.getElementById("secProfName").value,
+            filiere: document.getElementById("secProfFiliere").value,
+            responsable: document.getElementById("secProfResp").value,
+            telephone: document.getElementById("secProfTel").value,
+            email: document.getElementById("secProfEmail").value,
+            createAccount: document.getElementById("secProfCreateAccount").checked,
+            headEmail: document.getElementById("secProfHeadEmail").value,
+            headPassword: document.getElementById("secProfHeadPassword").value,
+          });
+          e.target.reset();
+          document.getElementById("secProfAccountFields").style.display = "none";
+          document.getElementById("secProfCreateAccount").checked = false;
+          if (result.credentials) {
+            showToast("Section et compte responsable créés.");
+          } else {
+            showToast("Section ajoutée — responsable enregistré.");
+          }
+          refreshAll();
+        } catch (err) {
+          alert(err.message);
+        }
+      });
+
+      document.getElementById("formEditSection").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const id = document.getElementById("editSectionId").value;
+        const responsableNom = document.getElementById("editSecResp").value.trim();
+        if (responsableNom.length < 2) {
+          alert("Nom du responsable requis.");
+          return;
+        }
+        try {
+          await SAC_SECTIONS.updateSection(id, {
+            name: document.getElementById("editSecName").value.trim(),
+            filiere: document.getElementById("editSecFiliere").value.trim(),
+            responsableNom,
+            email: document.getElementById("editSecEmail").value.trim().toLowerCase(),
+            telephone: document.getElementById("editSecTel").value.trim(),
+          });
+          document.getElementById("sectionEditDialog").close();
+          showToast("Section mise à jour.");
+          refreshAll();
+        } catch (err) {
+          alert(err.message);
+        }
+      });
+
+      document.getElementById("btnCloseSectionEdit").addEventListener("click", () => {
+        document.getElementById("sectionEditDialog").close();
+      });
+
+      document.getElementById("btnDeactivateSection").addEventListener("click", () => {
+        const id = document.getElementById("editSectionId").value;
+        if (!confirm("Désactiver cette section ? Les réclamations existantes restent archivées.")) return;
+        SAC_SECTIONS.deactivateSection(id);
+        document.getElementById("sectionEditDialog").close();
+        showToast("Section désactivée.");
+        refreshAll();
+      });
+
+      document.getElementById("filterStatut").addEventListener("change", renderSectionReclamations);
+
+      document.getElementById("btnLogout").addEventListener("click", () => {
+        SAC_SESSION.logout("index.html");
+      });
+
+      await loadCampusTariffForm();
+      refreshAll();
+      renderSectionPickList();
+      renderSectionsTable();
+      initSectionPublisher();
+
+      if (location.hash === "#sections") showSection("sections");
+      if (location.hash === "#publications" || location.hash === "#communiquer") showSection("communiquer");
+    })();
+  </script>
+</body>
+</html>

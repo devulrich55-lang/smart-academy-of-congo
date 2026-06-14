@@ -1,0 +1,22 @@
+{
+  "functions": {
+    "api/[...path].js": {
+      "maxDuration": 30
+    }
+  },
+  "rewrites": [
+    { "source": "/connexion", "destination": "/connexion.html" },
+    { "source": "/inscription", "destination": "/inscription.html" },
+    { "source": "/mot-de-passe-oublie", "destination": "/mot-de-passe-oublie.html" },
+    { "source": "/reinitialisation", "destination": "/reinitialisation.html" },
+    { "source": "/plateforme", "destination": "/plateforme.html" },
+    { "source": "/verifier-diplome", "destination": "/verifier-diplome.html" },
+    { "source": "/dashboard-etudiant", "destination": "/dashboard-etudiant.html" },
+    { "source": "/dashboard-professeur", "destination": "/dashboard-professeur.html" },
+    { "source": "/dashboard-assistant", "destination": "/dashboard-assistant.html" },
+    { "source": "/dashboard-universite", "destination": "/dashboard-universite.html" },
+    { "source": "/dashboard-section", "destination": "/dashboard-section.html" },
+    { "source": "/fiche-cote", "destination": "/fiche-cote.html" },
+    { "source": "/bulletin-semestre", "destination": "/bulletin-semestre.html" }
+  ]
+}

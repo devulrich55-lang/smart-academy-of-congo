@@ -1,0 +1,10 @@
+{
+  "name": "smart-academy-congo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Smart Academy of Congo — site statique (Render)",
+  "scripts": {
+    "build": "echo Static frontend ready",
+    "check:health": "node scripts/check-health.js"
+  }
+}

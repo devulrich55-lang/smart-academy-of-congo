@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Relevé de notes — Smart Academy of Congo</title>
+  <link rel="icon" href="logos.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="css/grade-sheet.css" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />
+</head>
+<body class="grade-sheet-page">
+  <div id="root"><p style="text-align:center;padding:2rem;">Vérification de l'accès…</p></div>
+  <script src="js/sac-config.js"></script>
+  <script src="js/sac-universities.js"></script>
+  <script src="js/sac-identity.js"></script>
+  <script src="js/sac-session.js"></script>
+  <script src="js/sac-api.js"></script>
+  <script src="js/sac-grades.js"></script>
+  <script src="js/sac-grade-sheet.js"></script>
+  <script>
+    (async function () {
+      const params = new URLSearchParams(window.location.search);
+      const email = params.get("email");
+      const semester = params.get("semester") || "s1-2025";
+      const root = document.getElementById("root");
+      if (!email) {
+        root.innerHTML = "<p style=\"text-align:center;padding:2rem;\">Paramètres manquants.</p>";
+        return;
+      }
+      await SAC_GRADE_SHEET.mountProtectedBulletinPage(root, email, semester);
+    })();
+  </script>
+</body>
+</html>

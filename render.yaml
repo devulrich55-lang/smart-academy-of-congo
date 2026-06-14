@@ -1,0 +1,11 @@
+# Frontend statique — devulrich55-lang/smart-academy-of-congo
+services:
+  - type: web
+    name: smart-academy-of-congo
+    runtime: static
+    buildCommand: npm run build
+    staticPublishPath: "."
+    headers:
+      - path: /*
+        name: Cache-Control
+        value: public, max-age=0, must-revalidate

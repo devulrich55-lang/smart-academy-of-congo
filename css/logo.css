@@ -1,0 +1,94 @@
+/* Logo officiel — Smart Academy of Congo */
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--primary, #0c3d6e);
+  text-decoration: none;
+}
+
+.logo:hover {
+  opacity: 0.92;
+}
+
+.logo__img {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  flex-shrink: 0;
+  display: block;
+}
+
+.logo__text {
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.logo--sm .logo__img {
+  width: 40px;
+  height: 40px;
+}
+
+.logo--lg .logo__img {
+  width: 72px;
+  height: 72px;
+}
+
+.logo--xl .logo__img {
+  width: 120px;
+  height: 120px;
+}
+
+.logo-brand {
+  text-align: center;
+  margin-bottom: 1.25rem;
+}
+
+.logo-brand .logo__img {
+  width: 100px;
+  height: 100px;
+  margin: 0 auto 0.75rem;
+}
+
+.logo-brand .logo__caption {
+  font-size: 0.85rem;
+  color: var(--text-muted, #5a6d7e);
+  font-weight: 500;
+}
+
+.hero__logo-wrap {
+  margin-bottom: 1.25rem;
+}
+
+.hero__logo {
+  width: 110px;
+  height: 110px;
+  object-fit: contain;
+  margin: 0 auto 1rem;
+}
+
+.login-card__logo {
+  width: 80px;
+  height: 80px;
+  object-fit: contain;
+  margin: 0 auto 1rem;
+  display: block;
+}
+
+.footer .logo {
+  color: #fff;
+}
+
+.footer .logo__text {
+  color: #fff;
+}
+
+.profile-hero .logo__img {
+  width: 64px;
+  height: 64px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.15);
+  padding: 4px;
+}

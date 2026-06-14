@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Réinitialisation du mot de passe — Smart Academy of Congo" />
+  <title>Nouveau mot de passe — Smart Academy of Congo</title>
+  <script src="js/sac-config.js"></script>
+  <script src="js/sac-theme.js"></script>
+  <link rel="icon" href="logos.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="css/logo.css" />
+  <link rel="stylesheet" href="css/auth-reset.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <header class="header">
+    <div class="header__inner">
+      <a href="index.html" class="logo">
+        <img src="logos.svg" alt="Smart Academy of Congo" class="logo__img" width="48" height="48" />
+        <span class="logo__text">Smart Academy</span>
+      </a>
+      <a href="connexion.html" class="header__link">← Retour à la connexion</a>
+    </div>
+  </header>
+
+  <main class="page">
+    <section class="auth-card">
+      <img src="logos.svg" alt="" class="auth-card__logo" width="72" height="72" aria-hidden="true" />
+      <h1 class="auth-card__title">Nouveau mot de passe</h1>
+      <p class="auth-card__subtitle">Choisissez un mot de passe sécurisé pour votre compte Smart Academy.</p>
+
+      <div id="alertBox" hidden></div>
+
+      <form id="resetForm" novalidate>
+        <div class="form-group">
+          <label for="password">Nouveau mot de passe</label>
+          <input type="password" class="form-input" id="password" name="password" placeholder="••••••••" required autocomplete="new-password" minlength="8" />
+          <p class="password-hint">Minimum 8 caractères, au moins une lettre et un chiffre, sans espace.</p>
+        </div>
+
+        <div class="form-group">
+          <label for="passwordConfirm">Confirmer le mot de passe</label>
+          <input type="password" class="form-input" id="passwordConfirm" name="passwordConfirm" placeholder="••••••••" required autocomplete="new-password" minlength="8" />
+        </div>
+
+        <button type="submit" class="btn-submit" id="btnSubmit">Enregistrer le nouveau mot de passe</button>
+      </form>
+
+      <p class="form-footer">
+        <a href="mot-de-passe-oublie.html">Demander un nouveau lien</a>
+        ·
+        <a href="connexion.html">Se connecter</a>
+      </p>
+    </section>
+  </main>
+
+  <script src="js/sac-identity.js"></script>
+  <script src="js/sac-api.js"></script>
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get("token");
+    const form = document.getElementById("resetForm");
+    const alertBox = document.getElementById("alertBox");
+    const btnSubmit = document.getElementById("btnSubmit");
+    const passwordInput = document.getElementById("password");
+    const passwordConfirmInput = document.getElementById("passwordConfirm");
+
+    function showAlert(message, type) {
+      alertBox.hidden = false;
+      alertBox.className = "alert alert--" + type;
+      alertBox.textContent = message;
+    }
+
+    if (!token) {
+      form.hidden = true;
+      showAlert(
+        "Lien invalide ou incomplet. Demandez un nouveau lien depuis la page « Mot de passe oublié ».",
+        "error"
+      );
+    }
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (!token) return;
+
+      const password = passwordInput.value;
+      const confirm = passwordConfirmInput.value;
+
+      const check = SAC_IDENTITY.validatePassword(password);
+      if (!check.ok) {
+        showAlert(check.message, "error");
+        return;
+      }
+      if (password !== confirm) {
+        showAlert("Les deux mots de passe ne correspondent pas.", "error");
+        return;
+      }
+
+      btnSubmit.disabled = true;
+      btnSubmit.textContent = "Enregistrement…";
+      alertBox.hidden = true;
+
+      try {
+        const online = await SAC_API.ensureOnline();
+        if (!online) {
+          showAlert("Le serveur est indisponible. Réessayez plus tard.", "error");
+          return;
+        }
+        const result = await SAC_API.resetPassword(token, password);
+        form.hidden = true;
+        showAlert(
+          (result.message || "Mot de passe mis à jour.") + " Redirection vers la connexion…",
+          "success"
+        );
+        setTimeout(() => {
+          window.location.href = "connexion.html";
+        }, 2500);
+      } catch (err) {
+        showAlert(err.message || "Lien invalide ou expiré. Demandez un nouveau lien.", "error");
+      } finally {
+        btnSubmit.disabled = false;
+        btnSubmit.textContent = "Enregistrer le nouveau mot de passe";
+      }
+    });
+  </script>
+</body>
+</html>

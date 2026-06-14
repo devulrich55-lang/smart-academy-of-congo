@@ -1,0 +1,226 @@
+.rec-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.rec-stat {
+  background: var(--surface, #fff);
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 10px;
+  padding: 0.85rem;
+  text-align: center;
+}
+
+.rec-stat strong {
+  display: block;
+  font-size: 1.35rem;
+  color: var(--primary, #0c3d6e);
+}
+
+.rec-stat span {
+  font-size: 0.78rem;
+  color: var(--muted, #5a6d7e);
+}
+
+.rec-form .fg {
+  margin-bottom: 0.85rem;
+}
+
+.rec-form label {
+  display: block;
+  font-size: 0.86rem;
+  font-weight: 600;
+  margin-bottom: 0.35rem;
+}
+
+.rec-form .fi,
+.rec-form select,
+.rec-form textarea {
+  width: 100%;
+  padding: 0.65rem 0.85rem;
+  border: 1.5px solid var(--border, #e2e8f0);
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 0.92rem;
+}
+
+.rec-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.rec-card {
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 10px;
+  padding: 1rem 1.1rem;
+  background: var(--surface, #fff);
+  border-left: 4px solid var(--primary, #0c3d6e);
+}
+
+.rec-card[data-statut="ouverte"] { border-left-color: #b45309; }
+.rec-card[data-statut="en_cours"] { border-left-color: #0c3d6e; }
+.rec-card[data-statut="resolue"] { border-left-color: #0d7a4a; }
+.rec-card[data-statut="fermee"] { border-left-color: #94a3b8; }
+
+.rec-card__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.5rem;
+}
+
+.rec-card__title {
+  font-weight: 700;
+  color: var(--primary, #0c3d6e);
+  font-size: 1rem;
+}
+
+.rec-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.2rem 0.55rem;
+  border-radius: 100px;
+  color: #fff;
+  white-space: nowrap;
+}
+
+.rec-card__meta {
+  font-size: 0.82rem;
+  color: var(--muted, #5a6d7e);
+  margin-bottom: 0.5rem;
+}
+
+.rec-card__msg {
+  font-size: 0.9rem;
+  line-height: 1.55;
+  margin-bottom: 0.65rem;
+}
+
+.rec-card__reply {
+  background: var(--bg, #f4f7fb);
+  border-radius: 8px;
+  padding: 0.75rem;
+  font-size: 0.88rem;
+  margin-top: 0.5rem;
+}
+
+.rec-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.75rem;
+  align-items: center;
+}
+
+.rec-actions select {
+  padding: 0.4rem 0.6rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  font-size: 0.85rem;
+}
+
+.section-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+
+.section-table th,
+.section-table td {
+  padding: 0.65rem 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border, #e2e8f0);
+}
+
+.section-table th {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  color: var(--muted);
+  background: var(--bg, #f4f7fb);
+}
+
+.cred-box {
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  border-radius: 10px;
+  padding: 1rem;
+  margin-top: 1rem;
+  font-size: 0.88rem;
+}
+
+.cred-box code {
+  background: #fff;
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.85rem;
+}
+
+.form-row-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.profile-demand-panel {
+  border: 1px solid rgba(12, 61, 110, 0.15);
+  border-left: 4px solid var(--primary, #0c3d6e);
+}
+
+.rec-file-hint {
+  font-size: 0.8rem;
+  color: var(--muted, #5a6d7e);
+  margin-top: 0.35rem;
+}
+
+.rec-files-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+}
+
+.file-chip {
+  font-size: 0.78rem;
+  background: var(--bg, #f4f7fb);
+  border: 1px solid var(--border);
+  padding: 0.25rem 0.55rem;
+  border-radius: 6px;
+}
+
+.rec-attachments {
+  margin-top: 0.65rem;
+  padding: 0.65rem 0.85rem;
+  background: var(--bg, #f4f7fb);
+  border-radius: 8px;
+  font-size: 0.88rem;
+}
+
+.rec-attachments ul {
+  margin: 0.35rem 0 0 1.1rem;
+  padding: 0;
+}
+
+.rec-attachments li {
+  margin-bottom: 0.25rem;
+}
+
+.rec-attachments a {
+  color: var(--primary, #0c3d6e);
+  font-weight: 600;
+}
+
+.pub-empty {
+  text-align: center;
+  color: var(--muted);
+  padding: 1rem;
+  font-size: 0.9rem;
+}
+
+@media (max-width: 640px) {
+  .form-row-2 { grid-template-columns: 1fr; }
+}

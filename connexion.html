@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Connexion sécurisée — Smart Academy of Congo. Étudiant, professeur, assistant, université ou section." />
+  <title>Connexion — Smart Academy of Congo</title>
+  <script src="js/sac-config.js"></script>
+  <script src="js/sac-theme.js"></script>
+  <link rel="icon" href="logos.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="logos.svg" />
+  <link rel="stylesheet" href="css/logo.css" />
+  <link rel="stylesheet" href="css/theme.css" />
+  <link rel="stylesheet" href="css/connexion.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />
+  <meta name="theme-color" content="#003366" />
+</head>
+<body class="auth-page">
+
+  <header class="auth-header">
+    <div class="auth-page__container auth-header__inner">
+      <a href="index.html" class="auth-header__logo logo">
+        <img src="logos.svg" alt="Smart Academy of Congo" class="logo__img" width="44" height="44" />
+        <span class="logo__text">Smart Academy of Congo</span>
+      </a>
+      <a href="index.html" class="auth-header__link">
+        <span aria-hidden="true">←</span>
+        <span>Retour à l'accueil</span>
+      </a>
+    </div>
+  </header>
+
+  <main class="auth-main">
+    <div class="auth-page__container">
+    <div class="auth-layout">
+    <aside class="auth-hero">
+      <div class="auth-hero__content">
+        <div class="auth-hero__brand logo">
+          <img src="logos.svg" alt="Smart Academy of Congo" class="logo__img" width="88" height="88" />
+          <span class="auth-hero__brand-name">Smart Academy of Congo</span>
+        </div>
+        <h1>Connectez-vous à votre espace</h1>
+        <p class="auth-hero__lead">
+          Choisissez d'abord votre profil — étudiant, professeur, assistant ou université — puis saisissez vos identifiants pour accéder à vos informations officielles.
+        </p>
+        <ol class="auth-steps">
+          <li>
+            <span class="auth-step-num active" id="step1">1</span>
+            <div>
+              <strong>Sélectionnez votre profil</strong>
+              <span>Étudiant, professeur, assistant ou université</span>
+            </div>
+          </li>
+          <li>
+            <span class="auth-step-num" id="step2">2</span>
+            <div>
+              <strong>Renseignez vos identifiants</strong>
+              <span>Matricule, e-mail institutionnel ou code université</span>
+            </div>
+          </li>
+          <li>
+            <span class="auth-step-num" id="step3">3</span>
+            <div>
+              <strong>Accédez à votre tableau de bord</strong>
+              <span>Notes, frais, cours ou administration du campus</span>
+            </div>
+          </li>
+        </ol>
+      </div>
+    </aside>
+
+    <section class="auth-card">
+      <div class="auth-card__head">
+        <div class="auth-card__logo-wrap">
+          <img src="logos.svg" alt="" class="login-card__logo" width="80" height="80" />
+        </div>
+        <h2 class="auth-card__title">Connexion</h2>
+        <p class="auth-card__subtitle">Sélectionnez votre type de compte pour continuer</p>
+      </div>
+
+      <span class="auth-role-label">Je me connecte en tant que</span>
+      <div class="auth-role-scroll">
+        <div class="auth-role-tabs" role="tablist" aria-label="Type de compte">
+          <button type="button" class="auth-role-tab role-tab active" data-role="etudiant" role="tab" aria-selected="true" id="tab-etudiant">
+            <span class="auth-role-tab__icon role-tab__icon" aria-hidden="true">🎓</span>
+            Étudiant
+          </button>
+          <button type="button" class="auth-role-tab role-tab" data-role="professeur" role="tab" aria-selected="false" id="tab-professeur">
+            <span class="auth-role-tab__icon role-tab__icon" aria-hidden="true">📚</span>
+            Professeur
+          </button>
+          <button type="button" class="auth-role-tab role-tab" data-role="assistant" role="tab" aria-selected="false" id="tab-assistant">
+            <span class="auth-role-tab__icon role-tab__icon" aria-hidden="true">📋</span>
+            Assistant
+          </button>
+          <button type="button" class="auth-role-tab role-tab" data-role="universite" role="tab" aria-selected="false" id="tab-universite">
+            <span class="auth-role-tab__icon role-tab__icon" aria-hidden="true">🏛️</span>
+            Université
+          </button>
+          <button type="button" class="auth-role-tab role-tab auth-role-tab--extra" data-role="section" role="tab" aria-selected="false" id="tab-section" hidden>
+            <span class="auth-role-tab__icon role-tab__icon" aria-hidden="true">🏫</span>
+            Section
+          </button>
+        </div>
+      </div>
+
+      <div class="auth-role-badge role-badge" id="roleBadge" data-role="etudiant">
+        <span id="roleBadgeIcon">🎓</span>
+        <span id="roleBadgeText">Espace étudiant</span>
+      </div>
+
+      <div class="auth-notice alert-demo" id="sessionSwitchHint" style="display:none;flex-wrap:wrap;align-items:center;gap:0.5rem;margin-bottom:1rem;">
+        <span>Vous êtes déjà connecté en tant que <strong id="sessionSwitchRole">—</strong>.</span>
+        <button type="button" class="auth-forgot" id="btnSwitchLogout" style="border:none;background:none;cursor:pointer;padding:0;">
+          Se déconnecter pour changer de profil
+        </button>
+      </div>
+
+      <form id="loginForm" novalidate>
+        <div class="auth-form-group field-extra visible" id="fieldUniversite">
+          <label for="universite">Université <span class="hint">(celle de votre inscription)</span></label>
+          <select class="form-input" id="universite" name="universite" data-sac-universities data-empty-label="— Choisir votre université —" data-include-autre="true"></select>
+          <p id="uniLockHint" class="auth-uni-lock">
+            <span aria-hidden="true">✓</span> Université verrouillée sur votre dossier d'inscription
+          </p>
+        </div>
+
+        <div class="auth-form-group field-extra" id="fieldCodeUni">
+          <label for="codeUni">Code établissement <span class="hint">(fourni à l'inscription)</span></label>
+          <div class="auth-input-wrap">
+            <input type="text" class="form-input" id="codeUni" name="codeUni" placeholder="Ex. SAC-UNIKIN-2024" autocomplete="organization" />
+            <span class="auth-input-icon" aria-hidden="true">🏛️</span>
+          </div>
+        </div>
+
+        <div class="auth-form-group">
+          <label for="identifiant" id="labelIdentifiant">Matricule étudiant</label>
+          <input type="text" class="form-input" id="identifiant" name="identifiant" placeholder="Ex. ETU-2024-08452" required autocomplete="username" />
+        </div>
+
+        <div class="auth-form-group">
+          <label for="password">Mot de passe</label>
+          <div class="auth-input-wrap">
+            <input type="password" class="form-input" id="password" name="password" placeholder="••••••••" required autocomplete="current-password" minlength="8" />
+            <button type="button" class="auth-toggle-pwd" id="togglePassword" aria-label="Afficher le mot de passe" title="Afficher / masquer">👁</button>
+          </div>
+        </div>
+
+        <div class="auth-form-row">
+          <label class="auth-checkbox">
+            <input type="checkbox" name="remember" id="remember" />
+            Se souvenir de moi
+          </label>
+          <a href="mot-de-passe-oublie.html" class="auth-forgot" id="forgotLink">Mot de passe oublié ?</a>
+        </div>
+
+        <button type="submit" class="auth-submit btn-submit" id="btnSubmit" data-role="etudiant">
+          Se connecter — Espace étudiant
+        </button>
+
+        <div class="auth-notice alert-demo">
+          <span>
+            Utilisez l'<strong>e-mail</strong> et le <strong>mot de passe</strong> créés à l'inscription, ainsi que la <strong>même université</strong>. Connexion impossible avec un autre établissement ou un mot de passe différent.
+          </span>
+        </div>
+      </form>
+
+      <p class="auth-footer form-footer">
+        Pas encore de compte ?
+        <a href="inscription.html" id="inscriptionLink">Créer un compte étudiant</a>
+      </p>
+    </section>
+    </div>
+    </div>
+  </main>
+
+  <script src="js/sac-universities.js"></script>
+  <script src="js/sac-identity.js"></script>
+  <script src="js/sac-session.js"></script>
+  <script src="js/sac-api.js"></script>
+  <script>
+    (async function () {
+      const roleParam = new URLSearchParams(window.location.search).get("role");
+      if (await SAC_SESSION.redirectIfAuthenticated(roleParam)) {
+        /* redirection vers le tableau de bord */
+      }
+    })();
+  </script>
+  <script>
+    const ROLES = {
+      etudiant: {
+        badge: "Espace étudiant",
+        icon: "🎓",
+        labelIdentifiant: "Matricule étudiant",
+        placeholderIdentifiant: "Ex. ETU-2024-08452",
+        typeIdentifiant: "text",
+        btnText: "Se connecter — Espace étudiant",
+        inscriptionText: "Créer un compte étudiant",
+        dashboard: "dashboard-etudiant.html",
+        showUniversite: true,
+        showCodeUni: false,
+      },
+      professeur: {
+        badge: "Espace professeur",
+        icon: "📚",
+        labelIdentifiant: "E-mail institutionnel",
+        placeholderIdentifiant: "Ex. prof.nom@unikin.cd",
+        typeIdentifiant: "email",
+        btnText: "Se connecter — Espace professeur",
+        inscriptionText: "Demander un accès professeur",
+        dashboard: "dashboard-professeur.html",
+        showUniversite: true,
+        showCodeUni: false,
+      },
+      assistant: {
+        badge: "Espace assistant",
+        icon: "📋",
+        labelIdentifiant: "E-mail ou matricule assistant",
+        placeholderIdentifiant: "Ex. assist.mukendi@unikin.cd",
+        typeIdentifiant: "text",
+        btnText: "Se connecter — Espace assistant",
+        inscriptionText: "Créer un compte assistant",
+        dashboard: "dashboard-assistant.html",
+        showUniversite: true,
+        showCodeUni: false,
+      },
+      universite: {
+        badge: "Espace administration université",
+        icon: "🏛️",
+        labelIdentifiant: "E-mail administrateur",
+        placeholderIdentifiant: "Ex. admin@universite.cd",
+        typeIdentifiant: "email",
+        btnText: "Se connecter — Portail université",
+        inscriptionText: "Inscrire mon université",
+        dashboard: "dashboard-universite.html",
+        showUniversite: false,
+        showCodeUni: true,
+      },
+      section: {
+        badge: "Espace chef de section",
+        icon: "🏫",
+        labelIdentifiant: "E-mail chef de section",
+        placeholderIdentifiant: "Ex. section.gestion@unikin.cd",
+        typeIdentifiant: "email",
+        btnText: "Se connecter — Espace section",
+        inscriptionText: "Compte créé par votre université",
+        dashboard: "dashboard-section.html",
+        showUniversite: true,
+        showCodeUni: false,
+      },
+    };
+
+    let currentRole = "etudiant";
+
+    const tabs = document.querySelectorAll(".role-tab");
+    const roleBadge = document.getElementById("roleBadge");
+    const roleBadgeIcon = document.getElementById("roleBadgeIcon");
+    const roleBadgeText = document.getElementById("roleBadgeText");
+    const labelIdentifiant = document.getElementById("labelIdentifiant");
+    const identifiant = document.getElementById("identifiant");
+    const fieldUniversite = document.getElementById("fieldUniversite");
+    const fieldCodeUni = document.getElementById("fieldCodeUni");
+    const universiteSelect = document.getElementById("universite");
+    const codeUniInput = document.getElementById("codeUni");
+    const btnSubmit = document.getElementById("btnSubmit");
+    const inscriptionLink = document.getElementById("inscriptionLink");
+    const loginForm = document.getElementById("loginForm");
+    const passwordInput = document.getElementById("password");
+    const togglePassword = document.getElementById("togglePassword");
+
+    function updateSteps(activeStep) {
+      [1, 2, 3].forEach((n) => {
+        const el = document.getElementById("step" + n);
+        if (el) el.classList.toggle("active", n === activeStep);
+      });
+    }
+
+    function setRole(role) {
+      currentRole = role;
+      const config = ROLES[role];
+
+      tabs.forEach((tab) => {
+        const isActive = tab.dataset.role === role;
+        tab.classList.toggle("active", isActive);
+        tab.setAttribute("aria-selected", isActive);
+      });
+
+      roleBadge.dataset.role = role;
+      roleBadgeIcon.textContent = config.icon;
+      roleBadgeText.textContent = config.badge;
+
+      labelIdentifiant.textContent = config.labelIdentifiant;
+      identifiant.type = config.typeIdentifiant;
+      identifiant.placeholder = config.placeholderIdentifiant;
+      identifiant.value = "";
+
+      fieldUniversite.classList.toggle("visible", config.showUniversite);
+      universiteSelect.required = config.showUniversite;
+      universiteSelect.disabled = false;
+      const uniHint = document.getElementById("uniLockHint");
+      if (uniHint) uniHint.classList.remove("visible");
+
+      fieldCodeUni.classList.toggle("visible", config.showCodeUni);
+      codeUniInput.required = config.showCodeUni;
+
+      btnSubmit.textContent = config.btnText;
+      btnSubmit.dataset.role = role;
+      inscriptionLink.href = `inscription.html?role=${role === "universite" ? "universite" : role}`;
+      inscriptionLink.textContent = config.inscriptionText;
+
+      const sectionTab = document.getElementById("tab-section");
+      if (sectionTab) sectionTab.hidden = role !== "section";
+
+      updateSteps(1);
+    }
+
+    tabs.forEach((tab) => {
+      tab.addEventListener("click", () => setRole(tab.dataset.role));
+    });
+
+    identifiant.addEventListener("focus", () => updateSteps(2));
+    passwordInput.addEventListener("focus", () => updateSteps(2));
+
+    togglePassword.addEventListener("click", () => {
+      const isPwd = passwordInput.type === "password";
+      passwordInput.type = isPwd ? "text" : "password";
+      togglePassword.textContent = isPwd ? "🙈" : "👁";
+      togglePassword.setAttribute("aria-label", isPwd ? "Masquer le mot de passe" : "Afficher le mot de passe");
+    });
+
+    loginForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      updateSteps(3);
+
+      const idVal = identifiant.value.trim();
+      const pwdVal = passwordInput.value;
+
+      if (idVal.length < 3) {
+        identifiant.focus();
+        identifiant.setCustomValidity("Veuillez saisir votre identifiant.");
+        identifiant.reportValidity();
+        updateSteps(2);
+        return;
+      }
+      identifiant.setCustomValidity("");
+
+      const pwdCheck = SAC_IDENTITY.validatePassword(pwdVal);
+      if (!pwdCheck.ok) {
+        alert(pwdCheck.message);
+        passwordInput.focus();
+        updateSteps(2);
+        return;
+      }
+
+      if (ROLES[currentRole].showUniversite && !universiteSelect.value) {
+        universiteSelect.focus();
+        updateSteps(2);
+        return;
+      }
+
+      if (ROLES[currentRole].showCodeUni && !codeUniInput.value.trim()) {
+        codeUniInput.focus();
+        updateSteps(2);
+        return;
+      }
+
+      btnSubmit.disabled = true;
+      btnSubmit.textContent = "Connexion en cours…";
+
+      let apiSession = null;
+      let apiError = "";
+      if (typeof SAC_API !== "undefined") {
+        await SAC_API.ping();
+        if (SAC_API.isOnline()) {
+          try {
+            apiSession = await SAC_API.login(idVal, pwdVal, currentRole, {
+              universite: ROLES[currentRole].showUniversite ? universiteSelect.value : null,
+              codeUni: ROLES[currentRole].showCodeUni ? codeUniInput.value.trim() : null,
+            });
+          } catch (err) {
+            apiError = err.message || "Identifiant ou mot de passe incorrect.";
+          }
+        }
+      }
+
+      if (apiSession) {
+        window.location.href = ROLES[apiSession.role || currentRole].dashboard;
+        return;
+      }
+
+      if (typeof SAC_API !== "undefined" && SAC_API.isOnline()) {
+        alert(apiError || "Identifiant ou mot de passe incorrect.");
+        btnSubmit.disabled = false;
+        btnSubmit.textContent = ROLES[currentRole].btnText;
+        updateSteps(2);
+        return;
+      }
+
+      if (!SAC_SESSION.allowLocalAuth()) {
+        alert("Connexion impossible. Le serveur d'authentification est requis.");
+        btnSubmit.disabled = false;
+        btnSubmit.textContent = ROLES[currentRole].btnText;
+        updateSteps(2);
+        return;
+      }
+
+      const users = SAC_IDENTITY.getLocalUsers();
+      const found = SAC_IDENTITY.findUserByLoginId(users, idVal);
+
+      if (found && found.role !== currentRole) {
+        alert("Ce compte correspond à un autre profil. Choisissez le bon onglet.");
+        btnSubmit.disabled = false;
+        btnSubmit.textContent = ROLES[currentRole].btnText;
+        updateSteps(1);
+        return;
+      }
+
+      const cred = await SAC_IDENTITY.verifyLoginCredentials(found, pwdVal);
+      if (!cred.ok) {
+        alert(cred.message);
+        btnSubmit.disabled = false;
+        btnSubmit.textContent = ROLES[currentRole].btnText;
+        updateSteps(2);
+        return;
+      }
+
+      const uniCheck = SAC_IDENTITY.assertUniversiteOnLogin(
+        found,
+        ROLES[currentRole].showUniversite ? universiteSelect.value : null
+      );
+      if (!uniCheck.ok) {
+        alert(uniCheck.message);
+        btnSubmit.disabled = false;
+        btnSubmit.textContent = ROLES[currentRole].btnText;
+        updateSteps(2);
+        return;
+      }
+
+      const codeCheck = SAC_IDENTITY.assertCodeUniOnLogin(
+        found,
+        ROLES[currentRole].showCodeUni ? codeUniInput.value : null
+      );
+      if (!codeCheck.ok) {
+        alert(codeCheck.message);
+        btnSubmit.disabled = false;
+        btnSubmit.textContent = ROLES[currentRole].btnText;
+        updateSteps(2);
+        return;
+      }
+
+      const session = SAC_IDENTITY.buildSessionFromUser(found);
+      session.authSource = "local";
+      SAC_SESSION.saveSession(session);
+      window.location.href = ROLES[found.role].dashboard;
+    });
+
+    identifiant.addEventListener("input", () => identifiant.setCustomValidity(""));
+    identifiant.addEventListener("blur", syncUniversiteFromAccount);
+
+    function syncUniversiteFromAccount() {
+      const hint = document.getElementById("uniLockHint");
+      if (!ROLES[currentRole].showUniversite || !universiteSelect) return;
+      const users = SAC_IDENTITY.getLocalUsers();
+      const found = SAC_IDENTITY.findUserByLoginId(users, identifiant.value.trim());
+      if (found && found.role === currentRole) {
+        const reg = SAC_IDENTITY.getRegisteredUniversite(found);
+        if (reg) {
+          universiteSelect.value = reg;
+          universiteSelect.disabled = true;
+          if (hint) hint.classList.add("visible");
+          return;
+        }
+      }
+      universiteSelect.disabled = false;
+      if (hint) hint.classList.remove("visible");
+    }
+
+    SAC_UNIVERSITIES.populateAll("[data-sac-universities]");
+
+    (function sessionSwitchHint() {
+      const hint = document.getElementById("sessionSwitchHint");
+      if (!hint) return;
+      const active = SAC_SESSION.getActiveSession();
+      const roleParam = new URLSearchParams(window.location.search).get("role") || "etudiant";
+      if (active && roleParam && active.role !== roleParam) {
+        hint.style.display = "flex";
+        document.getElementById("sessionSwitchRole").textContent = active.role;
+        document.getElementById("btnSwitchLogout").addEventListener("click", () => {
+          SAC_SESSION.logout("connexion.html?role=" + encodeURIComponent(roleParam));
+        });
+      }
+    })();
+
+    const params = new URLSearchParams(window.location.search);
+    const roleParam = params.get("role");
+    if (roleParam && ROLES[roleParam]) {
+      setRole(roleParam);
+    } else {
+      setRole("etudiant");
+    }
+  </script>
+</body>
+</html>

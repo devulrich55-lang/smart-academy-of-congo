@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Mot de passe oublié — Smart Academy of Congo" />
+  <title>Mot de passe oublié — Smart Academy of Congo</title>
+  <script src="js/sac-config.js"></script>
+  <script src="js/sac-theme.js"></script>
+  <link rel="icon" href="logos.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="css/logo.css" />
+  <link rel="stylesheet" href="css/auth-reset.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <header class="header">
+    <div class="header__inner">
+      <a href="index.html" class="logo">
+        <img src="logos.svg" alt="Smart Academy of Congo" class="logo__img" width="48" height="48" />
+        <span class="logo__text">Smart Academy</span>
+      </a>
+      <a href="connexion.html" class="header__link">← Retour à la connexion</a>
+    </div>
+  </header>
+
+  <main class="page">
+    <section class="auth-card">
+      <img src="logos.svg" alt="" class="auth-card__logo" width="72" height="72" aria-hidden="true" />
+      <h1 class="auth-card__title">Mot de passe oublié</h1>
+      <p class="auth-card__subtitle">
+        Saisissez l'<strong>e-mail</strong> utilisé lors de votre inscription. Nous vous enverrons un lien pour choisir un nouveau mot de passe.
+      </p>
+
+      <div id="alertBox" hidden></div>
+
+      <form id="forgotForm" novalidate>
+        <div class="form-group">
+          <label for="email">Adresse e-mail</label>
+          <input type="email" class="form-input" id="email" name="email" placeholder="Ex. etudiant@unikin.cd" required autocomplete="email" />
+        </div>
+
+        <button type="submit" class="btn-submit" id="btnSubmit">Envoyer le lien de réinitialisation</button>
+      </form>
+
+      <p class="form-footer">
+        Vous vous souvenez de votre mot de passe ?
+        <a href="connexion.html">Se connecter</a>
+      </p>
+    </section>
+  </main>
+
+  <script src="js/sac-api.js"></script>
+  <script>
+    const form = document.getElementById("forgotForm");
+    const alertBox = document.getElementById("alertBox");
+    const btnSubmit = document.getElementById("btnSubmit");
+    const emailInput = document.getElementById("email");
+
+    function showAlert(message, type) {
+      alertBox.hidden = false;
+      alertBox.className = "alert alert--" + type;
+      alertBox.textContent = message;
+    }
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const email = emailInput.value.trim();
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        showAlert("Veuillez saisir une adresse e-mail valide.", "error");
+        return;
+      }
+
+      btnSubmit.disabled = true;
+      btnSubmit.textContent = "Envoi en cours…";
+      alertBox.hidden = true;
+
+      try {
+        const online = await SAC_API.ensureOnline();
+        if (!online) {
+          showAlert(
+            "Le serveur est indisponible. Réessayez plus tard ou contactez contact@smartacademy.cd.",
+            "error"
+          );
+          return;
+        }
+        const result = await SAC_API.requestPasswordReset(email);
+        form.hidden = true;
+        showAlert(
+          result.message ||
+            "Si un compte existe avec cet e-mail, un lien de réinitialisation a été envoyé. Vérifiez votre boîte de réception (et les spams).",
+          "success"
+        );
+      } catch (err) {
+        showAlert(err.message || "Une erreur est survenue. Réessayez plus tard.", "error");
+      } finally {
+        btnSubmit.disabled = false;
+        btnSubmit.textContent = "Envoyer le lien de réinitialisation";
+      }
+    });
+  </script>
+</body>
+</html>
