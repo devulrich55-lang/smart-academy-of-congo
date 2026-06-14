@@ -16,6 +16,11 @@ const SAC_API = (function () {
     if (fromMeta) return fromMeta;
 
     const { protocol, hostname, port } = window.location;
+
+    // Repli Render si sac-config.js absent
+    if (hostname.endsWith(".onrender.com") && hostname.indexOf("-api") === -1) {
+      return "https://smart-academy-of-congo-api.onrender.com";
+    }
     const isLocalHost =
       hostname === "localhost" ||
       hostname === "127.0.0.1" ||
@@ -110,14 +115,26 @@ const SAC_API = (function () {
       online = false;
       return false;
     }
-    try {
-      const res = await fetch(`${BASE}/api/health`, { credentials: "include" });
-      online = res.ok;
-      return online;
-    } catch {
+    if (!BASE) {
       online = false;
       return false;
     }
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      try {
+        const res = await fetch(`${BASE}/api/health`, {
+          credentials: "include",
+          mode: "cors",
+        });
+        online = res.ok;
+        return online;
+      } catch {
+        if (attempt < 2) {
+          await new Promise((r) => setTimeout(r, 2000));
+        }
+      }
+    }
+    online = false;
+    return false;
   }
 
   async function ensureOnline(force) {

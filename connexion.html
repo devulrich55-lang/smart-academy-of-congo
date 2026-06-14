@@ -12,6 +12,7 @@
   <link rel="stylesheet" href="css/logo.css" />
   <link rel="stylesheet" href="css/theme.css" />
   <link rel="stylesheet" href="css/connexion.css" />
+  <link rel="stylesheet" href="css/mobile.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />
@@ -399,7 +400,15 @@
       }
 
       if (!SAC_SESSION.allowLocalAuth()) {
-        alert("Connexion impossible. Le serveur d'authentification est requis.");
+        const apiHint = typeof SAC_API !== "undefined" && SAC_API.getBase
+          ? SAC_API.getBase()
+          : "";
+        alert(
+          "Connexion impossible : l'API est injoignable.\n\n" +
+          (apiHint ? "API : " + apiHint + "\n\n" : "") +
+          "Attendez 30 s (réveil Render) puis réessayez.\n" +
+          "Si le problème persiste, vérifiez ALLOWED_ORIGINS sur l'API Render."
+        );
         btnSubmit.disabled = false;
         btnSubmit.textContent = ROLES[currentRole].btnText;
         updateSteps(2);
@@ -501,5 +510,6 @@
       setRole("etudiant");
     }
   </script>
+  <script src="js/sac-mobile.js" defer></script>
 </body>
 </html>

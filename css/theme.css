@@ -140,6 +140,18 @@ body {
   border-color: var(--border) !important;
 }
 
+.mobile-section-picker select,
+[data-theme="dark"] .mobile-section-picker select {
+  background: var(--surface) !important;
+  color: var(--text) !important;
+  border-color: var(--border) !important;
+}
+
+[data-theme="dark"] .mobile-section-picker {
+  background: var(--surface) !important;
+  border-color: var(--border) !important;
+}
+
 /* ── Dashboards ── */
 .panel,
 .stat,
