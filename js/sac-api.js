@@ -19,7 +19,7 @@ const SAC_API = (function () {
 
     // Repli Render si sac-config.js absent
     if (hostname.endsWith(".onrender.com") && hostname.indexOf("-api") === -1) {
-      return "https://smart-academy-of-congo-api.onrender.com";
+      return "https://smart-academy-of-congo-api-1.onrender.com";
     }
     const isLocalHost =
       hostname === "localhost" ||
@@ -73,8 +73,21 @@ const SAC_API = (function () {
   let online = null;
   let sessionCache = null;
 
+  function fetchWithTimeout(url, options, ms) {
+    var timeout = ms || 45000;
+    var controller = typeof AbortController !== "undefined" ? new AbortController() : null;
+    var timer = controller
+      ? setTimeout(function () { controller.abort(); }, timeout)
+      : null;
+    var opts = Object.assign({}, options || {});
+    if (controller) opts.signal = controller.signal;
+    return fetch(url, opts).finally(function () {
+      if (timer) clearTimeout(timer);
+    });
+  }
+
   async function request(path, options = {}) {
-    const res = await fetch(`${BASE}/api${path}`, {
+    const res = await fetchWithTimeout(`${BASE}/api${path}`, {
       ...options,
       credentials: "include",
       headers: {
@@ -121,10 +134,10 @@ const SAC_API = (function () {
     }
     for (let attempt = 0; attempt < 3; attempt += 1) {
       try {
-        const res = await fetch(`${BASE}/api/health`, {
+        const res = await fetchWithTimeout(`${BASE}/api/health`, {
           credentials: "include",
           mode: "cors",
-        });
+        }, 20000);
         online = res.ok;
         return online;
       } catch {

@@ -372,49 +372,52 @@
 
       let apiSession = null;
       let apiError = "";
-      if (typeof SAC_API !== "undefined") {
-        await SAC_API.ping();
-        if (SAC_API.isOnline()) {
-          try {
-            apiSession = await SAC_API.login(idVal, pwdVal, currentRole, {
-              universite: ROLES[currentRole].showUniversite ? universiteSelect.value : null,
-              codeUni: ROLES[currentRole].showCodeUni ? codeUniInput.value.trim() : null,
-            });
-          } catch (err) {
-            apiError = err.message || "Identifiant ou mot de passe incorrect.";
+      try {
+        if (typeof SAC_API !== "undefined") {
+          await SAC_API.ping();
+          if (SAC_API.isOnline()) {
+            try {
+              apiSession = await SAC_API.login(idVal, pwdVal, currentRole, {
+                universite: ROLES[currentRole].showUniversite ? universiteSelect.value : null,
+                codeUni: ROLES[currentRole].showCodeUni ? codeUniInput.value.trim() : null,
+              });
+            } catch (err) {
+              apiError = err.message || "Identifiant ou mot de passe incorrect.";
+            }
           }
+        }
+
+        if (apiSession) {
+          window.location.href = ROLES[apiSession.role || currentRole].dashboard;
+          return;
+        }
+
+        if (typeof SAC_API !== "undefined" && SAC_API.isOnline()) {
+          alert(apiError || "Identifiant ou mot de passe incorrect.");
+          return;
+        }
+
+        if (!SAC_SESSION.allowLocalAuth()) {
+          const apiHint = typeof SAC_API !== "undefined" && SAC_API.getBase
+            ? SAC_API.getBase()
+            : "";
+          alert(
+            "Connexion impossible : l'API est injoignable.\n\n" +
+            (apiHint ? "API : " + apiHint + "\n\n" : "") +
+            "Attendez 30 s (réveil Render) puis réessayez.\n" +
+            "Vérifiez l'URL API sur Render (service API-1)."
+          );
+          return;
+        }
+      } finally {
+        if (!apiSession) {
+          btnSubmit.disabled = false;
+          btnSubmit.textContent = ROLES[currentRole].btnText;
+          updateSteps(2);
         }
       }
 
-      if (apiSession) {
-        window.location.href = ROLES[apiSession.role || currentRole].dashboard;
-        return;
-      }
-
-      if (typeof SAC_API !== "undefined" && SAC_API.isOnline()) {
-        alert(apiError || "Identifiant ou mot de passe incorrect.");
-        btnSubmit.disabled = false;
-        btnSubmit.textContent = ROLES[currentRole].btnText;
-        updateSteps(2);
-        return;
-      }
-
-      if (!SAC_SESSION.allowLocalAuth()) {
-        const apiHint = typeof SAC_API !== "undefined" && SAC_API.getBase
-          ? SAC_API.getBase()
-          : "";
-        alert(
-          "Connexion impossible : l'API est injoignable.\n\n" +
-          (apiHint ? "API : " + apiHint + "\n\n" : "") +
-          "Attendez 30 s (réveil Render) puis réessayez.\n" +
-          "Si le problème persiste, vérifiez ALLOWED_ORIGINS sur l'API Render."
-        );
-        btnSubmit.disabled = false;
-        btnSubmit.textContent = ROLES[currentRole].btnText;
-        updateSteps(2);
-        return;
-      }
-
+      /* repli local dev uniquement */
       const users = SAC_IDENTITY.getLocalUsers();
       const found = SAC_IDENTITY.findUserByLoginId(users, idVal);
 
