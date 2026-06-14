@@ -65,8 +65,34 @@ const SAC_API = (function () {
     };
   }
 
+  const TOKEN_ACCESS = "sac_access_token";
+  const TOKEN_REFRESH = "sac_refresh_token";
+
+  function isCrossOriginApi() {
+    if (!BASE || typeof window === "undefined") return false;
+    try {
+      return new URL(BASE).origin !== window.location.origin;
+    } catch {
+      return false;
+    }
+  }
+
+  function saveApiTokens(accessToken, refreshToken) {
+    if (!isCrossOriginApi()) return;
+    if (accessToken) sessionStorage.setItem(TOKEN_ACCESS, accessToken);
+    if (refreshToken) sessionStorage.setItem(TOKEN_REFRESH, refreshToken);
+  }
+
+  function getAuthHeaders() {
+    if (!isCrossOriginApi()) return {};
+    const token = sessionStorage.getItem(TOKEN_ACCESS);
+    return token ? { Authorization: "Bearer " + token } : {};
+  }
+
   function clearClientSession() {
     sessionCache = null;
+    sessionStorage.removeItem(TOKEN_ACCESS);
+    sessionStorage.removeItem(TOKEN_REFRESH);
     localStorage.removeItem("sac_session");
   }
 
@@ -92,6 +118,7 @@ const SAC_API = (function () {
       credentials: "include",
       headers: {
         Accept: "application/json",
+        ...getAuthHeaders(),
         ...(options.body && !(options.body instanceof FormData)
           ? { "Content-Type": "application/json" }
           : {}),
@@ -167,6 +194,7 @@ const SAC_API = (function () {
       }),
     });
     sessionCache = tagApiSession(data.session);
+    saveApiTokens(data.accessToken, data.refreshToken);
     localStorage.setItem("sac_session", JSON.stringify(sessionCache));
     return sessionCache;
   }
@@ -177,14 +205,22 @@ const SAC_API = (function () {
       body: JSON.stringify(profile),
     });
     sessionCache = tagApiSession(data.session);
+    saveApiTokens(data.accessToken, data.refreshToken);
     localStorage.setItem("sac_session", JSON.stringify(sessionCache));
     return sessionCache;
   }
 
   async function refresh() {
     try {
-      const data = await request("/auth/refresh", { method: "POST" });
+      const refreshToken = isCrossOriginApi()
+        ? sessionStorage.getItem(TOKEN_REFRESH)
+        : null;
+      const data = await request("/auth/refresh", {
+        method: "POST",
+        body: refreshToken ? JSON.stringify({ refreshToken }) : undefined,
+      });
       sessionCache = tagApiSession(data.session);
+      saveApiTokens(data.accessToken, data.refreshToken);
       localStorage.setItem("sac_session", JSON.stringify(sessionCache));
       return true;
     } catch {
@@ -195,7 +231,13 @@ const SAC_API = (function () {
 
   async function logout() {
     try {
-      await request("/auth/logout", { method: "POST" });
+      const refreshToken = isCrossOriginApi()
+        ? sessionStorage.getItem(TOKEN_REFRESH)
+        : null;
+      await request("/auth/logout", {
+        method: "POST",
+        body: refreshToken ? JSON.stringify({ refreshToken }) : undefined,
+      });
     } catch {
       /* ignore */
     }
@@ -388,11 +430,14 @@ const SAC_API = (function () {
   }
 
   async function uploadFormData(path, formData, method) {
-    const res = await fetch(`${BASE}/api${path}`, {
+    const res = await fetchWithTimeout(`${BASE}/api${path}`, {
       method: method || "POST",
       credentials: "include",
+      headers: {
+        ...getAuthHeaders(),
+      },
       body: formData,
-    });
+    }, 60000);
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
       const err = new Error(data.message || data.error || "UPLOAD_ERROR");

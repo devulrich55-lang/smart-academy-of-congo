@@ -51,8 +51,11 @@
 
   function wrapTables(root) {
     var scope = root || document;
-    scope.querySelectorAll("table").forEach(function (table) {
-      if (table.closest(".table-wrap")) return;
+    scope.querySelectorAll("table:not([data-sac-wrapped])").forEach(function (table) {
+      if (table.closest(".table-wrap")) {
+        table.setAttribute("data-sac-wrapped", "1");
+        return;
+      }
       var parent = table.parentElement;
       if (!parent) return;
       if (parent.tagName === "THEAD" || parent.tagName === "TBODY" || parent.tagName === "TFOOT") return;
@@ -61,6 +64,7 @@
       wrap.className = "table-wrap";
       parent.insertBefore(wrap, table);
       wrap.appendChild(table);
+      table.setAttribute("data-sac-wrapped", "1");
     });
   }
 
@@ -116,14 +120,4 @@
   } else {
     init();
   }
-
-  var wrapTimer;
-  var observer = new MutationObserver(function () {
-    clearTimeout(wrapTimer);
-    wrapTimer = setTimeout(function () {
-      wrapTables(document);
-      initPlatformSidebar();
-    }, 120);
-  });
-  observer.observe(document.body, { childList: true, subtree: true });
 })();

@@ -176,6 +176,9 @@ const SAC_SESSION = (function () {
         saveSession(serverSession);
         return serverSession;
       } catch {
+        if (local && local.authSource === "api" && local.identifiant) {
+          return local;
+        }
         clearSession();
         return null;
       }
