@@ -187,7 +187,7 @@ const SAC_API = (function () {
     return data;
   }
 
-  async function ping() {
+  async function ping(options) {
     if (typeof window !== "undefined" && window.location.protocol === "file:") {
       online = false;
       return false;
@@ -196,17 +196,30 @@ const SAC_API = (function () {
       online = false;
       return false;
     }
-    for (let attempt = 0; attempt < 3; attempt += 1) {
+
+    const opts = options || {};
+    const maxAttempts = opts.attempts || 5;
+    const timeoutMs = opts.timeoutMs || 45000;
+    const delayMs = opts.delayMs || 5000;
+    const onAttempt = typeof opts.onAttempt === "function" ? opts.onAttempt : null;
+
+    for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+      if (onAttempt) onAttempt(attempt + 1, maxAttempts);
       try {
-        const res = await fetchWithTimeout(`${BASE}/api/health`, {
-          credentials: "include",
-          mode: "cors",
-        }, 20000);
+        const res = await fetchWithTimeout(
+          `${BASE}/api/health`,
+          {
+            credentials: "include",
+            mode: "cors",
+            cache: "no-store",
+          },
+          timeoutMs
+        );
         online = res.ok;
         return online;
       } catch {
-        if (attempt < 2) {
-          await new Promise((r) => setTimeout(r, 2000));
+        if (attempt < maxAttempts - 1) {
+          await new Promise((r) => setTimeout(r, delayMs));
         }
       }
     }
@@ -214,8 +227,22 @@ const SAC_API = (function () {
     return false;
   }
 
+  /** Réveille l'API Render (cold start ~30–90 s) avant connexion / inscription. */
+  async function wakeServer(options) {
+    return ping(
+      Object.assign(
+        {
+          attempts: 6,
+          timeoutMs: 50000,
+          delayMs: 6000,
+        },
+        options || {}
+      )
+    );
+  }
+
   async function ensureOnline(force) {
-    if (force || online === null) await ping();
+    if (force || online === null) await ping(force ? { attempts: 5, timeoutMs: 45000 } : undefined);
     return online;
   }
 
@@ -617,6 +644,7 @@ const SAC_API = (function () {
 
   return {
     ping,
+    wakeServer,
     ensureOnline,
     isOnline,
     isLocalDevHost,
