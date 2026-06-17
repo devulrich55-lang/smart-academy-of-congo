@@ -56,6 +56,22 @@
     .task-filter button { padding: 0.4rem 0.85rem; border-radius: 100px; border: 1.5px solid var(--border); background: #fff; font-size: 0.82rem; font-weight: 600; cursor: pointer; font-family: inherit; color: var(--muted); }
     .task-filter button.active { border-color: var(--prof); color: var(--prof); background: rgba(201,162,39,0.1); }
     .student-chip { display: inline-block; padding: 0.2rem 0.55rem; margin: 0.15rem 0.25rem 0.15rem 0; background: rgba(12,61,110,0.06); border-radius: 6px; font-size: 0.78rem; }
+    .online-dot {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+    .online-dot::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #94a3b8;
+      display: inline-block;
+    }
+    .online-dot.is-online::before { background: #16a34a; box-shadow: 0 0 0 3px rgba(22,163,74,0.16); }
   </style>
   <link rel="stylesheet" href="css/theme.css" />
   <link rel="stylesheet" href="css/mobile.css" />
@@ -72,6 +88,7 @@
         </button>
         <span class="badge-role">📚 Profil professeur</span>
         <span id="userName" style="font-size:0.9rem;color:var(--muted);"></span>
+        <span id="selfPresence" class="online-dot">hors ligne</span>
         <button type="button" class="btn btn--ghost" id="btnLogout">Déconnexion</button>
       </div>
     </div>
@@ -350,6 +367,7 @@
   <script src="js/sac-meetings.js"></script>
   <script src="js/sac-live.js"></script>
   <script src="js/sac-video-live.js"></script>
+  <script src="js/sac-presence.js"></script>
   <script>
     (async function () {
       let session = await SAC_SESSION.guard("professeur");
@@ -391,6 +409,8 @@
       const UNI_NAMES = { ...SAC_UNIVERSITIES.NAMES, autre: "Autre établissement" };
       let currentActFilter = "grades";
       let gradesUi = null;
+      let presenceByClass = {};
+      let totalOnlineStudents = 0;
 
       function escapeHtml(s) {
         const d = document.createElement("div");
@@ -453,6 +473,7 @@
         document.getElementById("activityStatsBar").innerHTML = `
           <div class="task-stat task-stat--warn"><strong>${s.pendingGrades}</strong><span>Cotes à saisir</span></div>
           <div class="task-stat"><strong>${s.studentsCount}</strong><span>Étudiants</span></div>
+          <div class="task-stat"><strong>${totalOnlineStudents}</strong><span>Étudiants en ligne</span></div>
           <div class="task-stat"><strong>${s.publicationsCount}</strong><span>Publications</span></div>
           <div class="task-stat ${s.questionsCount ? "task-stat--warn" : ""}"><strong>${s.questionsCount}</strong><span>Questions ❓</span></div>
           <div class="task-stat"><strong>${s.gradesEntered}</strong><span>Cotes enregistrées</span></div>`;
@@ -550,11 +571,30 @@
               : '<span style="color:var(--muted);font-size:0.85rem;">Aucun étudiant pour cette classe (vérifiez filière / niveau).</span>';
             return `<div style="margin-bottom:1.25rem;">
               <strong>${escapeHtml(g.courseClass.courseCode)} — ${escapeHtml(g.courseClass.courseName)}</strong>
-              <div class="task-row__meta">${escapeHtml(g.courseClass.classe)} · ${g.students.length} étudiant(s)</div>
+              <div class="task-row__meta">${escapeHtml(g.courseClass.classe)} · ${g.students.length} étudiant(s) · <strong>${presenceByClass[g.courseClass.classe] || 0}</strong> en ligne</div>
               <div style="margin-top:0.5rem;">${chips}</div>
             </div>`;
           })
           .join("");
+      }
+
+      function setSelfPresence(isOnline) {
+        const el = document.getElementById("selfPresence");
+        if (!el) return;
+        el.classList.toggle("is-online", Boolean(isOnline));
+        el.textContent = isOnline ? "en ligne" : "hors ligne";
+      }
+
+      function applyProfessorPresence(data) {
+        totalOnlineStudents = Number(data?.onlineCount || 0);
+        const map = {};
+        (data?.classes || []).forEach((x) => {
+          if (!x?.classe) return;
+          map[x.classe] = Number(x.onlineCount || 0);
+        });
+        presenceByClass = map;
+        renderActivityStats();
+        if (currentActFilter === "students") renderStudentsActivity();
       }
 
       function renderAccountPanel() {
@@ -906,6 +946,13 @@
         if (gradesUi?.refresh) gradesUi.refresh();
         renderAllActivity();
       });
+
+      if (typeof SAC_PRESENCE !== "undefined") {
+        SAC_PRESENCE.start(session, {
+          onSelfOnline: setSelfPresence,
+          onProfessorPresence: applyProfessorPresence,
+        });
+      }
     })();
   </script>
   <script src="js/sac-mobile.js" defer></script>

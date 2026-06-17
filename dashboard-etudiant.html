@@ -913,6 +913,7 @@
   <script src="js/sac-meetings.js"></script>
   <script src="js/sac-live.js"></script>
   <script src="js/sac-video-live.js"></script>
+  <script src="js/sac-presence.js"></script>
   <script>
     let studentGrades = [];
     let aiCorrectionUi = null;
@@ -1548,6 +1549,9 @@
       renderDocuments();
       renderReclamations(session);
       renderFees(p);
+      if (typeof SAC_PRESENCE !== "undefined") {
+        SAC_PRESENCE.start(session);
+      }
 
       document.getElementById("formReclamation").addEventListener("submit", (e) =>
         handleReclamationSubmit(e, {

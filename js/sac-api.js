@@ -428,6 +428,21 @@ const SAC_API = (function () {
     });
   }
 
+  async function pingPresence(payload = {}) {
+    return request("/platform/presence/ping", {
+      method: "POST",
+      body: JSON.stringify(payload || {}),
+    });
+  }
+
+  async function getSectionPresence() {
+    return request("/platform/presence/section");
+  }
+
+  async function getProfessorPresence() {
+    return request("/platform/presence/classes");
+  }
+
   async function platformRequest(path, options = {}) {
     const useAuth = options.auth !== false;
     const opts = { ...options };
@@ -532,6 +547,9 @@ const SAC_API = (function () {
     listReclamations,
     createReclamation,
     patchReclamation,
+    pingPresence,
+    getSectionPresence,
+    getProfessorPresence,
     platformRequest,
     uploadFormData,
     getBase,
