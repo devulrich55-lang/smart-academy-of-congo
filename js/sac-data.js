@@ -83,7 +83,8 @@ const SAC_DATA = (function () {
           useApi = await SAC_API.ensureOnline();
           if (useApi) {
             try {
-              cache = await SAC_API.getDocuments();
+              const docs = await SAC_API.getDocuments();
+              cache = docs.map(resolveDocMediaUrls);
               return;
             } catch {
               useApi = false;
@@ -163,8 +164,29 @@ const SAC_DATA = (function () {
     return canEdit(session, doc);
   }
 
+  function resolveDocMediaUrls(doc) {
+    if (!doc || typeof SAC_API === "undefined" || typeof SAC_API.getBase !== "function") {
+      return doc;
+    }
+    const base = SAC_API.getBase();
+    if (!base) return doc;
+    const fix = (url) =>
+      url && String(url).startsWith("/uploads/") ? base + url : url;
+    return {
+      ...doc,
+      mediaUrl: fix(doc.mediaUrl),
+      attachments: (doc.attachments || []).map((a) => ({
+        ...a,
+        mediaUrl: fix(a.mediaUrl),
+      })),
+    };
+  }
+
   async function refreshCache() {
-    if (useApi) cache = await SAC_API.getDocuments();
+    if (useApi) {
+      const docs = await SAC_API.getDocuments();
+      cache = docs.map(resolveDocMediaUrls);
+    }
   }
 
   async function create(session, data, fileOrFiles) {
@@ -200,7 +222,7 @@ const SAC_DATA = (function () {
         uploadFiles.length ? uploadFiles : null
       );
       await refreshCache();
-      return doc;
+      return resolveDocMediaUrls(doc);
     }
 
     const isCampus = session.role === "universite" && data.audienceType !== "section";

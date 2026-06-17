@@ -27,8 +27,10 @@ const SAC_COURSES = (function () {
   }
 
   function getTeachingClasses(session) {
+    const fromSession = session?.coursClasses;
+    if (Array.isArray(fromSession) && fromSession.length) return fromSession;
     const u = getUserByEmail(session?.identifiant);
-    return u?.coursClasses || session?.coursClasses || [];
+    return u?.coursClasses || [];
   }
 
   function classLabel(c) {

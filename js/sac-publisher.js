@@ -255,21 +255,24 @@ function SAC_initPublisherPage(config) {
 
   function myDocs() {
     const sectionId = sectionMode ? getSectionId?.() : null;
-    return SAC_DATA.getAll().filter((d) => {
-      if (d.source !== source) return false;
-      if (sectionMode) {
+    if (sectionMode) {
+      return SAC_DATA.getAll().filter((d) => {
+        if (d.source !== source) return false;
         return sectionId && d.audienceType === "section" && d.sectionId === sectionId;
-      }
-      if (isCampus) {
-        const code =
-          session.universite || session.codeUni || session.sigle || "";
+      });
+    }
+    if (isCampus) {
+      const code =
+        session.universite || session.codeUni || session.sigle || "";
+      return SAC_DATA.getAll().filter((d) => {
+        if (d.source !== source) return false;
         return (
           d.audienceType !== "section" &&
           (!d.universite || d.universite === code)
         );
-      }
-      return d.authorId === session.identifiant || !d.authorId;
-    });
+      });
+    }
+    return SAC_DATA.getPublicationsByAuthor(session);
   }
 
   function mediaBadge(d) {
@@ -442,7 +445,12 @@ function SAC_initPublisherPage(config) {
       resetForm();
       renderList();
     } catch (err) {
-      alert(err.message || "Publication échouée.");
+      alert(
+        err.message ||
+          (err.code === "FORBIDDEN"
+            ? "Publication refusée — reconnectez-vous."
+            : "Publication échouée. Vérifiez le cours cible et réessayez.")
+      );
     }
     btn.disabled = false;
   });

@@ -265,6 +265,13 @@ const SAC_API = (function () {
     });
   }
 
+  async function resetPasswordWithCode(email, code, password) {
+    return request("/auth/reset-password", {
+      method: "POST",
+      body: JSON.stringify({ email, code, password }),
+    });
+  }
+
   async function createSectionStudent(payload) {
     return request("/sections/students", {
       method: "POST",
@@ -430,15 +437,29 @@ const SAC_API = (function () {
   }
 
   async function uploadFormData(path, formData, method) {
-    const res = await fetchWithTimeout(`${BASE}/api${path}`, {
-      method: method || "POST",
-      credentials: "include",
-      headers: {
-        ...getAuthHeaders(),
-      },
-      body: formData,
-    }, 60000);
-    const data = await res.json().catch(() => ({}));
+    const doUpload = async () =>
+      fetchWithTimeout(`${BASE}/api${path}`, {
+        method: method || "POST",
+        credentials: "include",
+        headers: {
+          ...getAuthHeaders(),
+        },
+        body: formData,
+      }, 60000);
+
+    let res = await doUpload();
+    let data = await res.json().catch(() => ({}));
+
+    if (res.status === 401) {
+      const refreshed = await refresh();
+      if (refreshed) {
+        res = await doUpload();
+        data = await res.json().catch(() => ({}));
+      } else {
+        clearClientSession();
+      }
+    }
+
     if (!res.ok) {
       const err = new Error(data.message || data.error || "UPLOAD_ERROR");
       err.code = data.error;
@@ -469,6 +490,7 @@ const SAC_API = (function () {
     me,
     requestPasswordReset,
     resetPassword,
+    resetPasswordWithCode,
     createSectionStudent,
     createSectionHeadAccount,
     listSectionStudents,
