@@ -77,6 +77,59 @@
     .toast.show { display: block; animation: fadeIn 0.25s ease; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
     .empty-tasks { text-align: center; color: var(--muted); padding: 1.25rem; font-size: 0.9rem; }
+    /* Espace DG — enseignants & nominations */
+    .prof-hub { display: flex; flex-direction: column; gap: 1.25rem; }
+    .prof-hub__intro {
+      padding: 1rem 1.15rem; border-radius: 12px;
+      background: linear-gradient(135deg, rgba(13,122,74,0.09), rgba(16,185,129,0.06));
+      border: 1px solid rgba(13,122,74,0.2); font-size: 0.9rem; color: var(--text-muted); line-height: 1.55;
+    }
+    .prof-hub__intro strong { color: var(--primary); }
+    .prof-stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 0.65rem; }
+    .prof-stat {
+      padding: 0.85rem; border-radius: 10px; background: var(--surface);
+      border: 1px solid var(--border); text-align: center;
+    }
+    .prof-stat strong { display: block; font-size: 1.4rem; color: var(--uni); font-family: "Playfair Display", serif; }
+    .prof-stat span { font-size: 0.76rem; color: var(--muted); }
+    .prof-toolbar { display: flex; flex-wrap: wrap; gap: 0.65rem; align-items: center; }
+    .prof-search {
+      flex: 1; min-width: 200px; padding: 0.55rem 0.85rem; border: 1.5px solid var(--border);
+      border-radius: 100px; font-family: inherit; font-size: 0.88rem;
+    }
+    .prof-filter { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+    .prof-filter button {
+      padding: 0.4rem 0.85rem; border-radius: 100px; border: 1.5px solid var(--border);
+      background: var(--surface); font-size: 0.8rem; font-weight: 600; cursor: pointer; font-family: inherit; color: var(--muted);
+    }
+    .prof-filter button.active { border-color: var(--uni); color: var(--uni); background: rgba(13,122,74,0.08); }
+    .prof-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 0.85rem; }
+    .prof-card {
+      display: flex; gap: 0.85rem; padding: 1rem; border: 1.5px solid var(--border);
+      border-radius: 12px; background: var(--surface); transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .prof-card:hover { border-color: rgba(13,122,74,0.35); box-shadow: 0 4px 16px rgba(13,122,74,0.08); }
+    .prof-card--head { border-color: rgba(13,122,74,0.45); background: rgba(13,122,74,0.04); }
+    .prof-card__avatar {
+      width: 48px; height: 48px; border-radius: 12px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      background: linear-gradient(135deg, var(--uni), #10b981); color: #fff;
+      font-weight: 700; font-size: 0.95rem;
+    }
+    .prof-card__body { flex: 1; min-width: 0; }
+    .prof-card__name { font-weight: 700; color: var(--primary); font-size: 0.95rem; margin-bottom: 0.15rem; }
+    .prof-card__email { font-size: 0.78rem; color: var(--muted); word-break: break-all; }
+    .prof-card__meta { display: flex; flex-wrap: wrap; gap: 0.35rem; margin: 0.5rem 0; }
+    .prof-tag {
+      font-size: 0.72rem; padding: 0.15rem 0.5rem; border-radius: 100px;
+      background: var(--bg); border: 1px solid var(--border); color: var(--muted);
+    }
+    .prof-tag--head { background: rgba(13,122,74,0.12); border-color: rgba(13,122,74,0.3); color: var(--uni); font-weight: 600; }
+    .prof-tag--ok { background: rgba(22,163,74,0.1); color: #15803d; }
+    .prof-tag--wait { background: rgba(180,83,9,0.1); color: #b45309; }
+    .prof-card__actions { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.5rem; }
+    .section-head-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin-top: 0.35rem; }
+    .section-head-row small { color: var(--muted); font-size: 0.78rem; }
     .comm-panel { display: none; }
     .comm-panel.active { display: block; }
 
@@ -321,13 +374,21 @@
                 <input type="text" class="fi" id="secResp" required placeholder="Ex. Dr. Mukendi — Chef de section" />
               </div>
               <div class="fg">
+                <label>Ou nommer un professeur inscrit</label>
+                <select class="fi" id="secNominate">
+                  <option value="">— Saisie manuelle —</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row-2">
+              <div class="fg">
                 <label>E-mail section</label>
                 <input type="email" class="fi" id="secEmail" placeholder="section@universite.cd" />
               </div>
-            </div>
-            <div class="fg">
-              <label>Téléphone</label>
-              <input type="tel" class="fi" id="secTel" placeholder="+243 …" style="max-width:280px;" />
+              <div class="fg">
+                <label>Téléphone</label>
+                <input type="tel" class="fi" id="secTel" placeholder="+243 …" />
+              </div>
             </div>
             <div class="fg" style="margin-top:0.5rem;">
               <label class="chk" style="display:flex;align-items:center;gap:0.5rem;font-weight:600;">
@@ -442,13 +503,21 @@
                 <input type="text" class="fi" id="secProfResp" required placeholder="Ex. Dr. Mukendi — Chef de section" />
               </div>
               <div class="fg">
-                <label>E-mail de contact</label>
-                <input type="email" class="fi" id="secProfEmail" placeholder="section@universite.cd" />
+                <label>Ou nommer un professeur inscrit</label>
+                <select class="fi" id="secProfNominate">
+                  <option value="">— Saisie manuelle du responsable —</option>
+                </select>
               </div>
             </div>
-            <div class="fg">
-              <label>Téléphone du responsable</label>
-              <input type="tel" class="fi" id="secProfTel" placeholder="+243 …" style="max-width:280px;" />
+            <div class="form-row-2">
+              <div class="fg">
+                <label>E-mail de contact section</label>
+                <input type="email" class="fi" id="secProfEmail" placeholder="section@universite.cd" />
+              </div>
+              <div class="fg">
+                <label>Téléphone du responsable</label>
+                <input type="tel" class="fi" id="secProfTel" placeholder="+243 …" />
+              </div>
             </div>
             <div class="fg" style="margin-top:0.5rem;">
               <label class="chk" style="display:flex;align-items:center;gap:0.5rem;font-weight:600;">
@@ -482,29 +551,33 @@
 
       <div class="panel panel--workspace" id="panelProfessors">
         <div class="panel__head">
-          <h2>Enseignants & nominations</h2>
+          <h2>👨‍🏫 Corps enseignant & nominations</h2>
           <span id="profCountHead" style="font-size:0.82rem;color:var(--muted);"></span>
         </div>
-        <div class="panel__body">
-          <p class="page-desc" style="margin:0 0 1rem;font-size:0.88rem;">
-            Liste de tous les <strong>professeurs inscrits</strong> sur votre campus : grade à l'inscription, statut de paiement et nomination institutionnelle.
-            Nommez un professeur <strong>chef de section</strong> — les fonctionnalités section (inscriptions étudiants, réclamations) s'ajoutent automatiquement à son compte professeur.
-          </p>
-          <div style="overflow-x:auto;">
-            <table class="section-table">
-              <thead>
-                <tr>
-                  <th>Enseignant</th>
-                  <th>Grade</th>
-                  <th>Département</th>
-                  <th>Inscription</th>
-                  <th>Nomination</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody id="professorsTable"></tbody>
-            </table>
+        <div class="panel__body prof-hub">
+          <div class="prof-hub__intro">
+            En tant que <strong>direction générale (DG)</strong>, vous disposez de l'autorité institutionnelle pour :
+            consulter tous les professeurs inscrits sur votre campus, <strong>nommer un chef de section</strong>,
+            <strong>changer le responsable</strong> d'une section existante ou <strong>retirer une nomination</strong>.
           </div>
+
+          <div class="prof-stats" id="profStatsBar">
+            <div class="prof-stat"><strong id="profStatTotal">0</strong><span>Enseignants</span></div>
+            <div class="prof-stat"><strong id="profStatHeads">0</strong><span>Chefs de section</span></div>
+            <div class="prof-stat"><strong id="profStatFree">0</strong><span>Sans nomination</span></div>
+            <div class="prof-stat"><strong id="profStatVerified">0</strong><span>Paiement validé</span></div>
+          </div>
+
+          <div class="prof-toolbar">
+            <input type="search" class="prof-search" id="profSearch" placeholder="Rechercher par nom, e-mail, département…" />
+            <div class="prof-filter" id="profFilterBar">
+              <button type="button" class="active" data-prof-filter="all">Tous</button>
+              <button type="button" data-prof-filter="head">Chefs de section</button>
+              <button type="button" data-prof-filter="free">Sans nomination</button>
+            </div>
+          </div>
+
+          <div class="prof-grid" id="professorsGrid"></div>
           <p class="empty" id="professorsEmpty" style="display:none;">Aucun professeur inscrit sur ce campus.</p>
         </div>
       </div>
@@ -621,8 +694,17 @@
           <input type="text" class="fi" id="editSecFiliere" required />
         </div>
         <div class="fg">
-          <label>Nom du responsable *</label>
+          <label>Nom du responsable (affiché) *</label>
           <input type="text" class="fi" id="editSecResp" required />
+        </div>
+        <div class="fg">
+          <label>Chef de section — professeur inscrit</label>
+          <select class="fi" id="editSecHeadProf">
+            <option value="">— Aucun professeur nommé —</option>
+          </select>
+          <p style="font-size:0.8rem;color:var(--muted);margin:0.35rem 0 0;">
+            Sélectionnez un professeur pour le nommer ou changer le responsable. Les outils section s'activent sur son compte professeur.
+          </p>
         </div>
         <div class="form-row-2">
           <div class="fg">
@@ -670,6 +752,57 @@
       const UNI_NAMES = { ...SAC_UNIVERSITIES.NAMES };
       let selectedSectionId = null;
       let publishersReady = false;
+      let campusProfessorsCache = [];
+      let profFilterMode = "all";
+      let profSearchQuery = "";
+
+      function profInitials(p) {
+        const name = SAC_UNIVERSITY.displayName(p);
+        const parts = name.split(/\s+/).filter(Boolean);
+        if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+        return (name.slice(0, 2) || "PR").toUpperCase();
+      }
+
+      function applyProfessorPick(selectId, respInputId) {
+        const sel = document.getElementById(selectId);
+        const inp = document.getElementById(respInputId);
+        if (!sel || !inp) return;
+        sel.addEventListener("change", () => {
+          const email = sel.value;
+          if (!email) return;
+          const prof = campusProfessorsCache.find(
+            (p) => SAC_IDENTITY.normalizeEmail(p.email) === SAC_IDENTITY.normalizeEmail(email)
+          );
+          if (prof) {
+            inp.value = SAC_UNIVERSITY.displayName(prof);
+            const mailEl = sel.id === "secProfNominate" ? document.getElementById("secProfEmail") : document.getElementById("secEmail");
+            if (mailEl && !mailEl.value) mailEl.value = prof.email;
+          }
+        });
+      }
+
+      async function loadCampusProfessors() {
+        campusProfessorsCache = await SAC_NOMINATIONS.fetchCampusProfessors(session);
+        populateProfessorSelects();
+        return campusProfessorsCache;
+      }
+
+      function populateProfessorSelects() {
+        const opts = SAC_NOMINATIONS.professorSelectOptions(
+          session,
+          campusProfessorsCache,
+          "",
+          "— Saisie manuelle du responsable —"
+        );
+        ["secNominate", "secProfNominate"].forEach((id) => {
+          const el = document.getElementById(id);
+          if (el) {
+            const prev = el.value;
+            el.innerHTML = opts;
+            if (prev) el.value = prev;
+          }
+        });
+      }
 
       function esc(s) {
         const d = document.createElement("div");
@@ -810,30 +943,50 @@
         }
         if (empty) empty.style.display = "none";
         tbody.innerHTML = list
-          .map(
-            (s) => `<tr>
+          .map((s) => {
+            const head = SAC_NOMINATIONS.findHeadForSection(session, s.id);
+            const headLabel = head
+              ? `<span class="prof-tag prof-tag--head">${esc(SAC_UNIVERSITY.displayName(head))}</span>`
+              : `<small style="color:var(--muted);">Aucun prof nommé</small>`;
+            return `<tr>
               <td><strong>${esc(s.name)}</strong></td>
               <td>${esc(s.filiere)}</td>
-              <td>${esc(s.responsableNom || "—")}</td>
+              <td>${esc(s.responsableNom || "—")}<div class="section-head-row">${headLabel}</div></td>
               <td>${esc(s.email || s.telephone || "—")}</td>
-              <td><button type="button" class="btn btn--ghost btn--xs" data-edit-section="${esc(s.id)}">Modifier</button></td>
-            </tr>`
-          )
+              <td style="white-space:nowrap;">
+                <button type="button" class="btn btn--ghost btn--xs" data-edit-section="${esc(s.id)}">Modifier</button>
+                ${head ? `<button type="button" class="btn btn--ghost btn--xs" data-change-head="${esc(s.id)}">Changer chef</button>` : ""}
+              </td>
+            </tr>`;
+          })
           .join("");
         tbody.querySelectorAll("[data-edit-section]").forEach((btn) => {
           btn.addEventListener("click", () => openSectionEditor(btn.dataset.editSection));
+        });
+        tbody.querySelectorAll("[data-change-head]").forEach((btn) => {
+          btn.addEventListener("click", () => openSectionEditor(btn.dataset.changeHead));
         });
       }
 
       function openSectionEditor(sectionId) {
         const sec = SAC_SECTIONS.getSectionById(sectionId);
         if (!sec) return;
+        const head = SAC_NOMINATIONS.findHeadForSection(session, sectionId);
         document.getElementById("editSectionId").value = sec.id;
         document.getElementById("editSecName").value = sec.name || "";
         document.getElementById("editSecFiliere").value = sec.filiere || "";
         document.getElementById("editSecResp").value = sec.responsableNom || "";
         document.getElementById("editSecEmail").value = sec.email || "";
         document.getElementById("editSecTel").value = sec.telephone || "";
+        const headSel = document.getElementById("editSecHeadProf");
+        if (headSel) {
+          headSel.innerHTML = SAC_NOMINATIONS.professorSelectOptions(
+            session,
+            campusProfessorsCache,
+            head?.email || sec.headProfessorEmail || "",
+            "— Aucun professeur nommé —"
+          );
+        }
         document.getElementById("sectionEditDialog").showModal();
       }
 
@@ -858,7 +1011,7 @@
           email: fields.email,
           universite: SAC_UNIVERSITY.campusCode(session) || "unkin",
         };
-        return SAC_SECTIONS.createSectionAccount(
+        const result = await SAC_SECTIONS.createSectionAccount(
           session,
           sectionData,
           createAccount
@@ -870,6 +1023,14 @@
               }
             : { createAccount: false }
         );
+        if (fields.nominateProfessorEmail && !createAccount) {
+          await SAC_NOMINATIONS.nominateSectionHead(
+            session,
+            fields.nominateProfessorEmail,
+            result.section.id
+          );
+        }
+        return result;
       }
 
       function renderPayments() {
@@ -929,83 +1090,113 @@
       }
 
       function renderProfessors() {
-        let professors = SAC_NOMINATIONS.getCampusProfessors(session);
+        const list = campusProfessorsCache;
         const countEl = document.getElementById("profCountHead");
-        if (countEl) countEl.textContent = professors.length + " enseignant(s)";
+        if (countEl) countEl.textContent = list.length + " enseignant(s)";
 
-        const tbody = document.getElementById("professorsTable");
+        const heads = list.filter((p) => p.nomination === "chef_section");
+        const verified = list.filter((p) => p.payment?.status === "verified");
+        document.getElementById("profStatTotal").textContent = list.length;
+        document.getElementById("profStatHeads").textContent = heads.length;
+        document.getElementById("profStatFree").textContent = list.length - heads.length;
+        document.getElementById("profStatVerified").textContent = verified.length;
+
+        const grid = document.getElementById("professorsGrid");
         const empty = document.getElementById("professorsEmpty");
-        if (!tbody) return;
+        if (!grid) return;
 
-        const finish = (list) => {
-          if (!list.length) {
-            tbody.innerHTML = "";
-            if (empty) empty.style.display = "block";
-            return;
-          }
-          if (empty) empty.style.display = "none";
-          tbody.innerHTML = list
-            .map((p) => {
-              const name = SAC_UNIVERSITY.displayName(p);
-              const nom = SAC_NOMINATIONS.nominationLabel(p);
-              const sectionLabel =
-                p.nomination === "chef_section" && p.sectionId
-                  ? (SAC_SECTIONS.getSectionById(p.sectionId)?.name || p.sectionName || p.sectionId)
-                  : "";
-              const nomCell =
-                p.nomination === "chef_section"
-                  ? `<strong style="color:var(--uni);">${esc(nom)}</strong><br><small>${esc(sectionLabel)}</small>`
-                  : esc(nom);
-              const actions =
-                p.nomination === "chef_section"
-                  ? `<button type="button" class="btn btn--ghost btn--xs" data-revoke-nom="${esc(p.email)}">Retirer</button>`
-                  : `<button type="button" class="btn btn--role btn--xs" data-nominate="${esc(p.email)}">Nommer chef</button>`;
-              return `<tr>
-                <td><strong>${esc(name)}</strong><br><small>${esc(p.email)}</small></td>
-                <td>${esc(SAC_NOMINATIONS.gradeLabel(p))}</td>
-                <td>${esc(p.departement || "—")}</td>
-                <td>${esc(SAC_NOMINATIONS.paymentStatusLabel(p.payment))}</td>
-                <td>${nomCell}</td>
-                <td>${actions}</td>
-              </tr>`;
-            })
-            .join("");
-
-          tbody.querySelectorAll("[data-nominate]").forEach((btn) => {
-            btn.addEventListener("click", () => openNominateDialog(btn.dataset.nominate));
-          });
-          tbody.querySelectorAll("[data-revoke-nom]").forEach((btn) => {
-            btn.addEventListener("click", async () => {
-              if (!confirm("Retirer la nomination de ce professeur ?")) return;
-              try {
-                await SAC_NOMINATIONS.revokeNomination(session, btn.dataset.revokeNom);
-                showToast("Nomination retirée.");
-                refreshAll();
-              } catch (err) {
-                alert(err.message);
-              }
-            });
-          });
-        };
-
-        if (typeof SAC_API !== "undefined") {
-          SAC_API.ensureOnline().then((online) => {
-            if (online) {
-              SAC_API.listCampusProfessors()
-                .then(finish)
-                .catch(() => finish(professors));
-              return;
-            }
-            finish(professors);
-          });
-        } else {
-          finish(professors);
+        let filtered = list.slice();
+        if (profFilterMode === "head") {
+          filtered = filtered.filter((p) => p.nomination === "chef_section");
+        } else if (profFilterMode === "free") {
+          filtered = filtered.filter((p) => p.nomination !== "chef_section");
         }
+        const q = profSearchQuery.trim().toLowerCase();
+        if (q) {
+          filtered = filtered.filter((p) => {
+            const blob = [
+              SAC_UNIVERSITY.displayName(p),
+              p.email,
+              p.departement,
+              SAC_NOMINATIONS.gradeLabel(p),
+              p.sectionName,
+            ]
+              .join(" ")
+              .toLowerCase();
+            return blob.includes(q);
+          });
+        }
+
+        if (!filtered.length) {
+          grid.innerHTML = "";
+          if (empty) {
+            empty.style.display = "block";
+            empty.textContent = list.length
+              ? "Aucun enseignant ne correspond à votre recherche."
+              : "Aucun professeur inscrit sur ce campus.";
+          }
+          return;
+        }
+        if (empty) empty.style.display = "none";
+
+        grid.innerHTML = filtered
+          .map((p) => {
+            const isHead = p.nomination === "chef_section";
+            const sectionLabel =
+              isHead && p.sectionId
+                ? SAC_SECTIONS.getSectionById(p.sectionId)?.name || p.sectionName || ""
+                : "";
+            const pay = p.payment?.status;
+            const payTag =
+              pay === "verified"
+                ? '<span class="prof-tag prof-tag--ok">Paiement validé</span>'
+                : pay === "pending_verification"
+                  ? '<span class="prof-tag prof-tag--wait">Paiement en attente</span>'
+                  : '<span class="prof-tag">Paiement —</span>';
+            const headTag = isHead
+              ? `<span class="prof-tag prof-tag--head">Chef de section${sectionLabel ? " · " + esc(sectionLabel) : ""}</span>`
+              : "";
+            const actions = isHead
+              ? `<button type="button" class="btn btn--ghost btn--xs" data-revoke-nom="${esc(p.email)}">Retirer nomination</button>`
+              : `<button type="button" class="btn btn--role btn--xs" data-nominate="${esc(p.email)}">Nommer chef</button>`;
+            return `<article class="prof-card ${isHead ? "prof-card--head" : ""}">
+              <div class="prof-card__avatar" aria-hidden="true">${esc(profInitials(p))}</div>
+              <div class="prof-card__body">
+                <div class="prof-card__name">${esc(SAC_UNIVERSITY.displayName(p))}</div>
+                <div class="prof-card__email">${esc(p.email)}</div>
+                <div class="prof-card__meta">
+                  <span class="prof-tag">${esc(SAC_NOMINATIONS.gradeLabel(p))}</span>
+                  ${p.departement ? `<span class="prof-tag">${esc(p.departement)}</span>` : ""}
+                  ${payTag}
+                  ${headTag}
+                </div>
+                <div class="prof-card__actions">${actions}</div>
+              </div>
+            </article>`;
+          })
+          .join("");
+
+        grid.querySelectorAll("[data-nominate]").forEach((btn) => {
+          btn.addEventListener("click", () => openNominateDialog(btn.dataset.nominate));
+        });
+        grid.querySelectorAll("[data-revoke-nom]").forEach((btn) => {
+          btn.addEventListener("click", async () => {
+            if (!confirm("Retirer la nomination de ce professeur ? Il perdra l'accès chef de section.")) return;
+            try {
+              await SAC_NOMINATIONS.revokeNomination(session, btn.dataset.revokeNom);
+              showToast("Nomination retirée.");
+              await loadCampusProfessors();
+              refreshAll();
+            } catch (err) {
+              alert(err.message);
+            }
+          });
+        });
       }
 
       function openNominateDialog(email) {
-        const prof = SAC_NOMINATIONS.getCampusProfessors(session).find(
-          (p) => p.email === email
+        const prof = campusProfessorsCache.find(
+          (p) => SAC_IDENTITY.normalizeEmail(p.email) === SAC_IDENTITY.normalizeEmail(email)
         );
         if (!prof) return;
         const sections = SAC_SECTIONS.getSectionsByUniversity(session).filter((s) => s.active !== false);
@@ -1343,6 +1534,11 @@
         renderSectionReclamations();
       }
 
+      async function refreshAllAsync() {
+        await loadCampusProfessors();
+        refreshAll();
+      }
+
       document.querySelectorAll(".nav-tab").forEach((t) => {
         t.addEventListener("click", () => showSection(t.dataset.section));
       });
@@ -1381,7 +1577,7 @@
           );
           document.getElementById("nominateDialog").close();
           showToast("Professeur nommé chef de section — accès activé sur son compte.");
-          refreshAll();
+          await refreshAllAsync();
         } catch (err) {
           alert(err.message);
         }
@@ -1400,12 +1596,14 @@
       document.getElementById("formCreateSection").addEventListener("submit", async (e) => {
         e.preventDefault();
         try {
+          const nominated = document.getElementById("secNominate").value;
           const result = await submitNewSection({
             name: document.getElementById("secName").value,
             filiere: document.getElementById("secFiliere").value,
             responsable: document.getElementById("secResp").value,
             telephone: document.getElementById("secTel").value,
             email: document.getElementById("secEmail").value,
+            nominateProfessorEmail: document.getElementById("secNominate").value,
             createAccount: document.getElementById("secCreateAccount").checked,
             headEmail: document.getElementById("secHeadEmail").value,
             headPassword: document.getElementById("secHeadPassword").value,
@@ -1419,9 +1617,13 @@
                 result.credentials.email
             );
           } else {
-            showToast("Section ajoutée avec responsable nommé.");
+            showToast(
+              nominated
+                ? "Section créée et professeur nommé chef de section."
+                : "Section ajoutée avec responsable nommé."
+            );
           }
-          refreshAll();
+          await refreshAllAsync();
           selectSection(result.section.id);
         } catch (err) {
           alert(err.message);
@@ -1431,12 +1633,14 @@
       document.getElementById("formCreateSectionProfile").addEventListener("submit", async (e) => {
         e.preventDefault();
         try {
+          const nominatedProf = document.getElementById("secProfNominate").value;
           const result = await submitNewSection({
             name: document.getElementById("secProfName").value,
             filiere: document.getElementById("secProfFiliere").value,
             responsable: document.getElementById("secProfResp").value,
             telephone: document.getElementById("secProfTel").value,
             email: document.getElementById("secProfEmail").value,
+            nominateProfessorEmail: document.getElementById("secProfNominate").value,
             createAccount: document.getElementById("secProfCreateAccount").checked,
             headEmail: document.getElementById("secProfHeadEmail").value,
             headPassword: document.getElementById("secProfHeadPassword").value,
@@ -1447,9 +1651,13 @@
           if (result.credentials) {
             showToast("Section et compte responsable créés.");
           } else {
-            showToast("Section ajoutée — responsable enregistré.");
+            showToast(
+              nominatedProf
+                ? "Section créée et professeur nommé chef de section."
+                : "Section ajoutée — responsable enregistré."
+            );
           }
-          refreshAll();
+          await refreshAllAsync();
         } catch (err) {
           alert(err.message);
         }
@@ -1457,13 +1665,13 @@
 
       document.getElementById("formEditSection").addEventListener("submit", async (e) => {
         e.preventDefault();
-        const id = document.getElementById("editSectionId").value;
-        const responsableNom = document.getElementById("editSecResp").value.trim();
-        if (responsableNom.length < 2) {
-          alert("Nom du responsable requis.");
-          return;
-        }
         try {
+          const id = document.getElementById("editSectionId").value;
+          const responsableNom = document.getElementById("editSecResp").value.trim();
+          if (responsableNom.length < 2) {
+            alert("Nom du responsable requis.");
+            return;
+          }
           await SAC_SECTIONS.updateSection(id, {
             name: document.getElementById("editSecName").value.trim(),
             filiere: document.getElementById("editSecFiliere").value.trim(),
@@ -1471,9 +1679,17 @@
             email: document.getElementById("editSecEmail").value.trim().toLowerCase(),
             telephone: document.getElementById("editSecTel").value.trim(),
           });
+          const headEmail = document.getElementById("editSecHeadProf")?.value || "";
+          const currentHead = SAC_NOMINATIONS.findHeadForSection(session, id);
+          const currentEmail = currentHead?.email || "";
+          if (headEmail && SAC_IDENTITY.normalizeEmail(headEmail) !== SAC_IDENTITY.normalizeEmail(currentEmail)) {
+            await SAC_NOMINATIONS.nominateSectionHead(session, headEmail, id);
+          } else if (!headEmail && currentHead) {
+            await SAC_NOMINATIONS.revokeNomination(session, currentHead.email);
+          }
           document.getElementById("sectionEditDialog").close();
-          showToast("Section mise à jour.");
-          refreshAll();
+          showToast("Section et responsable mis à jour.");
+          await refreshAllAsync();
         } catch (err) {
           alert(err.message);
         }
@@ -1498,7 +1714,25 @@
         SAC_SESSION.logout("index.html");
       });
 
+      applyProfessorPick("secNominate", "secResp");
+      applyProfessorPick("secProfNominate", "secProfResp");
+
+      document.getElementById("profSearch")?.addEventListener("input", (e) => {
+        profSearchQuery = e.target.value;
+        renderProfessors();
+      });
+      document.querySelectorAll("#profFilterBar [data-prof-filter]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          profFilterMode = btn.dataset.profFilter;
+          document.querySelectorAll("#profFilterBar [data-prof-filter]").forEach((b) => {
+            b.classList.toggle("active", b === btn);
+          });
+          renderProfessors();
+        });
+      });
+
       await loadCampusTariffForm();
+      await loadCampusProfessors();
       refreshAll();
       renderSectionPickList();
       renderSectionsTable();

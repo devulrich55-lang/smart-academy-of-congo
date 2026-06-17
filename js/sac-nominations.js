@@ -30,6 +30,70 @@ const SAC_NOMINATIONS = (function () {
     );
   }
 
+  async function fetchCampusProfessors(session) {
+    const local = getCampusProfessors(session);
+    if (typeof SAC_API === "undefined" || !(await SAC_API.ensureOnline())) {
+      return local;
+    }
+    try {
+      const remote = await SAC_API.listCampusProfessors();
+      if (!Array.isArray(remote) || !remote.length) return local;
+      const byEmail = new Map();
+      local.forEach((p) => {
+        byEmail.set(SAC_IDENTITY.normalizeEmail(p.email), { ...p });
+      });
+      remote.forEach((p) => {
+        const key = SAC_IDENTITY.normalizeEmail(p.email);
+        byEmail.set(key, { ...(byEmail.get(key) || {}), ...p, email: p.email || byEmail.get(key)?.email });
+      });
+      return Array.from(byEmail.values()).sort((a, b) =>
+        (a.nom || a.email || "").localeCompare(b.nom || b.email || "", "fr")
+      );
+    } catch {
+      return local;
+    }
+  }
+
+  function findProfessorByEmail(session, email) {
+    const key = SAC_IDENTITY.normalizeEmail(email);
+    return getCampusProfessors(session).find(
+      (p) => SAC_IDENTITY.normalizeEmail(p.email) === key
+    );
+  }
+
+  function findHeadForSection(session, sectionId) {
+    const sec = SAC_SECTIONS.getSectionById(sectionId);
+    if (!sec) return null;
+    const headEmail = sec.headProfessorEmail;
+    if (headEmail) {
+      const prof = findProfessorByEmail(session, headEmail);
+      if (prof) return prof;
+    }
+    return getCampusProfessors(session).find(
+      (p) => p.nomination === "chef_section" && p.sectionId === sectionId
+    );
+  }
+
+  function professorSelectOptions(session, professors, selectedEmail, emptyLabel) {
+    const opts = [
+      `<option value="">${emptyLabel || "— Choisir un professeur —"}</option>`,
+    ];
+    (professors || getCampusProfessors(session)).forEach((p) => {
+      const name =
+        typeof SAC_IDENTITY !== "undefined"
+          ? SAC_IDENTITY.formatFullName(p.prenom, p.nom)
+          : [p.prenom, p.nom].filter(Boolean).join(" ");
+      const label = `${name || p.email} · ${gradeLabel(p)}`;
+      const sel =
+        selectedEmail &&
+        SAC_IDENTITY.normalizeEmail(selectedEmail) === SAC_IDENTITY.normalizeEmail(p.email)
+          ? " selected"
+          : "";
+      opts.push(`<option value="${p.email}"${sel}>${label}</option>`);
+    });
+    return opts.join("");
+  }
+
   function gradeLabel(user) {
     return GRADE_LABELS[user?.grade] || user?.grade || "—";
   }
@@ -184,15 +248,29 @@ const SAC_NOMINATIONS = (function () {
     return "—";
   }
 
+  async function changeSectionHead(uniSession, sectionId, professorEmail) {
+    if (!professorEmail) {
+      const current = findHeadForSection(uniSession, sectionId);
+      if (current) await revokeNomination(uniSession, current.email);
+      return null;
+    }
+    return nominateSectionHead(uniSession, professorEmail, sectionId);
+  }
+
   return {
     GRADE_LABELS,
     NOMINATION_TYPES,
     getCampusProfessors,
+    fetchCampusProfessors,
+    findProfessorByEmail,
+    findHeadForSection,
+    professorSelectOptions,
     gradeLabel,
     nominationLabel,
     isSectionHead,
     buildSectionHeadActor,
     nominateSectionHead,
+    changeSectionHead,
     revokeNomination,
     paymentStatusLabel,
   };
