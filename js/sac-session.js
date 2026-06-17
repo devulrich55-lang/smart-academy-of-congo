@@ -176,6 +176,33 @@ const SAC_SESSION = (function () {
         saveSession(serverSession);
         return serverSession;
       } catch {
+        let recovered = false;
+        if (typeof SAC_API.refresh === "function") {
+          recovered = await SAC_API.refresh();
+        }
+        if (recovered) {
+          try {
+            const serverSession = await SAC_API.me();
+            if (requiredRole && serverSession.role !== requiredRole) {
+              clearSession();
+              return null;
+            }
+            saveSession(serverSession);
+            return serverSession;
+          } catch {
+            /* fall through */
+          }
+        }
+
+        if (
+          local &&
+          isServerSession(local) &&
+          typeof SAC_API.hasAuthTokens === "function" &&
+          SAC_API.hasAuthTokens()
+        ) {
+          return local;
+        }
+
         clearSession();
         if (typeof SAC_API !== "undefined" && typeof SAC_API.clearClientSession === "function") {
           SAC_API.clearClientSession();
@@ -199,7 +226,7 @@ const SAC_SESSION = (function () {
   async function guard(requiredRole) {
     const session = await verifySession(requiredRole);
     if (!session) {
-      window.location.href = loginUrl(requiredRole);
+      window.location.replace(loginUrl(requiredRole));
       return null;
     }
     return session;

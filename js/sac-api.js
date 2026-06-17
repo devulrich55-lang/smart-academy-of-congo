@@ -96,6 +96,26 @@ const SAC_API = (function () {
     if (refreshToken) sessionStorage.setItem(TOKEN_REFRESH, refreshToken);
   }
 
+  function hasAuthTokens() {
+    if (!isCrossOriginApi()) return true;
+    return !!(
+      sessionStorage.getItem(TOKEN_ACCESS) || sessionStorage.getItem(TOKEN_REFRESH)
+    );
+  }
+
+  /** Connexion de secours si l'inscription n'a pas renvoyé de jetons (cross-origin). */
+  async function ensureAuthTokens(credentials) {
+    if (!isCrossOriginApi() || hasAuthTokens() || !credentials) return hasAuthTokens();
+    const { identifier, password, role, extra = {} } = credentials;
+    if (!identifier || !password) return false;
+    try {
+      await login(identifier, password, role, extra);
+      return hasAuthTokens();
+    } catch {
+      return false;
+    }
+  }
+
   function getAuthHeaders() {
     if (!isCrossOriginApi()) return {};
     const token = sessionStorage.getItem(TOKEN_ACCESS);
@@ -224,6 +244,25 @@ const SAC_API = (function () {
     sessionCache = tagApiSession(data.session);
     saveApiTokens(data.accessToken, data.refreshToken);
     localStorage.setItem("sac_session", JSON.stringify(sessionCache));
+
+    if (!hasAuthTokens() && profile.password) {
+      const loggedIn = await ensureAuthTokens({
+        identifier: profile.email,
+        password: profile.password,
+        role: profile.role,
+        extra: {
+          universite: profile.universite || null,
+          codeUni: profile.codeUni || null,
+        },
+      });
+      if (!loggedIn) {
+        throw new Error(
+          "Compte créé mais session impossible. Reconnectez-vous avec votre e-mail et mot de passe."
+        );
+      }
+      return sessionCache;
+    }
+
     return sessionCache;
   }
 
@@ -553,6 +592,8 @@ const SAC_API = (function () {
     platformRequest,
     uploadFormData,
     getBase,
+    hasAuthTokens,
+    ensureAuthTokens,
     clearClientSession,
   };
 })();

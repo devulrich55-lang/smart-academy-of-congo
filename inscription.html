@@ -2442,7 +2442,17 @@
               const pwd = pendingProfile?._pwd || profile.password;
               const regPayload = { ...profile, password: pwd };
               delete regPayload._pwd;
-              await SAC_API.register(regPayload);
+              delete regPayload.payment;
+              delete regPayload.passwordHash;
+              delete regPayload.universiteLocked;
+              delete regPayload.authSource;
+              let apiSession = await SAC_API.register(regPayload);
+              apiSession = {
+                ...apiSession,
+                newAccount: true,
+                payment,
+              };
+              SAC_SESSION.saveSession(apiSession);
               if (profile.role === "universite" && profile.facultySections?.length && typeof SAC_SECTIONS !== "undefined") {
                 SAC_SECTIONS.importSectionsForUniversity({
                   ...profile,
@@ -2450,7 +2460,7 @@
                   identifiant: profile.email,
                 });
               }
-              window.location.href = dashboards[profile.role];
+              window.location.replace(dashboards[profile.role]);
               return;
             } catch (err) {
               if (SAC_API.isOnline()) {
@@ -2585,7 +2595,13 @@
       paymentPaid.classList.add("visible");
       closePaymentModal();
 
-      if (pendingProfile) completeRegistration(pendingProfile, payment);
+      if (pendingProfile) {
+        paymentPaidText.textContent = "Finalisation de l'inscription sur le serveur sécurisé…";
+        completeRegistration(pendingProfile, payment).catch((err) => {
+          paymentPaidText.textContent = "Paiement confirmé";
+          alert(err?.message || "Erreur lors de l'ouverture du profil. Réessayez de vous connecter.");
+        });
+      }
     }
 
     document.querySelectorAll(".pay-method").forEach((btn) => {
