@@ -176,10 +176,10 @@ const SAC_SESSION = (function () {
         saveSession(serverSession);
         return serverSession;
       } catch {
-        if (local && local.authSource === "api" && local.identifiant) {
-          return local;
-        }
         clearSession();
+        if (typeof SAC_API !== "undefined" && typeof SAC_API.clearClientSession === "function") {
+          SAC_API.clearClientSession();
+        }
         return null;
       }
     }

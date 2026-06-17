@@ -68,6 +68,19 @@ const SAC_API = (function () {
   const TOKEN_ACCESS = "sac_access_token";
   const TOKEN_REFRESH = "sac_refresh_token";
 
+  const ERROR_MESSAGES = {
+    USER_NOT_FOUND:
+      "Votre session n'est plus valide (serveur redémarré ou compte supprimé). Déconnectez-vous puis reconnectez-vous.",
+    AUTH_REQUIRED: "Connexion requise — veuillez vous reconnecter.",
+    TOKEN_EXPIRED: "Session expirée — veuillez vous reconnecter.",
+    FORBIDDEN: "Action non autorisée.",
+  };
+
+  function apiErrorMessage(data) {
+    const code = data && data.error;
+    return (data && data.message) || ERROR_MESSAGES[code] || code || "Erreur serveur";
+  }
+
   function isCrossOriginApi() {
     if (!BASE || typeof window === "undefined") return false;
     try {
@@ -142,9 +155,13 @@ const SAC_API = (function () {
     }
 
     if (!res.ok) {
-      const err = new Error(data.message || data.error || "API_ERROR");
+      const err = new Error(apiErrorMessage(data));
       err.code = data.error;
       err.status = res.status;
+      if (data.error === "USER_NOT_FOUND" || data.error === "TOKEN_EXPIRED") {
+        err.sessionInvalid = true;
+        clearClientSession();
+      }
       throw err;
     }
     return data;
@@ -461,9 +478,13 @@ const SAC_API = (function () {
     }
 
     if (!res.ok) {
-      const err = new Error(data.message || data.error || "UPLOAD_ERROR");
+      const err = new Error(apiErrorMessage(data));
       err.code = data.error;
       err.status = res.status;
+      if (data.error === "USER_NOT_FOUND" || data.error === "TOKEN_EXPIRED") {
+        err.sessionInvalid = true;
+        clearClientSession();
+      }
       throw err;
     }
     return data;
@@ -514,5 +535,6 @@ const SAC_API = (function () {
     platformRequest,
     uploadFormData,
     getBase,
+    clearClientSession,
   };
 })();

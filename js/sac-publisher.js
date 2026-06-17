@@ -445,12 +445,19 @@ function SAC_initPublisherPage(config) {
       resetForm();
       renderList();
     } catch (err) {
-      alert(
+      const msg =
         err.message ||
-          (err.code === "FORBIDDEN"
-            ? "Publication refusée — reconnectez-vous."
-            : "Publication échouée. Vérifiez le cours cible et réessayez.")
-      );
+        (err.code === "FORBIDDEN"
+          ? "Publication refusée — reconnectez-vous."
+          : "Publication échouée. Vérifiez le cours cible et réessayez.");
+      if (err.sessionInvalid || err.code === "USER_NOT_FOUND" || err.code === "TOKEN_EXPIRED") {
+        alert(msg);
+        window.location.href =
+          (typeof SAC_SESSION !== "undefined" ? SAC_SESSION.loginUrl(session.role) : "connexion.html") +
+          "&reason=session_expired";
+        return;
+      }
+      alert(msg);
     }
     btn.disabled = false;
   });
