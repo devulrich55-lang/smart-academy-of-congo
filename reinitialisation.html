@@ -14,6 +14,15 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />
+  <style>
+    .reset-tabs { display: flex; gap: 8px; margin-bottom: 20px; }
+    .reset-tabs button {
+      flex: 1; padding: 10px 12px; border: 1px solid #c5d4e4; background: #f8fafc;
+      border-radius: 8px; cursor: pointer; font: inherit; color: #1a2b3c;
+    }
+    .reset-tabs button.is-active { background: #0c3d6e; color: #fff; border-color: #0c3d6e; }
+    .code-input { letter-spacing: 6px; font-size: 1.25rem; text-align: center; font-weight: 600; }
+  </style>
 </head>
 <body>
   <header class="header">
@@ -30,27 +39,50 @@
     <section class="auth-card">
       <img src="logos.svg" alt="" class="auth-card__logo" width="72" height="72" aria-hidden="true" />
       <h1 class="auth-card__title">Nouveau mot de passe</h1>
-      <p class="auth-card__subtitle">Choisissez un mot de passe sécurisé pour votre compte Smart Academy.</p>
+      <p class="auth-card__subtitle">Utilisez le lien reçu par e-mail ou le code à 6 chiffres envoyé par Gmail.</p>
 
       <div id="alertBox" hidden></div>
 
-      <form id="resetForm" novalidate>
+      <div class="reset-tabs" id="resetTabs">
+        <button type="button" id="tabLink" class="is-active">Via le lien</button>
+        <button type="button" id="tabCode">Via le code e-mail</button>
+      </div>
+
+      <form id="resetFormLink" novalidate>
         <div class="form-group">
           <label for="password">Nouveau mot de passe</label>
           <input type="password" class="form-input" id="password" name="password" placeholder="••••••••" required autocomplete="new-password" minlength="8" />
           <p class="password-hint">Minimum 8 caractères, au moins une lettre et un chiffre, sans espace.</p>
         </div>
-
         <div class="form-group">
           <label for="passwordConfirm">Confirmer le mot de passe</label>
           <input type="password" class="form-input" id="passwordConfirm" name="passwordConfirm" placeholder="••••••••" required autocomplete="new-password" minlength="8" />
         </div>
+        <button type="submit" class="btn-submit" id="btnSubmitLink">Enregistrer le nouveau mot de passe</button>
+      </form>
 
-        <button type="submit" class="btn-submit" id="btnSubmit">Enregistrer le nouveau mot de passe</button>
+      <form id="resetFormCode" novalidate hidden>
+        <div class="form-group">
+          <label for="email">Adresse e-mail</label>
+          <input type="email" class="form-input" id="email" name="email" placeholder="Ex. etudiant@unikin.cd" required autocomplete="email" />
+        </div>
+        <div class="form-group">
+          <label for="resetCode">Code à 6 chiffres (reçu par Gmail)</label>
+          <input type="text" class="form-input code-input" id="resetCode" name="resetCode" placeholder="000000" required inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" />
+        </div>
+        <div class="form-group">
+          <label for="passwordCode">Nouveau mot de passe</label>
+          <input type="password" class="form-input" id="passwordCode" name="passwordCode" placeholder="••••••••" required autocomplete="new-password" minlength="8" />
+        </div>
+        <div class="form-group">
+          <label for="passwordCodeConfirm">Confirmer le mot de passe</label>
+          <input type="password" class="form-input" id="passwordCodeConfirm" name="passwordCodeConfirm" placeholder="••••••••" required autocomplete="new-password" minlength="8" />
+        </div>
+        <button type="submit" class="btn-submit" id="btnSubmitCode">Valider avec le code</button>
       </form>
 
       <p class="form-footer">
-        <a href="mot-de-passe-oublie.html">Demander un nouveau lien</a>
+        <a href="mot-de-passe-oublie.html">Demander un nouveau code</a>
         ·
         <a href="connexion.html">Se connecter</a>
       </p>
@@ -62,11 +94,13 @@
   <script>
     const params = new URLSearchParams(window.location.search);
     const token = params.get("token");
-    const form = document.getElementById("resetForm");
     const alertBox = document.getElementById("alertBox");
-    const btnSubmit = document.getElementById("btnSubmit");
-    const passwordInput = document.getElementById("password");
-    const passwordConfirmInput = document.getElementById("passwordConfirm");
+    const tabLink = document.getElementById("tabLink");
+    const tabCode = document.getElementById("tabCode");
+    const formLink = document.getElementById("resetFormLink");
+    const formCode = document.getElementById("resetFormCode");
+    const btnSubmitLink = document.getElementById("btnSubmitLink");
+    const btnSubmitCode = document.getElementById("btnSubmitCode");
 
     function showAlert(message, type) {
       alertBox.hidden = false;
@@ -74,55 +108,92 @@
       alertBox.textContent = message;
     }
 
+    function showSuccess(message) {
+      formLink.hidden = true;
+      formCode.hidden = true;
+      document.getElementById("resetTabs").hidden = true;
+      showAlert(message + " Redirection vers la connexion…", "success");
+      setTimeout(() => { window.location.href = "connexion.html"; }, 2500);
+    }
+
+    function switchTab(mode) {
+      const isLink = mode === "link";
+      tabLink.classList.toggle("is-active", isLink);
+      tabCode.classList.toggle("is-active", !isLink);
+      formLink.hidden = !isLink;
+      formCode.hidden = isLink;
+      alertBox.hidden = true;
+    }
+
+    tabLink.addEventListener("click", () => switchTab("link"));
+    tabCode.addEventListener("click", () => switchTab("code"));
+
     if (!token) {
-      form.hidden = true;
+      switchTab("code");
       showAlert(
-        "Lien invalide ou incomplet. Demandez un nouveau lien depuis la page « Mot de passe oublié ».",
+        "Pas de lien dans l'URL. Utilisez l'onglet « Via le code e-mail » avec le code reçu par Gmail.",
         "error"
       );
     }
 
-    form.addEventListener("submit", async (e) => {
+    formLink.addEventListener("submit", async (e) => {
       e.preventDefault();
-      if (!token) return;
-
-      const password = passwordInput.value;
-      const confirm = passwordConfirmInput.value;
-
+      if (!token) {
+        showAlert("Lien invalide. Utilisez le code reçu par e-mail.", "error");
+        return;
+      }
+      const password = document.getElementById("password").value;
+      const confirm = document.getElementById("passwordConfirm").value;
       const check = SAC_IDENTITY.validatePassword(password);
-      if (!check.ok) {
-        showAlert(check.message, "error");
-        return;
-      }
-      if (password !== confirm) {
-        showAlert("Les deux mots de passe ne correspondent pas.", "error");
-        return;
-      }
+      if (!check.ok) { showAlert(check.message, "error"); return; }
+      if (password !== confirm) { showAlert("Les deux mots de passe ne correspondent pas.", "error"); return; }
 
-      btnSubmit.disabled = true;
-      btnSubmit.textContent = "Enregistrement…";
+      btnSubmitLink.disabled = true;
+      btnSubmitLink.textContent = "Enregistrement…";
       alertBox.hidden = true;
-
       try {
         const online = await SAC_API.ensureOnline();
-        if (!online) {
-          showAlert("Le serveur est indisponible. Réessayez plus tard.", "error");
-          return;
-        }
+        if (!online) { showAlert("Le serveur est indisponible. Réessayez plus tard.", "error"); return; }
         const result = await SAC_API.resetPassword(token, password);
-        form.hidden = true;
-        showAlert(
-          (result.message || "Mot de passe mis à jour.") + " Redirection vers la connexion…",
-          "success"
-        );
-        setTimeout(() => {
-          window.location.href = "connexion.html";
-        }, 2500);
+        showSuccess(result.message || "Mot de passe mis à jour.");
       } catch (err) {
-        showAlert(err.message || "Lien invalide ou expiré. Demandez un nouveau lien.", "error");
+        showAlert(err.message || "Lien invalide ou expiré. Demandez un nouveau code.", "error");
       } finally {
-        btnSubmit.disabled = false;
-        btnSubmit.textContent = "Enregistrer le nouveau mot de passe";
+        btnSubmitLink.disabled = false;
+        btnSubmitLink.textContent = "Enregistrer le nouveau mot de passe";
+      }
+    });
+
+    formCode.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const email = document.getElementById("email").value.trim();
+      const code = document.getElementById("resetCode").value.trim().replace(/\s/g, "");
+      const password = document.getElementById("passwordCode").value;
+      const confirm = document.getElementById("passwordCodeConfirm").value;
+
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        showAlert("Adresse e-mail invalide.", "error"); return;
+      }
+      if (!/^\d{6}$/.test(code)) {
+        showAlert("Le code doit contenir exactement 6 chiffres.", "error"); return;
+      }
+      const check = SAC_IDENTITY.validatePassword(password);
+      if (!check.ok) { showAlert(check.message, "error"); return; }
+      if (password !== confirm) { showAlert("Les deux mots de passe ne correspondent pas.", "error"); return; }
+
+      btnSubmitCode.disabled = true;
+      btnSubmitCode.textContent = "Validation…";
+      alertBox.hidden = true;
+      try {
+        const online = await SAC_API.ensureOnline();
+        if (!online) { showAlert("Le serveur est indisponible. Réessayez plus tard.", "error"); return; }
+        const result = await SAC_API.resetPasswordWithCode(email, code, password);
+        showSuccess(result.message || "Mot de passe mis à jour.");
+      } catch (err) {
+        showAlert(err.message || "Code invalide ou expiré. Demandez un nouveau code.", "error");
+      } finally {
+        btnSubmitCode.disabled = false;
+        btnSubmitCode.textContent = "Valider avec le code";
       }
     });
   </script>

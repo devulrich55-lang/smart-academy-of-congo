@@ -132,6 +132,11 @@
               </div>
             </div>
             <div class="fg">
+              <label>Classe / groupe *</label>
+              <input type="text" class="fi" id="stuClasse" required placeholder="Ex. L2-Gestion Groupe A" />
+              <p style="font-size:0.8rem;color:var(--muted);margin-top:0.35rem;">Identique au nom de classe déclaré par les professeurs.</p>
+            </div>
+            <div class="fg">
               <label>Mot de passe initial *</label>
               <input type="password" class="fi" id="stuPassword" required minlength="8" autocomplete="new-password" />
               <p style="font-size:0.8rem;color:var(--muted);margin-top:0.35rem;">Minimum 8 caractères, lettre + chiffre, sans espace. Communiquez-le à l'étudiant.</p>
@@ -349,6 +354,7 @@
             telephone: document.getElementById("stuTel").value,
             matricule: document.getElementById("stuMatricule").value,
             niveau: document.getElementById("stuNiveau").value,
+            classe: document.getElementById("stuClasse").value.trim(),
             password: document.getElementById("stuPassword").value,
           });
           e.target.reset();

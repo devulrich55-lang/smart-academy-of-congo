@@ -122,23 +122,19 @@ echo  1. Static Site  ^> Manual Deploy
 
 echo  2. API Service  ^> Manual Deploy
 
-echo  3. API Environment (obligatoire) :
+echo  3. API Environment — MODE TEST (sans MySQL payant) :
 
-echo     DATABASE_BACKEND=mysql
+echo     DATABASE_BACKEND=sqlite
 
-echo     DATABASE_URL=mysql://USER:PASS@HOST:3306/smart_academy
+echo     DATABASE_PATH=/data/sac.db
 
 echo     UPLOAD_DIR=/data/uploads
 
-echo     ALLOWED_ORIGINS=https://smart-academy-of-congo-dbfm.onrender.com
+echo     Disque Render /data — 1 Go minimum
 
-echo     FRONTEND_URL=https://smart-academy-of-congo-dbfm.onrender.com
+echo     GMAIL_USER + GMAIL_APP_PASSWORD pour mot de passe oublie
 
-echo     CROSS_ORIGIN_AUTH=true
-
-echo  4. Disque persistant /data pour les uploads (10 Go)
-
-echo  5. Verifier : /api/health  ^> backend mysql, database up
+echo     Guide : backend-python/MODE-TEST-RENDER.md
 
 echo.
 

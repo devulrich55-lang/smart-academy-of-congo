@@ -37,18 +37,35 @@ const SAC_COURSES = (function () {
     return `${c.courseCode} — ${c.courseName} (${c.classe || c.niveau})`;
   }
 
+  function filiereMatch(studentFiliere, docFiliere) {
+    const sf = norm(studentFiliere);
+    const df = norm(docFiliere);
+    if (!df || !sf) return false;
+    return sf === df || sf.includes(df) || df.includes(sf);
+  }
+
+  function classeMatch(studentClasse, docClasse) {
+    const sc = norm(studentClasse);
+    const dc = norm(docClasse);
+    if (!dc) return true;
+    if (!sc) return false;
+    return sc === dc || sc.includes(dc) || dc.includes(sc);
+  }
+
   function studentProfile(session, usersExtra) {
     const u = getUserByEmail(session?.identifiant) || usersExtra;
     return {
       email: session?.identifiant || u?.email,
       universite: u?.universite || session?.universite || "",
-      filiere: u?.filiere || "",
-      niveau: u?.niveau || "",
-      matricule: u?.matricule || "",
+      filiere: u?.filiere || session?.filiere || "",
+      niveau: u?.niveau || session?.niveau || "",
+      matricule: u?.matricule || session?.matricule || "",
+      sectionId: u?.sectionId || session?.sectionId || "",
+      classe: u?.classe || session?.classe || "",
     };
   }
 
-  /** L'étudiant voit les contenus de sa classe (même uni, filière, niveau) */
+  /** L'étudiant voit uniquement les contenus de son niveau, section et classe */
   function studentSeesDocument(student, doc) {
     if (!student || !doc) return false;
 
@@ -56,17 +73,16 @@ const SAC_COURSES = (function () {
       if (doc.universite && doc.universite !== student.universite) return false;
       if (doc.audienceType === "section") {
         if (typeof SAC_SECTIONS === "undefined") return false;
-        if (doc.sectionId) return SAC_SECTIONS.studentInSection(student, doc.sectionId);
+        if (doc.sectionId) {
+          return SAC_SECTIONS.studentInSection(student, doc.sectionId);
+        }
+        if (student.sectionId) {
+          const sec = SAC_SECTIONS.getSectionById(student.sectionId);
+          if (sec && doc.filiere) return filiereMatch(sec.filiere, doc.filiere);
+        }
         const sec = SAC_SECTIONS.findSectionForStudent(student);
         if (!sec || !doc.filiere) return false;
-        const sf = norm(student.filiere);
-        const df = norm(doc.filiere);
-        return (
-          norm(sec.filiere) === df ||
-          sf === df ||
-          sf.includes(df) ||
-          df.includes(sf)
-        );
+        return filiereMatch(sec.filiere, doc.filiere);
       }
       return true;
     }
@@ -75,13 +91,10 @@ const SAC_COURSES = (function () {
     if (doc.audienceType && doc.audienceType !== "ma_classe") return false;
 
     if (doc.universite && doc.universite !== student.universite) return false;
-    if (doc.niveau && doc.niveau !== student.niveau) return false;
-
-    const sf = norm(student.filiere);
-    const df = norm(doc.filiere);
-    if (df && sf && !sf.includes(df) && !df.includes(sf)) return false;
-
-    return true;
+    if (!doc.niveau || !student.niveau) return false;
+    if (doc.niveau !== student.niveau) return false;
+    if (!filiereMatch(student.filiere, doc.filiere)) return false;
+    return classeMatch(student.classe, doc.classe);
   }
 
   function niveauOptionsHtml(selected) {

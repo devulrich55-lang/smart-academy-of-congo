@@ -1239,8 +1239,13 @@
               <input type="text" class="form-input" id="matricule" name="matricule" placeholder="Ex. ETU-2025-00001" />
               <span class="field-error" data-for="matricule">Matricule déjà utilisé ou invalide</span>
             </div>
+            <div class="form-group">
+              <label for="classe">Nom de classe / groupe <span class="hint">*</span></label>
+              <input type="text" class="form-input" id="classe" name="classe" placeholder="Ex. L2-Gestion Groupe A" required />
+              <span class="field-error" data-for="classe">Indiquez le nom exact de votre classe (comme chez votre professeur)</span>
+            </div>
             <p class="form-group full" style="font-size:0.88rem;color:var(--text-muted);grid-column:1/-1;">
-              Vous verrez uniquement les contenus publiés par vos professeurs et assistants pour votre <strong>niveau</strong> et votre <strong>filière</strong> à la même université.
+              Vous verrez uniquement les contenus publiés pour votre <strong>niveau</strong>, votre <strong>filière</strong>, votre <strong>section</strong> et votre <strong>classe</strong> à la même université.
             </p>
           </div>
 
@@ -2724,12 +2729,15 @@
       if (currentRole === "etudiant") {
         const uni = document.getElementById("universiteEtu").value;
         const filiere = document.getElementById("filiere").value.trim();
+        const classe = document.getElementById("classe").value.trim();
         valid = showError("universiteEtu", !uni) && valid;
         valid = showError("filiere", filiere.length < 2) && valid;
+        valid = showError("classe", classe.length < 2) && valid;
         Object.assign(profile, {
           universite: uni,
           filiere,
           niveau: document.getElementById("niveau").value,
+          classe: document.getElementById("classe").value.trim(),
           dateNaissance: document.getElementById("dateNaissance").value,
           matricule: document.getElementById("matricule").value.trim() || null,
         });

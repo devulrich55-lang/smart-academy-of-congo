@@ -453,6 +453,7 @@ const SAC_IDENTITY = (function () {
       sigle: user.sigle || null,
       matricule: user.matricule || null,
       sectionId: user.sectionId || null,
+      classe: user.classe || null,
       sectionName: user.sectionName || null,
       nomination: user.nomination || null,
       grade: user.grade || null,

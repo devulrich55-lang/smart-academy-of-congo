@@ -759,7 +759,7 @@
     <!-- DOCUMENTS -->
     <section class="page-section" id="section-documents">
       <h1 class="page-title">Documents & ressources</h1>
-      <p class="page-desc">Contenus de <strong>votre classe uniquement</strong> (même université, filière et niveau) : informations, PDF, images et audio. Réagissez aux publications de vos professeurs et assistants.</p>
+      <p class="page-desc">Contenus de <strong>votre classe uniquement</strong> (même université, filière, niveau et groupe) : informations, PDF, images et audio. Réagissez aux publications de vos professeurs et assistants.</p>
 
       <div class="panel">
         <div class="panel__head">
@@ -773,7 +773,7 @@
         </div>
         <div class="panel__body">
           <div class="doc-list" id="documentsList"></div>
-          <div class="empty-state" id="docsEmpty" style="display:none;">Aucun contenu pour votre classe (vérifiez université, filière et niveau dans votre profil).</div>
+          <div class="empty-state" id="docsEmpty" style="display:none;">Aucun contenu pour votre classe (vérifiez université, filière, niveau et nom de classe dans votre profil).</div>
         </div>
       </div>
     </section>
@@ -1150,14 +1150,7 @@
 
     function renderDocuments() {
       const session = JSON.parse(localStorage.getItem("sac_session") || "null");
-      const p = getStudentProfile(session);
-      const student = {
-        email: p.email,
-        universite: p.universite,
-        filiere: p.filiere,
-        niveau: p.niveau,
-        matricule: p.matricule,
-      };
+      const student = SAC_COURSES.studentProfile(session);
       const allDocs = SAC_DATA.getForStudent(student);
       const filtered = currentDocFilter === "all"
         ? allDocs
@@ -1196,13 +1189,7 @@
 
     function renderProfilePublications(session) {
       const p = getStudentProfile(session);
-      const student = {
-        email: p.email,
-        universite: p.universite,
-        filiere: p.filiere,
-        niveau: p.niveau,
-        matricule: p.matricule,
-      };
+      const student = SAC_COURSES.studentProfile(session);
 
       const campusDocs = SAC_DATA.getCampusPublicationsForStudent(student);
       const campusDocsEl = document.getElementById("profileCampusDocs");
@@ -1333,8 +1320,10 @@
         telephone: found?.telephone || "—",
         universite: found?.universite || session?.universite || "unkin",
         filiere: found?.filiere || "Sciences économiques — Gestion",
-        niveau: found?.niveau || "l2",
-        matricule: found?.matricule || "ETU-2024-08452",
+        niveau: found?.niveau || session?.niveau || "l2",
+        matricule: found?.matricule || session?.matricule || "ETU-2024-08452",
+        sectionId: found?.sectionId || session?.sectionId || "",
+        classe: found?.classe || session?.classe || "",
         dateNaissance: found?.dateNaissance || "—",
         inscriptionFee: found?.inscriptionFee || session?.inscriptionFee || null,
         universityFees: found?.universityFees || null,
@@ -1389,6 +1378,7 @@
         <div class="info-row"><span>Université</span><span>${UNI_NAMES[p.universite] || p.universite}</span></div>
         <div class="info-row"><span>Faculté / Filière</span><span>${p.filiere}</span></div>
         <div class="info-row"><span>Niveau</span><span>${NIVEAU_LABELS[p.niveau] || p.niveau}</span></div>
+        ${p.classe ? `<div class="info-row"><span>Classe / groupe</span><span>${escapeHtml(p.classe)}</span></div>` : ""}
         ${tarifHtml}
         <div class="info-row"><span>Année académique</span><span>2024 — 2025</span></div>
         <div class="info-row"><span>Statut</span><span class="status-ok">Inscrit · Actif</span></div>

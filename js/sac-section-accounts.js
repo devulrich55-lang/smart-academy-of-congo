@@ -107,6 +107,7 @@ const SAC_SECTION_ACCOUNTS = (function () {
       nom: nomCheck.value,
       matricule: (student.matricule || "").trim() || null,
       niveau: student.niveau || "l1",
+      classe: (student.classe || "").trim() || null,
       dateNaissance: student.dateNaissance || null,
       universite: actor.universite,
       filiere: actor.filiere,
@@ -131,6 +132,7 @@ const SAC_SECTION_ACCOUNTS = (function () {
         nom: profile.nom,
         matricule: profile.matricule,
         niveau: profile.niveau,
+        classe: profile.classe,
         dateNaissance: profile.dateNaissance,
       });
     }

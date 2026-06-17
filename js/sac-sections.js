@@ -254,6 +254,7 @@ const SAC_SECTIONS = (function () {
     const sec = getSectionById(sectionId);
     if (!sec || sec.active === false) return false;
     if (student.universite && sec.universite !== student.universite) return false;
+    if (student.sectionId) return student.sectionId === sectionId;
     const match = findSectionForStudent(student);
     return match?.id === sectionId;
   }

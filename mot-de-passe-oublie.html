@@ -31,7 +31,7 @@
       <img src="logos.svg" alt="" class="auth-card__logo" width="72" height="72" aria-hidden="true" />
       <h1 class="auth-card__title">Mot de passe oublié</h1>
       <p class="auth-card__subtitle">
-        Saisissez l'<strong>e-mail</strong> utilisé lors de votre inscription. Nous vous enverrons un lien pour choisir un nouveau mot de passe.
+        Saisissez l'<strong>e-mail</strong> de votre compte. Un <strong>code à 6 chiffres</strong> vous sera envoyé par <strong>e-mail via Gmail</strong> (expéditeur Smart Academy).
       </p>
 
       <div id="alertBox" hidden></div>
@@ -42,7 +42,7 @@
           <input type="email" class="form-input" id="email" name="email" placeholder="Ex. etudiant@unikin.cd" required autocomplete="email" />
         </div>
 
-        <button type="submit" class="btn-submit" id="btnSubmit">Envoyer le lien de réinitialisation</button>
+        <button type="submit" class="btn-submit" id="btnSubmit">Envoyer le code par e-mail</button>
       </form>
 
       <p class="form-footer">
@@ -90,14 +90,14 @@
         form.hidden = true;
         showAlert(
           result.message ||
-            "Si un compte existe avec cet e-mail, un lien de réinitialisation a été envoyé. Vérifiez votre boîte de réception (et les spams).",
+            "Si un compte existe avec cet e-mail, un code à 6 chiffres vous a été envoyé par e-mail. Vérifiez Gmail (et les spams).",
           "success"
         );
       } catch (err) {
         showAlert(err.message || "Une erreur est survenue. Réessayez plus tard.", "error");
       } finally {
         btnSubmit.disabled = false;
-        btnSubmit.textContent = "Envoyer le lien de réinitialisation";
+        btnSubmit.textContent = "Envoyer le code par e-mail";
       }
     });
   </script>
