@@ -1,0 +1,12 @@
+User-agent: *
+Disallow: /dashboard-etudiant.html
+Disallow: /dashboard-professeur.html
+Disallow: /dashboard-assistant.html
+Disallow: /dashboard-universite.html
+Disallow: /dashboard-section.html
+Disallow: /fiche-cote.html
+Disallow: /bulletin-semestre.html
+Disallow: /connexion.html
+Disallow: /inscription.html
+Disallow: /reinitialisation.html
+Disallow: /mot-de-passe-oublie.html

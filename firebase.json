@@ -11,6 +11,10 @@
       "docs/**",
       "vscode/**",
       "agent-transcripts/**",
+      ".git/**",
+      ".env*",
+      "**/*.py",
+      "**/*.sql",
       "vercel.json",
       "package.json",
       "package-lock.json",
@@ -19,6 +23,27 @@
       "README.md"
     ],
     "headers": [
+      {
+        "source": "/dashboard-*.html",
+        "headers": [
+          { "key": "X-Robots-Tag", "value": "noindex, nofollow" },
+          { "key": "Cache-Control", "value": "no-store" }
+        ]
+      },
+      {
+        "source": "/fiche-cote.html",
+        "headers": [
+          { "key": "X-Robots-Tag", "value": "noindex, nofollow" },
+          { "key": "Cache-Control", "value": "no-store" }
+        ]
+      },
+      {
+        "source": "/bulletin-semestre.html",
+        "headers": [
+          { "key": "X-Robots-Tag", "value": "noindex, nofollow" },
+          { "key": "Cache-Control", "value": "no-store" }
+        ]
+      },
       {
         "source": "**/*.@(js|css)",
         "headers": [
