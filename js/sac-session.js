@@ -48,6 +48,57 @@ const SAC_SESSION = (function () {
     return h === "localhost" || h === "127.0.0.1" || h === "[::1]";
   }
 
+  const POST_REGISTER_KEY = "sac_post_register";
+
+  function markPostRegistration(role) {
+    try {
+      sessionStorage.setItem(POST_REGISTER_KEY, String(role || ""));
+    } catch {
+      /* ignore */
+    }
+  }
+
+  function hasPostRegistration(role) {
+    try {
+      const v = sessionStorage.getItem(POST_REGISTER_KEY);
+      if (!v) return false;
+      return !role || v === role;
+    } catch {
+      return false;
+    }
+  }
+
+  function clearPostRegistration() {
+    try {
+      sessionStorage.removeItem(POST_REGISTER_KEY);
+    } catch {
+      /* ignore */
+    }
+  }
+
+  function isFreshApiRegistration(session, requiredRole) {
+    if (!session || session.authSource !== "api") return false;
+    if (requiredRole && session.role !== requiredRole) return false;
+    if (!session.newAccount && !hasPostRegistration(session.role)) return false;
+    if (typeof SAC_API !== "undefined" && typeof SAC_API.hasAuthTokens === "function") {
+      return SAC_API.hasAuthTokens();
+    }
+    return true;
+  }
+
+  function scheduleSessionSync(local) {
+    if (typeof SAC_API === "undefined" || typeof SAC_API.me !== "function") return;
+    SAC_API.me()
+      .then((serverSession) => {
+        saveSession({
+          ...serverSession,
+          payment: local.payment || serverSession.payment,
+        });
+        clearPostRegistration();
+      })
+      .catch(() => {});
+  }
+
   function isServerSession(session) {
     if (!session) return false;
     if (session.authSource === "api") return true;
@@ -167,6 +218,12 @@ const SAC_SESSION = (function () {
       typeof SAC_API !== "undefined" && (await SAC_API.ensureOnline());
 
     if (apiOnline) {
+      if (local && isFreshApiRegistration(local, requiredRole)) {
+        saveSession(local);
+        scheduleSessionSync(local);
+        return local;
+      }
+
       try {
         const serverSession = await SAC_API.me();
         if (requiredRole && serverSession.role !== requiredRole) {
@@ -174,6 +231,7 @@ const SAC_SESSION = (function () {
           return null;
         }
         saveSession(serverSession);
+        clearPostRegistration();
         return serverSession;
       } catch {
         let recovered = false;
@@ -188,10 +246,17 @@ const SAC_SESSION = (function () {
               return null;
             }
             saveSession(serverSession);
+            clearPostRegistration();
             return serverSession;
           } catch {
             /* fall through */
           }
+        }
+
+        if (local && isFreshApiRegistration(local, requiredRole)) {
+          saveSession(local);
+          scheduleSessionSync(local);
+          return local;
         }
 
         if (
@@ -260,6 +325,8 @@ const SAC_SESSION = (function () {
     getSession,
     saveSession,
     clearSession,
+    markPostRegistration,
+    clearPostRegistration,
     loginUrl,
     dashboardUrl,
     isLoggedIn,

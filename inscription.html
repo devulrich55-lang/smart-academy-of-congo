@@ -1603,8 +1603,8 @@
 
   <script src="js/sac-universities.js"></script>
   <script src="js/sac-identity.js"></script>
-  <script src="js/sac-session.js"></script>
-  <script src="js/sac-api.js"></script>
+  <script src="js/sac-session.js?v=20260617b"></script>
+  <script src="js/sac-api.js?v=20260617b"></script>
   <script src="js/sac-tariffs.js"></script>
   <script src="js/sac-sections.js"></script>
   <script>
@@ -2436,23 +2436,30 @@
 
       try {
         if (typeof SAC_API !== "undefined") {
-          await SAC_API.ping();
-          if (SAC_API.isOnline()) {
+          const online =
+            SAC_API.isOnline() === true || (await SAC_API.ping());
+          if (online && SAC_API.isOnline()) {
             try {
               const pwd = pendingProfile?._pwd || profile.password;
+              if (!pwd) {
+                alert("Mot de passe manquant. Recommencez l'inscription.");
+                return;
+              }
               const regPayload = { ...profile, password: pwd };
-              delete regPayload._pwd;
-              delete regPayload.payment;
-              delete regPayload.passwordHash;
-              delete regPayload.universiteLocked;
-              delete regPayload.authSource;
-              let apiSession = await SAC_API.register(regPayload);
+              let apiSession = await SAC_API.registerOrLogin(regPayload);
+              if (!SAC_API.hasAuthTokens()) {
+                apiSession = await SAC_API.login(profile.email, pwd, profile.role, {
+                  universite: profile.universite || null,
+                  codeUni: profile.codeUni || null,
+                });
+              }
               apiSession = {
                 ...apiSession,
                 newAccount: true,
                 payment,
               };
               SAC_SESSION.saveSession(apiSession);
+              SAC_SESSION.markPostRegistration(profile.role);
               if (profile.role === "universite" && profile.facultySections?.length && typeof SAC_SECTIONS !== "undefined") {
                 SAC_SECTIONS.importSectionsForUniversity({
                   ...profile,
@@ -2460,7 +2467,12 @@
                   identifiant: profile.email,
                 });
               }
-              window.location.replace(dashboards[profile.role]);
+              const target = dashboards[profile.role];
+              if (!target) {
+                alert("Rôle inconnu : " + profile.role);
+                return;
+              }
+              window.location.replace(target);
               return;
             } catch (err) {
               if (SAC_API.isOnline()) {

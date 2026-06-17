@@ -179,8 +179,8 @@
 
   <script src="js/sac-universities.js"></script>
   <script src="js/sac-identity.js"></script>
-  <script src="js/sac-session.js"></script>
-  <script src="js/sac-api.js"></script>
+  <script src="js/sac-session.js?v=20260617b"></script>
+  <script src="js/sac-api.js?v=20260617b"></script>
   <script>
     (async function () {
       const roleParam = new URLSearchParams(window.location.search).get("role");
@@ -388,7 +388,8 @@
         }
 
         if (apiSession) {
-          window.location.href = ROLES[apiSession.role || currentRole].dashboard;
+          SAC_SESSION.saveSession(apiSession);
+          window.location.replace(ROLES[apiSession.role || currentRole].dashboard);
           return;
         }
 

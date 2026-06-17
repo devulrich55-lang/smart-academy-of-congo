@@ -219,6 +219,69 @@ const SAC_API = (function () {
     return online;
   }
 
+  const REGISTER_FIELDS = [
+    "email",
+    "password",
+    "telephone",
+    "role",
+    "nom",
+    "prenom",
+    "universite",
+    "codeUni",
+    "filiere",
+    "niveau",
+    "matricule",
+    "classe",
+    "coursClasses",
+    "departement",
+    "service",
+    "nomUniversite",
+    "sigle",
+    "siteWeb",
+    "nbEtudiants",
+    "responsable",
+    "facultySections",
+    "inscriptionFee",
+    "universityFees",
+    "campusTariffs",
+    "grade",
+    "fonction",
+    "nomination",
+  ];
+
+  function buildRegisterPayload(profile) {
+    const out = {};
+    REGISTER_FIELDS.forEach((key) => {
+      const val = profile[key];
+      if (val !== undefined && val !== null && val !== "") out[key] = val;
+    });
+    if (profile.password) out.password = profile.password;
+    if (profile.email) out.email = profile.email;
+    if (profile.role) out.role = profile.role;
+    return out;
+  }
+
+  function isDuplicateRegistrationError(err) {
+    if (!err) return false;
+    if (err.code === "EMAIL_EXISTS" || err.status === 409) return true;
+    const msg = String(err.message || "");
+    return /déjà|existe|already/i.test(msg);
+  }
+
+  async function registerOrLogin(profile) {
+    const payload = buildRegisterPayload(profile);
+    const loginExtra = {
+      universite: profile.universite || null,
+      codeUni: profile.codeUni || null,
+    };
+    try {
+      return await register(payload);
+    } catch (regErr) {
+      if (!profile.password || !isDuplicateRegistrationError(regErr)) throw regErr;
+      return login(profile.email, profile.password, profile.role, loginExtra);
+    }
+  }
+
   async function login(identifier, password, role, extra = {}) {
     const data = await request("/auth/login", {
       method: "POST",
@@ -560,6 +623,8 @@ const SAC_API = (function () {
     allowOfflineAuth,
     login,
     register,
+    registerOrLogin,
+    buildRegisterPayload,
     refresh,
     logout,
     me,
