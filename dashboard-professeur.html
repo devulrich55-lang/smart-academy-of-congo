@@ -14,6 +14,7 @@
   <link rel="stylesheet" href="css/ai-correction.css" />
   <link rel="stylesheet" href="css/meetings.css" />
   <link rel="stylesheet" href="css/live.css" />
+  <link rel="stylesheet" href="css/presence.css" />
   <script src="js/sac-config.js"></script>
   <script src="js/sac-theme.js"></script>
   <link rel="stylesheet" href="css/home-news.css" />
@@ -56,22 +57,6 @@
     .task-filter button { padding: 0.4rem 0.85rem; border-radius: 100px; border: 1.5px solid var(--border); background: #fff; font-size: 0.82rem; font-weight: 600; cursor: pointer; font-family: inherit; color: var(--muted); }
     .task-filter button.active { border-color: var(--prof); color: var(--prof); background: rgba(201,162,39,0.1); }
     .student-chip { display: inline-block; padding: 0.2rem 0.55rem; margin: 0.15rem 0.25rem 0.15rem 0; background: rgba(12,61,110,0.06); border-radius: 6px; font-size: 0.78rem; }
-    .online-dot {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.35rem;
-      font-size: 0.82rem;
-      color: var(--muted);
-    }
-    .online-dot::before {
-      content: "";
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: #94a3b8;
-      display: inline-block;
-    }
-    .online-dot.is-online::before { background: #16a34a; box-shadow: 0 0 0 3px rgba(22,163,74,0.16); }
   </style>
   <link rel="stylesheet" href="css/theme.css" />
   <link rel="stylesheet" href="css/mobile.css" />
@@ -115,6 +100,7 @@
           <h1 id="profileName">Professeur</h1>
           <p style="opacity:0.9;font-size:0.9rem;" id="profileMeta">—</p>
           <span class="profile-hero__badge" id="profileBadge">Compte actif</span>
+          <span id="profilePresence" class="online-dot profile-presence">hors ligne</span>
         </div>
       </div>
 
@@ -578,13 +564,6 @@
           .join("");
       }
 
-      function setSelfPresence(isOnline) {
-        const el = document.getElementById("selfPresence");
-        if (!el) return;
-        el.classList.toggle("is-online", Boolean(isOnline));
-        el.textContent = isOnline ? "en ligne" : "hors ligne";
-      }
-
       function applyProfessorPresence(data) {
         totalOnlineStudents = Number(data?.onlineCount || 0);
         const map = {};
@@ -949,7 +928,7 @@
 
       if (typeof SAC_PRESENCE !== "undefined") {
         SAC_PRESENCE.start(session, {
-          onSelfOnline: setSelfPresence,
+          onSelfOnline: SAC_PRESENCE.bindSelfPresence("selfPresence", "profilePresence"),
           onProfessorPresence: applyProfessorPresence,
         });
       }

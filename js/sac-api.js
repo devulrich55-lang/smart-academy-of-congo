@@ -120,6 +120,14 @@ const SAC_API = (function () {
     return isCrossOriginApi() ? "omit" : "include";
   }
 
+  function apiJsonHeaders(extra) {
+    const headers = Object.assign({}, extra || {});
+    if (!isCrossOriginApi()) {
+      headers.Accept = "application/json";
+    }
+    return headers;
+  }
+
   function getAuthHeaders() {
     if (!isCrossOriginApi()) return {};
     const token = sessionStorage.getItem(TOKEN_ACCESS);
@@ -153,14 +161,13 @@ const SAC_API = (function () {
     const res = await fetchWithTimeout(`${BASE}/api${path}`, {
       ...options,
       credentials: apiCredentials(),
-      headers: {
-        Accept: "application/json",
+      headers: apiJsonHeaders({
         ...getAuthHeaders(),
         ...(options.body && !(options.body instanceof FormData)
           ? { "Content-Type": "application/json" }
           : {}),
         ...options.headers,
-      },
+      }),
     });
 
     let data = {};
@@ -213,10 +220,9 @@ const SAC_API = (function () {
         const res = await fetchWithTimeout(
           `${BASE}/api/health`,
           {
-            credentials: apiCredentials(),
+            method: "GET",
+            credentials: "omit",
             mode: "cors",
-            cache: "no-store",
-            headers: { Accept: "application/json" },
           },
           timeoutMs
         );
@@ -240,6 +246,26 @@ const SAC_API = (function () {
     }
     online = false;
     return false;
+  }
+
+  async function probeCors() {
+    if (!BASE) return { ok: false, error: "NO_API_BASE" };
+    try {
+      const res = await fetchWithTimeout(
+        `${BASE}/api/health`,
+        { method: "GET", mode: "cors", credentials: "omit" },
+        30000
+      );
+      const data = await res.json().catch(() => ({}));
+      return {
+        ok: res.ok && data.ok !== false,
+        status: res.status,
+        cors: data.cors || null,
+        data,
+      };
+    } catch (err) {
+      return { ok: false, error: err && err.message ? err.message : "NETWORK" };
+    }
   }
 
   /** Réveille l'API Render (cold start ~30–90 s) avant connexion / inscription. */
@@ -665,6 +691,7 @@ const SAC_API = (function () {
   return {
     ping,
     wakeServer,
+    probeCors,
     ensureOnline,
     isOnline,
     isLocalDevHost,

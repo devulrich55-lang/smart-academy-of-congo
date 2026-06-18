@@ -179,8 +179,8 @@
 
   <script src="js/sac-universities.js"></script>
   <script src="js/sac-identity.js"></script>
-  <script src="js/sac-session.js?v=20260617d"></script>
-  <script src="js/sac-api.js?v=20260617d"></script>
+  <script src="js/sac-session.js?v=20260618b"></script>
+  <script src="js/sac-api.js?v=20260618b"></script>
   <script>
     (async function () {
       const roleParam = new URLSearchParams(window.location.search).get("role");
@@ -415,14 +415,27 @@
             typeof SAC_API !== "undefined" && SAC_API.getFrontendOrigin
               ? SAC_API.getFrontendOrigin()
               : window.location.origin;
+          let corsHint = "";
+          if (typeof SAC_API.probeCors === "function") {
+            const probe = await SAC_API.probeCors();
+            if (probe.cors && probe.cors.originAllowed === false) {
+              corsHint =
+                "\n\nCORS : votre site n'est PAS autorisé par l'API.\n" +
+                "Origine détectée : " + (probe.cors.requestOrigin || originHint) + "\n" +
+                "→ Corrigez ALLOWED_ORIGINS sur API-1 puis redéployez l'API.";
+            } else if (probe.error) {
+              corsHint = "\n\nErreur réseau : " + probe.error;
+            }
+          }
           alert(
             "Connexion impossible : l'API est injoignable.\n\n" +
             (apiHint ? "API : " + apiHint + "\n\n" : "") +
             "1. Testez : " + (apiHint ? apiHint + "/api/health" : "/api/health") + "\n\n" +
-            "2. Sur Render → API-1 → Environment, ajoutez cette origine CORS :\n" +
-            "ALLOWED_ORIGINS=" + originHint + "\n\n" +
-            "3. Vérifiez aussi : CROSS_ORIGIN_AUTH=true\n" +
-            "4. Save → Manual Deploy API, puis réessayez (Ctrl+Shift+R)."
+            "2. Sur Render → API-1 → Environment :\n" +
+            "ALLOWED_ORIGINS=" + originHint + "\n" +
+            "CROSS_ORIGIN_AUTH=true\n\n" +
+            "3. Poussez le code API (dossier backend-python) puis Manual Deploy API." +
+            corsHint
           );
           return;
         }

@@ -12,6 +12,7 @@
   <link rel="stylesheet" href="css/grade-sheet.css" />
   <link rel="stylesheet" href="css/meetings.css" />
   <link rel="stylesheet" href="css/live.css" />
+  <link rel="stylesheet" href="css/presence.css" />
   <script src="js/sac-config.js"></script>
   <script src="js/sac-theme.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -492,6 +493,7 @@
         <a href="plateforme.html" class="btn btn--ghost btn--sm" style="text-decoration:none">Écosystème SAC</a>
         <span class="badge-role">🎓 Profil étudiant</span>
         <span id="userName" style="font-size:0.9rem;color:var(--text-muted);"></span>
+        <span id="selfPresence" class="online-dot">hors ligne</span>
         <button type="button" class="btn btn--ghost" id="btnLogout">Déconnexion</button>
       </div>
     </div>
@@ -526,6 +528,7 @@
             <span id="profileFiliere">Sciences économiques — Gestion · Licence 2</span>
           </p>
           <span class="profile-hero__badge">🎓 Profil étudiant actif</span>
+          <span id="profilePresence" class="online-dot profile-presence">hors ligne</span>
         </div>
       </div>
 
@@ -1550,7 +1553,9 @@
       renderReclamations(session);
       renderFees(p);
       if (typeof SAC_PRESENCE !== "undefined") {
-        SAC_PRESENCE.start(session);
+        SAC_PRESENCE.start(session, {
+          onSelfOnline: SAC_PRESENCE.bindSelfPresence("selfPresence", "profilePresence"),
+        });
       }
 
       document.getElementById("formReclamation").addEventListener("submit", (e) =>

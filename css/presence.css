@@ -1,0 +1,26 @@
+.online-dot {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.82rem;
+  color: var(--muted, #5a6d7e);
+}
+
+.online-dot::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #94a3b8;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.online-dot.is-online::before {
+  background: #16a34a;
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.16);
+}
+
+.profile-presence {
+  margin-top: 0.5rem;
+}

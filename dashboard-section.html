@@ -13,6 +13,7 @@
   <link rel="stylesheet" href="css/reclamations.css" />
   <link rel="stylesheet" href="css/meetings.css" />
   <link rel="stylesheet" href="css/live.css" />
+  <link rel="stylesheet" href="css/presence.css" />
   <link rel="stylesheet" href="css/theme.css" />
   <link rel="stylesheet" href="css/mobile.css" />
   <style>
@@ -30,22 +31,6 @@
       font-size: 0.88rem;
       color: var(--success);
     }
-    .online-dot {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.35rem;
-      font-size: 0.82rem;
-      color: var(--muted);
-    }
-    .online-dot::before {
-      content: "";
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: #94a3b8;
-      display: inline-block;
-    }
-    .online-dot.is-online::before { background: #16a34a; box-shadow: 0 0 0 3px rgba(22,163,74,0.16); }
   </style>
   <meta name="theme-color" content="#0e7490" />
 </head>
@@ -80,6 +65,7 @@
         <div>
           <h1 id="profileName">Section</h1>
           <p style="opacity:0.9;font-size:0.9rem;" id="profileMeta">—</p>
+          <span id="profilePresence" class="online-dot profile-presence">hors ligne</span>
         </div>
       </div>
 
@@ -284,13 +270,6 @@
         document.getElementById("statRecTotal").textContent = recs.length;
       }
 
-      function setSelfPresence(isOnline) {
-        const el = document.getElementById("selfPresence");
-        if (!el) return;
-        el.classList.toggle("is-online", Boolean(isOnline));
-        el.textContent = isOnline ? "en ligne" : "hors ligne";
-      }
-
       function renderSectionPresenceStats(data) {
         const el = document.getElementById("statOnline");
         if (!el) return;
@@ -464,7 +443,7 @@
       renderSectionLive();
       if (typeof SAC_PRESENCE !== "undefined") {
         SAC_PRESENCE.start(session, {
-          onSelfOnline: setSelfPresence,
+          onSelfOnline: SAC_PRESENCE.bindSelfPresence("selfPresence", "profilePresence"),
           onSectionPresence: renderSectionPresenceStats,
         });
       }

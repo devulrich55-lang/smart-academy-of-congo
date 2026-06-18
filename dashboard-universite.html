@@ -14,6 +14,7 @@
   <link rel="stylesheet" href="css/home-news.css" />
   <link rel="stylesheet" href="css/meetings.css" />
   <link rel="stylesheet" href="css/live.css" />
+  <link rel="stylesheet" href="css/presence.css" />
   <style>
     .badge-role { background: rgba(13,122,74,0.12); color: var(--uni); }
     .btn--role { background: var(--uni); }
@@ -227,6 +228,7 @@
       <div style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;">
         <span class="badge-role">🏛️ Administration université</span>
         <span id="userName" style="font-size:0.9rem;color:var(--muted);"></span>
+        <span id="selfPresence" class="online-dot">hors ligne</span>
         <button type="button" class="btn btn--ghost" id="btnLogout">Déconnexion</button>
       </div>
     </div>
@@ -252,12 +254,16 @@
           <h1 id="profileName">Université</h1>
           <p style="opacity:0.9;font-size:0.9rem;" id="profileMeta">Portail officiel Smart Academy of Congo</p>
           <span class="profile-hero__badge" id="profileBadge">Campus connecté</span>
+          <span id="profilePresence" class="online-dot profile-presence">hors ligne</span>
         </div>
       </div>
 
       <p class="page-desc" id="welcomeDesc">Vue d'ensemble de votre établissement sur la plateforme.</p>
 
       <div class="task-stats" id="dashTaskStats"></div>
+      <div class="task-stats" style="margin-top:0.5rem;">
+        <div class="task-stat task-stat--ok"><strong id="statOnline">0</strong><span>Utilisateurs en ligne</span></div>
+      </div>
 
       <div class="profile-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1.25rem;margin-bottom:1.25rem;">
         <div class="panel panel--workspace">
@@ -740,6 +746,7 @@
   <script src="js/sac-meetings.js"></script>
   <script src="js/sac-live.js"></script>
   <script src="js/sac-video-live.js"></script>
+  <script src="js/sac-presence.js"></script>
   <script>
     (async function () {
       let session = await SAC_SESSION.guard("universite");
@@ -1740,6 +1747,18 @@
 
       if (location.hash === "#sections") showSection("sections");
       if (location.hash === "#publications" || location.hash === "#communiquer") showSection("communiquer");
+
+      function renderCampusPresence(data) {
+        const el = document.getElementById("statOnline");
+        if (el) el.textContent = String(data?.onlineCount || 0);
+      }
+
+      if (typeof SAC_PRESENCE !== "undefined") {
+        SAC_PRESENCE.start(session, {
+          onSelfOnline: SAC_PRESENCE.bindSelfPresence("selfPresence", "profilePresence"),
+          onSectionPresence: renderCampusPresence,
+        });
+      }
     })();
   </script>
   <script src="js/sac-mobile.js" defer></script>

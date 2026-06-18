@@ -13,6 +13,7 @@
   <link rel="stylesheet" href="css/reclamations.css" />
   <link rel="stylesheet" href="css/ai-correction.css" />
   <link rel="stylesheet" href="css/grade-sheet.css" />
+  <link rel="stylesheet" href="css/presence.css" />
   <style>
     .badge-role { background: rgba(107,76,154,0.15); color: var(--assistant); }
     .btn--role { background: var(--assistant); }
@@ -51,6 +52,7 @@
       <div style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;">
         <span class="badge-role">📋 Profil assistant</span>
         <span id="userName" style="font-size:0.9rem;color:var(--muted);"></span>
+        <span id="selfPresence" class="online-dot">hors ligne</span>
         <button type="button" class="btn btn--ghost" id="btnLogout">Déconnexion</button>
       </div>
     </div>
@@ -72,6 +74,7 @@
         <div>
           <h1 id="profileName">Assistant</h1>
           <p style="opacity:0.9;font-size:0.9rem;" id="profileMeta">—</p>
+          <span id="profilePresence" class="online-dot profile-presence">hors ligne</span>
         </div>
       </div>
 
@@ -167,6 +170,10 @@
       <h1 class="page-title">Tableau de bord assistant</h1>
       <p class="page-desc" id="welcomeDesc">Vue d'ensemble de votre activité.</p>
 
+      <div class="stats-grid" style="margin-bottom:0.75rem;">
+        <div class="stat-card"><strong id="statOnline">0</strong><span>Utilisateurs en ligne (campus)</span></div>
+      </div>
+
       <div class="stats-grid" id="dashStatsGrid"></div>
 
       <div class="panel">
@@ -195,6 +202,7 @@
   <script src="js/sac-grade-sheet.js"></script>
   <script src="js/sac-platform.js"></script>
   <script src="js/sac-ai-correction.js"></script>
+  <script src="js/sac-presence.js"></script>
   <script>
     (async function () {
       let session = await SAC_SESSION.guard("assistant");
@@ -547,6 +555,18 @@
       if (publisherRoot) {
         const obs = new MutationObserver(refreshPubStats);
         obs.observe(publisherRoot, { childList: true, subtree: true });
+      }
+
+      function renderCampusPresence(data) {
+        const el = document.getElementById("statOnline");
+        if (el) el.textContent = String(data?.onlineCount || 0);
+      }
+
+      if (typeof SAC_PRESENCE !== "undefined") {
+        SAC_PRESENCE.start(session, {
+          onSelfOnline: SAC_PRESENCE.bindSelfPresence("selfPresence", "profilePresence"),
+          onSectionPresence: renderCampusPresence,
+        });
       }
     })();
   </script>

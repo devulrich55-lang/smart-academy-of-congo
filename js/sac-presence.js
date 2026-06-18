@@ -10,12 +10,30 @@ const SAC_PRESENCE = (function () {
     if (typeof fn === "function") fn(value);
   }
 
+  function bindSelfPresence(...ids) {
+    const elements = ids
+      .flat()
+      .map((id) => (typeof id === "string" ? document.getElementById(id) : id))
+      .filter(Boolean);
+    return (isOnline) => {
+      const label = isOnline ? "en ligne" : "hors ligne";
+      elements.forEach((el) => {
+        el.classList.toggle("is-online", Boolean(isOnline));
+        el.textContent = label;
+      });
+    };
+  }
+
   function buildPayload(session) {
     return {
       classe: session?.classe || null,
       filiere: session?.filiere || null,
       sectionId: session?.sectionId || null,
     };
+  }
+
+  function canFetchSectionPresence(role) {
+    return role === "section" || role === "assistant" || role === "universite";
   }
 
   async function heartbeat(session, hooks) {
@@ -33,7 +51,7 @@ const SAC_PRESENCE = (function () {
   async function refreshViews(session, hooks) {
     if (!isApiReady()) return;
     try {
-      if (session?.role === "section" && typeof SAC_API.getSectionPresence === "function") {
+      if (canFetchSectionPresence(session?.role) && typeof SAC_API.getSectionPresence === "function") {
         const data = await SAC_API.getSectionPresence();
         safeCall(hooks?.onSectionPresence, data);
       }
@@ -76,5 +94,5 @@ const SAC_PRESENCE = (function () {
     };
   }
 
-  return { start };
+  return { start, bindSelfPresence };
 })();
