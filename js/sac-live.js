@@ -84,7 +84,7 @@ const SAC_LIVE = (function () {
 
   function isHostRole(role) {
 
-    return role === "professeur" || role === "universite" || role === "assistant";
+    return role === "professeur" || role === "universite" || role === "assistant" || role === "section";
 
   }
 
@@ -322,7 +322,14 @@ const SAC_LIVE = (function () {
 
       .filter((x) => {
 
-        if (!s || isHostRole(s.role)) return true;
+        if (!s) return true;
+        if (isHostRole(s.role) && s.role !== "section") return true;
+        if (s.role === "section") {
+          const sf = String(s.filiere || "").trim().toLowerCase();
+          const xf = String(x.filiere || "").trim().toLowerCase();
+          if (!sf || !xf) return true;
+          return sf === xf || sf.includes(xf) || xf.includes(sf);
+        }
 
         if (x.status !== "live" && x.status !== "scheduled") return true;
 

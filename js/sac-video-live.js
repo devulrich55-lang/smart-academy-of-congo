@@ -38,7 +38,7 @@ const SAC_VIDEO_LIVE = (function () {
   }
 
   function canLaunch(session) {
-    return ["professeur", "universite", "assistant"].includes(session?.role);
+    return ["professeur", "universite", "assistant", "section"].includes(session?.role);
   }
 
   function defaultTitle(type, session) {
@@ -160,7 +160,7 @@ const SAC_VIDEO_LIVE = (function () {
 
   async function launchNow(session, type, opts) {
     if (!canLaunch(session)) {
-      throw new Error("Seuls les professeurs, assistants et universités peuvent lancer un live.");
+      throw new Error("Seuls les professeurs, assistants, sections et universités peuvent lancer un live.");
     }
 
     const title = opts.title || defaultTitle(type, session);
@@ -196,11 +196,16 @@ const SAC_VIDEO_LIVE = (function () {
 
     if (meetingType === "section_prof" && typeof SAC_SECTIONS !== "undefined") {
       const sections = SAC_SECTIONS.getSectionsByUniversity(session) || [];
-      if (sections[0]) {
-        payload.sectionId = sections[0].id;
-        payload.sectionName = sections[0].name;
-        payload.filiere = sections[0].filiere;
-        payload.allowedEmails = SAC_MEETINGS.profEmailsForSection(session.universite, sections[0].filiere);
+      const section =
+        (session.sectionId && sections.find((s) => s.id === session.sectionId)) ||
+        sections[0];
+      if (section) {
+        payload.sectionId = section.id;
+        payload.sectionName = section.name;
+        payload.filiere = section.filiere;
+        const profs = SAC_MEETINGS.profEmailsForSection(session.universite, section.filiere);
+        const caller = (session.identifiant || session.email || "").toLowerCase();
+        payload.allowedEmails = Array.from(new Set([...profs, caller].filter(Boolean)));
       }
     }
 
