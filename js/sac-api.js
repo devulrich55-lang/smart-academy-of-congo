@@ -1,6 +1,6 @@
 /**
  * Client API sécurisé — Smart Academy of Congo
- * Cookies httpOnly (sac_access, sac_refresh) — credentials: include
+ * Cross-origin Render : jetons Bearer (CROSS_ORIGIN_AUTH) — pas de cookies tiers.
  */
 const SAC_API = (function () {
   const BASE = (function () {
@@ -116,6 +116,10 @@ const SAC_API = (function () {
     }
   }
 
+  function apiCredentials() {
+    return isCrossOriginApi() ? "omit" : "include";
+  }
+
   function getAuthHeaders() {
     if (!isCrossOriginApi()) return {};
     const token = sessionStorage.getItem(TOKEN_ACCESS);
@@ -148,7 +152,7 @@ const SAC_API = (function () {
   async function request(path, options = {}) {
     const res = await fetchWithTimeout(`${BASE}/api${path}`, {
       ...options,
-      credentials: "include",
+      credentials: apiCredentials(),
       headers: {
         Accept: "application/json",
         ...getAuthHeaders(),
@@ -209,13 +213,24 @@ const SAC_API = (function () {
         const res = await fetchWithTimeout(
           `${BASE}/api/health`,
           {
-            credentials: "include",
+            credentials: apiCredentials(),
             mode: "cors",
             cache: "no-store",
+            headers: { Accept: "application/json" },
           },
           timeoutMs
         );
-        online = res.ok;
+        let data = {};
+        try {
+          data = await res.json();
+        } catch {
+          /* non-json */
+        }
+        online =
+          res.ok ||
+          (data &&
+            typeof data === "object" &&
+            ("ok" in data || "database" in data));
         return online;
       } catch {
         if (attempt < maxAttempts - 1) {
@@ -579,7 +594,7 @@ const SAC_API = (function () {
     if (!useAuth) {
       const res = await fetch(`${BASE}/api${path}`, {
         ...opts,
-        credentials: "include",
+        credentials: apiCredentials(),
         headers: {
           Accept: "application/json",
           "Content-Type": "application/json",
@@ -601,7 +616,7 @@ const SAC_API = (function () {
     const doUpload = async () =>
       fetchWithTimeout(`${BASE}/api${path}`, {
         method: method || "POST",
-        credentials: "include",
+        credentials: apiCredentials(),
         headers: {
           ...getAuthHeaders(),
         },
@@ -636,6 +651,11 @@ const SAC_API = (function () {
 
   function getBase() {
     return BASE;
+  }
+
+  function getFrontendOrigin() {
+    if (typeof window === "undefined") return "";
+    return window.location.origin || "";
   }
 
   function isOnline() {
@@ -685,6 +705,7 @@ const SAC_API = (function () {
     platformRequest,
     uploadFormData,
     getBase,
+    getFrontendOrigin,
     hasAuthTokens,
     ensureAuthTokens,
     clearClientSession,

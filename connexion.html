@@ -179,8 +179,8 @@
 
   <script src="js/sac-universities.js"></script>
   <script src="js/sac-identity.js"></script>
-  <script src="js/sac-session.js?v=20260617c"></script>
-  <script src="js/sac-api.js?v=20260617c"></script>
+  <script src="js/sac-session.js?v=20260617d"></script>
+  <script src="js/sac-api.js?v=20260617d"></script>
   <script>
     (async function () {
       const roleParam = new URLSearchParams(window.location.search).get("role");
@@ -411,14 +411,18 @@
           const apiHint = typeof SAC_API !== "undefined" && SAC_API.getBase
             ? SAC_API.getBase()
             : "";
+          const originHint =
+            typeof SAC_API !== "undefined" && SAC_API.getFrontendOrigin
+              ? SAC_API.getFrontendOrigin()
+              : window.location.origin;
           alert(
             "Connexion impossible : l'API est injoignable.\n\n" +
             (apiHint ? "API : " + apiHint + "\n\n" : "") +
-            "1. Ouvrez ce lien dans un nouvel onglet pour tester l'API :\n" +
-            (apiHint ? apiHint + "/api/health\n\n" : "") +
-            "2. Si la page ne s'affiche pas → Render → smart-academy-of-congo-API-1 → vérifiez qu'il est « Live » (vert).\n" +
-            "3. Si « Failed » → onglet Logs (souvent JWT ou base de données manquante).\n" +
-            "4. Attendez 1–2 min (réveil Render) puis réessayez."
+            "1. Testez : " + (apiHint ? apiHint + "/api/health" : "/api/health") + "\n\n" +
+            "2. Sur Render → API-1 → Environment, ajoutez cette origine CORS :\n" +
+            "ALLOWED_ORIGINS=" + originHint + "\n\n" +
+            "3. Vérifiez aussi : CROSS_ORIGIN_AUTH=true\n" +
+            "4. Save → Manual Deploy API, puis réessayez (Ctrl+Shift+R)."
           );
           return;
         }
