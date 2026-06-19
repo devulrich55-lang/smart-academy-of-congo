@@ -49,6 +49,15 @@ const SAC_ADMIN_DASHBOARD = (function () {
         SAC_HOME_NEWS.renderPublicPreview("ministryPublicPreview");
       }
     }
+    if (id === "registry" && typeof SAC_PLATFORM_REGISTRY !== "undefined") {
+      const session = SAC_SESSION.getSession();
+      if (session?.role === "superadmin") {
+        SAC_PLATFORM_REGISTRY.unlock();
+        SAC_PLATFORM_REGISTRY.load(session).then(() => {
+          SAC_PLATFORM_REGISTRY.mount(document.getElementById("platformRegistryRoot"), session);
+        });
+      }
+    }
   }
 
   async function reloadActivities() {
@@ -314,6 +323,10 @@ const SAC_ADMIN_DASHBOARD = (function () {
 
     await refresh(session, isSuper);
     await reloadActivities();
+
+    if (isSuper && typeof SAC_PLATFORM_REGISTRY !== "undefined") {
+      SAC_PLATFORM_REGISTRY.bindUnlock(session, showSection, toast);
+    }
 
     return session;
   }

@@ -619,6 +619,21 @@ const SAC_API = (function () {
     return request("/admin/accounts/" + encodeURIComponent(email), { method: "DELETE" });
   }
 
+  async function getPlatformAccountsSummary() {
+    return request("/admin/platform/accounts/summary");
+  }
+
+  async function listPlatformAccounts(opts = {}) {
+    const params = new URLSearchParams();
+    if (opts.role) params.set("role", opts.role);
+    if (opts.q) params.set("q", opts.q);
+    if (opts.universite) params.set("universite", opts.universite);
+    if (opts.limit) params.set("limit", String(opts.limit));
+    const q = params.toString() ? "?" + params.toString() : "";
+    const data = await request("/admin/platform/accounts" + q);
+    return data.accounts || [];
+  }
+
   async function getInstitutionalSummary() {
     return request("/admin/institutional/summary");
   }
@@ -785,6 +800,8 @@ const SAC_API = (function () {
     getAdminAccountsSummary,
     listAdminAccounts,
     deleteAdminAccount,
+    getPlatformAccountsSummary,
+    listPlatformAccounts,
     getInstitutionalSummary,
     listInstitutionalAdmins,
     createInstitutionalAdmin,

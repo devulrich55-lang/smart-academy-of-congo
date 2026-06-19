@@ -593,3 +593,98 @@ body[data-ws-role="universite"] {
   .min-live-room__body { grid-template-columns: 1fr; grid-template-rows: 1fr auto; }
   .min-live-room__body iframe { min-height: 50vh; }
 }
+
+/* Registre national — Super Admin (accès discret) */
+.ws-registry-secret[hidden] { display: none !important; }
+
+.ws-registry-hint {
+  display: inline-block;
+  margin-left: 0.5rem;
+  font-size: 0.78rem;
+  color: var(--muted);
+  opacity: 0.75;
+}
+
+.ws-registry-warn {
+  padding: 0.65rem 0.85rem;
+  margin-bottom: 1rem;
+  border-radius: 8px;
+  background: rgba(180, 83, 9, 0.1);
+  border: 1px solid rgba(180, 83, 9, 0.25);
+  color: #92400e;
+  font-size: 0.85rem;
+}
+
+.ws-kpi-grid--registry {
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+}
+
+.ws-reg-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-bottom: 1.25rem;
+}
+
+.ws-reg-filter {
+  padding: 0.4rem 0.85rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  border-radius: 100px;
+  border: 1.5px solid var(--border);
+  background: var(--surface, #fff);
+  color: var(--muted);
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.ws-reg-filter:hover,
+.ws-reg-filter.active {
+  border-color: var(--ws-accent, var(--primary));
+  color: var(--ws-accent, var(--primary));
+  background: var(--ws-accent-soft, rgba(12, 61, 110, 0.08));
+}
+
+.ws-reg-group {
+  margin-bottom: 1.75rem;
+}
+
+.ws-reg-group__title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1rem;
+  margin: 0 0 0.75rem;
+  color: var(--ws-accent, var(--primary));
+  padding-bottom: 0.45rem;
+  border-bottom: 2px solid var(--ws-accent-soft, rgba(12, 61, 110, 0.12));
+}
+
+.ws-reg-group__title span {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.1rem 0.5rem;
+  border-radius: 100px;
+  background: var(--ws-accent-soft);
+  color: var(--muted);
+}
+
+.ws-registry-role {
+  display: inline-block;
+  padding: 0.15rem 0.45rem;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  background: rgba(100, 116, 139, 0.12);
+  color: #475569;
+}
+
+.ws-table--compact th,
+.ws-table--compact td {
+  padding: 0.55rem 0.65rem;
+  font-size: 0.85rem;
+}
+
+body[data-ws-role="superadmin"] #statTotal {
+  cursor: pointer;
+}

@@ -39,6 +39,7 @@
       <button type="button" class="nav-tab nav-tab--priority ws-only-ministere-hidden" data-section="publier" id="tabPublier">📢 Publier</button>
       <button type="button" class="nav-tab nav-tab--priority ws-only-ministere-hidden" data-section="live" id="tabLive">🎥 Espace live</button>
       <button type="button" class="nav-tab nav-tab--priority" data-section="create" id="tabCreate" hidden>➕ Créer un compte</button>
+      <button type="button" class="nav-tab ws-registry-secret" data-section="registry" id="tabRegistry" hidden>📊 Registre</button>
       <button type="button" class="nav-tab" data-section="securite">🔒 Sécurité</button>
     </nav>
   </header>
@@ -72,7 +73,7 @@
       <div class="ws-kpi-grid">
         <div class="ws-kpi">
           <div class="ws-kpi__icon">👥</div>
-          <strong id="statTotal">0</strong>
+          <strong id="statTotal" title="Super Admin : triple-clic pour le registre national">0</strong>
           <span>Administrateurs total</span>
         </div>
         <div class="ws-kpi ws-kpi--gold">
@@ -290,6 +291,11 @@
       <div id="ministryLiveRoot"></div>
     </section>
 
+    <!-- REGISTRE NATIONAL (Super Admin — accès discret) -->
+    <section class="page-section ws-registry-secret" id="section-registry" hidden aria-hidden="true">
+      <div id="platformRegistryRoot"></div>
+    </section>
+
     <!-- SÉCURITÉ -->
     <section class="page-section" id="section-securite">
       <h1 class="page-title">Sécurité & conformité</h1>
@@ -334,6 +340,7 @@
   <script src="js/sac-institutional-admin.js"></script>
   <script src="js/sac-ministry-live.js"></script>
   <script src="js/sac-home-news.js"></script>
+  <script src="js/sac-platform-registry.js"></script>
   <script src="js/sac-admin-activities.js"></script>
   <script src="js/sac-admin-dashboard.js"></script>
   <script>
