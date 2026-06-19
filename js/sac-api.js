@@ -603,6 +603,20 @@ const SAC_API = (function () {
     return data.students || [];
   }
 
+  async function getAdminAccountsSummary() {
+    return request("/admin/accounts/summary");
+  }
+
+  async function listAdminAccounts(role) {
+    const q = role ? "?role=" + encodeURIComponent(role) : "";
+    const data = await request("/admin/accounts" + q);
+    return data.accounts || [];
+  }
+
+  async function deleteAdminAccount(email) {
+    return request("/admin/accounts/" + encodeURIComponent(email), { method: "DELETE" });
+  }
+
   async function pingPresence(payload = {}) {
     return request("/platform/presence/ping", {
       method: "POST",
@@ -735,6 +749,9 @@ const SAC_API = (function () {
     getSectionPresence,
     getProfessorPresence,
     listProfessorStudents,
+    getAdminAccountsSummary,
+    listAdminAccounts,
+    deleteAdminAccount,
     platformRequest,
     uploadFormData,
     getBase,

@@ -2,7 +2,7 @@
  * Pilotage campus — espace administration université
  */
 const SAC_UNIVERSITY = (function () {
-  const CAMPUS_ROLES = ["etudiant", "professeur", "assistant"];
+  const CAMPUS_ROLES = ["etudiant", "professeur", "assistant", "section"];
 
   function campusCode(session) {
     return session?.universite || session?.codeUni || session?.sigle || "";
@@ -11,6 +11,17 @@ const SAC_UNIVERSITY = (function () {
   function getCampusUsers(session) {
     const code = campusCode(session);
     if (!code) return [];
+
+    if (typeof SAC_ADMIN_ACCOUNTS !== "undefined") {
+      const apiAccounts = SAC_ADMIN_ACCOUNTS.getAccounts();
+      if (apiAccounts.length) {
+        return apiAccounts.map((a) => ({
+          ...a,
+          payment: a.paymentStatus ? { status: a.paymentStatus } : null,
+        }));
+      }
+    }
+
     return SAC_IDENTITY.getLocalUsers().filter(
       (u) => CAMPUS_ROLES.includes(u.role) && String(u.universite || "") === code
     );
@@ -43,17 +54,21 @@ const SAC_UNIVERSITY = (function () {
       (d) => d.source === "administration" && d.universite === code && d.audienceType !== "section"
     ).length;
 
-    const byRole = { etudiant: 0, professeur: 0, assistant: 0 };
+    const apiSummary =
+      typeof SAC_ADMIN_ACCOUNTS !== "undefined" ? SAC_ADMIN_ACCOUNTS.getSummary() : null;
+
+    const byRole = { etudiant: 0, professeur: 0, assistant: 0, section: 0 };
     users.forEach((u) => {
       if (byRole[u.role] !== undefined) byRole[u.role]++;
     });
 
     return {
       sectionsCount: sections.length,
-      studentsCount: byRole.etudiant,
-      professorsCount: byRole.professeur,
-      assistantsCount: byRole.assistant,
-      membersCount: users.length,
+      studentsCount: apiSummary?.byRole?.etudiant ?? byRole.etudiant,
+      professorsCount: apiSummary?.byRole?.professeur ?? byRole.professeur,
+      assistantsCount: apiSummary?.byRole?.assistant ?? byRole.assistant,
+      sectionHeadsCount: apiSummary?.byRole?.section ?? byRole.section,
+      membersCount: apiSummary?.total ?? users.length,
       openReclamations: c.ouverte,
       inProgressReclamations: c.en_cours,
       resolvedReclamations: c.resolue,

@@ -649,14 +649,52 @@
         <div class="panel__body" id="listPayments"></div>
       </div>
 
-      <div class="panel">
-        <div class="panel__head"><h2>Membres inscrits sur le campus</h2></div>
-        <div class="panel__body" style="overflow-x:auto;">
-          <table>
-            <thead><tr><th>Nom</th><th>Rôle</th><th>E-mail</th><th>Paiement</th></tr></thead>
-            <tbody id="membersTable"></tbody>
-          </table>
-          <p class="empty-tasks" id="membersEmpty" style="display:none;">Aucun membre inscrit pour ce campus.</p>
+      <div class="panel panel--workspace" id="panelCampusAccounts">
+        <div class="panel__head">
+          <h2>👥 Comptes utilisateurs du campus</h2>
+          <span id="accountsCountHead" style="font-size:0.82rem;color:var(--muted);"></span>
+        </div>
+        <div class="panel__body">
+          <p class="page-desc" style="margin:0 0 1rem;font-size:0.88rem;">
+            Consultez tous les comptes inscrits sur votre campus (base de données) et supprimez les comptes de test si nécessaire.
+          </p>
+
+          <div class="prof-stats" id="accountsStatsBar">
+            <div class="prof-stat"><strong id="accStatTotal">0</strong><span>Total</span></div>
+            <div class="prof-stat"><strong id="accStatStudents">0</strong><span>Étudiants</span></div>
+            <div class="prof-stat"><strong id="accStatProfs">0</strong><span>Professeurs</span></div>
+            <div class="prof-stat"><strong id="accStatAssist">0</strong><span>Assistants</span></div>
+            <div class="prof-stat"><strong id="accStatSection">0</strong><span>Chefs section</span></div>
+          </div>
+
+          <div class="prof-toolbar" style="margin-bottom:1rem;">
+            <input type="search" class="prof-search" id="accountsSearch" placeholder="Rechercher nom, e-mail, filière…" />
+            <select class="fi" id="accountsRoleFilter" style="min-width:160px;border-radius:100px;padding:0.55rem 0.85rem;">
+              <option value="">Tous les rôles</option>
+              <option value="etudiant">Étudiants</option>
+              <option value="professeur">Professeurs</option>
+              <option value="assistant">Assistants</option>
+              <option value="section">Chefs de section</option>
+            </select>
+            <button type="button" class="btn btn--ghost btn--sm" id="btnRefreshAccounts">Actualiser</button>
+          </div>
+
+          <div style="overflow-x:auto;">
+            <table class="section-table">
+              <thead>
+                <tr>
+                  <th>Nom</th>
+                  <th>Rôle</th>
+                  <th>E-mail</th>
+                  <th>Filière / classe</th>
+                  <th>Paiement</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="membersTable"></tbody>
+            </table>
+          </div>
+          <p class="empty-tasks" id="membersEmpty" style="display:none;">Aucun compte sur ce campus.</p>
         </div>
       </div>
     </section>
@@ -741,6 +779,7 @@
   <script src="js/sac-nominations.js"></script>
   <script src="js/sac-tasks.js"></script>
   <script src="js/sac-university-workspace.js"></script>
+  <script src="js/sac-admin-accounts.js"></script>
   <script src="js/sac-home-news.js"></script>
   <script src="js/sac-publisher.js"></script>
   <script src="js/sac-meetings.js"></script>
@@ -1229,26 +1268,110 @@
         document.getElementById("nominateDialog").showModal();
       }
 
+      let accountsSearchQuery = "";
+      let accountsRoleFilter = "";
+
+      function roleLabel(role) {
+        return SAC_TASKS?.ROLE_LABELS?.[role] || role || "—";
+      }
+
+      function accountMetaLine(u) {
+        const parts = [];
+        if (u.filiere) parts.push(u.filiere);
+        if (u.niveau) parts.push(String(u.niveau).toUpperCase());
+        if (u.classe) parts.push(u.classe);
+        return parts.length ? parts.join(" · ") : "—";
+      }
+
+      function renderAccountsStats(summary) {
+        const s = summary || SAC_ADMIN_ACCOUNTS?.getSummary?.() || {};
+        const by = s.byRole || {};
+        const set = (id, val) => {
+          const el = document.getElementById(id);
+          if (el) el.textContent = String(val ?? 0);
+        };
+        set("accStatTotal", s.total ?? 0);
+        set("accStatStudents", by.etudiant ?? 0);
+        set("accStatProfs", by.professeur ?? 0);
+        set("accStatAssist", by.assistant ?? 0);
+        set("accStatSection", by.section ?? 0);
+        const head = document.getElementById("accountsCountHead");
+        if (head) head.textContent = (s.total ?? 0) + " compte(s) en base";
+      }
+
       async function renderMembers() {
-        const users = SAC_UNIVERSITY.getCampusUsers(session);
+        if (typeof SAC_ADMIN_ACCOUNTS !== "undefined") {
+          await SAC_ADMIN_ACCOUNTS.load(session, { role: accountsRoleFilter || null });
+          renderAccountsStats(SAC_ADMIN_ACCOUNTS.getSummary());
+        }
+
+        let users = SAC_UNIVERSITY.getCampusUsers(session);
+        const q = accountsSearchQuery.trim().toLowerCase();
+        if (q) {
+          users = users.filter((u) => {
+            const blob = [
+              SAC_ADMIN_ACCOUNTS?.displayName?.(u) || SAC_UNIVERSITY.displayName(u),
+              u.email,
+              u.filiere,
+              u.classe,
+              u.role,
+            ]
+              .join(" ")
+              .toLowerCase();
+            return blob.includes(q);
+          });
+        }
+
         const tbody = document.getElementById("membersTable");
         const empty = document.getElementById("membersEmpty");
         if (!users.length) {
           tbody.innerHTML = "";
           empty.style.display = "block";
+          empty.textContent = accountsSearchQuery
+            ? "Aucun compte ne correspond à la recherche."
+            : "Aucun compte sur ce campus.";
           return;
         }
         empty.style.display = "none";
+        const selfEmail = String(session?.identifiant || "").toLowerCase();
         tbody.innerHTML = users
-          .map(
-            (u) => `<tr>
-            <td>${esc(SAC_UNIVERSITY.displayName(u))}</td>
-            <td>${esc(SAC_TASKS?.ROLE_LABELS?.[u.role] || u.role)}</td>
+          .map((u) => {
+            const name = SAC_ADMIN_ACCOUNTS?.displayName?.(u) || SAC_UNIVERSITY.displayName(u);
+            const canDelete =
+              typeof SAC_ADMIN_ACCOUNTS !== "undefined" &&
+              String(u.email || "").toLowerCase() !== selfEmail;
+            const delBtn = canDelete
+              ? `<button type="button" class="btn--reject btn--sm" data-del-account="${esc(u.email)}">Supprimer</button>`
+              : `<span style="font-size:0.78rem;color:var(--muted);">—</span>`;
+            return `<tr>
+            <td>${esc(name)}</td>
+            <td>${esc(roleLabel(u.role))}</td>
             <td>${esc(u.email)}</td>
-            <td>${paymentLabel(u.payment?.status)}</td>
-          </tr>`
-          )
+            <td>${esc(accountMetaLine(u))}</td>
+            <td>${paymentLabel(u.payment?.status || u.paymentStatus)}</td>
+            <td>${delBtn}</td>
+          </tr>`;
+          })
           .join("");
+
+        tbody.querySelectorAll("[data-del-account]").forEach((btn) => {
+          btn.addEventListener("click", async () => {
+            const email = btn.dataset.delAccount;
+            if (
+              !confirm(
+                "Supprimer définitivement le compte " + email + " ?\nCette action est irréversible."
+              )
+            )
+              return;
+            try {
+              await SAC_ADMIN_ACCOUNTS.remove(session, email);
+              showToast("Compte supprimé : " + email);
+              await refreshAllAsync();
+            } catch (err) {
+              alert(err.message || "Suppression impossible.");
+            }
+          });
+        });
       }
 
       function initPublishers() {
@@ -1529,10 +1652,10 @@
         }
       }
 
-      function refreshAll() {
+      async function refreshAll() {
         renderDashboard();
         renderPayments();
-        renderMembers();
+        await renderMembers();
         renderProfileSectionsList();
         renderSectionsProfileTable();
         renderProfessors();
@@ -1542,8 +1665,11 @@
       }
 
       async function refreshAllAsync() {
+        if (typeof SAC_ADMIN_ACCOUNTS !== "undefined") {
+          await SAC_ADMIN_ACCOUNTS.load(session);
+        }
         await loadCampusProfessors();
-        refreshAll();
+        await refreshAll();
       }
 
       document.querySelectorAll(".nav-tab").forEach((t) => {
@@ -1715,6 +1841,18 @@
         refreshAll();
       });
 
+      document.getElementById("accountsSearch")?.addEventListener("input", (e) => {
+        accountsSearchQuery = e.target.value;
+        renderMembers();
+      });
+      document.getElementById("accountsRoleFilter")?.addEventListener("change", (e) => {
+        accountsRoleFilter = e.target.value;
+        renderMembers();
+      });
+      document.getElementById("btnRefreshAccounts")?.addEventListener("click", () => {
+        refreshAllAsync();
+      });
+
       document.getElementById("filterStatut").addEventListener("change", renderSectionReclamations);
 
       document.getElementById("btnLogout").addEventListener("click", () => {
@@ -1740,7 +1878,7 @@
 
       await loadCampusTariffForm();
       await loadCampusProfessors();
-      refreshAll();
+      await refreshAllAsync();
       renderSectionPickList();
       renderSectionsTable();
       initSectionPublisher();

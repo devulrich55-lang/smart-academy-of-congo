@@ -151,6 +151,7 @@ const SAC_TASKS = (function () {
     etudiant: "Étudiant",
     professeur: "Professeur",
     assistant: "Assistant",
+    section: "Chef de section",
   };
 
   return {
