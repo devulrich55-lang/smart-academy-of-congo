@@ -8,6 +8,8 @@ const SAC_SESSION = (function () {
     assistant: "dashboard-assistant.html",
     universite: "dashboard-universite.html",
     section: "dashboard-section.html",
+    ministere: "dashboard-admin.html",
+    superadmin: "dashboard-admin.html",
   };
 
   function getSession() {
@@ -28,10 +30,19 @@ const SAC_SESSION = (function () {
 
   function loginUrl(role) {
     const r = role || "etudiant";
+    if (typeof SAC_PORTAL !== "undefined") {
+      return SAC_PORTAL.loginUrlForRole(r);
+    }
+    if (r === "ministere") return "ministere/";
+    if (r === "superadmin") return "superadmin/";
+    if (r === "universite") return "admin-uni/";
     return "connexion.html?role=" + encodeURIComponent(r);
   }
 
   function dashboardUrl(role) {
+    if (typeof SAC_PORTAL !== "undefined") {
+      return SAC_PORTAL.dashboardUrl(role);
+    }
     return DASHBOARDS[role] || "index.html";
   }
 
@@ -292,6 +303,9 @@ const SAC_SESSION = (function () {
     const session = await verifySession(requiredRole);
     if (!session) {
       window.location.replace(loginUrl(requiredRole));
+      return null;
+    }
+    if (typeof SAC_PORTAL !== "undefined" && SAC_PORTAL.redirectIfWrongRole(session)) {
       return null;
     }
     return session;

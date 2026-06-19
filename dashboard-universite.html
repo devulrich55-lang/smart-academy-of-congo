@@ -5,8 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Portail Université — Smart Academy of Congo</title>
   <script src="js/sac-config.js"></script>
+  <script src="js/sac-portal.js"></script>
   <script src="js/sac-theme.js"></script>
-  <link rel="icon" href="logos.svg" type="image/svg+xml" />
+  <link rel="icon" href="admin-uni/logos.png" type="image/png" />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/logo.css" />
   <link rel="stylesheet" href="css/dashboard.css" />
@@ -217,14 +218,15 @@
       margin-top: 0.5rem;
     }
   </style>
+  <link rel="stylesheet" href="css/admin-workspace.css" />
   <link rel="stylesheet" href="css/theme.css" />
   <link rel="stylesheet" href="css/mobile.css" />
   <meta name="theme-color" content="#0c3d6e" />
 </head>
-<body>
+<body data-ws-role="universite">
   <header class="header">
     <div class="header__top">
-      <a href="index.html" class="logo"><img src="logos.svg" alt="Smart Academy of Congo" class="logo__img" width="44" height="44" /><span class="logo__text">Smart Academy</span></a>
+      <a href="admin-uni/" class="logo" id="portalHomeLink"><img src="admin-uni/logos.png" alt="Smart Academy of Congo" class="logo__img" data-portal-logo width="52" height="52" /><span class="logo__text portal-logo-text" style="display:none;">Smart Academy of Congo</span></a>
       <div style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;">
         <span class="badge-role">🏛️ Administration université</span>
         <span id="userName" style="font-size:0.9rem;color:var(--muted);"></span>
@@ -237,6 +239,7 @@
       <button type="button" class="nav-tab nav-tab--priority" data-section="communiquer">📢 Communiquer</button>
       <button type="button" class="nav-tab nav-tab--priority" data-section="sections">🏫 Sections & réclamations</button>
       <button type="button" class="nav-tab nav-tab--priority" data-section="reunions">🎥 Réunions</button>
+      <button type="button" class="nav-tab" data-section="activites">📋 Activités</button>
       <button type="button" class="nav-tab" data-section="administration">⚙️ Campus & tarifs</button>
     </nav>
   </header>
@@ -248,7 +251,7 @@
     <section class="page-section active" id="section-accueil">
       <div class="profile-hero">
         <div class="profile-avatar profile-avatar--logo" style="background:rgba(255,255,255,0.2);padding:0.35rem;">
-          <img src="logos.svg" alt="" width="80" height="80" style="width:100%;height:100%;object-fit:contain;border-radius:50%;" />
+          <img src="admin-uni/logos.png" alt="Smart Academy of Congo" data-portal-logo width="80" height="80" style="width:auto;max-width:100%;max-height:88px;object-fit:contain;" />
         </div>
         <div>
           <h1 id="profileName">Université</h1>
@@ -465,6 +468,37 @@
         votes, compte rendu automatique par l'IA SAC.
       </p>
       <div id="meetingsRoot"></div>
+    </section>
+
+    <!-- ACTIVITÉS -->
+    <section class="page-section" id="section-activites">
+      <h1 class="page-title">Journal d'activités</h1>
+      <p class="page-desc">Connexions et actions enregistrées sur votre campus.</p>
+
+      <div class="ws-kpi-grid" style="margin-bottom:1.25rem;">
+        <div class="ws-kpi">
+          <div class="ws-kpi__icon">📋</div>
+          <strong id="uniActStatTotal">0</strong>
+          <span>Événements récents</span>
+        </div>
+        <div class="ws-kpi ws-kpi--gold">
+          <div class="ws-kpi__icon">🔐</div>
+          <strong id="uniActStatLogins">0</strong>
+          <span>Connexions</span>
+        </div>
+        <div class="ws-kpi">
+          <div class="ws-kpi__icon">🕐</div>
+          <strong id="uniActStatLast" style="font-size:1rem;">—</strong>
+          <span>Dernière activité</span>
+        </div>
+      </div>
+
+      <div class="panel panel--ws">
+        <div class="panel__head"><h2>Historique campus</h2></div>
+        <div class="panel__body" id="uniActivitiesTimeline">
+          <p class="empty">Chargement…</p>
+        </div>
+      </div>
     </section>
 
     <!-- ADMINISTRATION -->
@@ -780,6 +814,7 @@
   <script src="js/sac-tasks.js"></script>
   <script src="js/sac-university-workspace.js"></script>
   <script src="js/sac-admin-accounts.js"></script>
+  <script src="js/sac-admin-activities.js"></script>
   <script src="js/sac-home-news.js"></script>
   <script src="js/sac-publisher.js"></script>
   <script src="js/sac-meetings.js"></script>
@@ -790,6 +825,12 @@
     (async function () {
       let session = await SAC_SESSION.guard("universite");
       if (!session) return;
+
+      const portalHome = document.getElementById("portalHomeLink");
+      if (portalHome && typeof SAC_PORTAL !== "undefined") {
+        portalHome.href = SAC_PORTAL.loginUrlForRole("universite");
+        SAC_PORTAL.applyBranding("universite");
+      }
 
       session = SAC_SESSION.syncSessionWithAccount("universite") || session;
       await SAC_DATA.ensureReady();
@@ -1650,6 +1691,12 @@
         if (id === "reunions" && typeof SAC_MEETINGS !== "undefined") {
           SAC_MEETINGS.mountUI(document.getElementById("meetingsRoot"), session);
         }
+        if (id === "activites" && typeof SAC_ADMIN_ACTIVITIES !== "undefined") {
+          SAC_ADMIN_ACTIVITIES.load().then(({ activities, summary }) => {
+            SAC_ADMIN_ACTIVITIES.renderSummary(summary, "uniAct");
+            SAC_ADMIN_ACTIVITIES.renderTimeline(activities, "uniActivitiesTimeline");
+          });
+        }
       }
 
       async function refreshAll() {
@@ -1856,7 +1903,12 @@
       document.getElementById("filterStatut").addEventListener("change", renderSectionReclamations);
 
       document.getElementById("btnLogout").addEventListener("click", () => {
-        SAC_SESSION.logout("index.html");
+        const session = SAC_SESSION.getSession();
+        const target =
+          typeof SAC_PORTAL !== "undefined" && session
+            ? SAC_PORTAL.logoutUrl(session.role)
+            : "admin-uni/";
+        SAC_SESSION.logout(target);
       });
 
       applyProfessorPick("secNominate", "secResp");

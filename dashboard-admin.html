@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Espace institutionnel — Smart Academy of Congo</title>
+  <script src="js/sac-config.js"></script>
+  <script src="js/sac-portal.js"></script>
+  <script src="js/sac-theme.js"></script>
+  <link rel="icon" href="ministere/logos.png" type="image/png" id="portalFavicon" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/logo.css" />
+  <link rel="stylesheet" href="css/dashboard.css" />
+  <link rel="stylesheet" href="css/theme.css" />
+  <link rel="stylesheet" href="css/admin-workspace.css" />
+  <link rel="stylesheet" href="css/mobile.css" />
+  <meta name="theme-color" content="#0c3d6e" />
+</head>
+<body>
+  <header class="header ws-header">
+    <div class="header__top">
+      <a href="#" class="logo" id="portalHomeLink">
+        <img src="ministere/logos.png" alt="Smart Academy of Congo" class="logo__img" data-portal-logo width="52" height="52" />
+        <span class="logo__text portal-logo-text">Smart Academy of Congo</span>
+      </a>
+      <div style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;">
+        <span class="badge-role" id="roleBadge">Administration</span>
+        <span id="userName" style="font-size:0.9rem;color:var(--muted);"></span>
+        <button type="button" class="theme-toggle" data-theme-toggle aria-label="Changer le thème" title="Thème clair / sombre"></button>
+        <button type="button" class="btn btn--ghost" id="btnLogout">Déconnexion</button>
+      </div>
+    </div>
+    <nav class="nav-tabs" aria-label="Navigation institutionnelle">
+      <button type="button" class="nav-tab active" data-section="accueil">Tableau de bord</button>
+      <button type="button" class="nav-tab nav-tab--priority" data-section="administrateurs">👥 Administrateurs</button>
+      <button type="button" class="nav-tab nav-tab--priority" data-section="activites">📋 Activités</button>
+      <button type="button" class="nav-tab nav-tab--priority" data-section="create" id="tabCreate" hidden>➕ Créer un compte</button>
+      <button type="button" class="nav-tab" data-section="securite">🔒 Sécurité</button>
+    </nav>
+  </header>
+
+  <div class="ws-toast" id="wsToast" role="status"></div>
+
+  <main class="layout">
+    <!-- ACCUEIL -->
+    <section class="page-section active" id="section-accueil">
+      <div class="ws-hero">
+        <div class="ws-hero__logo">
+          <img src="ministere/logos.png" alt="Smart Academy of Congo" data-portal-logo />
+        </div>
+        <div>
+          <h1 id="profileName">Administration nationale</h1>
+          <p class="ws-hero__meta" id="profileMeta">—</p>
+          <div class="ws-hero__badges">
+            <span class="ws-hero__badge" id="heroRoleBadge">🏛️ Ministère</span>
+            <span class="ws-hero__badge">Plateforme SAC</span>
+            <span class="ws-hero__badge">RDC</span>
+          </div>
+        </div>
+        <div class="ws-hero__aside">
+          <strong>Smart Academy</strong>
+          <span id="heroDate">—</span>
+        </div>
+      </div>
+
+      <p class="page-desc">Vue d'ensemble de la gouvernance institutionnelle sur la plateforme nationale.</p>
+
+      <div class="ws-kpi-grid">
+        <div class="ws-kpi">
+          <div class="ws-kpi__icon">👥</div>
+          <strong id="statTotal">0</strong>
+          <span>Administrateurs total</span>
+        </div>
+        <div class="ws-kpi ws-kpi--gold">
+          <div class="ws-kpi__icon">🛡️</div>
+          <strong id="statSuper">0</strong>
+          <span>Super Admin</span>
+        </div>
+        <div class="ws-kpi">
+          <div class="ws-kpi__icon">🏛️</div>
+          <strong id="statMin">0</strong>
+          <span>Ministère</span>
+        </div>
+        <div class="ws-kpi">
+          <div class="ws-kpi__icon">🎓</div>
+          <strong id="statUni">0</strong>
+          <span>Admin université</span>
+        </div>
+      </div>
+
+      <div class="ws-grid-2">
+        <div class="panel panel--ws">
+          <div class="panel__head"><h2>Derniers comptes institutionnels</h2></div>
+          <div class="panel__body">
+            <div class="ws-admin-cards" id="recentAdmins">
+              <p class="empty">Chargement…</p>
+            </div>
+          </div>
+        </div>
+        <div class="panel panel--accent-gold">
+          <div class="panel__head" style="display:flex;justify-content:space-between;align-items:center;">
+            <h2>Dernières activités</h2>
+            <button type="button" class="btn btn--ghost btn--xs" data-goto="activites">Tout voir</button>
+          </div>
+          <div class="panel__body" id="recentActivitiesPreview">
+            <p class="empty">Chargement…</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel__head"><h2>Actions rapides</h2></div>
+        <div class="panel__body ws-quick-actions">
+          <button type="button" class="btn btn--role" data-goto="administrateurs">👥 Voir tous les administrateurs</button>
+          <button type="button" class="btn btn--role" data-goto="activites">📋 Journal d'activités</button>
+          <button type="button" class="btn btn--role ws-only-super-hidden" data-goto="create" id="btnQuickCreate">➕ Créer un compte</button>
+          <button type="button" class="btn btn--ghost" data-goto="securite">🔒 Politique de sécurité</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ADMINISTRATEURS -->
+    <section class="page-section" id="section-administrateurs">
+      <h1 class="page-title">Administrateurs institutionnels</h1>
+      <p class="page-desc" id="listHint">Liste des comptes visibles selon votre profil.</p>
+
+      <div class="panel panel--ws">
+        <div class="panel__head">
+          <h2>Registre des comptes</h2>
+          <span id="tableCount" style="font-size:0.82rem;color:var(--muted);">—</span>
+        </div>
+        <div class="panel__body">
+          <div class="ws-toolbar">
+            <input type="search" class="ws-search" id="searchAdmins" placeholder="Rechercher e-mail, nom, établissement…" />
+            <select class="ws-select" id="filterRole">
+              <option value="">Tous les rôles</option>
+              <option value="superadmin">Super Admin</option>
+              <option value="ministere">Ministère</option>
+              <option value="universite">Admin université</option>
+            </select>
+          </div>
+          <div class="ws-table-wrap">
+            <table class="ws-table">
+              <thead>
+                <tr>
+                  <th>Rôle</th>
+                  <th>Identité</th>
+                  <th>E-mail</th>
+                  <th>Établissement</th>
+                  <th class="col-actions" style="display:none;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="adminsBody">
+                <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:2rem;">Chargement…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ACTIVITÉS -->
+    <section class="page-section" id="section-activites">
+      <h1 class="page-title">Journal d'activités</h1>
+      <p class="page-desc">Connexions et actions enregistrées sur la plateforme (selon votre niveau d'accès).</p>
+
+      <div class="ws-kpi-grid" style="margin-bottom:1.25rem;">
+        <div class="ws-kpi">
+          <div class="ws-kpi__icon">📋</div>
+          <strong id="actStatTotal">0</strong>
+          <span>Événements récents</span>
+        </div>
+        <div class="ws-kpi ws-kpi--gold">
+          <div class="ws-kpi__icon">🔐</div>
+          <strong id="actStatLogins">0</strong>
+          <span>Connexions</span>
+        </div>
+        <div class="ws-kpi">
+          <div class="ws-kpi__icon">🕐</div>
+          <strong id="actStatLast" style="font-size:1rem;">—</strong>
+          <span>Dernière activité</span>
+        </div>
+      </div>
+
+      <div class="panel panel--ws">
+        <div class="panel__head"><h2>Historique</h2></div>
+        <div class="panel__body" id="activitiesTimeline">
+          <p class="empty">Chargement…</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- CRÉER (Super Admin) -->
+    <section class="page-section ws-only-super-hidden" id="section-create">
+      <h1 class="page-title">Créer un administrateur</h1>
+      <p class="page-desc">Comptes institutionnels — Ministère, Admin université ou Super Admin.</p>
+
+      <div class="panel panel--ws">
+        <div class="panel__head">
+          <h2>Nouveau compte</h2>
+          <span style="font-size:0.82rem;color:var(--muted);">Réservé au Super Admin</span>
+        </div>
+        <div class="panel__body">
+          <form id="formCreateAdmin">
+            <div class="ws-form-grid">
+              <div class="fg">
+                <label for="newRole">Type de compte *</label>
+                <select class="fi" id="newRole" required>
+                  <option value="ministere">Ministère</option>
+                  <option value="universite">Admin université</option>
+                  <option value="superadmin">Super Admin</option>
+                </select>
+              </div>
+              <div class="fg">
+                <label for="newEmail">E-mail *</label>
+                <input type="email" class="fi" id="newEmail" required placeholder="admin@ministere.cd" />
+              </div>
+              <div class="fg">
+                <label for="newPrenom">Prénom *</label>
+                <input type="text" class="fi" id="newPrenom" required />
+              </div>
+              <div class="fg">
+                <label for="newNom">Nom *</label>
+                <input type="text" class="fi" id="newNom" required />
+              </div>
+              <div class="fg">
+                <label for="newTel">Téléphone mobile *</label>
+                <input type="tel" class="fi" id="newTel" required placeholder="085 184 8859" />
+              </div>
+              <div class="fg">
+                <label for="newPassword">Mot de passe *</label>
+                <input type="password" class="fi" id="newPassword" required minlength="8" autocomplete="new-password" />
+              </div>
+            </div>
+            <div id="uniFields" class="ws-form-grid" style="margin-top:0.85rem;" hidden>
+              <div class="fg">
+                <label for="newNomUniversite">Nom université *</label>
+                <input type="text" class="fi" id="newNomUniversite" />
+              </div>
+              <div class="fg">
+                <label for="newResponsable">Responsable *</label>
+                <input type="text" class="fi" id="newResponsable" />
+              </div>
+              <div class="fg">
+                <label for="newCodeUni">Code établissement *</label>
+                <input type="text" class="fi" id="newCodeUni" placeholder="SAC-UNIKIN-2024" />
+              </div>
+              <div class="fg">
+                <label for="newSigle">Sigle campus</label>
+                <input type="text" class="fi" id="newSigle" placeholder="unkin" />
+              </div>
+            </div>
+            <div style="margin-top:1.15rem;">
+              <button type="submit" class="btn btn--role">Créer le compte institutionnel</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- SÉCURITÉ -->
+    <section class="page-section" id="section-securite">
+      <h1 class="page-title">Sécurité & conformité</h1>
+      <p class="page-desc">Politique d'accès des espaces institutionnels SAC.</p>
+
+      <div class="ws-security-banner" style="margin-bottom:1.25rem;">
+        Les portails <strong>Ministère</strong>, <strong>Super Admin</strong> et <strong>Admin université</strong> sont isolés du site public étudiant.
+        L'authentification passe par l'API nationale avec cookies sécurisés et journalisation des actions sensibles.
+      </div>
+
+      <div class="ws-grid-2">
+        <div class="panel panel--ws">
+          <div class="panel__head"><h2>Règles d'accès</h2></div>
+          <div class="panel__body">
+            <ul class="ws-guide">
+              <li><strong>Ministère</strong> — connexion uniquement via <code>/ministere/</code></li>
+              <li><strong>Super Admin</strong> — connexion via <code>/superadmin/</code></li>
+              <li><strong>Admin université</strong> — connexion via <code>/admin-uni/</code> + code établissement</li>
+              <li>Pas d'inscription publique pour ces rôles</li>
+            </ul>
+          </div>
+        </div>
+        <div class="panel panel--accent-gold">
+          <div class="panel__head"><h2>Bonnes pratiques</h2></div>
+          <div class="panel__body">
+            <ul class="ws-guide">
+              <li>Changez le mot de passe par défaut après la première connexion</li>
+              <li>Ne partagez jamais vos identifiants institutionnels</li>
+              <li>Déconnectez-vous sur les postes partagés</li>
+              <li>Signalez toute activité suspecte au Super Admin SAC</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="js/sac-identity.js"></script>
+  <script src="js/sac-session.js"></script>
+  <script src="js/sac-api.js"></script>
+  <script src="js/sac-institutional-admin.js"></script>
+  <script src="js/sac-admin-activities.js"></script>
+  <script src="js/sac-admin-dashboard.js"></script>
+  <script>
+    SAC_ADMIN_DASHBOARD.init();
+  </script>
+</body>
+</html>

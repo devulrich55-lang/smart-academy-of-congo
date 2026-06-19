@@ -5,6 +5,19 @@ services:
     runtime: static
     buildCommand: npm run build
     staticPublishPath: "."
+    routes:
+      - type: redirect
+        source: /ministere
+        destination: /ministere/
+      - type: redirect
+        source: /superadmin
+        destination: /superadmin/
+      - type: redirect
+        source: /admin-uni
+        destination: /admin-uni/
+      - type: redirect
+        source: /connexion-admin.html
+        destination: /ministere/
     headers:
       - path: /*
         name: Cache-Control

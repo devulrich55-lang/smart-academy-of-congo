@@ -40,6 +40,9 @@
 
   function bindToggle(btn) {
     if (!btn || btn.dataset.themeBound) return;
+    if (!btn.querySelector(".theme-toggle__icon")) {
+      btn.innerHTML = TOGGLE_HTML;
+    }
     btn.dataset.themeBound = "1";
     btn.addEventListener("click", toggle);
   }
@@ -82,9 +85,13 @@
   const LOGO_SVG = "logos.svg";
 
   function setupLogos() {
-    const imgs = document.querySelectorAll('img[src*="logos"]');
+    if (typeof SAC_PORTAL !== "undefined" && SAC_PORTAL.isInstitutionalPortal()) {
+      return;
+    }
+
+    const imgs = document.querySelectorAll('img[src*="logos"]:not([data-portal-logo])');
     const iconLinks = document.querySelectorAll(
-      'link[rel="icon"][href*="logos"], link[rel="apple-touch-icon"][href*="logos"]'
+      'link[rel="icon"][href*="logos"]:not([data-portal-favicon]), link[rel="apple-touch-icon"][href*="logos"]:not([data-portal-favicon])'
     );
     if (!imgs.length && !iconLinks.length) return;
 

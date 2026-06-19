@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <meta name="description" content="Portail administration université — Smart Academy of Congo" />
+  <title>Portail Admin Université — Smart Academy of Congo</title>
+  <script src="../js/sac-config.js"></script>
+  <script src="../js/sac-portal.js"></script>
+  <script src="../js/sac-theme.js"></script>
+  <script src="../js/sac-theme.js"></script>
+  <link rel="icon" href="logos.png" type="image/png" data-portal-favicon />
+  <link rel="apple-touch-icon" href="logos.png" data-portal-favicon />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../css/logo.css" />
+  <link rel="stylesheet" href="../css/theme.css" />
+  <link rel="stylesheet" href="../css/admin-workspace.css" />
+  <link rel="stylesheet" href="../css/portal-institutional.css" />
+  <meta name="theme-color" content="#0d7a4a" />
+</head>
+<body class="portal-page portal-page--pro">
+  <header class="portal-header">
+    <a href="./" class="portal-brand logo">
+      <img src="logos.png" alt="Smart Academy of Congo" class="logo__img portal-logo" data-portal-logo width="52" height="52" />
+      <div>
+        <span class="portal-org-name">Portail Admin Université</span>
+      </div>
+    </a>
+    <span class="portal-badge">Espace campus</span>
+    <button type="button" class="theme-toggle" data-theme-toggle aria-label="Thème"></button>
+  </header>
+
+  <main class="portal-main">
+    <div class="portal-shell">
+      <aside class="portal-hero">
+        <div class="portal-hero__sac">
+          <img src="logos.png" alt="Smart Academy of Congo" class="portal-hero__logo" data-portal-logo />
+        </div>
+        <p class="portal-hero__institution"><span aria-hidden="true">🎓</span> Administration de campus</p>
+        <h1>Votre établissement</h1>
+        <p>
+          Pilotez votre université sur SAC : sections, professeurs, étudiants, tarifs
+          et communication officielle.
+        </p>
+      </aside>
+      <section class="portal-card">
+        <h2>Connexion administrateur</h2>
+        <p class="subtitle">DG, recteur ou délégué habilité</p>
+        <form id="portalLoginForm" novalidate>
+          <div class="portal-field">
+            <label for="portalEmail">E-mail administrateur</label>
+            <input type="email" id="portalEmail" name="email" required autocomplete="username" placeholder="admin@universite.cd" />
+          </div>
+          <div class="portal-field" id="portalCodeUniWrap">
+            <label for="portalCodeUni">Code établissement *</label>
+            <input type="text" id="portalCodeUni" name="codeUni" required autocomplete="organization" placeholder="Ex. SAC-UNIKIN-2024" />
+          </div>
+          <div class="portal-field">
+            <label for="portalPassword">Mot de passe</label>
+            <input type="password" id="portalPassword" name="password" required minlength="8" autocomplete="current-password" />
+          </div>
+          <button type="submit" class="portal-submit" id="portalSubmit">Accéder à mon campus</button>
+        </form>
+        <p class="portal-notice">
+          Compte campus créé par le Super Admin SAC. Plateforme nationale Smart Academy of Congo.
+        </p>
+        <div class="portal-trust">
+          <span>🔒 Code établissement requis</span>
+          <span>🎓 Espace campus dédié</span>
+          <span>🇨🇩 SAC — RDC</span>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer class="portal-footer">
+    <div class="portal-footer__brand">
+      <img src="logos.png" alt="Smart Academy of Congo" data-portal-logo width="36" height="36" />
+      <span>Smart Academy of Congo</span>
+    </div>
+    <span>Portail Admin Université — Gestion de campus</span>
+  </footer>
+
+  <script src="../js/sac-identity.js"></script>
+  <script src="../js/sac-session.js"></script>
+  <script src="../js/sac-api.js"></script>
+  <script src="../js/portal-login.js"></script>
+</body>
+</html>

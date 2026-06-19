@@ -184,6 +184,18 @@
   <script>
     (async function () {
       const roleParam = new URLSearchParams(window.location.search).get("role");
+      if (roleParam === "universite") {
+        window.location.replace("admin-uni/");
+        return;
+      }
+      if (roleParam === "ministere") {
+        window.location.replace("ministere/");
+        return;
+      }
+      if (roleParam === "superadmin") {
+        window.location.replace("superadmin/");
+        return;
+      }
       if (await SAC_SESSION.redirectIfAuthenticated(roleParam)) {
         /* redirection vers le tableau de bord */
       }
@@ -282,6 +294,18 @@
     }
 
     function setRole(role) {
+      if (role === "universite") {
+        window.location.href = "admin-uni/";
+        return;
+      }
+      if (role === "ministere") {
+        window.location.href = "ministere/";
+        return;
+      }
+      if (role === "superadmin") {
+        window.location.href = "superadmin/";
+        return;
+      }
       currentRole = role;
       const config = ROLES[role];
 

@@ -359,6 +359,7 @@ const SAC_API = (function () {
         role,
         universite: extra.universite || null,
         codeUni: extra.codeUni || null,
+        adminPortal: !!extra.adminPortal,
       }),
     });
     sessionCache = tagApiSession(data.session);
@@ -617,6 +618,37 @@ const SAC_API = (function () {
     return request("/admin/accounts/" + encodeURIComponent(email), { method: "DELETE" });
   }
 
+  async function getInstitutionalSummary() {
+    return request("/admin/institutional/summary");
+  }
+
+  async function listInstitutionalAdmins() {
+    const data = await request("/admin/institutional");
+    return data.admins || [];
+  }
+
+  async function createInstitutionalAdmin(payload) {
+    const data = await request("/admin/institutional", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+    return data.admin || data;
+  }
+
+  async function deleteInstitutionalAdmin(email) {
+    return request("/admin/institutional/" + encodeURIComponent(email), { method: "DELETE" });
+  }
+
+  async function getAdminActivitiesSummary() {
+    return request("/admin/activities/summary");
+  }
+
+  async function listAdminActivities(limit) {
+    const q = limit ? "?limit=" + encodeURIComponent(limit) : "";
+    const data = await request("/admin/activities" + q);
+    return data.activities || [];
+  }
+
   async function pingPresence(payload = {}) {
     return request("/platform/presence/ping", {
       method: "POST",
@@ -752,6 +784,12 @@ const SAC_API = (function () {
     getAdminAccountsSummary,
     listAdminAccounts,
     deleteAdminAccount,
+    getInstitutionalSummary,
+    listInstitutionalAdmins,
+    createInstitutionalAdmin,
+    deleteInstitutionalAdmin,
+    getAdminActivitiesSummary,
+    listAdminActivities,
     platformRequest,
     uploadFormData,
     getBase,
