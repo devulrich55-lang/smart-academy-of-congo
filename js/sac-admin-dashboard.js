@@ -40,6 +40,15 @@ const SAC_ADMIN_DASHBOARD = (function () {
       const session = SAC_SESSION.getSession();
       SAC_MINISTRY_LIVE.mountMinistryUI(document.getElementById("ministryLiveRoot"), session);
     }
+    if (id === "publier" && typeof SAC_HOME_NEWS !== "undefined") {
+      const session = SAC_SESSION.getSession();
+      if (session?.role === "ministere") {
+        SAC_HOME_NEWS.initMinistryPublisher(session, "ministryPublisherRoot", {
+          onChange: () => SAC_HOME_NEWS.renderPublicPreview("ministryPublicPreview"),
+        });
+        SAC_HOME_NEWS.renderPublicPreview("ministryPublicPreview");
+      }
+    }
   }
 
   async function reloadActivities() {
@@ -215,6 +224,7 @@ const SAC_ADMIN_DASHBOARD = (function () {
 
     if (isMinistere) {
       document.getElementById("tabLive")?.removeAttribute("hidden");
+      document.getElementById("tabPublier")?.removeAttribute("hidden");
       document.querySelectorAll(".ws-only-ministere-hidden").forEach((el) => {
         el.classList.remove("ws-only-ministere-hidden");
       });

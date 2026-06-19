@@ -14,6 +14,7 @@
   <link rel="stylesheet" href="css/dashboard.css" />
   <link rel="stylesheet" href="css/theme.css" />
   <link rel="stylesheet" href="css/admin-workspace.css" />
+  <link rel="stylesheet" href="css/home-news.css" />
   <link rel="stylesheet" href="css/mobile.css" />
   <meta name="theme-color" content="#0c3d6e" />
 </head>
@@ -35,6 +36,7 @@
       <button type="button" class="nav-tab active" data-section="accueil">Tableau de bord</button>
       <button type="button" class="nav-tab nav-tab--priority" data-section="administrateurs">👥 Administrateurs</button>
       <button type="button" class="nav-tab nav-tab--priority" data-section="activites">📋 Activités</button>
+      <button type="button" class="nav-tab nav-tab--priority ws-only-ministere-hidden" data-section="publier" id="tabPublier">📢 Publier</button>
       <button type="button" class="nav-tab nav-tab--priority ws-only-ministere-hidden" data-section="live" id="tabLive">🎥 Espace live</button>
       <button type="button" class="nav-tab nav-tab--priority" data-section="create" id="tabCreate" hidden>➕ Créer un compte</button>
       <button type="button" class="nav-tab" data-section="securite">🔒 Sécurité</button>
@@ -115,6 +117,7 @@
         <div class="panel__body ws-quick-actions">
           <button type="button" class="btn btn--role" data-goto="administrateurs">👥 Voir tous les administrateurs</button>
           <button type="button" class="btn btn--role" data-goto="activites">📋 Journal d'activités</button>
+          <button type="button" class="btn btn--role ws-only-ministere-hidden" data-goto="publier" id="btnQuickPublier">📢 Publier sur le panneau public</button>
           <button type="button" class="btn btn--role ws-only-ministere-hidden" data-goto="live" id="btnQuickLive">🎥 Live avec les universités</button>
           <button type="button" class="btn btn--role ws-only-super-hidden" data-goto="create" id="btnQuickCreate">➕ Créer un compte</button>
           <button type="button" class="btn btn--ghost" data-goto="securite">🔒 Politique de sécurité</button>
@@ -267,6 +270,20 @@
       </div>
     </section>
 
+    <!-- PUBLIER (Ministère uniquement) -->
+    <section class="page-section ws-only-ministere-hidden" id="section-publier">
+      <h1 class="page-title">Panneau public national</h1>
+      <p class="page-desc">
+        Publiez des informations officielles classées par catégorie : information officielle, gouvernement,
+        concours, opportunité, bourse d'études et éducation. Elles apparaissent sur la page d'accueil publique du site.
+      </p>
+      <div id="ministryPublisherRoot"></div>
+      <div class="panel" style="margin-top:1.25rem;">
+        <div class="panel__head"><h2>Aperçu du panneau public</h2></div>
+        <div class="panel__body" id="ministryPublicPreview"></div>
+      </div>
+    </section>
+
     <!-- LIVE MINISTÈRE (Ministère uniquement) -->
     <section class="page-section ws-only-ministere-hidden" id="section-live">
       <h1 class="page-title">Espace live national</h1>
@@ -316,6 +333,7 @@
   <script src="js/sac-university-logo.js"></script>
   <script src="js/sac-institutional-admin.js"></script>
   <script src="js/sac-ministry-live.js"></script>
+  <script src="js/sac-home-news.js"></script>
   <script src="js/sac-admin-activities.js"></script>
   <script src="js/sac-admin-dashboard.js"></script>
   <script>

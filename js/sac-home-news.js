@@ -1,15 +1,19 @@
 /**
- * Informations officielles publiées sur la page d'accueil (index.html)
- * — Administration université : officiel, gouvernemental, concours, opportunités, bourses, éducation
+ * Informations officielles — panneau public (index.html)
+ * Ministère : publications nationales par catégorie (officiel, gouvernement, concours…)
+ * Université : panneau campus (profil étudiants) + espace national
  */
 const SAC_HOME_NEWS = (function () {
   const STORAGE_KEY = "sac_home_news";
   const NATIONAL_CODE = "national";
+  const MINISTRY_CODE = "ministere";
+  const MINISTRY_NAME = "Ministère de l'Enseignement Supérieur et Universitaire (MESU)";
   const SCOPES = { university: "university", national: "national" };
+  const AUTHOR_ROLES = { ministry: "ministere", university: "universite" };
 
   const CATEGORIES = [
     { id: "officiel", label: "Information officielle", icon: "🏛️", color: "#0c3d6e" },
-    { id: "gouvernemental", label: "Gouvernemental", icon: "🇨🇩", color: "#1e40af" },
+    { id: "gouvernemental", label: "Gouvernement", icon: "🇨🇩", color: "#1e40af" },
     { id: "concours", label: "Concours", icon: "📝", color: "#7c2d12" },
     { id: "opportunite", label: "Opportunité", icon: "💼", color: "#0d7a4a" },
     { id: "bourse", label: "Bourse d'études", icon: "🎓", color: "#b45309" },
@@ -18,7 +22,30 @@ const SAC_HOME_NEWS = (function () {
 
   const DEFAULT_NEWS = [
     {
+      id: "hn-min-1",
+      scope: SCOPES.national,
+      authorRole: AUTHOR_ROLES.ministry,
+      universite: MINISTRY_CODE,
+      universityName: MINISTRY_NAME,
+      authorId: "admin@ministere.cd",
+      authorName: "Ministère MESU",
+      category: "officiel",
+      title: "Communiqué officiel — rentrée académique 2025-2026",
+      excerpt:
+        "Le Ministère confirme le calendrier national de la rentrée universitaire et les directives pour l'inscription des étudiants dans les établissements agréés.",
+      body: "Toutes les universités partenaires SAC doivent publier leurs listes d'admission avant le 15 septembre. Consultez la circulaire complète sur le portail national.",
+      linkUrl: "",
+      linkLabel: "Lire le communiqué",
+      published: true,
+      pinned: true,
+      validUntil: "",
+      createdAt: "2025-11-01T09:00:00.000Z",
+      updatedAt: "2025-11-01T09:00:00.000Z",
+    },
+    {
       id: "hn-demo-1",
+      scope: SCOPES.university,
+      authorRole: AUTHOR_ROLES.university,
       universite: "unkin",
       universityName: "Université de Kinshasa (UNIKIN)",
       authorId: "admin@unikin.cd",
@@ -38,6 +65,8 @@ const SAC_HOME_NEWS = (function () {
     },
     {
       id: "hn-demo-2",
+      scope: SCOPES.university,
+      authorRole: AUTHOR_ROLES.university,
       universite: "unkin",
       universityName: "Université de Kinshasa (UNIKIN)",
       authorId: "admin@unikin.cd",
@@ -57,6 +86,8 @@ const SAC_HOME_NEWS = (function () {
     },
     {
       id: "hn-demo-3",
+      scope: SCOPES.university,
+      authorRole: AUTHOR_ROLES.university,
       universite: "unilu",
       universityName: "Université de Lubumbashi (UNILU)",
       authorId: "admin@unilu.cd",
@@ -75,6 +106,8 @@ const SAC_HOME_NEWS = (function () {
     },
     {
       id: "hn-demo-4",
+      scope: SCOPES.university,
+      authorRole: AUTHOR_ROLES.university,
       universite: "unkin",
       universityName: "Université de Kinshasa (UNIKIN)",
       authorId: "admin@unikin.cd",
@@ -102,9 +135,31 @@ const SAC_HOME_NEWS = (function () {
     if (!item) return item;
     if (!item.scope) {
       item.scope =
-        item.universite === NATIONAL_CODE ? SCOPES.national : SCOPES.university;
+        item.universite === NATIONAL_CODE || item.universite === MINISTRY_CODE
+          ? SCOPES.national
+          : SCOPES.university;
+    }
+    if (!item.authorRole) {
+      if (item.universite === MINISTRY_CODE) {
+        item.authorRole = AUTHOR_ROLES.ministry;
+      } else {
+        item.authorRole = AUTHOR_ROLES.university;
+      }
+    }
+    if (item.authorRole === AUTHOR_ROLES.ministry) {
+      item.scope = SCOPES.national;
+      item.universite = MINISTRY_CODE;
+      if (!item.universityName) item.universityName = MINISTRY_NAME;
     }
     return item;
+  }
+
+  function isMinistryItem(item) {
+    return item?.authorRole === AUTHOR_ROLES.ministry || item?.universite === MINISTRY_CODE;
+  }
+
+  function canPublish(session) {
+    return session?.role === "universite" || session?.role === "ministere";
   }
 
   function getAll() {
@@ -213,13 +268,19 @@ const SAC_HOME_NEWS = (function () {
     return getAll()
       .filter((n) => {
         if (scopeFilter === SCOPES.national) {
-          return n.scope === SCOPES.national && n.authorId === authorId;
+          return n.scope === SCOPES.national && !isMinistryItem(n) && n.authorId === authorId;
         }
         if (scopeFilter === SCOPES.university) {
           return n.scope === SCOPES.university && n.universite === code;
         }
         return n.universite === code || (n.scope === SCOPES.national && n.authorId === authorId);
       })
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  }
+
+  function getForMinistry() {
+    return getAll()
+      .filter((n) => isMinistryItem(n))
       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
   }
 
@@ -230,8 +291,10 @@ const SAC_HOME_NEWS = (function () {
   }
 
   function owns(session, item) {
+    if (session?.role === "ministere") return isMinistryItem(item);
     if (session?.role !== "universite") return false;
     const authorId = session.identifiant || session.userId || "";
+    if (isMinistryItem(item)) return false;
     if (item.scope === SCOPES.national) {
       return item.authorId === authorId;
     }
@@ -239,16 +302,51 @@ const SAC_HOME_NEWS = (function () {
   }
 
   function create(session, data) {
-    if (session?.role !== "universite") throw new Error("Réservé à l'administration universitaire.");
+    const role = session?.role;
+    if (!canPublish(session)) {
+      throw new Error("Publication réservée au Ministère ou à l'administration universitaire.");
+    }
+
+    if (role === "ministere") {
+      const cat = categoryMeta(data.category);
+      const item = {
+        id: uid(),
+        scope: SCOPES.national,
+        authorRole: AUTHOR_ROLES.ministry,
+        universite: MINISTRY_CODE,
+        universityName: MINISTRY_NAME,
+        authorId: session.identifiant || session.userId || "",
+        authorName: session.nom || session.displayName || "Ministère MESU",
+        category: cat.id,
+        title: (data.title || "").trim(),
+        excerpt: (data.excerpt || "").trim(),
+        body: (data.body || "").trim(),
+        linkUrl: (data.linkUrl || "").trim(),
+        linkLabel: (data.linkLabel || "En savoir plus").trim(),
+        published: data.published !== false,
+        pinned: !!data.pinned,
+        validUntil: data.validUntil || "",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      if (!item.title || item.title.length < 5) throw new Error("Titre requis (min. 5 caractères).");
+      if (!item.excerpt || item.excerpt.length < 10) throw new Error("Résumé requis (min. 10 caractères).");
+      const list = getAll();
+      list.unshift(item);
+      saveAll(list);
+      return item;
+    }
+
     const code = getUniCode(session);
-    if (!code && data.scope !== SCOPES.national) {
+    const scope = data.scope === SCOPES.national ? SCOPES.national : SCOPES.university;
+    if (!code && scope !== SCOPES.national) {
       throw new Error("Code université manquant dans la session.");
     }
-    const scope = data.scope === SCOPES.national ? SCOPES.national : SCOPES.university;
     const cat = categoryMeta(data.category);
     const item = {
       id: uid(),
       scope,
+      authorRole: AUTHOR_ROLES.university,
       universite: scope === SCOPES.national ? NATIONAL_CODE : code,
       universityName:
         scope === SCOPES.national
@@ -280,7 +378,13 @@ const SAC_HOME_NEWS = (function () {
     const list = getAll();
     const idx = list.findIndex((n) => n.id === id);
     if (idx < 0) throw new Error("Publication introuvable.");
-    if (!owns(session, list[idx])) throw new Error("Vous ne pouvez modifier que les publications de votre université.");
+    if (!owns(session, list[idx])) {
+      throw new Error(
+        session?.role === "ministere"
+          ? "Vous ne pouvez modifier que les publications du Ministère."
+          : "Vous ne pouvez modifier que les publications de votre université."
+      );
+    }
     const prev = list[idx];
     list[idx] = {
       ...prev,
@@ -336,7 +440,9 @@ const SAC_HOME_NEWS = (function () {
         : "";
     const nationalBadge =
       item.scope === SCOPES.national
-        ? '<span class="hn-card__pin" style="background:#1e40af;color:#fff;">🇨🇩 Espace national</span>'
+        ? isMinistryItem(item)
+          ? '<span class="hn-card__pin" style="background:#0c3d6e;color:#fff;">🏛️ Ministère</span>'
+          : '<span class="hn-card__pin" style="background:#1e40af;color:#fff;">🇨🇩 Espace national</span>'
         : "";
     return `
       <article class="hn-card ${item.pinned ? "hn-card--pinned" : ""}" data-category="${item.category}" data-uni="${item.universite}" data-scope="${item.scope || SCOPES.university}">
@@ -418,36 +524,70 @@ const SAC_HOME_NEWS = (function () {
         return;
       }
       if (emptyEl) emptyEl.style.display = "none";
-      feed.innerHTML = items.map(renderCard).join("");
+      if (currentCategory === "all") {
+        feed.innerHTML = CATEGORIES.map((cat) => {
+          const catItems = items.filter((n) => n.category === cat.id);
+          if (!catItems.length) return "";
+          return `
+            <div class="hn-category-block" style="grid-column:1/-1;">
+              <h3 class="hn-category-block__title" style="--hn-color:${cat.color}">
+                ${cat.icon} ${escHtml(cat.label)}
+                <span class="hn-category-block__count">${catItems.length}</span>
+              </h3>
+              <div class="hn-category-block__grid">${catItems.map(renderCard).join("")}</div>
+            </div>`;
+        }).join("");
+      } else {
+        feed.innerHTML = items.map(renderCard).join("");
+      }
     }
 
     paint();
   }
 
-  function initUniversityPublisher(session, rootId, opts = {}) {
+  function initPublisher(session, rootId, opts = {}) {
     const root = document.getElementById(rootId);
-    if (!root || session?.role !== "universite") return;
+    if (!root || !canPublish(session)) return;
 
+    const isMinistry = session.role === "ministere";
     const q = (sel) => root.querySelector(sel);
 
-    const scope =
-      opts.scope === SCOPES.national ? SCOPES.national : SCOPES.university;
+    const scope = isMinistry
+      ? SCOPES.national
+      : opts.scope === SCOPES.national
+        ? SCOPES.national
+        : SCOPES.university;
     const isNational = scope === SCOPES.national;
-    const borderColor = opts.borderColor || (isNational ? "#1e40af" : "#0d7a4a");
+    const borderColor =
+      opts.borderColor || (isMinistry ? "#0c3d6e" : isNational ? "#1e40af" : "#0d7a4a");
     const pageTitle =
       opts.pageTitle ||
-      (isNational ? "Espace national" : "Annonces de mon université");
+      (isMinistry
+        ? "Panneau public national"
+        : isNational
+          ? "Espace national"
+          : "Annonces de mon université");
     const pageDesc =
       opts.pageDesc ||
-      (isNational
-        ? "Publiez des informations visibles par <strong>toutes les universités</strong> partenaires et sur la page d'accueil du site (fil national)."
-        : `Annonces officielles de <strong>${escHtml(getUniDisplayName(session))}</strong> sur la page d'accueil du site (filtre votre établissement).`);
+      (isMinistry
+        ? "Publiez des informations officielles par <strong>catégorie</strong> (gouvernement, concours, bourses, éducation…). Elles apparaissent sur la <strong>page d'accueil publique</strong> et dans l'espace national de tous les étudiants."
+        : isNational
+          ? "Publiez des informations visibles par <strong>toutes les universités</strong> partenaires et sur la page d'accueil du site (fil national)."
+          : `Annonces officielles de <strong>${escHtml(getUniDisplayName(session))}</strong> — visibles sur le <strong>profil de vos étudiants</strong> uniquement.`);
     const listTitle =
       opts.listTitle ||
-      (isNational ? "Mes publications nationales" : "Mes annonces (mon université)");
+      (isMinistry
+        ? "Mes publications — Ministère"
+        : isNational
+          ? "Mes publications — espace national"
+          : "Mes annonces (mon université)");
     const submitLabel =
       opts.submitLabel ||
-      (isNational ? "Publier à l'espace national" : "Publier pour mon université");
+      (isMinistry
+        ? "Publier sur le panneau public"
+        : isNational
+          ? "Publier à l'espace national"
+          : "Publier pour mon université");
 
     let editingId = null;
 
@@ -478,7 +618,7 @@ const SAC_HOME_NEWS = (function () {
             </div>
             <div class="fg">
               <label>Résumé court * <small>(affiché sur la carte)</small></label>
-              <textarea class="fi" data-hn-excerpt rows="2" required maxlength="400" placeholder="2 à 3 phrases visibles sur la page d'accueil…"></textarea>
+              <textarea class="fi" data-hn-excerpt rows="2" required maxlength="400" placeholder="2 à 3 phrases visibles sur le panneau public…"></textarea>
             </div>
             <div class="fg">
               <label>Contenu détaillé</label>
@@ -513,6 +653,11 @@ const SAC_HOME_NEWS = (function () {
         <div class="panel__body"><div data-hn-admin-list></div></div>
       </div>`;
 
+    function getAdminList() {
+      if (isMinistry) return getForMinistry();
+      return getForUniversity(session, scope);
+    }
+
     function resetForm() {
       editingId = null;
       q("[data-hn-form-title]").textContent = "Nouvelle publication";
@@ -540,19 +685,21 @@ const SAC_HOME_NEWS = (function () {
     }
 
     function renderAdminList() {
-      const list = getForUniversity(session, scope);
+      const list = getAdminList();
       const el = q("[data-hn-admin-list]");
       q("[data-hn-list-count]").textContent = list.length + " publication(s)";
       if (!list.length) {
-        el.innerHTML = '<p style="color:var(--muted);font-size:0.9rem;">Aucune publication. Créez une annonce pour la page d\'accueil.</p>';
+        el.innerHTML =
+          '<p style="color:var(--muted);font-size:0.9rem;">Aucune publication. Créez une annonce pour le panneau public.</p>';
         return;
       }
       el.innerHTML = list
         .map((item) => {
           const cat = categoryMeta(item.category);
           const status = item.published === false ? "Brouillon" : item.pinned ? "À la une" : "Publié";
-          const scopeTag =
-            item.scope === SCOPES.national
+          const scopeTag = isMinistry
+            ? `<span class="hn-admin-item__status" style="background:#0c3d6e;color:#fff;">Ministère</span>`
+            : item.scope === SCOPES.national
               ? '<span class="hn-admin-item__status" style="background:#1e40af;color:#fff;">National</span>'
               : `<span class="hn-admin-item__status">${status}</span>`;
           return `
@@ -580,11 +727,12 @@ const SAC_HOME_NEWS = (function () {
       });
       el.querySelectorAll("[data-del]").forEach((btn) => {
         btn.addEventListener("click", () => {
-          if (!confirm("Supprimer cette publication de la page d'accueil ?")) return;
+          if (!confirm("Supprimer cette publication du panneau public ?")) return;
           try {
             remove(session, btn.dataset.del);
             renderAdminList();
             if (editingId === btn.dataset.del) resetForm();
+            if (opts.onChange) opts.onChange();
           } catch (e) {
             alert(e.message);
           }
@@ -612,15 +760,18 @@ const SAC_HOME_NEWS = (function () {
         else create(session, payload);
         resetForm();
         renderAdminList();
-        if (isNational) {
+        if (isNational && !isMinistry) {
           renderNationalFeedReadonly("nationalFeedReadonly");
         }
+        if (opts.onChange) opts.onChange();
         alert(
           wasEdit
             ? "Publication mise à jour."
-            : isNational
-              ? "Publication enregistrée dans l'espace national (site + tous les étudiants)."
-              : "Publication enregistrée pour votre université (visible sur le profil de vos étudiants uniquement)."
+            : isMinistry
+              ? "Publication enregistrée sur le panneau public national (par catégorie)."
+              : isNational
+                ? "Publication enregistrée dans l'espace national (site + tous les étudiants)."
+                : "Publication enregistrée pour votre université (visible sur le profil de vos étudiants uniquement)."
         );
       } catch (err) {
         alert(err.message);
@@ -629,9 +780,48 @@ const SAC_HOME_NEWS = (function () {
 
     q("[data-hn-cancel]").addEventListener("click", resetForm);
     renderAdminList();
-    if (scope === SCOPES.national) {
+    if (scope === SCOPES.national && !isMinistry) {
       renderNationalFeedReadonly("nationalFeedReadonly");
     }
+  }
+
+  function initUniversityPublisher(session, rootId, opts = {}) {
+    if (session?.role !== "universite") return;
+    initPublisher(session, rootId, opts);
+  }
+
+  function initMinistryPublisher(session, rootId, opts = {}) {
+    if (session?.role !== "ministere") return;
+    initPublisher(session, rootId, {
+      embedded: true,
+      pageTitle: "Panneau public national",
+      listTitle: "Publications du Ministère",
+      submitLabel: "Publier sur le panneau public",
+      borderColor: "#0c3d6e",
+      ...opts,
+    });
+  }
+
+  function renderPublicPreview(rootId) {
+    const root = document.getElementById(rootId);
+    if (!root) return;
+    const items = getPublished({ publicSite: true, universite: "all", category: "all" });
+    if (!items.length) {
+      root.innerHTML =
+        '<p style="color:var(--muted);font-size:0.88rem;margin:0;">Aucune publication sur le panneau public pour le moment.</p>';
+      return;
+    }
+    root.innerHTML =
+      '<p style="font-size:0.88rem;color:var(--muted);margin:0 0 1rem;">Aperçu du panneau public — informations classées par catégorie :</p>' +
+      CATEGORIES.map((cat) => {
+        const catItems = items.filter((n) => n.category === cat.id);
+        if (!catItems.length) return "";
+        return `
+          <div class="hn-preview-block" style="margin-bottom:1.25rem;">
+            <h4 style="font-size:0.95rem;color:${cat.color};margin:0 0 0.65rem;">${cat.icon} ${escHtml(cat.label)} (${catItems.length})</h4>
+            <div class="hn-readonly-feed">${catItems.slice(0, 3).map(renderCard).join("")}</div>
+          </div>`;
+      }).join("");
   }
 
   function renderNationalFeedReadonly(rootId) {
@@ -644,7 +834,7 @@ const SAC_HOME_NEWS = (function () {
       return;
     }
     root.innerHTML =
-      '<h3 style="font-size:1rem;margin:0 0 0.75rem;color:var(--primary);">Fil national — toutes les universités</h3>' +
+      '<h3 style="font-size:1rem;margin:0 0 0.75rem;color:var(--primary);">Fil national — Ministère et universités</h3>' +
       '<div class="hn-readonly-feed">' +
       items.map(renderCard).join("") +
       "</div>";
@@ -679,11 +869,14 @@ const SAC_HOME_NEWS = (function () {
     CATEGORIES,
     SCOPES,
     NATIONAL_CODE,
+    MINISTRY_CODE,
+    AUTHOR_ROLES,
     categoryLabel,
     categoryMeta,
     getAll,
     getPublished,
     getNationalPublished,
+    getForMinistry,
     getUniversityNewsForStudent,
     getNationalNewsForStudent,
     getForUniversity,
@@ -692,8 +885,11 @@ const SAC_HOME_NEWS = (function () {
     remove,
     renderHomepage,
     renderCard,
+    initPublisher,
     initUniversityPublisher,
+    initMinistryPublisher,
     initProfilePublishers,
     renderNationalFeedReadonly,
+    renderPublicPreview,
   };
 })();
