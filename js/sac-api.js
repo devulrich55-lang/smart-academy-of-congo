@@ -598,6 +598,11 @@ const SAC_API = (function () {
     });
   }
 
+  async function listProfessorStudents() {
+    const data = await request("/platform/students/teaching");
+    return data.students || [];
+  }
+
   async function pingPresence(payload = {}) {
     return request("/platform/presence/ping", {
       method: "POST",
@@ -729,6 +734,7 @@ const SAC_API = (function () {
     pingPresence,
     getSectionPresence,
     getProfessorPresence,
+    listProfessorStudents,
     platformRequest,
     uploadFormData,
     getBase,

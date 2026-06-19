@@ -871,6 +871,9 @@
       });
 
       await applyCampusTariffToProfile();
+      if (typeof SAC_GRADES.loadStudentsFromApi === "function") {
+        await SAC_GRADES.loadStudentsFromApi(session);
+      }
       renderProfile(session);
       renderAllActivity();
       renderAnnouncements();
@@ -923,6 +926,10 @@
 
       window.addEventListener("sac:grades-updated", () => {
         if (gradesUi?.refresh) gradesUi.refresh();
+        renderAllActivity();
+      });
+
+      window.addEventListener("sac:students-loaded", () => {
         renderAllActivity();
       });
 

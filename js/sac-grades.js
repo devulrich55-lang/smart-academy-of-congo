@@ -4,6 +4,7 @@
 const SAC_GRADES = (function () {
   const STORAGE_KEY = "sac_grades";
   const CURRENT_SEMESTER = "s1-2025";
+  let apiStudentsCache = [];
 
   const SEMESTERS = [
     { id: "s1-2025", label: "Semestre 1 — 2024-2025" },
@@ -173,18 +174,62 @@ const SAC_GRADES = (function () {
 
   function studentMatchesClass(student, courseClass) {
     if (!student || !courseClass) return false;
-    if (student.universite && courseClass.universite && student.universite !== courseClass.universite)
+    if (
+      student.universite &&
+      courseClass.universite &&
+      student.universite !== courseClass.universite
+    )
       return false;
-    if (courseClass.niveau && student.niveau && courseClass.niveau !== student.niveau) return false;
+    if (courseClass.niveau && student.niveau && courseClass.niveau !== student.niveau)
+      return false;
     const sf = norm(student.filiere);
     const cf = norm(courseClass.filiere);
     if (cf && sf && !sf.includes(cf) && !cf.includes(sf)) return false;
+    if (courseClass.classe && student.classe) {
+      const sc = norm(student.classe);
+      const cc = norm(courseClass.classe);
+      if (!(sc === cc || sc.includes(cc) || cc.includes(sc))) return false;
+    }
     return true;
   }
 
+  function getStudentPool() {
+    const local = JSON.parse(localStorage.getItem("sac_users") || "[]").filter(
+      (u) => u.role === "etudiant"
+    );
+    const merged = [...local];
+    const seen = new Set(local.map((u) => normEmail(u.email)));
+    apiStudentsCache.forEach((u) => {
+      const email = normEmail(u.email);
+      if (!email || seen.has(email)) return;
+      merged.push({ ...u, role: "etudiant" });
+      seen.add(email);
+    });
+    return merged;
+  }
+
+  async function loadStudentsFromApi(session) {
+    if (!session || session.role !== "professeur") return [];
+    if (typeof SAC_API === "undefined" || typeof SAC_API.listProfessorStudents !== "function") {
+      return [];
+    }
+    try {
+      const online = await SAC_API.ensureOnline();
+      if (!online) return [];
+      const list = await SAC_API.listProfessorStudents();
+      apiStudentsCache = Array.isArray(list) ? list : [];
+      window.dispatchEvent(
+        new CustomEvent("sac:students-loaded", { detail: { count: apiStudentsCache.length } })
+      );
+      return apiStudentsCache;
+    } catch (err) {
+      console.warn("[SAC_GRADES] loadStudentsFromApi:", err.message || err);
+      return [];
+    }
+  }
+
   function getStudentsForClass(courseClass) {
-    const users = JSON.parse(localStorage.getItem("sac_users") || "[]");
-    return users
+    return getStudentPool()
       .filter((u) => u.role === "etudiant" && studentMatchesClass(u, courseClass))
       .map((u) => ({
         email: u.email,
@@ -662,6 +707,7 @@ const SAC_GRADES = (function () {
     getAll,
     getForStudent,
     getStudentsForClass,
+    loadStudentsFromApi,
     getForProfessorCourse,
     getCourseStats,
     countStudentsForProfessor,
