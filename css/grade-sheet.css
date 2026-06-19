@@ -31,7 +31,7 @@
 
 .releve-header {
   display: grid;
-  grid-template-columns: 72px 1fr 88px;
+  grid-template-columns: 72px 1fr 96px;
   align-items: start;
   gap: 0.75rem;
   margin-bottom: 1.25rem;
@@ -66,12 +66,13 @@
 }
 
 .releve-header__map {
-  width: 80px;
+  width: 88px;
   height: auto;
-  max-height: 96px;
+  max-height: 104px;
   display: block;
   margin-left: auto;
   object-fit: contain;
+  border-radius: 2px;
 }
 
 .releve-title {

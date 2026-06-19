@@ -13,6 +13,13 @@ const SAC_GRADE_SHEET = (function () {
     "s2-2024": "Semestre 2 — 2023-2024",
   };
 
+  /** Carte + drapeau RDC — relevé / fiche officiels */
+  const RDC_CARTE_SRC = "carte_rdc.jpeg";
+
+  function rdcCarteImgHtml() {
+    return `<img src="${RDC_CARTE_SRC}" class="releve-header__map" alt="Carte et drapeau de la République Démocratique du Congo" width="88" height="100" />`;
+  }
+
   function uid(prefix) {
     return prefix + "-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
   }
@@ -476,7 +483,7 @@ const SAC_GRADE_SHEET = (function () {
         <p class="releve-header__sigle">${esc(sigleLine)}</p>
       </div>
       <div class="releve-header__side releve-header__side--right">
-        <img src="assets/drc-map-flag.svg" class="releve-header__map" alt="Carte et drapeau RDC" width="80" height="93" />
+        ${rdcCarteImgHtml()}
       </div>
     </header>`;
   }
