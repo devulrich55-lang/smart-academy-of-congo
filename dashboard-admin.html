@@ -35,6 +35,7 @@
       <button type="button" class="nav-tab active" data-section="accueil">Tableau de bord</button>
       <button type="button" class="nav-tab nav-tab--priority" data-section="administrateurs">👥 Administrateurs</button>
       <button type="button" class="nav-tab nav-tab--priority" data-section="activites">📋 Activités</button>
+      <button type="button" class="nav-tab nav-tab--priority ws-only-ministere-hidden" data-section="live" id="tabLive">🎥 Espace live</button>
       <button type="button" class="nav-tab nav-tab--priority" data-section="create" id="tabCreate" hidden>➕ Créer un compte</button>
       <button type="button" class="nav-tab" data-section="securite">🔒 Sécurité</button>
     </nav>
@@ -114,6 +115,7 @@
         <div class="panel__body ws-quick-actions">
           <button type="button" class="btn btn--role" data-goto="administrateurs">👥 Voir tous les administrateurs</button>
           <button type="button" class="btn btn--role" data-goto="activites">📋 Journal d'activités</button>
+          <button type="button" class="btn btn--role ws-only-ministere-hidden" data-goto="live" id="btnQuickLive">🎥 Live avec les universités</button>
           <button type="button" class="btn btn--role ws-only-super-hidden" data-goto="create" id="btnQuickCreate">➕ Créer un compte</button>
           <button type="button" class="btn btn--ghost" data-goto="securite">🔒 Politique de sécurité</button>
         </div>
@@ -265,6 +267,12 @@
       </div>
     </section>
 
+    <!-- LIVE MINISTÈRE (Ministère uniquement) -->
+    <section class="page-section ws-only-ministere-hidden" id="section-live">
+      <h1 class="page-title">Espace live national</h1>
+      <div id="ministryLiveRoot"></div>
+    </section>
+
     <!-- SÉCURITÉ -->
     <section class="page-section" id="section-securite">
       <h1 class="page-title">Sécurité & conformité</h1>
@@ -307,6 +315,7 @@
   <script src="js/sac-api.js"></script>
   <script src="js/sac-university-logo.js"></script>
   <script src="js/sac-institutional-admin.js"></script>
+  <script src="js/sac-ministry-live.js"></script>
   <script src="js/sac-admin-activities.js"></script>
   <script src="js/sac-admin-dashboard.js"></script>
   <script>

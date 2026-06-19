@@ -36,6 +36,10 @@ const SAC_ADMIN_DASHBOARD = (function () {
       tab.classList.toggle("active", tab.dataset.section === id);
     });
     if (id === "activites") reloadActivities();
+    if (id === "live" && typeof SAC_MINISTRY_LIVE !== "undefined") {
+      const session = SAC_SESSION.getSession();
+      SAC_MINISTRY_LIVE.mountMinistryUI(document.getElementById("ministryLiveRoot"), session);
+    }
   }
 
   async function reloadActivities() {
@@ -171,6 +175,7 @@ const SAC_ADMIN_DASHBOARD = (function () {
     }
 
     const isSuper = session.role === "superadmin";
+    const isMinistere = session.role === "ministere";
     const meta = ROLE_LABELS[session.role] || { label: session.role, icon: "🏛️" };
 
     document.body.dataset.wsRole = session.role;
@@ -206,6 +211,13 @@ const SAC_ADMIN_DASHBOARD = (function () {
       document.querySelector('#filterRole option[value="superadmin"]')?.remove();
       const hint = document.getElementById("listHint");
       if (hint) hint.textContent = "En tant que Ministère, consultation des administrateurs (lecture seule).";
+    }
+
+    if (isMinistere) {
+      document.getElementById("tabLive")?.removeAttribute("hidden");
+      document.querySelectorAll(".ws-only-ministere-hidden").forEach((el) => {
+        el.classList.remove("ws-only-ministere-hidden");
+      });
     }
 
     document.getElementById("btnLogout")?.addEventListener("click", () => {

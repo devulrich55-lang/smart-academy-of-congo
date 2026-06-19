@@ -432,3 +432,164 @@ body[data-ws-role="universite"] {
   font-size: 0.82rem;
   color: #b91c1c;
 }
+
+/* ——— Live Ministère ↔ universités ——— */
+.ws-only-ministere-hidden { display: none !important; }
+
+.min-live-wrap .page-desc { margin-bottom: 1rem; }
+
+.min-live-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1rem;
+}
+
+.min-live-grid--compact { margin-top: 0.75rem; }
+
+.min-live-card {
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 12px;
+  padding: 1rem;
+  background: var(--surface, #fff);
+}
+
+.min-live-card--live {
+  border-color: #dc2626;
+  box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.12);
+}
+
+.min-live-card h3 {
+  margin: 0.35rem 0 0.5rem;
+  font-size: 1rem;
+  color: var(--primary);
+}
+
+.min-live-card p { margin: 0; font-size: 0.85rem; color: var(--muted); }
+
+.min-live-meta { font-size: 0.78rem !important; margin-top: 0.5rem !important; }
+
+.min-live-badge {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.2rem 0.5rem;
+  border-radius: 100px;
+  background: #dc2626;
+  color: #fff;
+}
+
+.min-live-badge--sched { background: var(--ws-accent-soft, #e0e7ff); color: var(--primary); }
+
+.min-live-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.min-live-invite-list {
+  max-height: 180px;
+  overflow-y: auto;
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 8px;
+  padding: 0.5rem;
+}
+
+.min-live-invite {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+  font-size: 0.82rem;
+  padding: 0.35rem 0;
+  cursor: pointer;
+}
+
+.min-live-docs {
+  list-style: none;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  font-size: 0.82rem;
+}
+
+.min-live-docs li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.35rem 0;
+  border-bottom: 1px solid var(--border, #eee);
+}
+
+.min-live-docs--inline { margin-top: 0.5rem; }
+
+.min-live-uni-banner {
+  margin-bottom: 1.25rem;
+  padding: 1rem 1.15rem;
+  border-radius: 12px;
+  border: 1px solid var(--border, #e2e8f0);
+  background: linear-gradient(135deg, #f0f7ff, #fff);
+}
+
+.min-live-uni-banner--live {
+  border-color: #dc2626;
+  background: linear-gradient(135deg, #fef2f2, #fff);
+}
+
+.min-live-uni-banner strong { display: block; margin-bottom: 0.25rem; }
+
+.min-live-uni-banner span { font-size: 0.85rem; color: var(--muted); }
+
+.min-live-room {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: #0f172a;
+  display: flex;
+  flex-direction: column;
+}
+
+.min-live-room[hidden] { display: none !important; }
+
+.min-live-room__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.65rem 1rem;
+  background: #1e293b;
+  color: #fff;
+}
+
+.min-live-room__head h3 { margin: 0; font-size: 1rem; }
+
+.min-live-room__body {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  min-height: 0;
+}
+
+.min-live-room__body iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  min-height: 300px;
+}
+
+.min-live-side {
+  background: #fff;
+  padding: 1rem;
+  overflow-y: auto;
+  border-left: 1px solid #334155;
+}
+
+.min-live-side h4 { margin: 0 0 0.75rem; font-size: 0.95rem; }
+
+.min-live-upload input[type="file"] {
+  display: block;
+  margin-top: 0.35rem;
+  font-size: 0.82rem;
+}
+
+@media (max-width: 900px) {
+  .min-live-room__body { grid-template-columns: 1fr; grid-template-rows: 1fr auto; }
+  .min-live-room__body iframe { min-height: 50vh; }
+}

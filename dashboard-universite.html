@@ -467,6 +467,7 @@
         Chef de section ↔ Professeurs · Doyen ↔ Chefs de section — vidéo en direct, partage de documents,
         votes, compte rendu automatique par l'IA SAC.
       </p>
+      <div id="ministryLiveUniRoot"></div>
       <div id="meetingsRoot"></div>
     </section>
 
@@ -819,6 +820,7 @@
   <script src="js/sac-home-news.js"></script>
   <script src="js/sac-publisher.js"></script>
   <script src="js/sac-meetings.js"></script>
+  <script src="js/sac-ministry-live.js"></script>
   <script src="js/sac-live.js"></script>
   <script src="js/sac-video-live.js"></script>
   <script src="js/sac-presence.js"></script>
@@ -1690,8 +1692,13 @@
           renderProfileSectionsList();
           renderSectionsProfileTable();
         }
-        if (id === "reunions" && typeof SAC_MEETINGS !== "undefined") {
-          SAC_MEETINGS.mountUI(document.getElementById("meetingsRoot"), session);
+        if (id === "reunions") {
+          if (typeof SAC_MINISTRY_LIVE !== "undefined") {
+            SAC_MINISTRY_LIVE.mountUniJoinUI(document.getElementById("ministryLiveUniRoot"), session);
+          }
+          if (typeof SAC_MEETINGS !== "undefined") {
+            SAC_MEETINGS.mountUI(document.getElementById("meetingsRoot"), session);
+          }
         }
         if (id === "activites" && typeof SAC_ADMIN_ACTIVITIES !== "undefined") {
           SAC_ADMIN_ACTIVITIES.load().then(({ activities, summary }) => {
