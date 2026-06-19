@@ -250,6 +250,12 @@
                 <label for="newSigle">Sigle campus</label>
                 <input type="text" class="fi" id="newSigle" placeholder="unkin" />
               </div>
+              <div class="fg ws-logo-upload">
+                <label for="newLogoUniversite">Logo de l'université *</label>
+                <input type="file" class="fi fi--file" id="newLogoUniversite" accept="image/png,image/jpeg,image/webp,image/svg+xml" />
+                <p class="ws-field-hint">PNG, JPG, WebP ou SVG — max. 2 Mo. Affiché sur les profils campus et les relevés de notes.</p>
+                <div class="ws-logo-preview" id="newLogoPreview" hidden></div>
+              </div>
             </div>
             <div style="margin-top:1.15rem;">
               <button type="submit" class="btn btn--role">Créer le compte institutionnel</button>
@@ -299,6 +305,7 @@
   <script src="js/sac-identity.js"></script>
   <script src="js/sac-session.js"></script>
   <script src="js/sac-api.js"></script>
+  <script src="js/sac-university-logo.js"></script>
   <script src="js/sac-institutional-admin.js"></script>
   <script src="js/sac-admin-activities.js"></script>
   <script src="js/sac-admin-dashboard.js"></script>

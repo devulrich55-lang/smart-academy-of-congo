@@ -467,6 +467,11 @@ const SAC_IDENTITY = (function () {
       universityFees: user.universityFees || null,
       campusTariffs: user.campusTariffs || null,
       campusTariffsSyncedAt: user.campusTariffsSyncedAt || null,
+      logoUrl:
+        user.logoUrl ||
+        (typeof SAC_UNIVERSITY_LOGO !== "undefined"
+          ? SAC_UNIVERSITY_LOGO.getLogoUrl(uni)
+          : null),
       authSource: "local",
       connectedAt: new Date().toISOString(),
     };

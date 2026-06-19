@@ -60,7 +60,7 @@
     <section class="page-section active" id="section-accueil">
       <div class="profile-hero">
         <div class="profile-avatar profile-avatar--logo" style="background:rgba(255,255,255,0.2);padding:0.35rem;">
-          <img src="logos.svg" alt="" width="80" height="80" style="width:100%;height:100%;object-fit:contain;border-radius:50%;" />
+          <img src="logos.svg" alt="" data-uni-profile-logo data-uni-logo-fallback="logos.svg" width="80" height="80" style="width:100%;height:100%;object-fit:contain;border-radius:50%;" />
         </div>
         <div>
           <h1 id="profileName">Section</h1>
@@ -206,6 +206,7 @@
   <script src="js/sac-identity.js"></script>
   <script src="js/sac-session.js"></script>
   <script src="js/sac-api.js"></script>
+  <script src="js/sac-university-logo.js"></script>
   <script src="js/sac-sections.js"></script>
   <script src="js/sac-section-accounts.js"></script>
   <script src="js/sac-live.js"></script>
@@ -241,6 +242,7 @@
         typeof SAC_IDENTITY !== "undefined"
           ? SAC_IDENTITY.getDisplayName(session)
           : session.displayName || session.identifiant;
+      if (typeof SAC_UNIVERSITY_LOGO !== "undefined") SAC_UNIVERSITY_LOGO.applyToProfile(session);
 
       function esc(s) {
         return String(s || "")

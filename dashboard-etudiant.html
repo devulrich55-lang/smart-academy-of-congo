@@ -518,7 +518,7 @@
 
       <div class="profile-hero">
         <div class="profile-avatar profile-avatar--logo">
-          <img src="logos.svg" alt="Smart Academy of Congo" width="80" height="80" />
+          <img src="logos.svg" alt="Smart Academy of Congo" data-uni-profile-logo data-uni-logo-fallback="logos.svg" width="80" height="80" />
         </div>
         <div>
           <h1 id="profileFullName">Étudiant</h1>
@@ -906,6 +906,7 @@
   <script src="js/sac-session.js?v=20260617d"></script>
   <script src="js/sac-api.js?v=20260617d"></script>
   <script src="js/sac-tariffs.js"></script>
+  <script src="js/sac-university-logo.js"></script>
   <script src="js/sac-courses.js"></script>
   <script src="js/sac-sections.js"></script>
   <script src="js/sac-data.js"></script>
@@ -1391,6 +1392,7 @@
       document.getElementById("userName").textContent = fullName;
       document.getElementById("welcomeName").textContent = p.prenom || fullName.split(" ")[0];
       document.getElementById("dossierNom").textContent = fullName;
+      if (typeof SAC_UNIVERSITY_LOGO !== "undefined") SAC_UNIVERSITY_LOGO.applyToProfile(session);
     }
 
     function renderAdmin(session) {

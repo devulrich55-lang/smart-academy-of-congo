@@ -315,6 +315,7 @@ const SAC_API = (function () {
     "grade",
     "fonction",
     "nomination",
+    "logoUrl",
   ];
 
   function buildRegisterPayload(profile) {

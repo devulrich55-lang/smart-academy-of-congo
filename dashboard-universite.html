@@ -251,7 +251,7 @@
     <section class="page-section active" id="section-accueil">
       <div class="profile-hero">
         <div class="profile-avatar profile-avatar--logo" style="background:rgba(255,255,255,0.2);padding:0.35rem;">
-          <img src="admin-uni/logos.png" alt="Smart Academy of Congo" data-portal-logo width="80" height="80" style="width:auto;max-width:100%;max-height:88px;object-fit:contain;" />
+          <img src="admin-uni/logos.png" alt="Logo établissement" data-uni-profile-logo data-uni-logo-fallback="admin-uni/logos.png" width="80" height="80" style="width:auto;max-width:100%;max-height:88px;object-fit:contain;" />
         </div>
         <div>
           <h1 id="profileName">Université</h1>
@@ -806,6 +806,7 @@
   <script src="js/sac-session.js"></script>
   <script src="js/sac-api.js"></script>
   <script src="js/sac-tariffs.js"></script>
+  <script src="js/sac-university-logo.js"></script>
   <script src="js/sac-universities.js"></script>
   <script src="js/sac-data.js"></script>
   <script src="js/sac-sections.js"></script>
@@ -931,6 +932,7 @@
         document.getElementById("profileMeta").textContent = uniLabel + " · Code " + (est.code || "—");
         document.getElementById("welcomeDesc").textContent =
           "Bienvenue sur le portail " + est.nomUniversite + ". Communiquez, gérez les sections et validez les inscriptions.";
+        if (typeof SAC_UNIVERSITY_LOGO !== "undefined") SAC_UNIVERSITY_LOGO.applyToProfile(session);
 
         const badge = document.getElementById("profileBadge");
         if (s.totalPriority > 0) {

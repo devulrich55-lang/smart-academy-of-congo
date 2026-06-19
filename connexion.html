@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Connexion sécurisée — Smart Academy of Congo. Étudiant, professeur, assistant, université ou section." />
+  <meta name="description" content="Connexion sécurisée — Smart Academy of Congo. Étudiant, professeur, assistant ou chef de section." />
   <title>Connexion — Smart Academy of Congo</title>
   <script src="js/sac-config.js"></script>
   <script src="js/sac-theme.js"></script>
@@ -44,21 +44,21 @@
         </div>
         <h1>Connectez-vous à votre espace</h1>
         <p class="auth-hero__lead">
-          Choisissez d'abord votre profil — étudiant, professeur, assistant ou université — puis saisissez vos identifiants pour accéder à vos informations officielles.
+          Choisissez d'abord votre profil — étudiant, professeur, assistant ou chef de section — puis saisissez vos identifiants pour accéder à vos informations officielles.
         </p>
         <ol class="auth-steps">
           <li>
             <span class="auth-step-num active" id="step1">1</span>
             <div>
               <strong>Sélectionnez votre profil</strong>
-              <span>Étudiant, professeur, assistant ou université</span>
+              <span>Étudiant, professeur, assistant ou section</span>
             </div>
           </li>
           <li>
             <span class="auth-step-num" id="step2">2</span>
             <div>
               <strong>Renseignez vos identifiants</strong>
-              <span>Matricule, e-mail institutionnel ou code université</span>
+              <span>Matricule ou e-mail institutionnel</span>
             </div>
           </li>
           <li>
@@ -96,11 +96,7 @@
             <span class="auth-role-tab__icon role-tab__icon" aria-hidden="true">📋</span>
             Assistant
           </button>
-          <button type="button" class="auth-role-tab role-tab" data-role="universite" role="tab" aria-selected="false" id="tab-universite">
-            <span class="auth-role-tab__icon role-tab__icon" aria-hidden="true">🏛️</span>
-            Université
-          </button>
-          <button type="button" class="auth-role-tab role-tab auth-role-tab--extra" data-role="section" role="tab" aria-selected="false" id="tab-section" hidden>
+          <button type="button" class="auth-role-tab role-tab" data-role="section" role="tab" aria-selected="false" id="tab-section">
             <span class="auth-role-tab__icon role-tab__icon" aria-hidden="true">🏫</span>
             Section
           </button>
@@ -126,14 +122,6 @@
           <p id="uniLockHint" class="auth-uni-lock">
             <span aria-hidden="true">✓</span> Université verrouillée sur votre dossier d'inscription
           </p>
-        </div>
-
-        <div class="auth-form-group field-extra" id="fieldCodeUni">
-          <label for="codeUni">Code établissement <span class="hint">(fourni à l'inscription)</span></label>
-          <div class="auth-input-wrap">
-            <input type="text" class="form-input" id="codeUni" name="codeUni" placeholder="Ex. SAC-UNIKIN-2024" autocomplete="organization" />
-            <span class="auth-input-icon" aria-hidden="true">🏛️</span>
-          </div>
         </div>
 
         <div class="auth-form-group">
@@ -168,9 +156,16 @@
         </div>
       </form>
 
-      <p class="auth-footer form-footer">
+      <p class="auth-footer form-footer" id="inscriptionFooter">
         Pas encore de compte ?
         <a href="inscription.html" id="inscriptionLink">Créer un compte étudiant</a>
+      </p>
+      <p class="auth-footer form-footer" id="inscriptionHintSection" hidden style="font-size:0.88rem;color:var(--text-muted, #5a6d7e);">
+        Compte chef de section créé par votre université — pas d'inscription publique.
+      </p>
+      <p class="auth-footer form-footer" style="margin-top:0.5rem;font-size:0.85rem;color:var(--text-muted, #5a6d7e);">
+        Vous êtes une université partenaire ?
+        <a href="admin-uni/" style="font-weight:600;color:var(--primary, #0c3d6e);">Accéder au portail admin campus</a>
       </p>
     </section>
     </div>
@@ -216,7 +211,6 @@
         inscriptionText: "Créer un compte étudiant",
         dashboard: "dashboard-etudiant.html",
         showUniversite: true,
-        showCodeUni: false,
       },
       professeur: {
         badge: "Espace professeur",
@@ -228,7 +222,6 @@
         inscriptionText: "Demander un accès professeur",
         dashboard: "dashboard-professeur.html",
         showUniversite: true,
-        showCodeUni: false,
       },
       assistant: {
         badge: "Espace assistant",
@@ -240,19 +233,6 @@
         inscriptionText: "Créer un compte assistant",
         dashboard: "dashboard-assistant.html",
         showUniversite: true,
-        showCodeUni: false,
-      },
-      universite: {
-        badge: "Espace administration université",
-        icon: "🏛️",
-        labelIdentifiant: "E-mail administrateur",
-        placeholderIdentifiant: "Ex. admin@universite.cd",
-        typeIdentifiant: "email",
-        btnText: "Se connecter — Portail université",
-        inscriptionText: "Inscrire mon université",
-        dashboard: "dashboard-universite.html",
-        showUniversite: false,
-        showCodeUni: true,
       },
       section: {
         badge: "Espace chef de section",
@@ -264,7 +244,6 @@
         inscriptionText: "Compte créé par votre université",
         dashboard: "dashboard-section.html",
         showUniversite: true,
-        showCodeUni: false,
       },
     };
 
@@ -277,11 +256,11 @@
     const labelIdentifiant = document.getElementById("labelIdentifiant");
     const identifiant = document.getElementById("identifiant");
     const fieldUniversite = document.getElementById("fieldUniversite");
-    const fieldCodeUni = document.getElementById("fieldCodeUni");
     const universiteSelect = document.getElementById("universite");
-    const codeUniInput = document.getElementById("codeUni");
     const btnSubmit = document.getElementById("btnSubmit");
     const inscriptionLink = document.getElementById("inscriptionLink");
+    const inscriptionFooter = document.getElementById("inscriptionFooter");
+    const inscriptionHintSection = document.getElementById("inscriptionHintSection");
     const loginForm = document.getElementById("loginForm");
     const passwordInput = document.getElementById("password");
     const togglePassword = document.getElementById("togglePassword");
@@ -330,16 +309,20 @@
       const uniHint = document.getElementById("uniLockHint");
       if (uniHint) uniHint.classList.remove("visible");
 
-      fieldCodeUni.classList.toggle("visible", config.showCodeUni);
-      codeUniInput.required = config.showCodeUni;
-
       btnSubmit.textContent = config.btnText;
       btnSubmit.dataset.role = role;
-      inscriptionLink.href = `inscription.html?role=${role === "universite" ? "universite" : role}`;
-      inscriptionLink.textContent = config.inscriptionText;
 
-      const sectionTab = document.getElementById("tab-section");
-      if (sectionTab) sectionTab.hidden = role !== "section";
+      if (role === "section") {
+        if (inscriptionFooter) inscriptionFooter.hidden = true;
+        if (inscriptionHintSection) inscriptionHintSection.hidden = false;
+      } else {
+        if (inscriptionFooter) inscriptionFooter.hidden = false;
+        if (inscriptionHintSection) inscriptionHintSection.hidden = true;
+        if (inscriptionLink) {
+          inscriptionLink.href = `inscription.html?role=${role}`;
+          inscriptionLink.textContent = config.inscriptionText;
+        }
+      }
 
       updateSteps(1);
     }
@@ -388,12 +371,6 @@
         return;
       }
 
-      if (ROLES[currentRole].showCodeUni && !codeUniInput.value.trim()) {
-        codeUniInput.focus();
-        updateSteps(2);
-        return;
-      }
-
       btnSubmit.disabled = true;
       btnSubmit.textContent = "Connexion en cours…";
 
@@ -412,7 +389,6 @@
             try {
               apiSession = await SAC_API.login(idVal, pwdVal, currentRole, {
                 universite: ROLES[currentRole].showUniversite ? universiteSelect.value : null,
-                codeUni: ROLES[currentRole].showCodeUni ? codeUniInput.value.trim() : null,
               });
             } catch (err) {
               apiError = err.message || "Identifiant ou mot de passe incorrect.";
@@ -498,18 +474,6 @@
       );
       if (!uniCheck.ok) {
         alert(uniCheck.message);
-        btnSubmit.disabled = false;
-        btnSubmit.textContent = ROLES[currentRole].btnText;
-        updateSteps(2);
-        return;
-      }
-
-      const codeCheck = SAC_IDENTITY.assertCodeUniOnLogin(
-        found,
-        ROLES[currentRole].showCodeUni ? codeUniInput.value : null
-      );
-      if (!codeCheck.ok) {
-        alert(codeCheck.message);
         btnSubmit.disabled = false;
         btnSubmit.textContent = ROLES[currentRole].btnText;
         updateSteps(2);

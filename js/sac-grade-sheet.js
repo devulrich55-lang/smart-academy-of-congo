@@ -13,11 +13,11 @@ const SAC_GRADE_SHEET = (function () {
     "s2-2024": "Semestre 2 — 2023-2024",
   };
 
-  /** Carte + drapeau RDC — relevé / fiche officiels */
-  const RDC_CARTE_SRC = "carte_rdc.jpeg";
+  /** Emblème officiel RDC — relevé / fiche officiels */
+  const RDC_CARTE_SRC = "logo_pro.png";
 
   function rdcCarteImgHtml() {
-    return `<img src="${RDC_CARTE_SRC}" class="releve-header__map" alt="Carte et drapeau de la République Démocratique du Congo" width="88" height="100" />`;
+    return `<img src="${RDC_CARTE_SRC}" class="releve-header__map" alt="Emblème de la République Démocratique du Congo" width="88" height="100" />`;
   }
 
   function uid(prefix) {
@@ -474,8 +474,12 @@ const SAC_GRADE_SHEET = (function () {
     const sigleLine = inst.sigle
       ? `${inst.sigle} — CONGO - ${inst.city}`
       : `CONGO - ${inst.city}`;
+    const logoLeft =
+      typeof SAC_UNIVERSITY_LOGO !== "undefined"
+        ? SAC_UNIVERSITY_LOGO.buildHeaderLogoHtml(universiteId, esc)
+        : "";
     return `<header class="releve-header">
-      <div class="releve-header__side releve-header__side--left" aria-hidden="true"></div>
+      <div class="releve-header__side releve-header__side--left">${logoLeft}</div>
       <div class="releve-header__center">
         <p>RÉPUBLIQUE DÉMOCRATIQUE DU CONGO</p>
         <p>MINISTÈRE DE L'ENSEIGNEMENT SUPÉRIEUR ET UNIVERSITAIRE</p>

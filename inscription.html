@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Inscription — Smart Academy of Congo. Étudiant, professeur ou université." />
+  <meta name="description" content="Inscription — Smart Academy of Congo. Étudiant, professeur ou assistant." />
   <title>Inscription — Smart Academy of Congo</title>
   <script src="js/sac-config.js"></script>
   <script src="js/sac-theme.js"></script>
@@ -1151,7 +1151,6 @@
         <li data-tier="etudiant"><span>🎓 Étudiant</span><span>1 USD</span></li>
         <li data-tier="assistant"><span>📋 Assistant</span><span>5 USD</span></li>
         <li data-tier="professeur"><span>📚 Professeur</span><span>10 USD</span></li>
-        <li data-tier="universite"><span>🏛️ Université</span><span>20 USD</span></li>
       </ul>
       <ul class="benefits" id="benefitsList">
         <li>Consultez vos notes et relevés de cotes en ligne</li>
@@ -1177,9 +1176,6 @@
         </button>
         <button type="button" class="role-tab" data-role="assistant" aria-selected="false">
           <span class="role-tab__icon">📋</span> Assistant
-        </button>
-        <button type="button" class="role-tab" data-role="universite" aria-selected="false">
-          <span class="role-tab__icon">🏛️</span> Université
         </button>
       </div>
 
@@ -1438,6 +1434,11 @@
         Vous avez déjà un compte ?
         <a href="connexion.html" id="connexionLink">Se connecter</a>
       </p>
+      <p class="form-footer" style="margin-top:0.5rem;font-size:0.85rem;color:var(--text-muted);">
+        Vous représentez une université ?
+        <a href="admin-uni/" style="font-weight:600;color:var(--primary);">Portail admin campus</a>
+        — compte créé par le Super Admin SAC.
+      </p>
     </section>
   </main>
 
@@ -1601,6 +1602,16 @@
     </div>
   </div>
 
+  <script>
+    (function () {
+      const role = new URLSearchParams(window.location.search).get("role");
+      if (role === "universite") {
+        window.location.replace("admin-uni/");
+      } else if (role === "section") {
+        window.location.replace("connexion.html?role=section");
+      }
+    })();
+  </script>
   <script src="js/sac-universities.js"></script>
   <script src="js/sac-identity.js"></script>
   <script src="js/sac-session.js?v=20260617d"></script>
@@ -1967,6 +1978,14 @@
     }
 
     function setRole(role) {
+      if (role === "universite") {
+        window.location.replace("admin-uni/");
+        return;
+      }
+      if (role === "section") {
+        window.location.replace("connexion.html?role=section");
+        return;
+      }
       resetPayment();
       currentRole = role;
       const config = ROLES[role];
@@ -2882,8 +2901,15 @@
 
     const params = new URLSearchParams(window.location.search);
     const roleParam = params.get("role");
-    if (roleParam && ROLES[roleParam]) setRole(roleParam);
-    else setRole("etudiant");
+    if (roleParam === "universite") {
+      window.location.replace("admin-uni/");
+    } else if (roleParam === "section") {
+      window.location.replace("connexion.html?role=section");
+    } else if (roleParam && ROLES[roleParam]) {
+      setRole(roleParam);
+    } else {
+      setRole("etudiant");
+    }
 
     if (params.get("paid") === "1" && roleParam) {
       pendingProfile = { role: roleParam, email: "stripe@return", nom: "Utilisateur" };

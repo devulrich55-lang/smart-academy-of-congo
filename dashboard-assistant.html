@@ -69,7 +69,7 @@
     <section class="page-section active" id="section-profil">
       <div class="profile-hero">
         <div class="profile-avatar profile-avatar--logo" style="background:rgba(255,255,255,0.2);padding:0.35rem;">
-          <img src="logos.svg" alt="" width="80" height="80" style="width:100%;height:100%;object-fit:contain;border-radius:50%;" />
+          <img src="logos.svg" alt="" data-uni-profile-logo data-uni-logo-fallback="logos.svg" width="80" height="80" style="width:100%;height:100%;object-fit:contain;border-radius:50%;" />
         </div>
         <div>
           <h1 id="profileName">Assistant</h1>
@@ -193,6 +193,7 @@
   <script src="js/sac-session.js?v=20260617b"></script>
   <script src="js/sac-api.js?v=20260617b"></script>
   <script src="js/sac-tariffs.js"></script>
+  <script src="js/sac-university-logo.js"></script>
   <script src="js/sac-courses.js"></script>
   <script src="js/sac-sections.js"></script>
   <script src="js/sac-tasks.js"></script>
@@ -494,6 +495,7 @@
           <div class="info-row"><span>Service</span><span>${escapeHtml(session.service || found?.service || "Administration")}</span></div>
           <div class="info-row"><span>Rôle</span><span>Assistant — tâches & publication</span></div>
           <h3 style="margin:1rem 0 0.5rem;font-size:0.95rem;">Classes accompagnées</h3>${coursHtml}`;
+        if (typeof SAC_UNIVERSITY_LOGO !== "undefined") SAC_UNIVERSITY_LOGO.applyToProfile(session);
       }
 
       document.querySelectorAll("[data-task-filter]").forEach((btn) => {

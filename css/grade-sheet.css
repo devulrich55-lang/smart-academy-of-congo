@@ -38,8 +38,18 @@
 }
 
 .releve-header__side--left {
-  /* Espace réservé — pas de logo établissement */
-  min-height: 1px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+}
+
+.releve-header__logo {
+  width: 72px;
+  height: 72px;
+  max-width: 100%;
+  object-fit: contain;
+  display: block;
+  border-radius: 4px;
 }
 
 .releve-header__center {

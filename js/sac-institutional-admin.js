@@ -23,6 +23,11 @@ const SAC_INSTITUTIONAL = (function () {
       ]);
       summaryCache = summary;
       adminsCache = Array.isArray(admins) ? admins : [];
+      if (typeof SAC_UNIVERSITY_LOGO !== "undefined") {
+        adminsCache.forEach((a) => {
+          if (a.role === "universite" && a.logoUrl) SAC_UNIVERSITY_LOGO.registerForUniversity(a);
+        });
+      }
       return { summary: summaryCache, admins: adminsCache };
     } catch (err) {
       console.warn("[SAC_INSTITUTIONAL]", err.message || err);
@@ -33,6 +38,9 @@ const SAC_INSTITUTIONAL = (function () {
   async function create(session, payload) {
     if (!session || session.role !== "superadmin") throw new Error("Accès refusé");
     const created = await SAC_API.createInstitutionalAdmin(payload);
+    if (payload.logoUrl && typeof SAC_UNIVERSITY_LOGO !== "undefined") {
+      SAC_UNIVERSITY_LOGO.registerForUniversity({ ...payload, ...created });
+    }
     await load(session);
     return created;
   }

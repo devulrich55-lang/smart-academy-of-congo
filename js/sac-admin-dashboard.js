@@ -231,7 +231,16 @@ const SAC_ADMIN_DASHBOARD = (function () {
     const uniFields = document.getElementById("uniFields");
     newRole?.addEventListener("change", () => {
       if (uniFields) uniFields.hidden = newRole.value !== "universite";
+      const logoInput = document.getElementById("newLogoUniversite");
+      if (logoInput) logoInput.required = newRole.value === "universite";
     });
+
+    if (typeof SAC_UNIVERSITY_LOGO !== "undefined") {
+      SAC_UNIVERSITY_LOGO.bindPreviewInput(
+        document.getElementById("newLogoUniversite"),
+        document.getElementById("newLogoPreview")
+      );
+    }
 
     document.getElementById("formCreateAdmin")?.addEventListener("submit", async (e) => {
       e.preventDefault();
@@ -251,12 +260,28 @@ const SAC_ADMIN_DASHBOARD = (function () {
         payload.codeUni = document.getElementById("newCodeUni").value.trim();
         payload.sigle = document.getElementById("newSigle").value.trim();
         payload.universite = payload.sigle || payload.codeUni;
+        const logoFile = document.getElementById("newLogoUniversite")?.files?.[0];
+        if (!logoFile) {
+          alert("Importez le logo de l'université.");
+          return;
+        }
+        try {
+          payload.logoUrl = await SAC_UNIVERSITY_LOGO.fileToDataUrl(logoFile);
+        } catch (logoErr) {
+          alert(logoErr.message || "Logo invalide.");
+          return;
+        }
       }
       try {
         await SAC_INSTITUTIONAL.create(session, payload);
         toast("Compte créé avec succès.");
         e.target.reset();
         if (uniFields) uniFields.hidden = true;
+        const logoPreview = document.getElementById("newLogoPreview");
+        if (logoPreview) {
+          logoPreview.innerHTML = "";
+          logoPreview.hidden = true;
+        }
         showSection("administrateurs");
         await refresh(session, isSuper);
         await reloadActivities();

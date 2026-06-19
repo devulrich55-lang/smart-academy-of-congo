@@ -398,3 +398,37 @@ body[data-ws-role="universite"] {
   color: var(--muted);
   white-space: nowrap;
 }
+
+.ws-field-hint {
+  margin: 0.35rem 0 0;
+  font-size: 0.78rem;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.fi--file {
+  padding: 0.45rem 0.65rem;
+}
+
+.ws-logo-preview {
+  margin-top: 0.65rem;
+  padding: 0.65rem;
+  border: 1px dashed var(--border, #cbd5e1);
+  border-radius: 10px;
+  background: var(--surface-2, #f8fafc);
+  max-width: 140px;
+}
+
+.ws-logo-preview__img {
+  display: block;
+  max-width: 100%;
+  max-height: 88px;
+  object-fit: contain;
+  margin: 0 auto;
+}
+
+.ws-logo-preview__err {
+  margin: 0;
+  font-size: 0.82rem;
+  color: #b91c1c;
+}
