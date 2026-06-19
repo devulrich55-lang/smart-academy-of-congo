@@ -37,7 +37,11 @@ const SAC_IDENTITY = (function () {
   }
 
   function normalizeEmail(email) {
-    return (email || "").trim().toLowerCase();
+    return (email || "")
+      .trim()
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/\p{Diacritic}/gu, "");
   }
 
   function validateEmail(email) {
@@ -48,7 +52,7 @@ const SAC_IDENTITY = (function () {
       /^[a-z0-9](?:[a-z0-9._%+-]{0,62}[a-z0-9])?@[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z]{2,})+$/i.test(
         e
       );
-    if (!basic) return { ok: false, message: "Format e-mail incorrect (ex. nom@universite.cd)." };
+    if (!basic) return { ok: false, message: "Format e-mail incorrect (ex. prenom@gmail.com)." };
 
     if (e.includes("..") || e.startsWith(".") || e.includes("@."))
       return { ok: false, message: "Adresse e-mail incorrecte." };
