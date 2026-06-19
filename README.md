@@ -25,19 +25,19 @@ Pages utiles : [connexion](http://127.0.0.1:8000/connexion.html) · [plateforme]
 |--------|-------------|
 | Frontend | HTML, CSS, JavaScript statique |
 | API | FastAPI (Python) · SQLite |
-| Auth | JWT (cookies HttpOnly) |
-| Hébergement | Firebase, Vercel + Render, ou serveur local |
+| Auth | JWT (Bearer cross-origin sur Render) |
+| Hébergement | **Render** (frontend statique + API) ou serveur local |
 
 Les notes et relevés sont synchronisés via `/api/platform/grades`. Les **réclamations** et **sections faculté** passent par `/api/reclamations` et `/api/sections`. L'authentification API est obligatoire en production ; le repli `localStorage` n'est actif qu'en localhost.
 
 ## Déploiement
 
-Voir **[DEPLOYMENT.md](DEPLOYMENT.md)** pour Firebase + Cloud Run, Vercel + Render, variables d'environnement et dépannage.
+Voir **[DEPLOYMENT.md](DEPLOYMENT.md)** pour Render, variables d'environnement et dépannage.
 
 Vérification rapide après déploiement :
 
 ```bash
-npm run check:health https://VOTRE-DOMAINE
+npm run check:health https://smart-academy-of-congo-dbfm.onrender.com
 ```
 
 ## Structure
@@ -46,7 +46,7 @@ npm run check:health https://VOTRE-DOMAINE
 ├── js/                  Modules frontend (session, notes, relevés, plateforme)
 ├── css/                 Styles et thème
 ├── backend-python/      API FastAPI + base SQLite
-├── api/                 Proxy Vercel (/api → backend)
+├── render.yaml          Config frontend Render
 ├── dashboard-*.html     Espaces par rôle (étudiant, prof, assistant, section, université)
 ├── plateforme.html      Portail unifié (10 piliers)
 └── bulletin-semestre.html   Relevé de notes officiel RDC

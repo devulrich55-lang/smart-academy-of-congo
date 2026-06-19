@@ -1,6 +1,6 @@
 /**
  * Render : frontend statique + API sur smart-academy-of-congo-api.
- * Local / Vercel / Firebase (rewrite /api) : SAC_API_BASE reste vide.
+ * Local (start-local.bat) : ne rien définir — API same-origin sur le port 8000.
  */
 (function () {
   if (typeof window === "undefined" || window.SAC_API_BASE) return;

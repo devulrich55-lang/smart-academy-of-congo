@@ -5,12 +5,6 @@ backend-python/
 docs/
 agent-transcripts/
 
-# Firebase / Vercel local
-.firebase/
-.firebaserc
-firebase-debug.log
-.vercel/
-
 # Dependances
 node_modules/
 

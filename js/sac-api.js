@@ -28,7 +28,7 @@ const SAC_API = (function () {
 
     const BACKEND_PORT = "8000";
 
-    // Prod (Firebase / Vercel): same-origin + rewrites /api vers Cloud Run ou backend.
+    // Autres domaines sans SAC_API_BASE : repli same-origin /api (local via FastAPI).
     if (!isLocalHost) return "";
 
     // Frontend servi par FastAPI sur le port 8000 → API same-origin.

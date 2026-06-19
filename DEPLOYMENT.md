@@ -1,52 +1,52 @@
 # Déploiement — Smart Academy of Congo
 
-Checklist pour un déploiement **stable** (auth JWT, données persistantes, CORS).
+Checklist pour un déploiement **stable** sur **Render** (auth JWT, données persistantes, CORS).
 
 ---
 
-## Option A — Firebase + Cloud Run (recommandé)
+## Production Render
 
-| Étape | Action |
-|-------|--------|
-| 1 | `npm install` · `copy .firebaserc.example .firebaserc` · renseigner l'ID projet |
-| 2 | Déployer l'API : voir [FIREBASE.md](FIREBASE.md) étape 3 |
-| 3 | Variables Cloud Run : copier [backend-python/cloudrun.env.example](backend-python/cloudrun.env.example) |
-| 4 | `ALLOWED_ORIGINS` = votre `.web.app` + `.firebaseapp.com` |
-| 5 | `npm run deploy` (hosting) |
-| 6 | Tester `GET https://VOTRE-PROJECT-ID.web.app/api/health` → `"database":"up"` |
+| Service | Rôle | Fichier |
+|---------|------|---------|
+| **Frontend** (statique) | Site HTML/CSS/JS | `render.yaml` |
+| **Backend** (API Python) | FastAPI + SQLite | dépôt `backend-python` · `render.yaml` |
 
-Le rewrite `/api/**` → Cloud Run est dans `firebase.json`.
+URLs de production (exemple) :
+
+- Frontend : `https://smart-academy-of-congo-dbfm.onrender.com`
+- API : `https://smart-academy-of-congo-api-1.onrender.com`
+
+Le frontend détecte automatiquement l’API via `js/sac-config.js` quand le hostname se termine par `.onrender.com`.
 
 ---
 
-## Option B — Vercel + Render
+## Frontend (Render — site statique)
 
-### Backend (Render)
+1. Connecter le dépôt GitHub à Render
+2. Utiliser `render.yaml` à la racine (service `smart-academy-of-congo`, `runtime: static`)
+3. Chaque `git push` sur `main` redéploie le site
 
-1. Créer un **Web Service** depuis `backend-python/render.yaml` (Blueprint) ou manuellement
-2. **Disque persistant** 1 Go monté sur `/data` (inclus dans `render.yaml`)
-3. Après le 1er déploiement, définir dans le dashboard Render :
+Vérifier : ouvrir la page d’accueil et la connexion.
 
-```
-ALLOWED_ORIGINS=https://VOTRE-APP.vercel.app
-FRONTEND_URL=https://VOTRE-APP.vercel.app
-```
+---
 
-4. Vérifier : `GET https://sac-api-python.onrender.com/api/health`
+## Backend (Render — API)
 
-Les secrets JWT sont générés automatiquement par le Blueprint (`generateValue: true`).
-
-### Frontend (Vercel)
-
-1. Importer le dépôt sur [vercel.com](https://vercel.com)
-2. Variables d'environnement (voir [vercel.env.example](vercel.env.example)) :
+1. Déployer le dépôt **backend-python** comme Web Service sur Render
+2. **Disque persistant** 1 Go monté sur `/data` (voir `backend-python/render.yaml`)
+3. Variables d’environnement :
 
 ```
-SAC_API_URL=https://VOTRE-SERVICE.onrender.com
+ALLOWED_ORIGINS=https://smart-academy-of-congo-dbfm.onrender.com
+FRONTEND_URL=https://smart-academy-of-congo-dbfm.onrender.com
+DATABASE_PATH=/data/sac.db
+UPLOAD_DIR=/data/uploads
+COOKIE_SECURE=true
 ```
 
-3. Déployer — le proxy `api/[...path].js` route `/api/*` vers Render **sans URL en dur** dans `vercel.json`
-4. Tester : `GET https://VOTRE-APP.vercel.app/api/health`
+4. Vérifier : `GET https://smart-academy-of-congo-api-1.onrender.com/api/health` → `"database":"up"`
+
+Les secrets JWT sont générés automatiquement par le Blueprint Render (`generateValue: true`).
 
 ---
 
@@ -56,10 +56,10 @@ SAC_API_URL=https://VOTRE-SERVICE.onrender.com
 |----------|------|
 | `JWT_ACCESS_SECRET` | Token court (15 min) |
 | `JWT_REFRESH_SECRET` | Token refresh (7 j) |
-| `ALLOWED_ORIGINS` | Domaines frontend autorisés (CORS) |
+| `ALLOWED_ORIGINS` | URL exacte du frontend Render (CORS) |
 | `COOKIE_SECURE=true` | Cookies HTTPS uniquement |
-| `DATABASE_PATH` | `/data/sac.db` sur Render · volume persistant |
-| `UPLOAD_DIR` | `/data/uploads` sur Render |
+| `DATABASE_PATH` | `/data/sac.db` sur disque Render |
+| `UPLOAD_DIR` | `/data/uploads` sur disque Render |
 | `FRONTEND_URL` | Liens e-mail (reset mot de passe) |
 
 ---
@@ -67,7 +67,6 @@ SAC_API_URL=https://VOTRE-SERVICE.onrender.com
 ## Développement local
 
 ```powershell
-# Double-clic ou :
 .\start-local.bat
 ```
 
@@ -81,12 +80,11 @@ SAC_API_URL=https://VOTRE-SERVICE.onrender.com
 
 | Symptôme | Cause probable | Solution |
 |----------|----------------|----------|
-| `403 CORS_BLOCKED` | Origine absente de `ALLOWED_ORIGINS` | Ajouter l'URL exacte du frontend |
-| `503 API_NOT_CONFIGURED` (Vercel) | `SAC_API_URL` manquant | Variable Vercel → redéployer |
-| Données perdues au redémarrage | Pas de disque `/data` | Activer disque Render ou volume Cloud Run |
+| `403 CORS_BLOCKED` | Origine absente de `ALLOWED_ORIGINS` | Ajouter l’URL exacte du frontend Render |
+| Données perdues au redémarrage | Pas de disque `/data` | Activer disque persistant sur Render |
 | `"database":"down"` dans `/health` | SQLite inaccessible | Vérifier `DATABASE_PATH` et permissions |
-| Connexion échoue en prod | JWT dev ou cookies cross-domain | Vérifier proxy `/api` same-origin + `COOKIE_SECURE` |
-| API ne démarre pas | Secrets JWT par défaut | Régénérer secrets (Render Blueprint le fait) |
+| Connexion échoue en prod | CORS ou API en veille | Vérifier `ALLOWED_ORIGINS` · attendre le réveil API (~30–90 s) |
+| API ne démarre pas | Secrets JWT par défaut | Régénérer secrets sur Render |
 
 ---
 
@@ -94,10 +92,13 @@ SAC_API_URL=https://VOTRE-SERVICE.onrender.com
 
 | Fichier | Rôle |
 |---------|------|
-| `firebase.json` | Hosting + rewrite Cloud Run |
-| `vercel.json` | URLs propres frontend |
-| `api/[...path].js` | Proxy API Vercel → Render |
-| `backend-python/render.yaml` | Blueprint Render complet |
-| `backend-python/Dockerfile` | Image Cloud Run |
+| `render.yaml` | Config frontend statique Render |
+| `js/sac-config.js` | URL API Render en production |
+| `backend-python/render.yaml` | Blueprint API Render |
 | `backend-python/.env.example` | Config locale |
-| `vercel.env.example` | Variables Vercel |
+
+Vérification rapide :
+
+```bash
+npm run check:health https://smart-academy-of-congo-dbfm.onrender.com
+```
