@@ -25,6 +25,7 @@ const SAC_PLATFORM_REGISTRY = (function () {
   let mounted = false;
   let currentRole = "all";
   let searchQuery = "";
+  let activeSession = null;
 
   function esc(s) {
     const d = document.createElement("div");
@@ -173,6 +174,66 @@ const SAC_PLATFORM_REGISTRY = (function () {
     return data;
   }
 
+  function canDeleteAccount(session, acc) {
+    if (!session || session.role !== "superadmin") return false;
+    if (partialCache) return false;
+    if (acc?.source && acc.source !== "api") return false;
+    if (typeof SAC_API === "undefined" || typeof SAC_API.deletePlatformAccount !== "function") {
+      return false;
+    }
+    const selfEmail = String(session.identifiant || session.email || "").toLowerCase();
+    return String(acc?.email || "").toLowerCase() !== selfEmail;
+  }
+
+  function deleteActionCell(session, acc) {
+    if (!canDeleteAccount(session, acc)) {
+      return '<td><span style="font-size:0.78rem;color:var(--muted);">—</span></td>';
+    }
+    return `<td><button type="button" class="btn btn--ghost btn--sm" data-reg-del="${esc(acc.email)}" style="color:#b91c1c;">Supprimer</button></td>`;
+  }
+
+  async function removeAccount(session, email) {
+    if (!canDeleteAccount(session, { email, source: "api" })) {
+      throw new Error("Suppression non autorisée.");
+    }
+    await SAC_API.deletePlatformAccount(email);
+    await load(session);
+  }
+
+  function bindDeleteHandlers(root, session) {
+    if (!root) return;
+    root.querySelectorAll("[data-reg-del]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const email = btn.dataset.regDel;
+        const acc = accountsCache.find((a) => a.email === email);
+        const roleLabel = ROLE_LABELS[acc?.role] || acc?.role || "compte";
+        if (
+          !confirm(
+            "Supprimer définitivement le compte " +
+              email +
+              " (" +
+              roleLabel +
+              ") ?\nCette action est irréversible et retire l'utilisateur de la base de données."
+          )
+        ) {
+          return;
+        }
+        btn.disabled = true;
+        try {
+          await removeAccount(session, email);
+          renderFilters(root);
+          renderTable(root, session);
+          if (typeof SAC_ADMIN_DASHBOARD !== "undefined") {
+            SAC_ADMIN_DASHBOARD.toast("Compte supprimé : " + email);
+          }
+        } catch (err) {
+          alert(err.message || "Suppression impossible.");
+          btn.disabled = false;
+        }
+      });
+    });
+  }
+
   function roleBadge(role) {
     const meta = ROLE_CATEGORIES.find((c) => c.id === role);
     const label = meta?.label || ROLE_LABELS[role] || role;
@@ -259,12 +320,12 @@ const SAC_PLATFORM_REGISTRY = (function () {
       btn.addEventListener("click", () => {
         currentRole = btn.dataset.regRole;
         renderFilters(root);
-        renderTable(root);
+        renderTable(root, activeSession);
       });
     });
   }
 
-  function renderGroupedView(root, list) {
+  function renderGroupedView(root, list, session) {
     const container = root.querySelector("[data-reg-grouped]");
     if (!container) return;
     if (currentRole !== "all") {
@@ -281,13 +342,13 @@ const SAC_PLATFORM_REGISTRY = (function () {
         return `
           <div class="ws-reg-group">
             <h3 class="ws-reg-group__title">${cat.icon} ${esc(cat.label)} <span>${items.length}</span></h3>
-            <div class="ws-reg-group__table">${renderTableHtml(items)}</div>
+            <div class="ws-reg-group__table">${renderTableHtml(items, session)}</div>
           </div>`;
       })
       .join("");
   }
 
-  function renderTableHtml(list) {
+  function renderTableHtml(list, session) {
     if (!list.length) {
       return '<p class="empty" style="padding:0.75rem 0;">Aucun compte dans cette catégorie.</p>';
     }
@@ -300,6 +361,7 @@ const SAC_PLATFORM_REGISTRY = (function () {
             <th>Établissement / filière</th>
             <th>Téléphone</th>
             <th>Inscription</th>
+            <th></th>
           </tr>
         </thead>
         <tbody>
@@ -311,6 +373,7 @@ const SAC_PLATFORM_REGISTRY = (function () {
             <td>${esc(campusLine(a))}</td>
             <td>${esc(a.telephone || "—")}</td>
             <td>${formatDate(a.createdAt)}</td>
+            ${deleteActionCell(session, a)}
           </tr>`
             )
             .join("")}
@@ -318,14 +381,14 @@ const SAC_PLATFORM_REGISTRY = (function () {
       </table>`;
   }
 
-  function renderTable(root) {
+  function renderTable(root, session) {
     const list = filteredAccounts();
     renderStats(root);
     const flat = root.querySelector("[data-reg-table-wrap]");
     const empty = root.querySelector("[data-reg-empty]");
     if (currentRole === "all") {
       if (flat) flat.hidden = true;
-      renderGroupedView(root, list);
+      renderGroupedView(root, list, session);
     } else {
       const grouped = root.querySelector("[data-reg-grouped]");
       if (grouped) {
@@ -342,6 +405,7 @@ const SAC_PLATFORM_REGISTRY = (function () {
             ? "Aucun compte ne correspond à la recherche."
             : "Aucun compte dans cette catégorie.";
         }
+        bindDeleteHandlers(root, session);
         return;
       }
       if (empty) empty.hidden = true;
@@ -355,11 +419,13 @@ const SAC_PLATFORM_REGISTRY = (function () {
           <td>${esc(campusLine(a))}</td>
           <td>${esc(a.telephone || "—")}</td>
           <td>${formatDate(a.createdAt)}</td>
+          ${deleteActionCell(session, a)}
         </tr>`
           )
           .join("");
       }
     }
+    bindDeleteHandlers(root, session);
     if (!list.length && currentRole === "all") {
       const grouped = root.querySelector("[data-reg-grouped]");
       if (grouped && !grouped.innerHTML.trim()) {
@@ -375,11 +441,13 @@ const SAC_PLATFORM_REGISTRY = (function () {
 
   function mount(root, session) {
     if (!root || session?.role !== "superadmin") return;
+    activeSession = session;
     if (!mounted) {
       root.innerHTML = `
         <h1 class="page-title">Registre national des comptes</h1>
         <p class="page-desc">
           Vue confidentielle réservée au Super Admin — tous les comptes créés sur la plateforme, classés par catégorie.
+          Vous pouvez <strong>supprimer définitivement</strong> un compte utilisateur (sauf le vôtre).
           <span class="ws-registry-hint">Accès discret · Ctrl+Shift+R</span>
         </p>
         <p class="ws-registry-warn" data-reg-partial hidden></p>
@@ -418,6 +486,7 @@ const SAC_PLATFORM_REGISTRY = (function () {
                       <th>Établissement</th>
                       <th>Téléphone</th>
                       <th>Inscription</th>
+                      <th></th>
                     </tr>
                   </thead>
                   <tbody data-reg-tbody></tbody>
@@ -430,17 +499,17 @@ const SAC_PLATFORM_REGISTRY = (function () {
 
       root.querySelector("[data-reg-search]")?.addEventListener("input", (e) => {
         searchQuery = e.target.value;
-        renderTable(root);
+        renderTable(root, activeSession);
       });
       root.querySelector("[data-reg-refresh]")?.addEventListener("click", async () => {
-        await load(session);
+        await load(activeSession);
         renderFilters(root);
-        renderTable(root);
+        renderTable(root, activeSession);
       });
       mounted = true;
     }
     renderFilters(root);
-    renderTable(root);
+    renderTable(root, session);
   }
 
   async function open(session, showSectionFn) {

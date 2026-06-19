@@ -634,6 +634,12 @@ const SAC_API = (function () {
     return data.accounts || [];
   }
 
+  async function deletePlatformAccount(email) {
+    return request("/admin/platform/accounts/" + encodeURIComponent(email), {
+      method: "DELETE",
+    });
+  }
+
   async function getInstitutionalSummary() {
     return request("/admin/institutional/summary");
   }
@@ -802,6 +808,7 @@ const SAC_API = (function () {
     deleteAdminAccount,
     getPlatformAccountsSummary,
     listPlatformAccounts,
+    deletePlatformAccount,
     getInstitutionalSummary,
     listInstitutionalAdmins,
     createInstitutionalAdmin,
