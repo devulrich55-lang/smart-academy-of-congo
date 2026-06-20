@@ -495,7 +495,18 @@
       </div>
 
       <div class="panel panel--ws">
-        <div class="panel__head"><h2>Historique campus</h2></div>
+        <div class="panel__head" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.75rem;">
+          <h2>Historique campus</h2>
+          <div class="ws-activity-toolbar">
+            <label class="ws-activity-select-all">
+              <input type="checkbox" id="uniActSelectAll" aria-label="Tout sélectionner" />
+              Tout sélectionner
+            </label>
+            <button type="button" class="btn btn--ghost btn--xs" id="uniActDeleteSelected" disabled style="color:#b91c1c;">
+              Supprimer la sélection
+            </button>
+          </div>
+        </div>
         <div class="panel__body" id="uniActivitiesTimeline">
           <p class="empty">Chargement…</p>
         </div>
@@ -1701,10 +1712,26 @@
           }
         }
         if (id === "activites" && typeof SAC_ADMIN_ACTIVITIES !== "undefined") {
-          SAC_ADMIN_ACTIVITIES.load().then(({ activities, summary }) => {
+          async function reloadUniActivities() {
+            const { activities, summary } = await SAC_ADMIN_ACTIVITIES.load();
             SAC_ADMIN_ACTIVITIES.renderSummary(summary, "uniAct");
-            SAC_ADMIN_ACTIVITIES.renderTimeline(activities, "uniActivitiesTimeline");
-          });
+            SAC_ADMIN_ACTIVITIES.renderTimeline(activities, "uniActivitiesTimeline", {
+              selectable: true,
+              toolbar: {
+                timelineId: "uniActivitiesTimeline",
+                selectAllId: "uniActSelectAll",
+                deleteBtnId: "uniActDeleteSelected",
+                onDeleted: reloadUniActivities,
+              },
+            });
+            SAC_ADMIN_ACTIVITIES.bindToolbar({
+              timelineId: "uniActivitiesTimeline",
+              selectAllId: "uniActSelectAll",
+              deleteBtnId: "uniActDeleteSelected",
+              onDeleted: reloadUniActivities,
+            });
+          }
+          reloadUniActivities();
         }
       }
 

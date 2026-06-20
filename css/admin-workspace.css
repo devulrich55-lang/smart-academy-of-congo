@@ -399,6 +399,45 @@ body[data-ws-role="universite"] {
   white-space: nowrap;
 }
 
+.ws-activity-row--selectable {
+  grid-template-columns: auto 1fr auto;
+}
+
+.ws-activity-row__check {
+  display: flex;
+  align-items: flex-start;
+  padding-top: 0.35rem;
+}
+
+.ws-activity-row__check input {
+  width: 1rem;
+  height: 1rem;
+  cursor: pointer;
+}
+
+.ws-activity-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.ws-activity-select-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.82rem;
+  color: var(--muted);
+  cursor: pointer;
+  user-select: none;
+}
+
+.ws-activity-select-all input {
+  width: 1rem;
+  height: 1rem;
+  cursor: pointer;
+}
+
 .ws-field-hint {
   margin: 0.35rem 0 0;
   font-size: 0.78rem;

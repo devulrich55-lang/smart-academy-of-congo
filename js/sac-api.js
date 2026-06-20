@@ -683,6 +683,13 @@ const SAC_API = (function () {
     return request("/admin/presence/summary");
   }
 
+  async function deleteAdminActivities(payload) {
+    return request("/admin/activities", {
+      method: "DELETE",
+      body: JSON.stringify(payload || {}),
+    });
+  }
+
   async function pingPresence(payload = {}) {
     return request("/platform/presence/ping", {
       method: "POST",
@@ -827,6 +834,7 @@ const SAC_API = (function () {
     deleteInstitutionalAdmin,
     getAdminActivitiesSummary,
     listAdminActivities,
+    deleteAdminActivities,
     getAdminPresenceSummary,
     platformRequest,
     uploadFormData,

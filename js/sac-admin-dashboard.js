@@ -74,9 +74,20 @@ const SAC_ADMIN_DASHBOARD = (function () {
     if (typeof SAC_ADMIN_ACTIVITIES === "undefined") return;
     const { activities, summary } = await SAC_ADMIN_ACTIVITIES.load();
     SAC_ADMIN_ACTIVITIES.renderSummary(summary, "act");
-    SAC_ADMIN_ACTIVITIES.renderTimeline(activities, "activitiesTimeline");
+    SAC_ADMIN_ACTIVITIES.renderTimeline(activities, "activitiesTimeline", {
+      selectable: true,
+      toolbar: {
+        timelineId: "activitiesTimeline",
+        selectAllId: "actSelectAll",
+        deleteBtnId: "actDeleteSelected",
+      },
+    });
     const preview = document.getElementById("recentActivitiesPreview");
-    if (preview) SAC_ADMIN_ACTIVITIES.renderTimeline(activities.slice(0, 5), "recentActivitiesPreview");
+    if (preview) {
+      SAC_ADMIN_ACTIVITIES.renderTimeline(activities.slice(0, 5), "recentActivitiesPreview", {
+        selectable: false,
+      });
+    }
   }
 
   function filterAdmins(admins, q, roleFilter) {
@@ -431,6 +442,16 @@ const SAC_ADMIN_DASHBOARD = (function () {
 
     await refresh(session, isSuper);
     await reloadActivities();
+
+    SAC_ADMIN_ACTIVITIES.bindToolbar({
+      timelineId: "activitiesTimeline",
+      selectAllId: "actSelectAll",
+      deleteBtnId: "actDeleteSelected",
+      onDeleted: async () => {
+        await reloadActivities();
+        toast("Entrée(s) supprimée(s) de l'historique.");
+      },
+    });
 
     if (isSuper) {
       startPresencePolling();
