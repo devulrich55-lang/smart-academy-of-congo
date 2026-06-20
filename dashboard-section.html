@@ -210,6 +210,7 @@
   <script src="js/sac-university-logo.js"></script>
   <script src="js/sac-sections.js"></script>
   <script src="js/sac-section-accounts.js"></script>
+  <script src="js/sac-live-call.js"></script>
   <script src="js/sac-webrtc-room.js"></script>
   <script src="js/sac-live.js"></script>
   <script src="js/sac-meetings.js"></script>
@@ -452,6 +453,9 @@
           onSelfOnline: SAC_PRESENCE.bindSelfPresence("selfPresence", "profilePresence"),
           onSectionPresence: renderSectionPresenceStats,
         });
+      }
+      if (typeof SAC_LIVE_CALL !== "undefined") {
+        SAC_LIVE_CALL.init(session);
       }
     })();
   </script>

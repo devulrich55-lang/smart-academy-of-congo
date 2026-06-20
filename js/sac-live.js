@@ -421,6 +421,19 @@ const SAC_LIVE = (function () {
 
       pushBrowserNotif("Cours en direct", data.session.title + " — rejoignez maintenant.");
 
+      if (typeof SAC_LIVE_CALL !== "undefined") {
+        SAC_LIVE_CALL.signalLiveStart({
+          kind: "course",
+          sessionId: data.session.id,
+          title: data.session.title,
+          hostName: data.session.professorName,
+          roomName: data.session.roomName,
+          universite: data.session.universite,
+          filiere: data.session.filiere,
+          niveau: data.session.niveau,
+        });
+      }
+
       return data.session;
 
     }
@@ -430,6 +443,19 @@ const SAC_LIVE = (function () {
     localNotify(row, "live_session_start", "Cours en direct", "« " + row.title + " » est en direct.");
 
     pushBrowserNotif("🔴 Cours en direct", row.title + " — rejoignez avec votre compte SAC.");
+
+    if (typeof SAC_LIVE_CALL !== "undefined") {
+      SAC_LIVE_CALL.signalLiveStart({
+        kind: "course",
+        sessionId: row.id,
+        title: row.title,
+        hostName: row.professorName,
+        roomName: row.roomName,
+        universite: row.universite,
+        filiere: row.filiere,
+        niveau: row.niveau,
+      });
+    }
 
     return row;
 
@@ -1054,7 +1080,7 @@ const SAC_LIVE = (function () {
 
         </div>
 
-        <p class="live-room__hint">🎥 Vidéo SAC · 🎤 Audio · 🖥️ Partage d'écran · 💬 Chat · ⏺️ Enregistrement local</p>`;
+        <p class="live-room__hint">🎥 Vidéo SAC · 🎤 Audio · 🖥️ Partage d'écran · 💬 Commentaires sur l'écran · ⏺️ Enregistrement</p>`;
 
       document.body.appendChild(overlay);
 

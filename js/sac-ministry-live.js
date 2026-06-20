@@ -142,8 +142,31 @@ const SAC_MINISTRY_LIVE = (function () {
   async function startSession(id, session) {
     if (!canHost(session)) throw new Error("Accès refusé");
     const data = await api("/platform/ministry/live/" + id + "/start", { method: "POST" });
-    if (data?.session) return data.session;
-    return patchLocal(id, { status: "live", startedAt: new Date().toISOString() });
+    if (data?.session) {
+      if (typeof SAC_LIVE_CALL !== "undefined") {
+        SAC_LIVE_CALL.signalLiveStart({
+          kind: "ministry",
+          sessionId: data.session.id,
+          title: data.session.title,
+          hostName: data.session.hostName || "Ministère",
+          roomName: data.session.roomName,
+          invitedUniversities: data.session.invitedUniversities || data.session.allowedEmails,
+        });
+      }
+      return data.session;
+    }
+    const row = patchLocal(id, { status: "live", startedAt: new Date().toISOString() });
+    if (typeof SAC_LIVE_CALL !== "undefined") {
+      SAC_LIVE_CALL.signalLiveStart({
+        kind: "ministry",
+        sessionId: row.id,
+        title: row.title,
+        hostName: row.hostName || "Ministère",
+        roomName: row.roomName,
+        invitedUniversities: row.invitedUniversities || row.allowedEmails,
+      });
+    }
+    return row;
   }
 
   async function endSession(id, session) {
@@ -484,6 +507,7 @@ const SAC_MINISTRY_LIVE = (function () {
     mountMinistryUI,
     mountUniJoinUI,
     listSessions,
+    getSession,
     createSession,
     startSession,
     endSession,

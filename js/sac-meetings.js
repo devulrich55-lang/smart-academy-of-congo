@@ -151,8 +151,40 @@ const SAC_MEETINGS = (function () {
 
   async function startMeeting(id) {
     const d = await api("/platform/meetings/" + id + "/start", { method: "POST" });
-    if (d?.meeting) return d.meeting;
-    return updateLocal(id, { status: "live", startedAt: new Date().toISOString() });
+    if (d?.meeting) {
+      if (typeof SAC_LIVE_CALL !== "undefined") {
+        SAC_LIVE_CALL.signalLiveStart({
+          kind: "meeting",
+          sessionId: d.meeting.id,
+          title: d.meeting.title,
+          hostName: d.meeting.hostName,
+          roomName: d.meeting.roomName,
+          allowedEmails: d.meeting.allowedEmails,
+          hostEmail: d.meeting.hostEmail,
+        });
+      }
+      if ("Notification" in window && Notification.permission === "granted") {
+        new Notification("📞 Réunion live", {
+          body: d.meeting.title + " — rejoignez maintenant",
+          icon: "logos.svg",
+          requireInteraction: true,
+        });
+      }
+      return d.meeting;
+    }
+    const m = updateLocal(id, { status: "live", startedAt: new Date().toISOString() });
+    if (typeof SAC_LIVE_CALL !== "undefined") {
+      SAC_LIVE_CALL.signalLiveStart({
+        kind: "meeting",
+        sessionId: m.id,
+        title: m.title,
+        hostName: m.hostName,
+        roomName: m.roomName,
+        allowedEmails: m.allowedEmails,
+        hostEmail: m.hostEmail,
+      });
+    }
+    return m;
   }
 
   async function joinMeeting(id) {
@@ -209,8 +241,8 @@ const SAC_MEETINGS = (function () {
     document.getElementById("sacMtgRoomTitle").textContent = meeting.title;
     const room = meeting.roomName || "sac-mtg-" + meeting.id.slice(-10);
     document.getElementById("sacMtgSidePanel").innerHTML =
-      "<p><strong>Chat intégré</strong> — bouton 💬 dans la barre vidéo SAC.</p>" +
-      "<p style='color:var(--text-muted);font-size:0.8rem'>Partage d'écran via 🖥️ · Enregistrement via ⏺️</p>";
+      "<p><strong>Commentaires</strong> — barre en bas de la vidéo, affichés sur l'écran.</p>" +
+      "<p style='color:var(--text-muted);font-size:0.8rem'>🖥️ Partage d'écran · ⏺️ Enregistrement local</p>";
     el.hidden = false;
     document.body.style.overflow = "hidden";
     if (typeof SAC_WEBRTC_ROOM !== "undefined") {

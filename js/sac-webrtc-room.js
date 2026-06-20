@@ -1,6 +1,6 @@
 /**
- * Salle live SAC — WebRTC natif (sans Jitsi)
- * Audio · Vidéo · Partage d'écran · Chat · Enregistrement local
+ * Salle live SAC — WebRTC natif
+ * Commentaires sur l'écran · responsive · sans panneau chat
  */
 const SAC_WEBRTC_ROOM = (function () {
   const ICE = {
@@ -58,7 +58,6 @@ const SAC_WEBRTC_ROOM = (function () {
       this.camOn = true;
       this.recorder = null;
       this.recordChunks = [];
-      this.chatOpen = false;
     }
 
     async connect() {
@@ -66,60 +65,58 @@ const SAC_WEBRTC_ROOM = (function () {
       try {
         this.localStream = await navigator.mediaDevices.getUserMedia({
           audio: true,
-          video: { width: { ideal: 1280 }, height: { ideal: 720 } },
+          video: {
+            width: { ideal: 1280, max: 1920 },
+            height: { ideal: 720, max: 1080 },
+            facingMode: "user",
+          },
         });
       } catch (err) {
         this.setStatus("Caméra/micro inaccessible : " + (err.message || err));
         throw err;
       }
       this.addLocalTile();
+      this.updateGridLayout();
       await this.openSocket();
     }
 
     renderShell() {
       this.container.innerHTML = `
         <div class="sac-webrtc">
-          <div class="sac-webrtc__status" id="sacWrtcStatus">Connexion…</div>
-          <div class="sac-webrtc__grid" id="sacWrtcGrid"></div>
-          <div class="sac-webrtc__chat" id="sacWrtcChat" hidden>
-            <div class="sac-webrtc__chat-head">
-              <strong>Chat</strong>
-              <button type="button" class="sac-webrtc__chat-close" id="sacWrtcChatClose">✕</button>
-            </div>
-            <div class="sac-webrtc__chat-log" id="sacWrtcChatLog"></div>
-            <form class="sac-webrtc__chat-form" id="sacWrtcChatForm">
-              <input type="text" id="sacWrtcChatInput" placeholder="Message…" maxlength="2000" />
-              <button type="submit">Envoyer</button>
-            </form>
+          <div class="sac-webrtc__stage" id="sacWrtcStage">
+            <div class="sac-webrtc__status" id="sacWrtcStatus">Connexion…</div>
+            <div class="sac-webrtc__grid" id="sacWrtcGrid"></div>
+            <div class="sac-webrtc__float" id="sacWrtcFloat" aria-live="polite"></div>
           </div>
-          <div class="sac-webrtc__toolbar">
-            <button type="button" class="sac-webrtc__btn" id="sacWrtcMic" title="Micro">🎤</button>
-            <button type="button" class="sac-webrtc__btn" id="sacWrtcCam" title="Caméra">📷</button>
-            <button type="button" class="sac-webrtc__btn" id="sacWrtcScreen" title="Partager l'écran">🖥️</button>
-            <button type="button" class="sac-webrtc__btn" id="sacWrtcRecord" title="Enregistrer">⏺️</button>
-            <button type="button" class="sac-webrtc__btn" id="sacWrtcChatBtn" title="Chat">💬</button>
+          <form class="sac-webrtc__comment-bar" id="sacWrtcCommentForm">
+            <input type="text" id="sacWrtcCommentInput" placeholder="Commenter le live…" maxlength="200" autocomplete="off" />
+            <button type="submit" aria-label="Envoyer">➤</button>
+          </form>
+          <div class="sac-webrtc__toolbar" role="toolbar" aria-label="Contrôles live">
+            <button type="button" class="sac-webrtc__btn" id="sacWrtcMic" title="Micro" aria-label="Micro">🎤</button>
+            <button type="button" class="sac-webrtc__btn" id="sacWrtcCam" title="Caméra" aria-label="Caméra">📷</button>
+            <button type="button" class="sac-webrtc__btn" id="sacWrtcScreen" title="Partager l'écran" aria-label="Partage écran">🖥️</button>
+            <button type="button" class="sac-webrtc__btn" id="sacWrtcRecord" title="Enregistrer" aria-label="Enregistrer">⏺️</button>
             <button type="button" class="sac-webrtc__btn sac-webrtc__btn--leave" id="sacWrtcLeave">Quitter</button>
           </div>
         </div>`;
 
+      this.stage = this.container.querySelector("#sacWrtcStage");
       this.grid = this.container.querySelector("#sacWrtcGrid");
+      this.floatLayer = this.container.querySelector("#sacWrtcFloat");
       this.statusEl = this.container.querySelector("#sacWrtcStatus");
-      this.chatPanel = this.container.querySelector("#sacWrtcChat");
-      this.chatLog = this.container.querySelector("#sacWrtcChatLog");
 
       this.container.querySelector("#sacWrtcMic").onclick = () => this.toggleMic();
       this.container.querySelector("#sacWrtcCam").onclick = () => this.toggleCam();
       this.container.querySelector("#sacWrtcScreen").onclick = () => this.toggleScreen();
       this.container.querySelector("#sacWrtcRecord").onclick = () => this.toggleRecord();
-      this.container.querySelector("#sacWrtcChatBtn").onclick = () => this.toggleChat();
-      this.container.querySelector("#sacWrtcChatClose").onclick = () => this.toggleChat(false);
       this.container.querySelector("#sacWrtcLeave").onclick = () => {
         if (typeof this.opts.onLeave === "function") this.opts.onLeave();
         else leave();
       };
-      this.container.querySelector("#sacWrtcChatForm").onsubmit = (e) => {
+      this.container.querySelector("#sacWrtcCommentForm").onsubmit = (e) => {
         e.preventDefault();
-        const input = this.container.querySelector("#sacWrtcChatInput");
+        const input = this.container.querySelector("#sacWrtcCommentInput");
         const text = input.value.trim();
         if (!text) return;
         this.sendChat(text);
@@ -131,6 +128,14 @@ const SAC_WEBRTC_ROOM = (function () {
       if (this.statusEl) this.statusEl.textContent = text;
     }
 
+    updateGridLayout() {
+      const count = this.grid.querySelectorAll(".sac-webrtc__tile").length;
+      this.grid.dataset.count = String(count);
+      if (count <= 1) this.grid.dataset.layout = "solo";
+      else if (count === 2) this.grid.dataset.layout = "duo";
+      else this.grid.dataset.layout = "multi";
+    }
+
     addLocalTile() {
       const tile = document.createElement("div");
       tile.className = "sac-webrtc__tile sac-webrtc__tile--local";
@@ -139,6 +144,7 @@ const SAC_WEBRTC_ROOM = (function () {
       video.autoplay = true;
       video.muted = true;
       video.playsInline = true;
+      video.setAttribute("playsinline", "");
       video.srcObject = this.localStream;
       const label = document.createElement("span");
       label.className = "sac-webrtc__label";
@@ -147,15 +153,16 @@ const SAC_WEBRTC_ROOM = (function () {
       tile.appendChild(label);
       this.grid.appendChild(tile);
       this.localVideo = video;
+      this.updateGridLayout();
     }
 
     async openSocket() {
       const url = buildWsUrl(this.roomId);
       this.ws = new WebSocket(url);
 
-      this.ws.onopen = () => this.setStatus("Connecté — en attente des participants…");
+      this.ws.onopen = () => this.setStatus("Connecté · Salle SAC");
       this.ws.onclose = () => this.setStatus("Connexion fermée");
-      this.ws.onerror = () => this.setStatus("Erreur de connexion au serveur SAC");
+      this.ws.onerror = () => this.setStatus("Erreur serveur SAC");
       this.ws.onmessage = (ev) => {
         try {
           const msg = JSON.parse(ev.data);
@@ -170,10 +177,7 @@ const SAC_WEBRTC_ROOM = (function () {
       const type = msg.type;
       if (type === "welcome") {
         this.peerId = msg.peerId;
-        this.setStatus(
-          (msg.peers?.length || 0) + " participant(s) · Salle SAC"
-        );
-        (msg.chatLog || []).forEach((m) => this.appendChat(m, true));
+        this.setStatus((msg.peers?.length || 0) + " participant(s) · Live SAC");
         (msg.peers || []).forEach((p) => this.createPeer(p.peerId, p.displayName, true));
         return;
       }
@@ -198,7 +202,7 @@ const SAC_WEBRTC_ROOM = (function () {
         return;
       }
       if (type === "chat" && msg.message) {
-        this.appendChat(msg.message);
+        this.showFloatingComment(msg.message);
       }
     }
 
@@ -210,27 +214,31 @@ const SAC_WEBRTC_ROOM = (function () {
 
     sendChat(text) {
       this.send({ type: "chat", text });
+      this.showFloatingComment({
+        displayName: this.displayName,
+        text,
+        at: new Date().toISOString(),
+        self: true,
+      });
     }
 
-    appendChat(msg, history) {
-      if (!this.chatLog) return;
-      const line = document.createElement("div");
-      line.className = "sac-webrtc__chat-line";
-      const who = esc(msg.displayName || "Participant");
-      const time = msg.at
-        ? new Date(msg.at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })
-        : "";
-      line.innerHTML = `<span class="sac-webrtc__chat-meta">${who} ${time}</span>${esc(msg.text)}`;
-      this.chatLog.appendChild(line);
-      this.chatLog.scrollTop = this.chatLog.scrollHeight;
-      if (!history && !this.chatOpen) {
-        this.toggleChat(true);
+    showFloatingComment(msg) {
+      if (!this.floatLayer || !msg?.text) return;
+      while (this.floatLayer.children.length >= 6) {
+        this.floatLayer.firstChild?.remove();
       }
-    }
-
-    toggleChat(force) {
-      this.chatOpen = typeof force === "boolean" ? force : !this.chatOpen;
-      if (this.chatPanel) this.chatPanel.hidden = !this.chatOpen;
+      const bubble = document.createElement("div");
+      bubble.className =
+        "sac-webrtc__float-item" + (msg.self ? " sac-webrtc__float-item--self" : "");
+      const who = esc(msg.displayName || "Participant");
+      bubble.innerHTML = `<span class="sac-webrtc__float-name">${who}</span> ${esc(msg.text)}`;
+      bubble.style.left = `${8 + Math.floor(Math.random() * 52)}%`;
+      this.floatLayer.appendChild(bubble);
+      requestAnimationFrame(() => bubble.classList.add("sac-webrtc__float-item--in"));
+      setTimeout(() => {
+        bubble.classList.add("sac-webrtc__float-item--out");
+        setTimeout(() => bubble.remove(), 700);
+      }, 5200);
     }
 
     getSendStream() {
@@ -250,11 +258,7 @@ const SAC_WEBRTC_ROOM = (function () {
 
       pc.onicecandidate = (ev) => {
         if (ev.candidate) {
-          this.send({
-            type: "ice",
-            target: remoteId,
-            candidate: ev.candidate,
-          });
+          this.send({ type: "ice", target: remoteId, candidate: ev.candidate });
         }
       };
 
@@ -262,6 +266,7 @@ const SAC_WEBRTC_ROOM = (function () {
         if (!remote.video) {
           remote.tile = this.createRemoteTile(remoteId, name);
           remote.video = remote.tile.querySelector("video");
+          this.updateGridLayout();
         }
         if (remote.video.srcObject !== ev.streams[0]) {
           remote.video.srcObject = ev.streams[0];
@@ -290,6 +295,7 @@ const SAC_WEBRTC_ROOM = (function () {
       const video = document.createElement("video");
       video.autoplay = true;
       video.playsInline = true;
+      video.setAttribute("playsinline", "");
       const label = document.createElement("span");
       label.className = "sac-webrtc__label";
       label.textContent = name || "Participant";
@@ -321,7 +327,7 @@ const SAC_WEBRTC_ROOM = (function () {
       try {
         await remote.pc.addIceCandidate(candidate);
       } catch {
-        /* ignore stale ice */
+        /* ignore */
       }
     }
 
@@ -331,6 +337,7 @@ const SAC_WEBRTC_ROOM = (function () {
       remote.pc.close();
       if (remote.tile) remote.tile.remove();
       this.peers.delete(id);
+      this.updateGridLayout();
     }
 
     replaceTracksOnPeers(stream) {
@@ -408,8 +415,7 @@ const SAC_WEBRTC_ROOM = (function () {
         const blob = new Blob(this.recordChunks, { type: "video/webm" });
         const a = document.createElement("a");
         a.href = URL.createObjectURL(blob);
-        a.download =
-          "sac-live-" + (this.roomId || "session").slice(0, 24) + ".webm";
+        a.download = "sac-live-" + (this.roomId || "session").slice(0, 24) + ".webm";
         a.click();
         setTimeout(() => URL.revokeObjectURL(a.href), 5000);
       };
@@ -422,9 +428,7 @@ const SAC_WEBRTC_ROOM = (function () {
       if (this.recorder && this.recorder.state === "recording") {
         this.recorder.stop();
       }
-      this.peers.forEach((remote) => {
-        remote.pc.close();
-      });
+      this.peers.forEach((remote) => remote.pc.close());
       this.peers.clear();
       if (this.ws) {
         try {
@@ -445,7 +449,7 @@ const SAC_WEBRTC_ROOM = (function () {
 
   async function join(opts) {
     if (!opts || !opts.roomId) throw new Error("Salle live invalide.");
-    if (typeof SAC_WEBRTC_ROOM !== "undefined" && active) leave();
+    if (active) leave();
 
     let container = opts.container;
     if (!container && opts.hostId) {
@@ -466,6 +470,10 @@ const SAC_WEBRTC_ROOM = (function () {
     }
   }
 
+  function isActive() {
+    return !!active;
+  }
+
   function attachToHost(hostId, opts) {
     const container = ensureVideoHost(hostId);
     if (!container) return Promise.reject(new Error("Conteneur introuvable"));
@@ -475,6 +483,7 @@ const SAC_WEBRTC_ROOM = (function () {
   return {
     join,
     leave,
+    isActive,
     attachToHost,
     ensureVideoHost,
   };
