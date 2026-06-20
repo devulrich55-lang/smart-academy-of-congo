@@ -83,7 +83,6 @@ const SAC_HOME_NEWS = (function () {
     { id: "concours", label: "Concours", icon: "📝", color: "#7c2d12" },
     { id: "opportunite", label: "Opportunité", icon: "💼", color: "#0d7a4a" },
     { id: "bourse", label: "Bourse d'études", icon: "🎓", color: "#b45309" },
-    { id: "education", label: "Éducation — info importante", icon: "📢", color: "#6b4c9a" },
   ];
 
   const DEFAULT_NEWS = [
@@ -754,7 +753,7 @@ const SAC_HOME_NEWS = (function () {
     const pageDesc =
       opts.pageDesc ||
       (isMinistry
-        ? "Publiez des informations officielles par <strong>catégorie</strong> (gouvernement, concours, bourses, éducation…). Elles apparaissent sur la <strong>page d'accueil publique</strong> et dans l'espace national de tous les étudiants."
+        ? "Publiez des informations officielles par <strong>catégorie</strong> (gouvernement, concours, bourses…). Elles apparaissent sur la <strong>page d'accueil publique</strong> et dans l'espace national de tous les étudiants."
         : isNational
           ? "Publiez des informations visibles par <strong>toutes les universités</strong> partenaires et sur la page d'accueil du site (fil national)."
           : `Annonces officielles de <strong>${escHtml(getUniDisplayName(session))}</strong> — visibles sur le <strong>profil de vos étudiants</strong> uniquement.`);
