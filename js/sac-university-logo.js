@@ -1,5 +1,5 @@
 /**
- * Logos d'établissement — import Super Admin, profils campus & relevés de notes
+ * Logos d'établissement — import Super Admin & en-tête des relevés de notes uniquement
  */
 const SAC_UNIVERSITY_LOGO = (function () {
   const INDEX_KEY = "sac_university_logos";
@@ -132,36 +132,6 @@ const SAC_UNIVERSITY_LOGO = (function () {
     });
   }
 
-  function applyToImg(img, universiteCode, alt) {
-    if (!img) return;
-    const logoUrl = getLogoUrl(universiteCode);
-    if (logoUrl) {
-      img.src = logoUrl;
-      if (alt) img.alt = alt;
-      img.dataset.uniLogoApplied = "1";
-    } else if (!img.dataset.uniLogoApplied) {
-      img.src = img.getAttribute("data-uni-logo-fallback") || img.dataset.uniLogoFallback || FALLBACK;
-    }
-  }
-
-  function applyPortalLogos(logoUrl, alt) {
-    if (!logoUrl) return;
-    document
-      .querySelectorAll("[data-portal-logo], [data-uni-profile-logo], [data-uni-nav-logo]")
-      .forEach((img) => {
-        img.src = logoUrl;
-        if (alt) img.alt = alt;
-        img.dataset.uniLogoApplied = "1";
-      });
-    document.querySelectorAll('link[rel="icon"], link[rel="apple-touch-icon"]').forEach((link) => {
-      link.href = logoUrl;
-      if (logoUrl.startsWith("data:image/svg")) link.type = "image/svg+xml";
-      else if (logoUrl.startsWith("data:image/png")) link.type = "image/png";
-      else if (logoUrl.startsWith("data:image/webp")) link.type = "image/webp";
-      else link.type = "image/png";
-    });
-  }
-
   const pendingLogoFetches = {};
 
   async function ensureCampusLogo(universiteCode) {
@@ -203,48 +173,19 @@ const SAC_UNIVERSITY_LOGO = (function () {
     }
   }
 
-  async function applyBranding(session, options = {}) {
+  /** Enregistre / précharge le logo campus pour les relevés — n'altère pas le DOM profil ou navigation. */
+  async function applyBranding(session) {
     const code = resolveUniversiteCode(session);
-    let logoUrl = session?.logoUrl || (code ? getLogoUrl(code) : null);
-    if (!logoUrl && code) {
-      logoUrl = await ensureCampusLogo(code);
+    if (session?.role === "universite" && session?.logoUrl) {
+      registerForUniversity(session);
+      return session.logoUrl;
     }
-    if (logoUrl) {
-      if (session?.role === "universite") registerForUniversity(session);
-      const alt =
-        session?.nomUniversite ||
-        (typeof SAC_UNIVERSITIES !== "undefined"
-          ? SAC_UNIVERSITIES.NAMES[code] || code
-          : code) ||
-        "Logo établissement";
-      applyPortalLogos(logoUrl, alt);
-      applyToProfile(session, options.selector);
-      return logoUrl;
+    if (code) {
+      const cached = getLogoUrl(code);
+      if (cached) return cached;
+      return ensureCampusLogo(code);
     }
-    applyToProfile(session, options.selector);
     return null;
-  }
-
-  function applyToProfile(session, selector) {
-    const code = resolveUniversiteCode(session);
-    const directLogo = session?.logoUrl || null;
-    if (directLogo) registerForUniversity(session);
-    const sel = selector || "[data-uni-profile-logo]";
-    document.querySelectorAll(sel).forEach((img) => {
-      const alt =
-        session?.nomUniversite ||
-        (typeof SAC_UNIVERSITIES !== "undefined"
-          ? SAC_UNIVERSITIES.NAMES[code] || code
-          : code) ||
-        "Logo établissement";
-      if (directLogo) {
-        img.src = directLogo;
-        if (alt) img.alt = alt;
-        img.dataset.uniLogoApplied = "1";
-      } else {
-        applyToImg(img, code, alt);
-      }
-    });
   }
 
   function buildHeaderLogoHtml(universiteCode, escFn) {
@@ -283,9 +224,6 @@ const SAC_UNIVERSITY_LOGO = (function () {
     getLogoUrl,
     registerForUniversity,
     resolveUniversiteCode,
-    applyToProfile,
-    applyToImg,
-    applyPortalLogos,
     applyBranding,
     ensureCampusLogo,
     buildHeaderLogoHtml,
