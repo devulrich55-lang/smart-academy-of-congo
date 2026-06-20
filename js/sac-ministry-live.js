@@ -1,10 +1,9 @@
 /**
- * Espace live Ministère ↔ responsables universités (Jitsi + documents)
+ * Espace live Ministère ↔ responsables universités (vidéo SAC + documents)
  * Réservé au rôle ministere (hôte) et universite (invités).
  */
 const SAC_MINISTRY_LIVE = (function () {
   const STORAGE_KEY = "sac_ministry_live";
-  const JITSI = "https://meet.jit.si/";
   const TYPE = "ministry_universities";
 
   function read() {
@@ -123,7 +122,7 @@ const SAC_MINISTRY_LIVE = (function () {
       documents: [],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      joinUrl: JITSI + "sac-min-" + id.slice(-10),
+      joinUrl: "sac-min:" + "sac-min-" + id.slice(-10),
     };
     const list = read();
     list.unshift(row);
@@ -286,7 +285,7 @@ const SAC_MINISTRY_LIVE = (function () {
           <button type="button" class="btn btn--ghost" id="sacMinLiveClose" style="color:#fff">✕ Fermer</button>
         </div>
         <div class="min-live-room__body">
-          <iframe id="sacMinLiveFrame" allow="camera;microphone;display-capture;fullscreen" allowfullscreen></iframe>
+          <div id="sacMinLiveFrame" class="sac-webrtc-host"></div>
           <aside id="sacMinLiveSide"></aside>
         </div>`;
       document.body.appendChild(el);
@@ -294,22 +293,28 @@ const SAC_MINISTRY_LIVE = (function () {
     const isHost = canHost(session);
     document.getElementById("sacMinLiveTitle").textContent = liveRow.title;
     const room = liveRow.roomName || "sac-min-" + liveRow.id.slice(-10);
-    document.getElementById("sacMinLiveFrame").src =
-      JITSI + room + "#userInfo.displayName=" + encodeURIComponent(userName || "SAC");
     const side = document.getElementById("sacMinLiveSide");
     side.innerHTML = renderDocsPanel(liveRow, session, isHost);
     bindDocsPanel(side, liveRow, session, isHost, session, closeRoom);
     document.getElementById("sacMinLiveClose").onclick = closeRoom;
     el.hidden = false;
     document.body.style.overflow = "hidden";
+    if (typeof SAC_WEBRTC_ROOM !== "undefined") {
+      SAC_WEBRTC_ROOM.attachToHost("sacMinLiveFrame", {
+        roomId: room,
+        displayName: userName || "SAC",
+        onLeave: closeRoom,
+      }).catch((err) => alert(err.message || "Salle live indisponible."));
+    }
   }
 
   function closeRoom() {
+    if (typeof SAC_WEBRTC_ROOM !== "undefined") SAC_WEBRTC_ROOM.leave();
     const el = document.getElementById("sacMinLiveRoom");
     if (el) {
       el.hidden = true;
       const f = document.getElementById("sacMinLiveFrame");
-      if (f) f.src = "about:blank";
+      if (f) f.innerHTML = "";
     }
     document.body.style.overflow = "";
   }
@@ -371,7 +376,7 @@ const SAC_MINISTRY_LIVE = (function () {
     const admins = await getUniAdmins(session);
     container.innerHTML = `
       <div class="min-live-wrap">
-        <p class="page-desc">Live national avec les <strong>responsables des universités</strong> partenaires — vidéo Jitsi et échange de documents.</p>
+        <p class="page-desc">Live national avec les <strong>responsables des universités</strong> partenaires — vidéo SAC et échange de documents.</p>
         <div class="ws-grid-2">
           <div class="panel panel--ws">
             <div class="panel__head"><h2>Programmer un live</h2></div>
@@ -407,7 +412,7 @@ const SAC_MINISTRY_LIVE = (function () {
             <div class="panel__body">
               <ul class="ws-guide">
                 <li><strong>Programmer</strong> — invite les responsables d'université</li>
-                <li><strong>Démarrer</strong> — ouvre la salle vidéo Jitsi</li>
+                <li><strong>Démarrer</strong> — ouvre la salle vidéo SAC</li>
                 <li><strong>Documents</strong> — partagez PDF, liens Drive pendant le live</li>
                 <li>Les universités rejoignent depuis leur portail <code>/admin-uni/</code></li>
               </ul>

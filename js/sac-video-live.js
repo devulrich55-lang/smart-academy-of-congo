@@ -1,6 +1,6 @@
 /**
  * Lanceur vidéo unifié SAC — réunion · cours live · conférence
- * Jitsi Meet intégré (audio, vidéo, partage d'écran, chat)
+ * WebRTC SAC intégré (audio, vidéo, partage d'écran, chat)
  */
 const SAC_VIDEO_LIVE = (function () {
   const TYPES = {

@@ -148,6 +148,25 @@ const SAC_API = (function () {
     return token ? { Authorization: "Bearer " + token } : {};
   }
 
+  function getAccessToken() {
+    if (!isCrossOriginApi()) return null;
+    return sessionStorage.getItem(TOKEN_ACCESS) || null;
+  }
+
+  function buildWebSocketUrl(path) {
+    const apiBase = BASE || (typeof window !== "undefined" ? window.location.origin : "");
+    if (!apiBase) return "";
+    const u = new URL(apiBase);
+    const protocol = u.protocol === "https:" ? "wss:" : "ws:";
+    const cleanPath = path.startsWith("/") ? path : "/" + path;
+    let wsUrl = `${protocol}//${u.host}/api${cleanPath}`;
+    const token = getAccessToken();
+    if (token) {
+      wsUrl += "?token=" + encodeURIComponent(token);
+    }
+    return wsUrl;
+  }
+
   function clearClientSession() {
     sessionCache = null;
     sessionStorage.removeItem(TOKEN_ACCESS);
@@ -890,6 +909,8 @@ const SAC_API = (function () {
     platformRequest,
     uploadFormData,
     getBase,
+    getAccessToken,
+    buildWebSocketUrl,
     getFrontendOrigin,
     hasAuthTokens,
     ensureAuthTokens,

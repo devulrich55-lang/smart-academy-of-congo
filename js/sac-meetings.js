@@ -1,11 +1,10 @@
 /**
  * Réunions institutionnelles SAC
  * Chef section ↔ Professeurs | Doyen ↔ Chefs de section
- * Vidéo Jitsi · Documents · Votes · IA (transcription, résumé, traduction, Q&A)
+ * Vidéo SAC WebRTC · Documents · Votes · IA (transcription, résumé, traduction, Q&A)
  */
 const SAC_MEETINGS = (function () {
   const STORAGE_KEY = "sac_meetings";
-  const JITSI = "https://meet.jit.si/";
 
   function read() {
     try {
@@ -118,7 +117,7 @@ const SAC_MEETINGS = (function () {
       statsSnapshot: payload.type === "dean_sections" ? buildLocalStats() : {},
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      joinUrl: JITSI + "sac-mtg-" + id.slice(-10),
+      joinUrl: "sac-mtg:" + "sac-mtg-" + id.slice(-10),
     };
     const list = read();
     list.unshift(row);
@@ -201,7 +200,7 @@ const SAC_MEETINGS = (function () {
           <button type="button" class="mtg-btn mtg-btn--ghost" id="sacMtgRoomClose" style="color:#fff">✕ Fermer</button>
         </div>
         <div class="mtg-side-panel">
-          <iframe class="mtg-room__frame" id="sacMtgRoomFrame" allow="camera;microphone;display-capture;fullscreen" allowfullscreen></iframe>
+          <div class="mtg-room__frame sac-webrtc-host" id="sacMtgRoomFrame"></div>
           <div class="mtg-chat-panel" id="sacMtgSidePanel"></div>
         </div>`;
       document.body.appendChild(el);
@@ -209,21 +208,27 @@ const SAC_MEETINGS = (function () {
     }
     document.getElementById("sacMtgRoomTitle").textContent = meeting.title;
     const room = meeting.roomName || "sac-mtg-" + meeting.id.slice(-10);
-    document.getElementById("sacMtgRoomFrame").src =
-      JITSI + room + "#userInfo.displayName=" + encodeURIComponent(userName || "SAC");
     document.getElementById("sacMtgSidePanel").innerHTML =
-      "<p><strong>Chat & partage</strong> — utilisez le chat intégré Jitsi.</p>" +
-      "<p style='color:var(--text-muted);font-size:0.8rem'>Partage d'écran via le bouton « Partager l'écran » dans la salle.</p>";
+      "<p><strong>Chat intégré</strong> — bouton 💬 dans la barre vidéo SAC.</p>" +
+      "<p style='color:var(--text-muted);font-size:0.8rem'>Partage d'écran via 🖥️ · Enregistrement via ⏺️</p>";
     el.hidden = false;
     document.body.style.overflow = "hidden";
+    if (typeof SAC_WEBRTC_ROOM !== "undefined") {
+      SAC_WEBRTC_ROOM.attachToHost("sacMtgRoomFrame", {
+        roomId: room,
+        displayName: userName || "SAC",
+        onLeave: closeRoom,
+      }).catch((err) => alert(err.message || "Salle live indisponible."));
+    }
   }
 
   function closeRoom() {
+    if (typeof SAC_WEBRTC_ROOM !== "undefined") SAC_WEBRTC_ROOM.leave();
     const el = document.getElementById("sacMtgRoom");
     if (el) {
       el.hidden = true;
       const f = document.getElementById("sacMtgRoomFrame");
-      if (f) f.src = "about:blank";
+      if (f) f.innerHTML = "";
     }
     document.body.style.overflow = "";
   }

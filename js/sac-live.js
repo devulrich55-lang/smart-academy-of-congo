@@ -1,6 +1,6 @@
 /**
 
- * Cours en direct SAC — vidéo Jitsi + présence, documents, Q&A, IA, rapports
+ * Cours en direct SAC — vidéo WebRTC SAC + présence, documents, Q&A, IA, rapports
 
  */
 
@@ -9,8 +9,6 @@ const SAC_LIVE = (function () {
   const STORAGE_KEY = "sac_live_sessions";
 
   const NOTIF_KEY = "sac_live_notifications";
-
-  const JITSI_BASE = "https://meet.jit.si/";
 
   let activeRoomId = null;
 
@@ -389,7 +387,7 @@ const SAC_LIVE = (function () {
 
       status: "scheduled",
 
-      joinUrl: JITSI_BASE + sanitizeRoom(payload.title, id),
+      joinUrl: "sac-live:" + sanitizeRoom(payload.title, id),
 
       scheduledAt: payload.scheduledAt || new Date().toISOString(),
 
@@ -693,12 +691,23 @@ const SAC_LIVE = (function () {
 
 
 
-  function jitsiUrl(liveSession, userName) {
+  function liveRoomName(liveSession) {
+    return liveSession.roomName || sanitizeRoom(liveSession.title, liveSession.id);
+  }
 
-    const room = liveSession.roomName || sanitizeRoom(liveSession.title, liveSession.id);
-
-    return JITSI_BASE + room + "#userInfo.displayName=" + encodeURIComponent(userName || "Participant SAC");
-
+  function openSacVideoRoom(hostId, roomName, userName, onLeave) {
+    if (typeof SAC_WEBRTC_ROOM === "undefined") {
+      alert("Module vidéo SAC indisponible.");
+      return;
+    }
+    SAC_WEBRTC_ROOM.attachToHost(hostId, {
+      roomId: roomName,
+      displayName: userName,
+      onLeave,
+    }).catch((err) => {
+      alert(err.message || "Impossible d'ouvrir la salle live SAC.");
+      if (typeof onLeave === "function") onLeave();
+    });
   }
 
 
@@ -1035,9 +1044,9 @@ const SAC_LIVE = (function () {
 
         <div class="live-room__layout">
 
-          <div class="live-room__frame-wrap">
+            <div class="live-room__frame-wrap">
 
-            <iframe class="live-room__frame" id="sacLiveRoomFrame" allow="camera; microphone; display-capture; fullscreen" allowfullscreen></iframe>
+            <div class="live-room__frame sac-webrtc-host" id="sacLiveRoomFrame"></div>
 
           </div>
 
@@ -1045,7 +1054,7 @@ const SAC_LIVE = (function () {
 
         </div>
 
-        <p class="live-room__hint">🎥 Vidéo · 🎤 Audio · 🖥️ Partage d'écran · 📼 Enregistrement via menu ⋯ Jitsi</p>`;
+        <p class="live-room__hint">🎥 Vidéo SAC · 🎤 Audio · 🖥️ Partage d'écran · 💬 Chat · ⏺️ Enregistrement local</p>`;
 
       document.body.appendChild(overlay);
 
@@ -1063,7 +1072,7 @@ const SAC_LIVE = (function () {
 
       (fresh.attendance?.length || 0) + " présent(s) · " + (fresh.documents?.length || 0) + " document(s)";
 
-    document.getElementById("sacLiveRoomFrame").src = jitsiUrl(fresh, userName);
+    openSacVideoRoom("sacLiveRoomFrame", liveRoomName(fresh), userName, closeRoom);
 
     renderSidePanel(fresh, user, isHost);
 
@@ -1079,6 +1088,8 @@ const SAC_LIVE = (function () {
 
     activeRoomId = null;
 
+    if (typeof SAC_WEBRTC_ROOM !== "undefined") SAC_WEBRTC_ROOM.leave();
+
     const overlay = document.getElementById("sacLiveRoomOverlay");
 
     if (overlay) {
@@ -1087,7 +1098,7 @@ const SAC_LIVE = (function () {
 
       const frame = document.getElementById("sacLiveRoomFrame");
 
-      if (frame) frame.src = "about:blank";
+      if (frame) frame.innerHTML = "";
 
     }
 
@@ -1589,7 +1600,7 @@ const SAC_LIVE = (function () {
 
         status: "scheduled",
 
-        joinUrl: JITSI_BASE + sanitizeRoom("eco101-demo", id),
+        joinUrl: "sac-live:" + sanitizeRoom("eco101-demo", id),
 
         createdAt: new Date().toISOString(),
 

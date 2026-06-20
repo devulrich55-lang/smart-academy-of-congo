@@ -1,0 +1,195 @@
+/* Salle live SAC — WebRTC natif */
+
+.sac-webrtc-host,
+.sac-webrtc {
+  width: 100%;
+  height: 100%;
+  min-height: 320px;
+  background: #0f172a;
+}
+
+.sac-webrtc {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.sac-webrtc__status {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  z-index: 2;
+  font-size: 0.75rem;
+  color: #e2e8f0;
+  background: rgba(15, 23, 42, 0.75);
+  padding: 0.25rem 0.55rem;
+  border-radius: 6px;
+}
+
+.sac-webrtc__grid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.5rem;
+  padding: 0.5rem;
+  align-content: center;
+  min-height: 240px;
+}
+
+.sac-webrtc__tile {
+  position: relative;
+  background: #1e293b;
+  border-radius: 8px;
+  overflow: hidden;
+  aspect-ratio: 16 / 10;
+  min-height: 120px;
+}
+
+.sac-webrtc__tile video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  background: #000;
+}
+
+.sac-webrtc__label {
+  position: absolute;
+  bottom: 0.35rem;
+  left: 0.35rem;
+  font-size: 0.72rem;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.55);
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+}
+
+.sac-webrtc__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  justify-content: center;
+  padding: 0.5rem;
+  background: rgba(15, 23, 42, 0.95);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.sac-webrtc__btn {
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  border-radius: 8px;
+  padding: 0.45rem 0.65rem;
+  font-size: 0.95rem;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.sac-webrtc__btn:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.sac-webrtc__btn--active {
+  background: #2563eb;
+  border-color: #2563eb;
+}
+
+.sac-webrtc__btn--off {
+  opacity: 0.45;
+}
+
+.sac-webrtc__btn--leave {
+  background: #dc2626;
+  border-color: #dc2626;
+}
+
+.sac-webrtc__chat {
+  position: absolute;
+  right: 0.5rem;
+  top: 0.5rem;
+  bottom: 3.5rem;
+  width: min(280px, 90%);
+  background: rgba(15, 23, 42, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  z-index: 3;
+}
+
+.sac-webrtc__chat-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.45rem 0.6rem;
+  color: #e2e8f0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 0.85rem;
+}
+
+.sac-webrtc__chat-close {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+.sac-webrtc__chat-log {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.5rem;
+  font-size: 0.8rem;
+  color: #e2e8f0;
+}
+
+.sac-webrtc__chat-line {
+  margin-bottom: 0.45rem;
+  line-height: 1.35;
+}
+
+.sac-webrtc__chat-meta {
+  display: block;
+  font-size: 0.7rem;
+  color: #94a3b8;
+  margin-bottom: 0.1rem;
+}
+
+.sac-webrtc__chat-form {
+  display: flex;
+  gap: 0.35rem;
+  padding: 0.45rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.sac-webrtc__chat-form input {
+  flex: 1;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(0, 0, 0, 0.25);
+  color: #fff;
+  border-radius: 6px;
+  padding: 0.35rem 0.5rem;
+  font-size: 0.8rem;
+}
+
+.sac-webrtc__chat-form button {
+  border: none;
+  background: #2563eb;
+  color: #fff;
+  border-radius: 6px;
+  padding: 0.35rem 0.55rem;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.live-room__frame-wrap .sac-webrtc-host {
+  min-height: 420px;
+}
+
+.mtg-room__frame.sac-webrtc-host,
+#sacMinLiveFrame.sac-webrtc-host {
+  min-height: 400px;
+  border: none;
+}
