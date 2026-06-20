@@ -142,9 +142,19 @@ const SAC_DATA = (function () {
     const src = SOURCE_BY_ROLE[session?.role];
     if (!src) return [];
     const id = session.identifiant || session.userId || "";
-    return getAll().filter(
-      (d) => d.source === src && (d.authorId === id || !d.authorId)
-    );
+    const email = String(session.identifiant || "").toLowerCase();
+    return getAll().filter((d) => {
+      if (d.source !== src) return false;
+      if (!d.authorId) return true;
+      const aid = String(d.authorId || "").toLowerCase();
+      return (
+        d.authorId === id ||
+        d.authorId === session.userId ||
+        d.authorId === session.identifiant ||
+        aid === email ||
+        String(d.author || "").toLowerCase() === email
+      );
+    });
   }
 
   function canPublish(role) {
@@ -190,7 +200,9 @@ const SAC_DATA = (function () {
   }
 
   async function create(session, data, fileOrFiles) {
-    if (!canPublish(session.role)) return null;
+    if (!canPublish(session.role)) {
+      throw new Error("Publication non autorisée pour ce profil.");
+    }
 
     const uploadFiles = fileOrFiles
       ? Array.isArray(fileOrFiles)

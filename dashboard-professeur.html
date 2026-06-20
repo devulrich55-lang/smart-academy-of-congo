@@ -361,6 +361,23 @@
       if (!session) return;
 
       session = SAC_SESSION.syncSessionWithAccount("professeur") || session;
+      if (typeof SAC_API !== "undefined" && (await SAC_API.ensureOnline())) {
+        try {
+          const fresh = await SAC_API.me();
+          if (fresh) {
+            session = {
+              ...session,
+              ...fresh,
+              coursClasses: fresh.coursClasses || session.coursClasses || [],
+              displayName: fresh.displayName || session.displayName,
+              universite: fresh.universite || session.universite,
+            };
+            SAC_SESSION.saveSession(session);
+          }
+        } catch {
+          /* profil API indisponible — repli session locale */
+        }
+      }
       await SAC_DATA.ensureReady();
       await SAC_SECTIONS.ensureReady(session);
 

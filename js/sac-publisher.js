@@ -81,7 +81,7 @@ function SAC_initPublisherPage(config) {
     <div class="panel" style="margin-bottom:1.5rem;border-color:${accentColor};">
       <div class="panel__head"><h2 id="${rid}_formTitle">Publier un contenu</h2></div>
       <div class="panel__body">
-        <form id="${rid}_docPublishForm" class="pub-form">
+        <form id="${rid}_docPublishForm" class="pub-form" novalidate>
           ${courseFieldHtml.replace(/id="pub/g, `id="${rid}_pub`)}
           <div class="form-row-2">
             <div class="fg"><label>Titre *</label><input type="text" id="${rid}_pubTitle" class="fi" required /></div>
@@ -101,7 +101,7 @@ function SAC_initPublisherPage(config) {
               Un ou plusieurs fichiers : PDF, images, audio, vidéo (max ${maxFiles} fichiers, 5 Mo chacun).
             </p>
             <div id="${rid}_pubFilePreview" class="pub-file-preview" style="display:flex;flex-wrap:wrap;gap:0.35rem;margin-top:0.5rem;"></div>
-            <input type="url" id="${rid}_pubUrl" class="fi" style="margin-top:0.5rem;" placeholder="Ou lien URL (image, audio, vidéo, PDF…)" />
+            <input type="text" id="${rid}_pubUrl" class="fi" style="margin-top:0.5rem;" placeholder="Ou lien URL (https://…)" inputmode="url" autocomplete="url" />
           </div>
           ${!isCampus ? `<label class="chk"><input type="checkbox" id="${rid}_pubReactions" checked /> Autoriser les réactions (👍 ❓ 🙏)</label>` : ""}
           <div style="display:flex;gap:0.5rem;margin-top:1rem;flex-wrap:wrap;">
@@ -219,7 +219,10 @@ function SAC_initPublisherPage(config) {
     const uni = session.universite || "";
     const sel = gid("pubCourse");
     if (sel && teaching.length) {
-      const c = teaching[Number(sel.value)];
+      if (sel.value === "" || sel.value == null) return null;
+      const idx = Number(sel.value);
+      if (!Number.isFinite(idx) || idx < 0 || idx >= teaching.length) return null;
+      const c = teaching[idx];
       if (!c) return null;
       return {
         universite: c.universite || uni,
@@ -398,8 +401,53 @@ function SAC_initPublisherPage(config) {
     };
   }
 
+  function normalizeOptionalUrl(raw) {
+    const v = String(raw || "").trim();
+    if (!v) return "";
+    if (/^https?:\/\//i.test(v)) return v;
+    return "https://" + v.replace(/^\/+/, "");
+  }
+
+  function validateFormFields() {
+    const title = gid("pubTitle")?.value.trim();
+    if (!title) {
+      alert("Indiquez un titre pour la publication.");
+      gid("pubTitle")?.focus();
+      return false;
+    }
+
+    if (!isCampus && !sectionMode) {
+      const classData = getClassPayload();
+      if (!classData) {
+        if (teaching.length) {
+          alert("Sélectionnez le cours / la classe cible dans la liste.");
+          gid("pubCourse")?.focus();
+        } else {
+          alert("Renseignez le code cours, l'intitulé, la filière, le niveau et la classe.");
+        }
+        return false;
+      }
+    }
+
+    if (sectionMode && !getClassPayload()) {
+      alert("Sélectionnez une section dans la liste à gauche avant de publier.");
+      return false;
+    }
+
+    const rawUrl = gid("pubUrl")?.value.trim();
+    if (rawUrl && !/^https?:\/\/.+/i.test(normalizeOptionalUrl(rawUrl))) {
+      alert("Lien URL invalide. Exemple : https://mon-universite.cd/document.pdf");
+      gid("pubUrl")?.focus();
+      return false;
+    }
+
+    return true;
+  }
+
   gid("docPublishForm").addEventListener("submit", async (e) => {
     e.preventDefault();
+    if (!validateFormFields()) return;
+
     const classData = getClassPayload();
     if (sectionMode && !classData) {
       alert("Sélectionnez une section dans la liste à gauche avant de publier.");
@@ -415,10 +463,10 @@ function SAC_initPublisherPage(config) {
     try {
       filePack = await processSelectedFiles(media);
     } catch (err) {
-      alert(err.message);
+      alert(err.message || "Fichier invalide.");
       return;
     }
-    let mediaUrl = filePack.mediaUrl || gid("pubUrl").value.trim();
+    let mediaUrl = filePack.mediaUrl || normalizeOptionalUrl(gid("pubUrl").value);
 
     const data = {
       title: gid("pubTitle").value.trim(),
@@ -435,15 +483,22 @@ function SAC_initPublisherPage(config) {
           : session.displayName || session.nom) || session.identifiant,
       ...classData,
     };
-    if (!data.title) return;
+    if (!data.title) {
+      alert("Indiquez un titre pour la publication.");
+      return;
+    }
 
     const btn = gid("btnPubSubmit");
+    const prevLabel = btn.textContent;
     btn.disabled = true;
+    btn.textContent = editingId ? "Enregistrement…" : "Publication…";
     try {
+      const wasEdit = !!editingId;
       if (editingId) await SAC_DATA.update(session, editingId, data);
       else await SAC_DATA.create(session, data, filePack.uploadFiles.length ? filePack.uploadFiles : null);
       resetForm();
       renderList();
+      alert(wasEdit ? "Publication mise à jour." : "Publication enregistrée avec succès.");
     } catch (err) {
       const msg =
         err.message ||
@@ -458,8 +513,10 @@ function SAC_initPublisherPage(config) {
         return;
       }
       alert(msg);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = prevLabel;
     }
-    btn.disabled = false;
   });
 
   gid("btnPubCancel").addEventListener("click", resetForm);
