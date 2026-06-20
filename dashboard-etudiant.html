@@ -1154,8 +1154,8 @@
     }
 
     function renderDocuments() {
-      const session = JSON.parse(localStorage.getItem("sac_session") || "null");
-      const student = SAC_COURSES.studentProfile(session);
+      const session = SAC_SESSION.getSession();
+      const student = getStudentDocProfile(session);
       const allDocs = SAC_DATA.getForStudent(student);
       const filtered = currentDocFilter === "all"
         ? allDocs
@@ -1198,7 +1198,7 @@
           await SAC_HOME_NEWS.ensureSynced();
         }
         const p = getStudentProfile(session);
-      const student = SAC_COURSES.studentProfile(session);
+      const student = getStudentDocProfile(session);
 
       const campusDocs = SAC_DATA.getCampusPublicationsForStudent(student);
       const campusDocsEl = document.getElementById("profileCampusDocs");
@@ -1323,23 +1323,43 @@
         (u) => u.role === "etudiant" && u.email === session?.identifiant
       );
       const person = SAC_IDENTITY.resolvePersonFromRecords(session, found);
+      const fromApi = session?.authSource === "api";
+      const pick = (localVal, sessionVal, fallback) =>
+        fromApi
+          ? sessionVal || localVal || fallback || ""
+          : localVal || sessionVal || fallback || "";
       return {
         nom: person.nom || "Étudiant",
         prenom: person.prenom,
         fullName: person.fullName || "Étudiant",
         email: session?.identifiant || found?.email || "—",
-        telephone: found?.telephone || "—",
-        universite: found?.universite || session?.universite || "unkin",
-        filiere: found?.filiere || "Sciences économiques — Gestion",
-        niveau: found?.niveau || session?.niveau || "l2",
-        matricule: found?.matricule || session?.matricule || "ETU-2024-08452",
-        sectionId: found?.sectionId || session?.sectionId || "",
-        classe: found?.classe || session?.classe || "",
-        dateNaissance: found?.dateNaissance || "—",
+        telephone: found?.telephone || session?.telephone || "—",
+        universite: pick(found?.universite, session?.universite, "unkin"),
+        filiere: pick(found?.filiere, session?.filiere, ""),
+        niveau: pick(found?.niveau, session?.niveau, ""),
+        matricule: pick(found?.matricule, session?.matricule, ""),
+        sectionId: pick(found?.sectionId, session?.sectionId, ""),
+        classe: pick(found?.classe, session?.classe, ""),
+        dateNaissance: found?.dateNaissance || session?.dateNaissance || "—",
         inscriptionFee: found?.inscriptionFee || session?.inscriptionFee || null,
         universityFees: found?.universityFees || null,
         campusTariffs: found?.campusTariffs || null,
         payment: found?.payment || session?.payment || null,
+      };
+    }
+
+    function getStudentDocProfile(session) {
+      const p = getStudentProfile(session);
+      const fromCourses = SAC_COURSES.studentProfile(session);
+      return {
+        ...fromCourses,
+        universite: fromCourses.universite || p.universite,
+        filiere: fromCourses.filiere || p.filiere,
+        niveau: fromCourses.niveau || p.niveau,
+        classe: fromCourses.classe || p.classe,
+        sectionId: fromCourses.sectionId || p.sectionId,
+        matricule: fromCourses.matricule || p.matricule,
+        email: fromCourses.email || p.email,
       };
     }
 
@@ -1458,6 +1478,15 @@
       document.querySelectorAll(".nav-tab").forEach((t) => t.classList.remove("active"));
       document.getElementById("section-" + id).classList.add("active");
       document.querySelector(`.nav-tab[data-section="${id}"]`)?.classList.add("active");
+      if (id === "documents" || id === "profil" || id === "accueil") {
+        SAC_DATA.refreshFromServer().then(() => {
+          const session = SAC_SESSION.getSession();
+          if (session) {
+            renderDocuments();
+            renderProfilePublications(session);
+          }
+        });
+      }
       if (id === "correction-ia" && typeof SAC_AI_CORRECTION !== "undefined") {
         const session = SAC_SESSION.getSession();
         const p = getStudentProfile(session);
@@ -1540,11 +1569,32 @@
       let session = await SAC_SESSION.guard("etudiant");
       if (!session) return;
       session = SAC_SESSION.syncSessionWithAccount("etudiant") || session;
+      if (typeof SAC_API !== "undefined" && (await SAC_API.ensureOnline())) {
+        try {
+          const fresh = await SAC_API.me();
+          if (fresh) {
+            session = {
+              ...session,
+              ...fresh,
+              displayName: fresh.displayName || session.displayName,
+              universite: fresh.universite || session.universite,
+              filiere: fresh.filiere || session.filiere,
+              niveau: fresh.niveau || session.niveau,
+              classe: fresh.classe || session.classe,
+              sectionId: fresh.sectionId || session.sectionId,
+            };
+            SAC_SESSION.saveSession(session);
+          }
+        } catch {
+          /* profil API indisponible */
+        }
+      }
       if (typeof SAC_TARIFFS !== "undefined") {
         await SAC_TARIFFS.refreshStudentFeesFromCampus(session);
         session = SAC_SESSION.syncSessionWithAccount("etudiant") || session;
       }
       await SAC_DATA.ensureReady();
+      await SAC_DATA.refreshFromServer();
       await SAC_SECTIONS.ensureReady(session);
       studentId = session.userId || session.identifiant || "etudiant-demo";
       await loadStudentGrades(session);

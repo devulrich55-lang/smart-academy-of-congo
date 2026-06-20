@@ -76,6 +76,20 @@ const SAC_DATA = (function () {
     cache = docs;
   }
 
+  async function refreshFromServer() {
+    if (typeof SAC_API !== "undefined" && (await SAC_API.ensureOnline())) {
+      try {
+        useApi = true;
+        const docs = await SAC_API.getDocuments();
+        cache = (docs || []).map((d) => normalizeDocument(resolveDocMediaUrls(d)));
+        return cache;
+      } catch (err) {
+        console.warn("[SAC_DATA] refreshFromServer:", err.message || err);
+      }
+    }
+    return getAll();
+  }
+
   async function ensureReady() {
     if (!readyPromise) {
       readyPromise = (async () => {
@@ -83,22 +97,21 @@ const SAC_DATA = (function () {
           useApi = await SAC_API.ensureOnline();
           if (useApi) {
             try {
-              const docs = await SAC_API.getDocuments();
-              cache = docs.map(resolveDocMediaUrls);
+              await refreshFromServer();
               return;
             } catch {
               useApi = false;
             }
           }
         }
-        cache = initLocal();
+        cache = initLocal().map(normalizeDocument);
       })();
     }
     await readyPromise;
   }
 
   function getAll() {
-    return cache || initLocal();
+    return (cache || initLocal()).map(normalizeDocument);
   }
 
   function getById(id) {
@@ -106,6 +119,11 @@ const SAC_DATA = (function () {
   }
 
   function getForStudent(student) {
+    const session =
+      typeof SAC_SESSION !== "undefined" ? SAC_SESSION.getSession() : null;
+    if (useApi && session?.role === "etudiant") {
+      return getAll();
+    }
     return getAll().filter((d) => SAC_COURSES.studentSeesDocument(student, d));
   }
 
@@ -174,29 +192,55 @@ const SAC_DATA = (function () {
     return canEdit(session, doc);
   }
 
+  function normalizeDocument(doc) {
+    if (!doc) return doc;
+    const sourceRaw = doc.source || doc.authorRole || doc.role || "";
+    let source = String(sourceRaw || "").toLowerCase();
+    if (source === "professor" || source === "prof") source = "professeur";
+    if (source === "university" || source === "universite") source = "administration";
+    if (!source && doc.audienceType === "campus") source = "administration";
+    const normalized = {
+      ...doc,
+      source: source || doc.source || "professeur",
+      audienceType: doc.audienceType || (source === "administration" ? doc.audienceType : "ma_classe"),
+      universite: doc.universite || doc.codeUni || doc.sigle || "",
+      niveau: doc.niveau ? String(doc.niveau).toLowerCase() : doc.niveau,
+      filiere: doc.filiere || "",
+      classe: doc.classe || "",
+      courseCode: doc.courseCode || "",
+      courseName: doc.courseName || "",
+      allowReactions:
+        doc.allowReactions !== false &&
+        (doc.source === "professeur" ||
+          doc.source === "assistant" ||
+          source === "professeur" ||
+          source === "assistant"),
+      reactions: doc.reactions || { useful: [], question: [], thanks: [] },
+      attachments: Array.isArray(doc.attachments) ? doc.attachments : [],
+    };
+    return normalized;
+  }
+
   function resolveDocMediaUrls(doc) {
     if (!doc || typeof SAC_API === "undefined" || typeof SAC_API.getBase !== "function") {
-      return doc;
+      return normalizeDocument(doc);
     }
     const base = SAC_API.getBase();
-    if (!base) return doc;
+    if (!base) return normalizeDocument(doc);
     const fix = (url) =>
       url && String(url).startsWith("/uploads/") ? base + url : url;
-    return {
+    return normalizeDocument({
       ...doc,
       mediaUrl: fix(doc.mediaUrl),
       attachments: (doc.attachments || []).map((a) => ({
         ...a,
         mediaUrl: fix(a.mediaUrl),
       })),
-    };
+    });
   }
 
   async function refreshCache() {
-    if (useApi) {
-      const docs = await SAC_API.getDocuments();
-      cache = docs.map(resolveDocMediaUrls);
-    }
+    await refreshFromServer();
   }
 
   async function create(session, data, fileOrFiles) {
@@ -211,6 +255,9 @@ const SAC_DATA = (function () {
       : [];
 
     if (useApi) {
+      const isCampus = session.role === "universite" && data.audienceType !== "section";
+      const isSection = data.audienceType === "section" && data.sectionId;
+      const audienceType = isSection ? "section" : isCampus ? "campus" : "ma_classe";
       const doc = await SAC_API.createDocument(
         {
           title: data.title,
@@ -227,7 +274,7 @@ const SAC_DATA = (function () {
           classe: data.classe,
           allowReactions: data.allowReactions,
           author: data.author,
-          audienceType: data.audienceType,
+          audienceType,
           sectionId: data.sectionId,
           sectionName: data.sectionName,
         },
@@ -273,7 +320,7 @@ const SAC_DATA = (function () {
     const docs = getAll();
     docs.unshift(doc);
     saveLocal(docs);
-    return doc;
+    return normalizeDocument(doc);
   }
 
   async function update(session, id, data) {
@@ -372,6 +419,8 @@ const SAC_DATA = (function () {
   return {
     init,
     ensureReady,
+    refreshFromServer,
+    refreshCache,
     getAll,
     getById,
     getForStudent,
