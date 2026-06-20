@@ -197,6 +197,67 @@ const SAC_HOME_NEWS = (function () {
     return "hn-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
   }
 
+  function resolveMediaUrl(url) {
+    if (!url) return "";
+    const s = String(url);
+    if (s.startsWith("data:") || s.startsWith("http://") || s.startsWith("https://")) return s;
+    const base = typeof SAC_API !== "undefined" && SAC_API.getBase ? SAC_API.getBase() : "";
+    return base + s;
+  }
+
+  function readFileAsDataUrl(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => reject(new Error("Lecture du fichier impossible."));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function mediaKindFromFile(file) {
+    if (!file) return "document";
+    const type = (file.type || "").toLowerCase();
+    if (type.startsWith("image/")) return "image";
+    if (type.startsWith("video/")) return "video";
+    if (type.startsWith("audio/")) return "audio";
+    const ext = (file.name || "").split(".").pop().toLowerCase();
+    if (["jpg", "jpeg", "png", "webp"].includes(ext)) return "image";
+    if (["mp4", "webm", "mov"].includes(ext)) return "video";
+    if (["mp3", "wav"].includes(ext)) return "audio";
+    return "document";
+  }
+
+  function renderMediaBlock(item) {
+    const url = resolveMediaUrl(item.mediaUrl);
+    if (!url) return "";
+    const type = (item.mediaType || "").toLowerCase();
+    if (type === "image" || /\.(jpg|jpeg|png|webp)(\?|$)/i.test(url)) {
+      return `<div class="hn-card__media"><img src="${escHtml(url)}" alt="${escHtml(item.mediaName || item.title)}" loading="lazy" /></div>`;
+    }
+    if (type === "video" || /\.(mp4|webm|mov)(\?|$)/i.test(url)) {
+      return `<div class="hn-card__media"><video src="${escHtml(url)}" controls preload="metadata"></video></div>`;
+    }
+    if (type === "audio" || /\.(mp3|wav)(\?|$)/i.test(url)) {
+      return `<div class="hn-card__media"><audio src="${escHtml(url)}" controls preload="metadata"></audio></div>`;
+    }
+    const name = escHtml(item.mediaName || "Télécharger le fichier");
+    return `<div class="hn-card__media"><a href="${escHtml(url)}" class="hn-card__file" target="_blank" rel="noopener">📎 ${name}</a></div>`;
+  }
+
+  function renderAttachmentsBlock(item) {
+    const list = Array.isArray(item.attachments) ? item.attachments : [];
+    if (!list.length) return "";
+    const links = list
+      .map((a) => {
+        const url = resolveMediaUrl(a.mediaUrl);
+        if (!url) return "";
+        return `<a href="${escHtml(url)}" class="hn-card__file hn-card__file--sm" target="_blank" rel="noopener">📎 ${escHtml(a.name || "Pièce jointe")}</a>`;
+      })
+      .filter(Boolean)
+      .join("");
+    return links ? `<div class="hn-card__attachments">${links}</div>` : "";
+  }
+
   function normalizeItem(item) {
     if (!item) return item;
     if (!item.scope) {
@@ -217,6 +278,10 @@ const SAC_HOME_NEWS = (function () {
       item.universite = MINISTRY_CODE;
       if (!item.universityName) item.universityName = MINISTRY_NAME;
     }
+    if (!Array.isArray(item.attachments)) item.attachments = [];
+    if (item.mediaUrl === undefined) item.mediaUrl = "";
+    if (item.mediaType === undefined) item.mediaType = "";
+    if (item.mediaName === undefined) item.mediaName = "";
     return item;
   }
 
@@ -392,6 +457,10 @@ const SAC_HOME_NEWS = (function () {
         body: (data.body || "").trim(),
         linkUrl: (data.linkUrl || "").trim(),
         linkLabel: (data.linkLabel || "En savoir plus").trim(),
+        mediaUrl: (data.mediaUrl || "").trim(),
+        mediaType: (data.mediaType || "").trim(),
+        mediaName: (data.mediaName || "").trim(),
+        attachments: Array.isArray(data.attachments) ? data.attachments : [],
         published: data.published !== false,
         pinned: !!data.pinned,
         validUntil: data.validUntil || "",
@@ -429,6 +498,10 @@ const SAC_HOME_NEWS = (function () {
       body: (data.body || "").trim(),
       linkUrl: (data.linkUrl || "").trim(),
       linkLabel: (data.linkLabel || "En savoir plus").trim(),
+      mediaUrl: (data.mediaUrl || "").trim(),
+      mediaType: (data.mediaType || "").trim(),
+      mediaName: (data.mediaName || "").trim(),
+      attachments: Array.isArray(data.attachments) ? data.attachments : [],
       published: data.published !== false,
       pinned: !!data.pinned,
       validUntil: data.validUntil || "",
@@ -476,6 +549,10 @@ const SAC_HOME_NEWS = (function () {
       body: (data.body ?? prev.body).trim(),
       linkUrl: (data.linkUrl ?? prev.linkUrl).trim(),
       linkLabel: (data.linkLabel ?? prev.linkLabel).trim(),
+      mediaUrl: data.mediaUrl !== undefined ? String(data.mediaUrl || "").trim() : prev.mediaUrl || "",
+      mediaType: data.mediaType !== undefined ? String(data.mediaType || "").trim() : prev.mediaType || "",
+      mediaName: data.mediaName !== undefined ? String(data.mediaName || "").trim() : prev.mediaName || "",
+      attachments: data.attachments !== undefined ? (Array.isArray(data.attachments) ? data.attachments : []) : prev.attachments || [],
       published: data.published !== undefined ? !!data.published : prev.published,
       pinned: data.pinned !== undefined ? !!data.pinned : prev.pinned,
       validUntil: data.validUntil !== undefined ? data.validUntil : prev.validUntil,
@@ -547,8 +624,10 @@ const SAC_HOME_NEWS = (function () {
           ${item.pinned ? '<span class="hn-card__pin">📌 À la une</span>' : ""}
         </div>
         <h3 class="hn-card__title">${escHtml(item.title)}</h3>
+        ${renderMediaBlock(item)}
         <p class="hn-card__excerpt">${escHtml(item.excerpt)}</p>
         ${item.body ? `<p class="hn-card__body">${escHtml(item.body)}</p>` : ""}
+        ${renderAttachmentsBlock(item)}
         <div class="hn-card__foot">
           <span class="hn-card__uni">${escHtml(item.universityName || item.universite)}</span>
           <span class="hn-card__date">${formatDate(item.createdAt)}</span>
@@ -695,6 +774,8 @@ const SAC_HOME_NEWS = (function () {
           : "Publier pour mon université");
 
     let editingId = null;
+    let currentMedia = { mediaUrl: "", mediaType: "", mediaName: "", attachments: [] };
+    let clearMedia = false;
 
     const catOptions = CATEGORIES.map(
       (c) => `<option value="${c.id}">${c.icon} ${c.label}</option>`
@@ -728,6 +809,12 @@ const SAC_HOME_NEWS = (function () {
             <div class="fg">
               <label>Contenu détaillé</label>
               <textarea class="fi" data-hn-body rows="4" placeholder="Instructions, pièces à fournir, contacts…"></textarea>
+            </div>
+            <div class="fg">
+              <label>Fichier, image ou vidéo <small>(optionnel, max 5 Mo, jusqu'à 3 fichiers)</small></label>
+              <input type="file" class="fi" data-hn-media multiple accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.mp3,.wav,.mp4,.webm,.mov" />
+              <div data-hn-media-preview class="hn-media-preview"></div>
+              <button type="button" class="btn btn--ghost btn--sm" data-hn-media-clear style="display:none;margin-top:0.5rem;">Retirer le fichier</button>
             </div>
             <div class="form-row-2">
               <div class="fg">
@@ -763,18 +850,105 @@ const SAC_HOME_NEWS = (function () {
       return getForUniversity(session, scope);
     }
 
+    function renderMediaPreview(files) {
+      const preview = q("[data-hn-media-preview]");
+      const clearBtn = q("[data-hn-media-clear]");
+      if (!preview) return;
+      const selected = files ? Array.from(files) : [];
+      if (selected.length) {
+        preview.innerHTML = selected
+          .map(
+            (f) =>
+              `<span class="hn-media-preview__item">📎 ${escHtml(f.name)} <small>(${(f.size / 1024).toFixed(0)} Ko)</small></span>`
+          )
+          .join("");
+        if (clearBtn) clearBtn.style.display = "";
+        return;
+      }
+      if (currentMedia.mediaUrl && !clearMedia) {
+        preview.innerHTML = `<span class="hn-media-preview__item">Fichier actuel : ${escHtml(currentMedia.mediaName || "pièce jointe")}</span>`;
+        if (clearBtn) clearBtn.style.display = "";
+        return;
+      }
+      preview.innerHTML = "";
+      if (clearBtn) clearBtn.style.display = "none";
+    }
+
+    async function prepareMediaPayload() {
+      const input = q("[data-hn-media]");
+      const files = Array.from(input?.files || []);
+      if (clearMedia) {
+        return { mediaUrl: "", mediaType: "", mediaName: "", attachments: [] };
+      }
+      if (!files.length) {
+        return {
+          mediaUrl: currentMedia.mediaUrl || "",
+          mediaType: currentMedia.mediaType || "",
+          mediaName: currentMedia.mediaName || "",
+          attachments: currentMedia.attachments || [],
+        };
+      }
+      for (const f of files) {
+        if (f.size > 5 * 1024 * 1024) {
+          throw new Error(`« ${f.name} » dépasse 5 Mo.`);
+        }
+      }
+      if (useApi()) {
+        try {
+          const online = await SAC_API.ensureOnline();
+          if (online && typeof SAC_API.uploadHomeNewsMedia === "function") {
+            const uploaded = await SAC_API.uploadHomeNewsMedia(files);
+            return {
+              mediaUrl: uploaded.mediaUrl || "",
+              mediaType: uploaded.mediaType || "",
+              mediaName: uploaded.mediaName || files[0].name,
+              attachments: uploaded.attachments || [],
+            };
+          }
+        } catch (err) {
+          throw new Error(err.message || "Envoi du fichier impossible.");
+        }
+      }
+      const primary = files[0];
+      const attachments = [];
+      for (let i = 1; i < files.length; i++) {
+        attachments.push({
+          name: files[i].name,
+          mediaUrl: await readFileAsDataUrl(files[i]),
+          mediaType: mediaKindFromFile(files[i]),
+          size: (files[i].size / 1024).toFixed(0) + " Ko",
+        });
+      }
+      return {
+        mediaUrl: await readFileAsDataUrl(primary),
+        mediaType: mediaKindFromFile(primary),
+        mediaName: primary.name,
+        attachments,
+      };
+    }
+
     function resetForm() {
       editingId = null;
+      clearMedia = false;
+      currentMedia = { mediaUrl: "", mediaType: "", mediaName: "", attachments: [] };
       q("[data-hn-form-title]").textContent = "Nouvelle publication";
       q("[data-hn-form]").reset();
       q("[data-hn-published]").checked = true;
       q("[data-hn-pinned]").checked = false;
       q("[data-hn-cancel]").style.display = "none";
       q("[data-hn-submit]").textContent = submitLabel;
+      renderMediaPreview(null);
     }
 
     function fillForm(item) {
       editingId = item.id;
+      clearMedia = false;
+      currentMedia = {
+        mediaUrl: item.mediaUrl || "",
+        mediaType: item.mediaType || "",
+        mediaName: item.mediaName || "",
+        attachments: Array.isArray(item.attachments) ? item.attachments : [],
+      };
       q("[data-hn-form-title]").textContent = "Modifier la publication";
       q("[data-hn-category]").value = item.category;
       q("[data-hn-title]").value = item.title;
@@ -785,8 +959,10 @@ const SAC_HOME_NEWS = (function () {
       q("[data-hn-valid-until]").value = item.validUntil || "";
       q("[data-hn-published]").checked = item.published !== false;
       q("[data-hn-pinned]").checked = !!item.pinned;
+      if (q("[data-hn-media]")) q("[data-hn-media]").value = "";
       q("[data-hn-cancel]").style.display = "";
       q("[data-hn-submit]").textContent = "Enregistrer les modifications";
+      renderMediaPreview(null);
     }
 
     function renderAdminList() {
@@ -814,6 +990,7 @@ const SAC_HOME_NEWS = (function () {
                 ${scopeTag}
               </div>
               <strong>${escHtml(item.title)}</strong>
+              ${item.mediaUrl ? `<small style="display:block;color:var(--muted);">📎 ${escHtml(item.mediaName || "Fichier joint")}</small>` : ""}
               <p style="font-size:0.88rem;color:var(--muted);margin:0.35rem 0;">${escHtml(item.excerpt)}</p>
               <small style="color:var(--muted);">${formatDate(item.createdAt)}</small>
               <div class="hn-admin-item__actions">
@@ -859,6 +1036,8 @@ const SAC_HOME_NEWS = (function () {
         pinned: q("[data-hn-pinned]").checked,
       };
       try {
+        const media = await prepareMediaPayload();
+        Object.assign(payload, media);
         const wasEdit = !!editingId;
         payload.scope = scope;
         if (editingId) await update(session, editingId, payload);
@@ -884,6 +1063,15 @@ const SAC_HOME_NEWS = (function () {
     });
 
     q("[data-hn-cancel]").addEventListener("click", resetForm);
+    q("[data-hn-media]")?.addEventListener("change", (ev) => {
+      clearMedia = false;
+      renderMediaPreview(ev.target.files);
+    });
+    q("[data-hn-media-clear]")?.addEventListener("click", () => {
+      clearMedia = true;
+      if (q("[data-hn-media]")) q("[data-hn-media]").value = "";
+      renderMediaPreview(null);
+    });
     (async () => {
       await ensureSynced();
       renderAdminList();

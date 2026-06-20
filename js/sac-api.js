@@ -717,6 +717,12 @@ const SAC_API = (function () {
     });
   }
 
+  async function uploadHomeNewsMedia(files) {
+    const fd = new FormData();
+    (files || []).forEach((f) => fd.append("files", f));
+    return uploadFormData("/platform/home-news/upload", fd);
+  }
+
   async function pingPresence(payload = {}) {
     return request("/platform/presence/ping", {
       method: "POST",
@@ -852,6 +858,7 @@ const SAC_API = (function () {
     createHomeNews,
     updateHomeNews,
     deleteHomeNews,
+    uploadHomeNewsMedia,
     listProfessorStudents,
     getAdminAccountsSummary,
     listAdminAccounts,
