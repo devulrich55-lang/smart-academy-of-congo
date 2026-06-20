@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Profil Étudiant — Smart Academy of Congo</title>
   <link rel="icon" href="logos.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="css/logo.css" />
@@ -1193,7 +1193,11 @@
     }
 
     function renderProfilePublications(session) {
-      const p = getStudentProfile(session);
+      const run = async () => {
+        if (typeof SAC_HOME_NEWS !== "undefined" && SAC_HOME_NEWS.ensureSynced) {
+          await SAC_HOME_NEWS.ensureSynced();
+        }
+        const p = getStudentProfile(session);
       const student = SAC_COURSES.studentProfile(session);
 
       const campusDocs = SAC_DATA.getCampusPublicationsForStudent(student);
@@ -1238,6 +1242,8 @@
         list.innerHTML = teaching.map(renderDocItem).join("");
         bindDocReactions(list);
       }
+      };
+      run();
     }
 
     function bindFilePreview(inputId, previewId) {

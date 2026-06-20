@@ -690,6 +690,33 @@ const SAC_API = (function () {
     });
   }
 
+  async function listHomeNews() {
+    const data = await platformRequest("/platform/home-news", { auth: false });
+    return data.items || [];
+  }
+
+  async function createHomeNews(payload) {
+    const data = await request("/platform/home-news", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+    return data.item || data;
+  }
+
+  async function updateHomeNews(id, payload) {
+    const data = await request("/platform/home-news/" + encodeURIComponent(id), {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    });
+    return data.item || data;
+  }
+
+  async function deleteHomeNews(id) {
+    return request("/platform/home-news/" + encodeURIComponent(id), {
+      method: "DELETE",
+    });
+  }
+
   async function pingPresence(payload = {}) {
     return request("/platform/presence/ping", {
       method: "POST",
@@ -821,6 +848,10 @@ const SAC_API = (function () {
     pingPresence,
     getSectionPresence,
     getProfessorPresence,
+    listHomeNews,
+    createHomeNews,
+    updateHomeNews,
+    deleteHomeNews,
     listProfessorStudents,
     getAdminAccountsSummary,
     listAdminAccounts,

@@ -10,6 +10,72 @@ const SAC_HOME_NEWS = (function () {
   const MINISTRY_NAME = "Ministère de l'Enseignement Supérieur et Universitaire (MESU)";
   const SCOPES = { university: "university", national: "national" };
   const AUTHOR_ROLES = { ministry: "ministere", university: "universite" };
+  let memoryList = null;
+  let syncPromise = null;
+
+  function useApi() {
+    return typeof SAC_API !== "undefined" && typeof SAC_API.listHomeNews === "function";
+  }
+
+  function invalidateSync() {
+    memoryList = null;
+    syncPromise = null;
+  }
+
+  function getAllFromLocalStorage() {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    let list;
+    if (!raw) {
+      list = DEFAULT_NEWS.map((n) => normalizeItem({ ...n }));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+      return list;
+    }
+    try {
+      list = JSON.parse(raw);
+    } catch {
+      list = DEFAULT_NEWS.map((n) => normalizeItem({ ...n }));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+      return list;
+    }
+    return list.map(normalizeItem);
+  }
+
+  async function syncFromServer() {
+    if (!useApi()) {
+      memoryList = getAllFromLocalStorage();
+      return memoryList;
+    }
+    try {
+      const online = await SAC_API.ensureOnline();
+      if (!online) {
+        memoryList = getAllFromLocalStorage();
+        return memoryList;
+      }
+      const items = await SAC_API.listHomeNews();
+      memoryList = (items || []).map((n) => normalizeItem({ ...n }));
+      saveAll(memoryList);
+      return memoryList;
+    } catch (err) {
+      console.warn("[SAC_HOME_NEWS] sync", err.message || err);
+      memoryList = getAllFromLocalStorage();
+      return memoryList;
+    }
+  }
+
+  async function ensureSynced() {
+    if (memoryList) return memoryList;
+    if (!syncPromise) {
+      syncPromise = syncFromServer().finally(() => {
+        syncPromise = null;
+      });
+    }
+    return syncPromise;
+  }
+
+  async function refreshFromServer() {
+    invalidateSync();
+    return syncFromServer();
+  }
 
   const CATEGORIES = [
     { id: "officiel", label: "Information officielle", icon: "🏛️", color: "#0c3d6e" },
@@ -163,25 +229,13 @@ const SAC_HOME_NEWS = (function () {
   }
 
   function getAll() {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    let list;
-    if (!raw) {
-      list = DEFAULT_NEWS.map((n) => ({ ...n, scope: SCOPES.university }));
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
-      return list;
-    }
-    try {
-      list = JSON.parse(raw);
-    } catch {
-      list = DEFAULT_NEWS.map((n) => ({ ...n, scope: SCOPES.university }));
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
-      return list;
-    }
-    return list.map(normalizeItem);
+    if (memoryList) return memoryList.map(normalizeItem);
+    return getAllFromLocalStorage();
   }
 
   function saveAll(list) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+    memoryList = list.map(normalizeItem);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(memoryList));
   }
 
   function getUniCode(session) {
@@ -301,10 +355,25 @@ const SAC_HOME_NEWS = (function () {
     return item.universite === getUniCode(session);
   }
 
-  function create(session, data) {
+  async function create(session, data) {
     const role = session?.role;
     if (!canPublish(session)) {
       throw new Error("Publication réservée au Ministère ou à l'administration universitaire.");
+    }
+
+    const payload = { ...data };
+
+    if (useApi()) {
+      try {
+        const online = await SAC_API.ensureOnline();
+        if (online) {
+          const item = await SAC_API.createHomeNews(payload);
+          await refreshFromServer();
+          return normalizeItem(item);
+        }
+      } catch (err) {
+        throw new Error(err.message || "Publication impossible sur le serveur.");
+      }
     }
 
     if (role === "ministere") {
@@ -374,7 +443,20 @@ const SAC_HOME_NEWS = (function () {
     return item;
   }
 
-  function update(session, id, data) {
+  async function update(session, id, data) {
+    if (useApi()) {
+      try {
+        const online = await SAC_API.ensureOnline();
+        if (online) {
+          const item = await SAC_API.updateHomeNews(id, data);
+          await refreshFromServer();
+          return normalizeItem(item);
+        }
+      } catch (err) {
+        throw new Error(err.message || "Mise à jour impossible sur le serveur.");
+      }
+    }
+
     const list = getAll();
     const idx = list.findIndex((n) => n.id === id);
     if (idx < 0) throw new Error("Publication introuvable.");
@@ -403,7 +485,20 @@ const SAC_HOME_NEWS = (function () {
     return list[idx];
   }
 
-  function remove(session, id) {
+  async function remove(session, id) {
+    if (useApi()) {
+      try {
+        const online = await SAC_API.ensureOnline();
+        if (online) {
+          await SAC_API.deleteHomeNews(id);
+          await refreshFromServer();
+          return;
+        }
+      } catch (err) {
+        throw new Error(err.message || "Suppression impossible sur le serveur.");
+      }
+    }
+
     const list = getAll();
     const item = list.find((n) => n.id === id);
     if (!item) throw new Error("Publication introuvable.");
@@ -478,17 +573,7 @@ const SAC_HOME_NEWS = (function () {
     let currentCategory = "all";
     let currentUni = "all";
 
-    if (uniSelect && typeof SAC_UNIVERSITIES !== "undefined") {
-      const published = getPublished();
-      const uniIds = [...new Set(published.map((n) => n.universite))].filter(Boolean);
-      uniSelect.innerHTML =
-        '<option value="all">🇨🇩 Espace national uniquement</option>' +
-        uniIds
-          .map((id) => {
-            const name = SAC_UNIVERSITIES.NAMES[id] || published.find((n) => n.universite === id)?.universityName || id;
-            return `<option value="${id}">${escHtml(name)}</option>`;
-          })
-          .join("");
+    if (uniSelect) {
       uniSelect.addEventListener("change", () => {
         currentUni = uniSelect.value;
         paint();
@@ -542,7 +627,27 @@ const SAC_HOME_NEWS = (function () {
       }
     }
 
-    paint();
+    async function boot() {
+      await ensureSynced();
+      if (uniSelect && typeof SAC_UNIVERSITIES !== "undefined") {
+        const published = getPublished();
+        const uniIds = [...new Set(published.map((n) => n.universite))].filter(Boolean);
+        uniSelect.innerHTML =
+          '<option value="all">🇨🇩 Espace national uniquement</option>' +
+          uniIds
+            .map((id) => {
+              const name =
+                SAC_UNIVERSITIES.NAMES[id] ||
+                published.find((n) => n.universite === id)?.universityName ||
+                id;
+              return `<option value="${id}">${escHtml(name)}</option>`;
+            })
+            .join("");
+      }
+      paint();
+    }
+
+    boot();
   }
 
   function initPublisher(session, rootId, opts = {}) {
@@ -726,10 +831,10 @@ const SAC_HOME_NEWS = (function () {
         });
       });
       el.querySelectorAll("[data-del]").forEach((btn) => {
-        btn.addEventListener("click", () => {
+        btn.addEventListener("click", async () => {
           if (!confirm("Supprimer cette publication du panneau public ?")) return;
           try {
-            remove(session, btn.dataset.del);
+            await remove(session, btn.dataset.del);
             renderAdminList();
             if (editingId === btn.dataset.del) resetForm();
             if (opts.onChange) opts.onChange();
@@ -740,7 +845,7 @@ const SAC_HOME_NEWS = (function () {
       });
     }
 
-    q("[data-hn-form]").addEventListener("submit", (e) => {
+    q("[data-hn-form]").addEventListener("submit", async (e) => {
       e.preventDefault();
       const payload = {
         category: q("[data-hn-category]").value,
@@ -756,12 +861,12 @@ const SAC_HOME_NEWS = (function () {
       try {
         const wasEdit = !!editingId;
         payload.scope = scope;
-        if (editingId) update(session, editingId, payload);
-        else create(session, payload);
+        if (editingId) await update(session, editingId, payload);
+        else await create(session, payload);
         resetForm();
         renderAdminList();
         if (isNational && !isMinistry) {
-          renderNationalFeedReadonly("nationalFeedReadonly");
+          await renderNationalFeedReadonly("nationalFeedReadonly");
         }
         if (opts.onChange) opts.onChange();
         alert(
@@ -779,10 +884,13 @@ const SAC_HOME_NEWS = (function () {
     });
 
     q("[data-hn-cancel]").addEventListener("click", resetForm);
-    renderAdminList();
-    if (scope === SCOPES.national && !isMinistry) {
-      renderNationalFeedReadonly("nationalFeedReadonly");
-    }
+    (async () => {
+      await ensureSynced();
+      renderAdminList();
+      if (scope === SCOPES.national && !isMinistry) {
+        await renderNationalFeedReadonly("nationalFeedReadonly");
+      }
+    })();
   }
 
   function initUniversityPublisher(session, rootId, opts = {}) {
@@ -802,7 +910,8 @@ const SAC_HOME_NEWS = (function () {
     });
   }
 
-  function renderPublicPreview(rootId) {
+  async function renderPublicPreview(rootId) {
+    await ensureSynced();
     const root = document.getElementById(rootId);
     if (!root) return;
     const items = getPublished({ publicSite: true, universite: "all", category: "all" });
@@ -824,7 +933,8 @@ const SAC_HOME_NEWS = (function () {
       }).join("");
   }
 
-  function renderNationalFeedReadonly(rootId) {
+  async function renderNationalFeedReadonly(rootId) {
+    await ensureSynced();
     const root = document.getElementById(rootId);
     if (!root) return;
     const items = getNationalPublished();
@@ -883,6 +993,8 @@ const SAC_HOME_NEWS = (function () {
     create,
     update,
     remove,
+    ensureSynced,
+    refreshFromServer,
     renderHomepage,
     renderCard,
     initPublisher,
