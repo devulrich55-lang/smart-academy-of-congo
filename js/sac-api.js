@@ -69,6 +69,12 @@ const SAC_API = (function () {
       typeof SAC_UNIVERSITY_LOGO !== "undefined"
     ) {
       SAC_UNIVERSITY_LOGO.registerForUniversity(tagged);
+    } else if (
+      tagged.universite &&
+      typeof SAC_UNIVERSITY_LOGO !== "undefined" &&
+      typeof SAC_UNIVERSITY_LOGO.ensureCampusLogo === "function"
+    ) {
+      SAC_UNIVERSITY_LOGO.ensureCampusLogo(tagged.universite).catch(() => {});
     }
     return tagged;
   }
@@ -695,6 +701,12 @@ const SAC_API = (function () {
     return data.items || [];
   }
 
+  async function getCampusBranding(universite) {
+    const code = encodeURIComponent(String(universite || "").trim());
+    if (!code) return { logoUrl: null };
+    return platformRequest("/platform/campus-branding?universite=" + code, { auth: false });
+  }
+
   async function createHomeNews(payload) {
     const data = await request("/platform/home-news", {
       method: "POST",
@@ -855,6 +867,7 @@ const SAC_API = (function () {
     getSectionPresence,
     getProfessorPresence,
     listHomeNews,
+    getCampusBranding,
     createHomeNews,
     updateHomeNews,
     deleteHomeNews,

@@ -495,7 +495,9 @@
           <div class="info-row"><span>Service</span><span>${escapeHtml(session.service || found?.service || "Administration")}</span></div>
           <div class="info-row"><span>Rôle</span><span>Assistant — tâches & publication</span></div>
           <h3 style="margin:1rem 0 0.5rem;font-size:0.95rem;">Classes accompagnées</h3>${coursHtml}`;
-        if (typeof SAC_UNIVERSITY_LOGO !== "undefined") SAC_UNIVERSITY_LOGO.applyToProfile(session);
+        if (typeof SAC_UNIVERSITY_LOGO !== "undefined") {
+          SAC_UNIVERSITY_LOGO.applyBranding(session).catch(() => {});
+        }
       }
 
       document.querySelectorAll("[data-task-filter]").forEach((btn) => {

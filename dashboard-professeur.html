@@ -640,7 +640,9 @@
         }
         document.getElementById("welcomeDesc").textContent =
           "Bonjour " + (p.prenom || p.fullName.split(" ")[0]) + " — " + uniLabel;
-        if (typeof SAC_UNIVERSITY_LOGO !== "undefined") SAC_UNIVERSITY_LOGO.applyToProfile(session);
+        if (typeof SAC_UNIVERSITY_LOGO !== "undefined") {
+        SAC_UNIVERSITY_LOGO.applyBranding(session).catch(() => {});
+      }
 
         const tarifHtml = p.inscriptionFee
           ? `<div class="info-row"><span>Tarif inscription SAC</span><span><strong>${p.inscriptionFee.amount} USD</strong></span></div>`

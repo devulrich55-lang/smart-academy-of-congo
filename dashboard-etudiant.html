@@ -482,7 +482,7 @@
   <header class="header">
     <div class="header__top">
       <a href="index.html" class="logo">
-        <img src="logos.svg" alt="Smart Academy of Congo" class="logo__img" width="44" height="44" />
+        <img src="logos.svg" alt="Smart Academy of Congo" class="logo__img" width="44" height="44" data-uni-nav-logo data-uni-logo-fallback="logos.svg" />
         <span class="logo__text">Smart Academy</span>
       </a>
       <div class="header__user">
@@ -1398,7 +1398,9 @@
       document.getElementById("userName").textContent = fullName;
       document.getElementById("welcomeName").textContent = p.prenom || fullName.split(" ")[0];
       document.getElementById("dossierNom").textContent = fullName;
-      if (typeof SAC_UNIVERSITY_LOGO !== "undefined") SAC_UNIVERSITY_LOGO.applyToProfile(session);
+      if (typeof SAC_UNIVERSITY_LOGO !== "undefined") {
+        SAC_UNIVERSITY_LOGO.applyBranding(session).catch(() => {});
+      }
     }
 
     function renderAdmin(session) {

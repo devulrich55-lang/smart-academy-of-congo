@@ -469,6 +469,17 @@ const SAC_GRADE_SHEET = (function () {
     }
   }
 
+  async function ensureHeaderLogo(universiteId) {
+    if (
+      !universiteId ||
+      typeof SAC_UNIVERSITY_LOGO === "undefined" ||
+      typeof SAC_UNIVERSITY_LOGO.ensureCampusLogo !== "function"
+    ) {
+      return;
+    }
+    await SAC_UNIVERSITY_LOGO.ensureCampusLogo(universiteId);
+  }
+
   function renderOfficialHeaderHtml(universiteId) {
     const inst = getInstitutionHeader(universiteId);
     const sigleLine = inst.sigle
@@ -873,6 +884,8 @@ const SAC_GRADE_SHEET = (function () {
       return;
     }
 
+    await ensureHeaderLogo(bulletin.universite);
+
     document.title = "Relevé de notes — " + bulletin.semesterLabel;
     root.innerHTML = new DOMParser().parseFromString(
       renderBulletinHtml(bulletin),
@@ -917,6 +930,8 @@ const SAC_GRADE_SHEET = (function () {
       );
       return;
     }
+
+    await ensureHeaderLogo(sheet.universite);
 
     document.title = "Fiche de cote — " + sheet.courseCode;
     root.innerHTML = new DOMParser().parseFromString(
@@ -964,6 +979,7 @@ const SAC_GRADE_SHEET = (function () {
       alert("Accès refusé. Connectez-vous avec un compte autorisé.");
       return null;
     }
+    await ensureHeaderLogo(sheet.universite);
     return openPrintWindow(renderFicheHtml(sheet), `Fiche — ${sheet.courseCode}`);
   }
 
@@ -980,6 +996,7 @@ const SAC_GRADE_SHEET = (function () {
       alert("Relevé indisponible pour ce semestre.");
       return null;
     }
+    await ensureHeaderLogo(bulletin.universite);
     return openPrintWindow(renderBulletinHtml(bulletin), `Relevé — ${semester}`);
   }
 

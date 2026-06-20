@@ -242,7 +242,9 @@
         typeof SAC_IDENTITY !== "undefined"
           ? SAC_IDENTITY.getDisplayName(session)
           : session.displayName || session.identifiant;
-      if (typeof SAC_UNIVERSITY_LOGO !== "undefined") SAC_UNIVERSITY_LOGO.applyToProfile(session);
+      if (typeof SAC_UNIVERSITY_LOGO !== "undefined") {
+        SAC_UNIVERSITY_LOGO.applyBranding(session).catch(() => {});
+      }
 
       function esc(s) {
         return String(s || "")

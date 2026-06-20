@@ -144,6 +144,87 @@ const SAC_UNIVERSITY_LOGO = (function () {
     }
   }
 
+  function applyPortalLogos(logoUrl, alt) {
+    if (!logoUrl) return;
+    document
+      .querySelectorAll("[data-portal-logo], [data-uni-profile-logo], [data-uni-nav-logo]")
+      .forEach((img) => {
+        img.src = logoUrl;
+        if (alt) img.alt = alt;
+        img.dataset.uniLogoApplied = "1";
+      });
+    document.querySelectorAll('link[rel="icon"], link[rel="apple-touch-icon"]').forEach((link) => {
+      link.href = logoUrl;
+      if (logoUrl.startsWith("data:image/svg")) link.type = "image/svg+xml";
+      else if (logoUrl.startsWith("data:image/png")) link.type = "image/png";
+      else if (logoUrl.startsWith("data:image/webp")) link.type = "image/webp";
+      else link.type = "image/png";
+    });
+  }
+
+  const pendingLogoFetches = {};
+
+  async function ensureCampusLogo(universiteCode) {
+    const code = normCode(universiteCode);
+    if (!code) return null;
+    const cached = getLogoUrl(code);
+    if (cached) return cached;
+    if (
+      typeof SAC_API === "undefined" ||
+      typeof SAC_API.getCampusBranding !== "function"
+    ) {
+      return null;
+    }
+    if (pendingLogoFetches[code]) return pendingLogoFetches[code];
+    pendingLogoFetches[code] = (async () => {
+      try {
+        const online = await SAC_API.ensureOnline();
+        if (!online) return null;
+        const data = await SAC_API.getCampusBranding(code);
+        if (data?.logoUrl) {
+          registerForUniversity({
+            universite: data.universite || code,
+            sigle: data.sigle,
+            codeUni: data.codeUni,
+            nomUniversite: data.nomUniversite,
+            logoUrl: data.logoUrl,
+          });
+          return data.logoUrl;
+        }
+      } catch (err) {
+        console.warn("[SAC_UNIVERSITY_LOGO] ensureCampusLogo", err.message || err);
+      }
+      return null;
+    })();
+    try {
+      return await pendingLogoFetches[code];
+    } finally {
+      delete pendingLogoFetches[code];
+    }
+  }
+
+  async function applyBranding(session, options = {}) {
+    const code = resolveUniversiteCode(session);
+    let logoUrl = session?.logoUrl || (code ? getLogoUrl(code) : null);
+    if (!logoUrl && code) {
+      logoUrl = await ensureCampusLogo(code);
+    }
+    if (logoUrl) {
+      if (session?.role === "universite") registerForUniversity(session);
+      const alt =
+        session?.nomUniversite ||
+        (typeof SAC_UNIVERSITIES !== "undefined"
+          ? SAC_UNIVERSITIES.NAMES[code] || code
+          : code) ||
+        "Logo établissement";
+      applyPortalLogos(logoUrl, alt);
+      applyToProfile(session, options.selector);
+      return logoUrl;
+    }
+    applyToProfile(session, options.selector);
+    return null;
+  }
+
   function applyToProfile(session, selector) {
     const code = resolveUniversiteCode(session);
     const directLogo = session?.logoUrl || null;
@@ -204,6 +285,9 @@ const SAC_UNIVERSITY_LOGO = (function () {
     resolveUniversiteCode,
     applyToProfile,
     applyToImg,
+    applyPortalLogos,
+    applyBranding,
+    ensureCampusLogo,
     buildHeaderLogoHtml,
     bindPreviewInput,
   };

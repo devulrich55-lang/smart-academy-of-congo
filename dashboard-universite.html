@@ -843,7 +843,8 @@
       const portalHome = document.getElementById("portalHomeLink");
       if (portalHome && typeof SAC_PORTAL !== "undefined") {
         portalHome.href = SAC_PORTAL.loginUrlForRole("universite");
-        SAC_PORTAL.applyBranding("universite");
+        const portalDef = SAC_PORTAL.current();
+        if (portalDef) SAC_PORTAL.applyTheme(portalDef);
       }
 
       session = SAC_SESSION.syncSessionWithAccount("universite") || session;
@@ -945,7 +946,9 @@
         document.getElementById("profileMeta").textContent = uniLabel + " · Code " + (est.code || "—");
         document.getElementById("welcomeDesc").textContent =
           "Bienvenue sur le portail " + est.nomUniversite + ". Communiquez, gérez les sections et validez les inscriptions.";
-        if (typeof SAC_UNIVERSITY_LOGO !== "undefined") SAC_UNIVERSITY_LOGO.applyToProfile(session);
+        if (typeof SAC_UNIVERSITY_LOGO !== "undefined") {
+          SAC_UNIVERSITY_LOGO.applyBranding(session).catch(() => {});
+        }
 
         const badge = document.getElementById("profileBadge");
         if (s.totalPriority > 0) {
