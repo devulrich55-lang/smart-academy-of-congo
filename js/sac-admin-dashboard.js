@@ -2,6 +2,16 @@
  * Tableau de bord institutionnel — Ministère / Super Admin
  */
 const SAC_ADMIN_DASHBOARD = (function () {
+  const PRESENCE_REFRESH_MS = 20000;
+  const PRESENCE_ROLE_LABELS = {
+    etudiant: "Étudiants",
+    professeur: "Professeurs",
+    assistant: "Assistants",
+    section: "Chefs de section",
+    universite: "Admin université",
+  };
+  let presenceTimer = null;
+
   const ROLE_LABELS = {
     superadmin: { label: "Super Admin", icon: "🛡️" },
     ministere: { label: "Ministère", icon: "🏛️" },
@@ -79,6 +89,104 @@ const SAC_ADMIN_DASHBOARD = (function () {
         .toLowerCase();
       return hay.includes(q);
     });
+  }
+
+  function formatPresenceTime(iso) {
+    if (!iso) return "—";
+    try {
+      return new Date(iso).toLocaleTimeString("fr-FR", {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+      });
+    } catch {
+      return "—";
+    }
+  }
+
+  function renderPresenceSummary(summary) {
+    const countEl = document.getElementById("statOnlineUsers");
+    const roleGrid = document.getElementById("presenceRoleGrid");
+    const body = document.getElementById("onlineUsersBody");
+    const hint = document.getElementById("presenceSummaryHint");
+    if (!countEl || !roleGrid || !body) return;
+
+    const total = summary?.onlineCount || 0;
+    countEl.textContent = String(total);
+
+    const byRole = summary?.byRole || {};
+    const roleEntries = Object.keys(byRole)
+      .filter((role) => byRole[role] > 0)
+      .sort((a, b) => byRole[b] - byRole[a]);
+
+    roleGrid.innerHTML = roleEntries.length
+      ? roleEntries
+          .map(
+            (role) => `
+        <div class="ws-kpi">
+          <strong>${byRole[role]}</strong>
+          <span>${PRESENCE_ROLE_LABELS[role] || role}</span>
+        </div>`
+          )
+          .join("")
+      : '<p class="empty" style="margin:0;">Aucun utilisateur en ligne pour le moment.</p>';
+
+    const users = Array.isArray(summary?.users) ? summary.users : [];
+    if (!users.length) {
+      body.innerHTML =
+        '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:2rem;">Aucun utilisateur connecté actuellement.</td></tr>';
+    } else {
+      body.innerHTML = users
+        .map((u) => {
+          const campus = u.universite || "—";
+          const section = [u.classe, u.filiere, u.sectionId].filter(Boolean).join(" · ") || "—";
+          return `<tr>
+            <td>${u.email || "—"}</td>
+            <td>${u.roleLabel || u.role || "—"}</td>
+            <td>${campus}</td>
+            <td>${section}</td>
+            <td>${formatPresenceTime(u.lastSeenAt)}</td>
+          </tr>`;
+        })
+        .join("");
+    }
+
+    if (hint && summary?.updatedAt) {
+      hint.textContent =
+        total +
+        " utilisateur(s) actif(s) sur la plateforme (signal reçu dans les " +
+        (summary.windowSeconds || 90) +
+        " dernières secondes). Dernière mise à jour : " +
+        formatPresenceTime(summary.updatedAt) +
+        ".";
+    }
+  }
+
+  async function reloadPresence() {
+    if (typeof SAC_API === "undefined" || typeof SAC_API.getAdminPresenceSummary !== "function") {
+      return;
+    }
+    try {
+      const online = await SAC_API.ensureOnline();
+      if (!online) return;
+      const summary = await SAC_API.getAdminPresenceSummary();
+      renderPresenceSummary(summary);
+    } catch (err) {
+      console.warn("[SAC_ADMIN_PRESENCE]", err.message || err);
+    }
+  }
+
+  function startPresencePolling() {
+    stopPresencePolling();
+    reloadPresence();
+    presenceTimer = window.setInterval(reloadPresence, PRESENCE_REFRESH_MS);
+  }
+
+  function stopPresencePolling() {
+    if (presenceTimer) {
+      window.clearInterval(presenceTimer);
+      presenceTimer = null;
+    }
   }
 
   function renderKpis(summary) {
@@ -323,6 +431,14 @@ const SAC_ADMIN_DASHBOARD = (function () {
 
     await refresh(session, isSuper);
     await reloadActivities();
+
+    if (isSuper) {
+      startPresencePolling();
+      document.addEventListener("visibilitychange", () => {
+        if (document.hidden) stopPresencePolling();
+        else startPresencePolling();
+      });
+    }
 
     if (isSuper && typeof SAC_PLATFORM_REGISTRY !== "undefined") {
       SAC_PLATFORM_REGISTRY.bindUnlock(session, showSection, toast);

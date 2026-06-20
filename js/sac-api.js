@@ -679,6 +679,10 @@ const SAC_API = (function () {
     return data.activities || [];
   }
 
+  async function getAdminPresenceSummary() {
+    return request("/admin/presence/summary");
+  }
+
   async function pingPresence(payload = {}) {
     return request("/platform/presence/ping", {
       method: "POST",
@@ -823,6 +827,7 @@ const SAC_API = (function () {
     deleteInstitutionalAdmin,
     getAdminActivitiesSummary,
     listAdminActivities,
+    getAdminPresenceSummary,
     platformRequest,
     uploadFormData,
     getBase,

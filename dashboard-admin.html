@@ -14,6 +14,7 @@
   <link rel="stylesheet" href="css/dashboard.css" />
   <link rel="stylesheet" href="css/theme.css" />
   <link rel="stylesheet" href="css/admin-workspace.css" />
+  <link rel="stylesheet" href="css/presence.css" />
   <link rel="stylesheet" href="css/home-news.css" />
   <link rel="stylesheet" href="css/mobile.css" />
   <meta name="theme-color" content="#0c3d6e" />
@@ -90,6 +91,40 @@
           <div class="ws-kpi__icon">🎓</div>
           <strong id="statUni">0</strong>
           <span>Admin université</span>
+        </div>
+        <div class="ws-kpi ws-only-super-hidden" id="kpiOnlineUsers" style="--role-color:#16a34a;">
+          <div class="ws-kpi__icon">🟢</div>
+          <strong id="statOnlineUsers">0</strong>
+          <span>Utilisateurs en ligne</span>
+        </div>
+      </div>
+
+      <div class="panel panel--ws ws-only-super-hidden" id="panelOnlinePresence" style="margin-bottom:1.25rem;">
+        <div class="panel__head" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.5rem;">
+          <h2>Présence en ligne — plateforme nationale</h2>
+          <span class="online-dot is-online" id="presenceLiveBadge">Actualisation auto · 20 s</span>
+        </div>
+        <div class="panel__body">
+          <p class="page-desc" style="margin-top:0;" id="presenceSummaryHint">
+            Comptage des utilisateurs actifs sur les tableaux de bord campus (signal reçu dans les 90 dernières secondes).
+          </p>
+          <div class="ws-kpi-grid" id="presenceRoleGrid" style="margin-bottom:1rem;"></div>
+          <div class="ws-table-wrap">
+            <table class="ws-table">
+              <thead>
+                <tr>
+                  <th>E-mail</th>
+                  <th>Rôle</th>
+                  <th>Établissement</th>
+                  <th>Classe / section</th>
+                  <th>Vu à</th>
+                </tr>
+              </thead>
+              <tbody id="onlineUsersBody">
+                <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:2rem;">Chargement…</td></tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 
