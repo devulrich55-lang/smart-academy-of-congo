@@ -9,6 +9,15 @@ html {
 
 body {
   overflow-x: hidden;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.sac-ios input,
+.sac-ios select,
+.sac-ios textarea,
+.sac-ios .fi,
+.sac-ios .form-input {
+  font-size: 16px;
 }
 
 /* ——— Dashboard : sélecteur d’onglets ——— */
@@ -258,13 +267,191 @@ body {
   .header__link {
     font-size: 0.85rem;
   }
+
+  /* Espace institutionnel (Ministère / Super Admin / Uni) */
+  .ws-header .header__top {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .ws-header .logo__text {
+    font-size: 0.95rem;
+  }
+
+  .ws-hero {
+    grid-template-columns: 1fr;
+    text-align: center;
+    gap: 1rem;
+  }
+
+  .ws-hero__aside {
+    text-align: center;
+  }
+
+  .ws-kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.65rem;
+  }
+
+  .ws-grid-2 {
+    grid-template-columns: 1fr;
+  }
+
+  .ws-admin-card {
+    grid-template-columns: auto 1fr;
+    gap: 0.75rem;
+  }
+
+  .ws-admin-card > :last-child:not(.ws-admin-card__avatar) {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+
+  .ws-activity-row,
+  .ws-activity-row--selectable {
+    grid-template-columns: auto 1fr;
+    gap: 0.65rem;
+  }
+
+  .ws-activity-row__time {
+    grid-column: 2;
+    white-space: normal;
+    font-size: 0.72rem;
+  }
+
+  .ws-toolbar,
+  .ws-activity-toolbar,
+  .home-news__toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .ws-search,
+  .home-news__uni-select {
+    min-width: 0 !important;
+    width: 100%;
+  }
+
+  .ws-quick-actions {
+    flex-direction: column;
+  }
+
+  .ws-quick-actions .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .ws-toast {
+    left: max(1rem, env(safe-area-inset-left));
+    right: max(1rem, env(safe-area-inset-right));
+    bottom: max(1.25rem, env(safe-area-inset-bottom));
+    max-width: none;
+  }
+
+  /* Portails institutionnels (connexion) */
+  .portal-page {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+
+  .portal-header,
+  .portal-main,
+  .portal-footer,
+  .portal-shell {
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
+  }
+
+  .portal-shell {
+    margin: 1rem auto;
+    width: calc(100% - 2rem);
+    max-width: 100%;
+  }
+
+  /* Accueil public */
+  .menu-toggle {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 10px;
+  }
+
+  .home-news__grid,
+  .hn-category-block__grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .home-news__filters {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 0.25rem;
+  }
+
+  .hn-filter {
+    flex-shrink: 0;
+    min-height: 44px;
+  }
+
+  /* Modales notes */
+  .grades-modal__body {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .grades-input-table {
+    min-width: 520px;
+  }
+
+  /* Boutons utilitaires — cibles tactiles 44px (Apple HIG / Material) */
+  .btn-sm-edit,
+  .btn-sm-del,
+  .react-btn,
+  .comm-filter button,
+  .btn--ok,
+  .btn--reject,
+  .btn--xs,
+  .ws-reg-filter,
+  .mtg-tab,
+  .hn-admin-item__actions .btn {
+    min-height: 44px;
+    min-width: 44px;
+    padding: 0.5rem 0.75rem;
+  }
+}
+
+@media (max-width: 1024px) and (min-width: 769px) {
+  .ws-kpi-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .home-news__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .platform-layout {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 640px) {
   .stats,
   .stats-grid,
-  .task-stats {
+  .task-stats,
+  .ws-kpi-grid {
     grid-template-columns: 1fr;
+  }
+
+  .ws-admin-card {
+    grid-template-columns: 1fr;
+    text-align: left;
+  }
+
+  .ws-admin-card__avatar {
+    justify-self: start;
+  }
+
+  .ws-form-grid {
+    grid-template-columns: 1fr !important;
   }
 
   .info-row {

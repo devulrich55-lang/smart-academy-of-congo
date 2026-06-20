@@ -1,10 +1,12 @@
 /**
- * Smart Academy of Congo — navigation et tableaux mobile
+ * Smart Academy of Congo — navigation et tableaux mobile (iOS / Android / tablette)
  */
 (function () {
   "use strict";
 
   var MOBILE_MQ = window.matchMedia("(max-width: 768px)");
+  var TABLET_MQ = window.matchMedia("(max-width: 1024px)");
+  var wrapTimer = null;
 
   function initDashboardTabs() {
     var nav = document.querySelector(".nav-tabs");
@@ -52,7 +54,7 @@
   function wrapTables(root) {
     var scope = root || document;
     scope.querySelectorAll("table:not([data-sac-wrapped])").forEach(function (table) {
-      if (table.closest(".table-wrap")) {
+      if (table.closest(".table-wrap, .ws-table-wrap")) {
         table.setAttribute("data-sac-wrapped", "1");
         return;
       }
@@ -61,11 +63,27 @@
       if (parent.tagName === "THEAD" || parent.tagName === "TBODY" || parent.tagName === "TFOOT") return;
 
       var wrap = document.createElement("div");
-      wrap.className = "table-wrap";
+      wrap.className = table.classList.contains("ws-table") ? "ws-table-wrap table-wrap" : "table-wrap";
       parent.insertBefore(wrap, table);
       wrap.appendChild(table);
       table.setAttribute("data-sac-wrapped", "1");
     });
+  }
+
+  function scheduleWrapTables() {
+    if (wrapTimer) window.clearTimeout(wrapTimer);
+    wrapTimer = window.setTimeout(function () {
+      wrapTables(document);
+    }, 80);
+  }
+
+  function initTableObserver() {
+    if (!window.MutationObserver || document.body.dataset.sacTableObserver) return;
+    document.body.dataset.sacTableObserver = "1";
+    var observer = new MutationObserver(function () {
+      scheduleWrapTables();
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
   }
 
   function initPlatformSidebar() {
@@ -109,11 +127,35 @@
     });
   }
 
+  function initTouchClasses() {
+    if (document.documentElement.dataset.sacTouch) return;
+    document.documentElement.dataset.sacTouch = "1";
+    var coarse = window.matchMedia("(pointer: coarse)").matches;
+    var ios =
+      /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+      (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    if (coarse) document.documentElement.classList.add("sac-touch");
+    if (ios) document.documentElement.classList.add("sac-ios");
+  }
+
   function init() {
+    initTouchClasses();
     initDashboardTabs();
     wrapTables(document);
+    initTableObserver();
     initPlatformSidebar();
   }
+
+  window.SAC_MOBILE = {
+    init: init,
+    wrapTables: wrapTables,
+    isMobile: function () {
+      return MOBILE_MQ.matches;
+    },
+    isTablet: function () {
+      return TABLET_MQ.matches && !MOBILE_MQ.matches;
+    },
+  };
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", init);
