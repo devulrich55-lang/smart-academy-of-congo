@@ -4,6 +4,7 @@
 const SAC_GRADE_SHEET = (function () {
   const SHEETS_KEY = "sac_grade_sheets";
   const BULLETINS_KEY = "sac_semester_bulletins";
+  const SAVED_TRANSCRIPTS_KEY = "sac_saved_transcripts";
 
   const UNI_NAMES =
     typeof SAC_UNIVERSITIES !== "undefined" ? SAC_UNIVERSITIES.NAMES : { autre: "Autre établissement" };
@@ -46,6 +47,14 @@ const SAC_GRADE_SHEET = (function () {
 
   function writeBulletins(list) {
     localStorage.setItem(BULLETINS_KEY, JSON.stringify(list));
+  }
+
+  function normCourseCode(code) {
+    return String(code || "").trim().toUpperCase();
+  }
+
+  function normCourseName(name) {
+    return String(name || "").trim().toLowerCase();
   }
 
   function uniLabel(code) {
@@ -122,7 +131,20 @@ const SAC_GRADE_SHEET = (function () {
         g.semester === semester
     );
 
-    const lines = grades.map((g) => ({
+    const gradeMap = new Map();
+    grades.forEach((g) => {
+      const key = [
+        normCourseCode(g.courseCode),
+        normCourseName(g.courseName),
+        (g.professorEmail || "").toLowerCase(),
+      ].join("|");
+      const prev = gradeMap.get(key);
+      if (!prev || String(g.updatedAt || "") > String(prev.updatedAt || "")) {
+        gradeMap.set(key, g);
+      }
+    });
+
+    const lines = [...gradeMap.values()].map((g) => ({
       code: g.courseCode,
       course: g.courseName,
       prof: g.professorName || g.professorEmail || "—",
@@ -472,12 +494,17 @@ const SAC_GRADE_SHEET = (function () {
   async function ensureHeaderLogo(universiteId) {
     if (
       !universiteId ||
-      typeof SAC_UNIVERSITY_LOGO === "undefined" ||
-      typeof SAC_UNIVERSITY_LOGO.ensureCampusLogo !== "function"
+      typeof SAC_UNIVERSITY_LOGO === "undefined"
     ) {
-      return;
+      return null;
     }
-    await SAC_UNIVERSITY_LOGO.ensureCampusLogo(universiteId);
+    if (typeof SAC_UNIVERSITY_LOGO.ensureLogoForUniversite === "function") {
+      return SAC_UNIVERSITY_LOGO.ensureLogoForUniversite(universiteId);
+    }
+    if (typeof SAC_UNIVERSITY_LOGO.ensureCampusLogo === "function") {
+      return SAC_UNIVERSITY_LOGO.ensureCampusLogo(universiteId);
+    }
+    return null;
   }
 
   function renderOfficialHeaderHtml(universiteId) {
@@ -509,33 +536,35 @@ const SAC_GRADE_SHEET = (function () {
     const exam = Number(line.exam) || 0;
     const avg = line.avg;
     const decision = formatDecision(line.status, avg);
-    const note = avg != null ? Number(avg).toFixed(1) : "—";
 
     if (cc > 0 && exam > 0) {
       const cr1 = Math.max(1, Math.round(credits * 0.4));
       const cr2 = Math.max(1, credits - cr1);
+      const ccOn20 = (Math.round((cc / 2) * 10) / 10).toFixed(1);
+      const examOn20 = (Math.round((exam / 3) * 10) / 10).toFixed(1);
       return [
         {
           name: line.course,
-          ec: "EC-1",
+          ec: "EC-1 (CC)",
           ecCredit: cr1,
-          note,
-          decision,
+          note: ccOn20,
+          decision: null,
         },
         {
           name: line.course,
-          ec: "EC-2",
+          ec: "EC-2 (Ex.)",
           ecCredit: cr2,
-          note,
-          decision: null,
+          note: examOn20,
+          decision,
         },
       ];
     }
 
+    const note = avg != null ? Number(avg).toFixed(1) : "—";
     return [
       {
         name: line.course,
-        ec: "EC-1",
+        ec: "EC",
         ecCredit: credits,
         note,
         decision,
@@ -645,9 +674,10 @@ const SAC_GRADE_SHEET = (function () {
       <p class="releve-signature__role">Secrétaire du jury</p>
     </div>
     <p class="releve-footer-note">Document numérique — Smart Academy of Congo · Réf. ${esc(sheet.id)}</p>
-    <div class="grade-sheet__actions no-print">
-      <button type="button" onclick="window.print()">🖨 Imprimer / PDF</button>
-      <button type="button" onclick="window.close()">Fermer</button>
+    <div class="grade-sheet__actions no-print" data-sac-transcript-actions="fiche">
+      <button type="button" data-sac-action="download">⬇ Télécharger la fiche</button>
+      <button type="button" data-sac-action="print">🖨 Imprimer</button>
+      <button type="button" data-sac-action="close">Fermer</button>
     </div>
   </div>
 </body>
@@ -711,9 +741,10 @@ const SAC_GRADE_SHEET = (function () {
       <p class="releve-signature__role">Secrétaire du jury</p>
     </div>
     <p class="releve-footer-note">Document numérique — Smart Academy of Congo · Réf. ${esc(bulletin.id)} · ${esc(bulletin.totalCredits)} crédits</p>
-    <div class="grade-sheet__actions no-print">
-      <button type="button" onclick="window.print()">🖨 Imprimer / PDF</button>
-      <button type="button" onclick="window.close()">Fermer</button>
+    <div class="grade-sheet__actions no-print" data-sac-transcript-actions="bulletin">
+      <button type="button" data-sac-action="download">⬇ Télécharger le relevé</button>
+      <button type="button" data-sac-action="print">🖨 Imprimer</button>
+      <button type="button" data-sac-action="close">Fermer</button>
     </div>
   </div>
 </body>
@@ -838,7 +869,21 @@ const SAC_GRADE_SHEET = (function () {
     let bulletin = getBulletin(email, semester);
     if (!bulletin && typeof SAC_GRADES !== "undefined") {
       bulletin = rebuildSemesterBulletin(email, semester, profile);
+    } else if (bulletin && profile.universite && !bulletin.universite) {
+      bulletin.universite = profile.universite;
+      bulletin.universiteLabel = uniLabel(profile.universite);
+    } else if (typeof SAC_GRADES !== "undefined") {
+      bulletin = rebuildSemesterBulletin(email, semester, profile) || bulletin;
     }
+
+    if (bulletin?.universite && typeof SAC_UNIVERSITY_LOGO !== "undefined") {
+      if (typeof SAC_UNIVERSITY_LOGO.ensureLogoForUniversite === "function") {
+        await SAC_UNIVERSITY_LOGO.ensureLogoForUniversite(bulletin.universite);
+      } else if (typeof SAC_UNIVERSITY_LOGO.ensureCampusLogo === "function") {
+        await SAC_UNIVERSITY_LOGO.ensureCampusLogo(bulletin.universite);
+      }
+    }
+
     return bulletin;
   }
 
@@ -887,18 +932,19 @@ const SAC_GRADE_SHEET = (function () {
     await ensureHeaderLogo(bulletin.universite);
 
     document.title = "Relevé de notes — " + bulletin.semesterLabel;
-    root.innerHTML = new DOMParser().parseFromString(
-      renderBulletinHtml(bulletin),
-      "text/html"
-    ).querySelector(".grade-sheet").outerHTML;
+    const fullHtml = renderBulletinHtml(bulletin);
+    root.innerHTML = new DOMParser().parseFromString(fullHtml, "text/html").querySelector(
+      ".grade-sheet"
+    ).outerHTML;
 
-    const actions = document.createElement("div");
-    actions.className = "grade-sheet__actions no-print";
-    actions.innerHTML =
-      '<button type="button" id="btnPrint">🖨 Imprimer / PDF</button><button type="button" id="btnClose">Fermer</button>';
-    root.querySelector(".grade-sheet")?.appendChild(actions);
-    document.getElementById("btnPrint")?.addEventListener("click", () => window.print());
-    document.getElementById("btnClose")?.addEventListener("click", () => window.close());
+    wireTranscriptActions(root, fullHtml, {
+      id: bulletin.id,
+      kind: "bulletin",
+      studentEmail: bulletin.studentEmail,
+      semester: bulletin.semester,
+      studentName: bulletin.studentName,
+      title: buildTranscriptFilename(bulletin, "bulletin"),
+    });
   }
 
   async function mountProtectedFichePage(root, sheetId) {
@@ -934,35 +980,97 @@ const SAC_GRADE_SHEET = (function () {
     await ensureHeaderLogo(sheet.universite);
 
     document.title = "Fiche de cote — " + sheet.courseCode;
-    root.innerHTML = new DOMParser().parseFromString(
-      renderFicheHtml(sheet),
-      "text/html"
-    ).querySelector(".grade-sheet").outerHTML;
+    const fullHtml = renderFicheHtml(sheet);
+    root.innerHTML = new DOMParser().parseFromString(fullHtml, "text/html").querySelector(
+      ".grade-sheet"
+    ).outerHTML;
 
-    const actions = document.createElement("div");
-    actions.className = "grade-sheet__actions no-print";
-    actions.innerHTML =
-      '<button type="button" id="btnPrint">🖨 Imprimer / PDF</button><button type="button" id="btnClose">Fermer</button>';
-    root.querySelector(".grade-sheet")?.appendChild(actions);
-    document.getElementById("btnPrint")?.addEventListener("click", () => window.print());
-    document.getElementById("btnClose")?.addEventListener("click", () => window.close());
+    wireTranscriptActions(root, fullHtml, {
+      id: sheet.id,
+      kind: "fiche",
+      studentEmail: sheet.studentEmail,
+      semester: sheet.semester,
+      studentName: sheet.studentName,
+      courseCode: sheet.courseCode,
+      title: buildTranscriptFilename(sheet, "fiche"),
+    });
   }
 
-  function openPrintWindow(html, title) {
+  function buildTranscriptFilename(doc, kind) {
+    const name = String(doc.studentName || "etudiant")
+      .normalize("NFD")
+      .replace(/\p{Diacritic}/gu, "")
+      .replace(/[^\w\s-]/g, "")
+      .trim()
+      .replace(/\s+/g, "_");
+    if (kind === "fiche") {
+      return `Fiche_cote_${name}_${normCourseCode(doc.courseCode) || "cours"}.html`;
+    }
+    return `Releve_notes_${name}_${doc.semester || "semestre"}.html`;
+  }
+
+  function saveTranscriptToLocalStorage(meta, html) {
+    try {
+      const list = JSON.parse(localStorage.getItem(SAVED_TRANSCRIPTS_KEY) || "[]");
+      const entry = {
+        id: meta.id,
+        kind: meta.kind || "bulletin",
+        studentEmail: meta.studentEmail || "",
+        semester: meta.semester || "",
+        title: meta.title,
+        savedAt: new Date().toISOString(),
+        html,
+      };
+      const next = [entry, ...list.filter((x) => x.id !== entry.id)].slice(0, 30);
+      localStorage.setItem(SAVED_TRANSCRIPTS_KEY, JSON.stringify(next));
+    } catch {
+      /* ignore */
+    }
+  }
+
+  function downloadTranscriptHtml(fullHtml, meta) {
+    const filename = meta.title || buildTranscriptFilename(meta, meta.kind);
+    const blob = new Blob([fullHtml], { type: "text/html;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+    saveTranscriptToLocalStorage(meta, fullHtml);
+  }
+
+  function wireTranscriptActions(scopeEl, fullHtml, meta) {
+    if (!scopeEl) return;
+    scopeEl.querySelectorAll("[data-sac-action]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const action = btn.getAttribute("data-sac-action");
+        if (action === "download") downloadTranscriptHtml(fullHtml, meta);
+        else if (action === "print") window.print();
+        else if (action === "close") window.close();
+      });
+    });
+  }
+
+  function openPrintWindow(html, title, meta) {
     const w = window.open("", "_blank", "width=900,height=720");
     if (!w) {
-      alert("Autorisez les pop-ups pour imprimer la fiche.");
+      alert("Autorisez les pop-ups pour ouvrir le relevé.");
       return null;
     }
     const base = window.location.href.replace(/[^/]*$/, "");
-    const withBase = html.replace(
-      "<head>",
-      `<head><base href="${base}" />`
-    );
+    const withBase = html.replace("<head>", `<head><base href="${base}" />`);
     w.document.open();
     w.document.write(withBase);
     w.document.close();
     w.document.title = title || "Relevé de notes";
+    if (meta) {
+      w.addEventListener("load", () => {
+        wireTranscriptActions(w.document.body, withBase, meta);
+      });
+    }
     return w;
   }
 
@@ -980,7 +1088,16 @@ const SAC_GRADE_SHEET = (function () {
       return null;
     }
     await ensureHeaderLogo(sheet.universite);
-    return openPrintWindow(renderFicheHtml(sheet), `Fiche — ${sheet.courseCode}`);
+    const meta = {
+      id: sheet.id,
+      kind: "fiche",
+      studentEmail: sheet.studentEmail,
+      semester: sheet.semester,
+      studentName: sheet.studentName,
+      courseCode: sheet.courseCode,
+      title: buildTranscriptFilename(sheet, "fiche"),
+    };
+    return openPrintWindow(renderFicheHtml(sheet), `Fiche — ${sheet.courseCode}`, meta);
   }
 
   async function openBulletinPrint(studentEmail, semester, actor) {
@@ -997,7 +1114,15 @@ const SAC_GRADE_SHEET = (function () {
       return null;
     }
     await ensureHeaderLogo(bulletin.universite);
-    return openPrintWindow(renderBulletinHtml(bulletin), `Relevé — ${semester}`);
+    const meta = {
+      id: bulletin.id,
+      kind: "bulletin",
+      studentEmail: bulletin.studentEmail,
+      semester: bulletin.semester,
+      studentName: bulletin.studentName,
+      title: buildTranscriptFilename(bulletin, "bulletin"),
+    };
+    return openPrintWindow(renderBulletinHtml(bulletin), `Relevé — ${semester}`, meta);
   }
 
   return {
@@ -1021,6 +1146,8 @@ const SAC_GRADE_SHEET = (function () {
     prepareTranscriptData,
     renderFicheHtml,
     renderBulletinHtml,
+    downloadTranscriptHtml,
+    saveTranscriptToLocalStorage,
     formatDate,
     semesterLabel,
   };

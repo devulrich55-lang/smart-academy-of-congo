@@ -45,10 +45,19 @@ const SAC_GRADES = (function () {
     return role === "professeur" || role === "universite";
   }
 
+  function normCourseCode(code) {
+    return String(code || "").trim().toUpperCase();
+  }
+
+  function normCourseName(name) {
+    return String(name || "").trim().toLowerCase();
+  }
+
   function gradeKey(g) {
     return [
       normEmail(g.studentEmail),
-      g.courseCode || "",
+      normCourseCode(g.courseCode),
+      normCourseName(g.courseName),
       g.semester || "",
       normEmail(g.professorEmail || ""),
     ].join("|");
@@ -66,8 +75,8 @@ const SAC_GRADES = (function () {
       universite: g.universite || existing?.universite || "",
       filiere: g.filiere || existing?.filiere || "",
       niveau: g.niveau || existing?.niveau || "",
-      courseCode: g.courseCode,
-      courseName: g.courseName,
+      courseCode: normCourseCode(g.courseCode),
+      courseName: String(g.courseName || existing?.courseName || "").trim(),
       classe: g.classe || existing?.classe || "",
       credits: g.credits || existing?.credits || 3,
       cc: g.cc ?? existing?.cc ?? 0,
@@ -243,14 +252,25 @@ const SAC_GRADES = (function () {
       .sort((a, b) => (a.nom + a.prenom).localeCompare(b.nom + b.prenom));
   }
 
-  function findGrade(list, studentEmail, courseCode, semester, professorEmail) {
+  function gradeMatchesCourse(g, courseClass, semester, profEmail) {
+    const prof = normEmail(profEmail);
+    const code = normCourseCode(courseClass.courseCode);
+    const name = normCourseName(courseClass.courseName);
+    return (
+      normEmail(g.professorEmail) === prof &&
+      normCourseCode(g.courseCode) === code &&
+      normCourseName(g.courseName) === name &&
+      g.semester === semester
+    );
+  }
+
+  function findGrade(list, studentEmail, courseClass, semester, professorEmail) {
     const email = normEmail(studentEmail);
     const prof = professorEmail ? normEmail(professorEmail) : null;
     return list.find(
       (g) =>
         normEmail(g.studentEmail) === email &&
-        g.courseCode === courseCode &&
-        g.semester === semester &&
+        gradeMatchesCourse(g, courseClass, semester, prof || g.professorEmail) &&
         (!prof || normEmail(g.professorEmail) === prof)
     );
   }
@@ -278,15 +298,8 @@ const SAC_GRADES = (function () {
   }
 
   function getForProfessorCourse(profEmail, courseClass, semester) {
-    const code = courseClass.courseCode;
     const prof = normEmail(profEmail);
-    return getAll().filter(
-      (g) =>
-        normEmail(g.professorEmail) === prof &&
-        g.courseCode === code &&
-        g.semester === semester &&
-        g.classe === (courseClass.classe || "")
-    );
+    return getAll().filter((g) => gradeMatchesCourse(g, courseClass, semester, prof));
   }
 
   async function upsertGrade(session, payload, options) {
@@ -299,7 +312,10 @@ const SAC_GRADES = (function () {
     const existing = findGrade(
       list,
       payload.studentEmail,
-      payload.courseCode,
+      {
+        courseCode: payload.courseCode,
+        courseName: payload.courseName,
+      },
       payload.semester || CURRENT_SEMESTER,
       profId
     );
@@ -314,8 +330,8 @@ const SAC_GRADES = (function () {
       universite: payload.universite || session.universite || "",
       filiere: payload.filiere || "",
       niveau: payload.niveau || "",
-      courseCode: payload.courseCode,
-      courseName: payload.courseName,
+      courseCode: normCourseCode(payload.courseCode),
+      courseName: String(payload.courseName || "").trim(),
       classe: payload.classe || "",
       credits: payload.credits || 3,
       cc,
@@ -580,7 +596,9 @@ const SAC_GRADES = (function () {
             <tbody>
               ${students
                 .map((stu) => {
-                  const g = existing.find((x) => x.studentEmail === stu.email);
+                  const g = existing.find(
+                    (x) => normEmail(x.studentEmail) === normEmail(stu.email)
+                  );
                   const cc = g?.cc ?? "";
                   const exam = g?.exam ?? "";
                   const avg =

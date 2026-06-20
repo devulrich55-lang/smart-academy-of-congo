@@ -72,6 +72,54 @@ const SAC_UNIVERSITY_LOGO = (function () {
     const uni = findUniversityAccount(code);
     if (uni?.logoUrl) return uni.logoUrl;
 
+    if (typeof SAC_UNIVERSITIES !== "undefined") {
+      const catalog =
+        SAC_UNIVERSITIES.UNIVERSITIES ||
+        (typeof SAC_UNIVERSITIES.getAll === "function" ? SAC_UNIVERSITIES.getAll() : []);
+      const match = catalog.find(
+        (u) =>
+          normCode(u.id) === code ||
+          normCode(u.sigle) === code ||
+          normCode(u.name).includes(code)
+      );
+      if (match) {
+        for (const alias of [match.id, match.sigle].filter(Boolean)) {
+          const key = normCode(alias);
+          if (index[key]?.logoUrl) return index[key].logoUrl;
+          const acc = findUniversityAccount(key);
+          if (acc?.logoUrl) return acc.logoUrl;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  async function ensureLogoForUniversite(universiteCode) {
+    const code = normCode(universiteCode);
+    if (!code) return null;
+    const cached = getLogoUrl(code);
+    if (cached) return cached;
+
+    const candidates = new Set([code]);
+    if (typeof SAC_UNIVERSITIES !== "undefined") {
+      const catalog =
+        SAC_UNIVERSITIES.UNIVERSITIES ||
+        (typeof SAC_UNIVERSITIES.getAll === "function" ? SAC_UNIVERSITIES.getAll() : []);
+      const match = catalog.find(
+        (u) => normCode(u.id) === code || normCode(u.sigle) === code
+      );
+      if (match) {
+        [match.id, match.sigle].filter(Boolean).forEach((k) => candidates.add(normCode(k)));
+      }
+    }
+
+    for (const candidate of candidates) {
+      const hit = getLogoUrl(candidate);
+      if (hit) return hit;
+      const loaded = await ensureCampusLogo(candidate);
+      if (loaded) return loaded;
+    }
     return null;
   }
 
@@ -226,6 +274,7 @@ const SAC_UNIVERSITY_LOGO = (function () {
     resolveUniversiteCode,
     applyBranding,
     ensureCampusLogo,
+    ensureLogoForUniversite,
     buildHeaderLogoHtml,
     bindPreviewInput,
   };
