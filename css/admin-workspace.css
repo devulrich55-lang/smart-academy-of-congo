@@ -688,3 +688,14 @@ body[data-ws-role="universite"] {
 body[data-ws-role="superadmin"] #statTotal {
   cursor: pointer;
 }
+
+.ws-reg-toggle-target {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  cursor: pointer;
+  user-select: none;
+}
+
+.ws-reg-toggle-target:active {
+  opacity: 0.85;
+}

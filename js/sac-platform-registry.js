@@ -26,6 +26,8 @@ const SAC_PLATFORM_REGISTRY = (function () {
   let currentRole = "all";
   let searchQuery = "";
   let activeSession = null;
+  let toggleShowSection = null;
+  let toggleToast = null;
 
   function esc(s) {
     const d = document.createElement("div");
@@ -475,16 +477,19 @@ const SAC_PLATFORM_REGISTRY = (function () {
     activeSession = session;
     if (!mounted) {
       root.innerHTML = `
-        <h1 class="page-title">Registre national des comptes</h1>
+        <h1 class="page-title ws-reg-toggle-target" data-reg-toggle-title>Registre national des comptes</h1>
         <p class="page-desc">
           Vue confidentielle réservée au Super Admin — tous les comptes créés sur la plateforme, classés par catégorie.
           Vous pouvez <strong>supprimer définitivement</strong> un compte utilisateur (sauf le vôtre).
-          <span class="ws-registry-hint">Ouvrir / fermer · triple-clic sur « Total » ou Ctrl+Shift+R</span>
+          <span class="ws-registry-hint">Masquer : triple-touchez le titre ou la carte « Total » ci-dessous (mobile &amp; PC). Sur PC : Ctrl+Shift+R.</span>
         </p>
         <p class="ws-registry-warn" data-reg-partial hidden></p>
 
         <div class="ws-kpi-grid ws-kpi-grid--registry">
-          <div class="ws-kpi"><div class="ws-kpi__icon">👥</div><strong id="regStatTotal">0</strong><span>Total</span></div>
+          <div class="ws-kpi ws-reg-toggle-target" data-reg-toggle-total>
+            <div class="ws-kpi__icon">👥</div>
+            <strong id="regStatTotal">0</strong><span>Total — triple-touche pour masquer</span>
+          </div>
           <div class="ws-kpi ws-kpi--gold"><div class="ws-kpi__icon">🛡️</div><strong id="regStatSuper">0</strong><span>Super Admin</span></div>
           <div class="ws-kpi"><div class="ws-kpi__icon">🏛️</div><strong id="regStatMin">0</strong><span>Ministère</span></div>
           <div class="ws-kpi"><div class="ws-kpi__icon">🎓</div><strong id="regStatUni">0</strong><span>Admin uni</span></div>
@@ -541,6 +546,54 @@ const SAC_PLATFORM_REGISTRY = (function () {
     }
     renderFilters(root);
     renderTable(root, session);
+    bindRegistryToggleTargets(session, toggleShowSection, toggleToast);
+  }
+
+  function bindTripleActivate(el, onActivate) {
+    if (!el || el.dataset.regTripleBound === "1") return;
+    el.dataset.regTripleBound = "1";
+    el.classList.add("ws-reg-toggle-target");
+    let count = 0;
+    let timer = null;
+    let lastTouch = 0;
+
+    const bump = () => {
+      count += 1;
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        count = 0;
+      }, 1000);
+      if (count >= 3) {
+        count = 0;
+        clearTimeout(timer);
+        onActivate();
+      }
+    };
+
+    el.addEventListener(
+      "touchend",
+      (e) => {
+        lastTouch = Date.now();
+        bump();
+        e.preventDefault();
+      },
+      { passive: false }
+    );
+    el.addEventListener("click", () => {
+      if (Date.now() - lastTouch < 500) return;
+      bump();
+    });
+  }
+
+  function bindRegistryToggleTargets(session, showSectionFn, toastFn) {
+    const onToggle = () => toggle(session, showSectionFn, toastFn);
+    const accueilKpi = document.getElementById("statTotal")?.closest(".ws-kpi");
+    bindTripleActivate(accueilKpi, onToggle);
+
+    const root = document.getElementById("platformRegistryRoot");
+    if (!root) return;
+    bindTripleActivate(root.querySelector("[data-reg-toggle-title]"), onToggle);
+    bindTripleActivate(root.querySelector("[data-reg-toggle-total]"), onToggle);
   }
 
   async function open(session, showSectionFn) {
@@ -555,6 +608,9 @@ const SAC_PLATFORM_REGISTRY = (function () {
   function bindUnlock(session, showSectionFn, toastFn) {
     if (session?.role !== "superadmin") return;
 
+    toggleShowSection = showSectionFn;
+    toggleToast = toastFn;
+
     if (location.hash === "#registry" || isUnlocked()) {
       open(session, showSectionFn);
     } else {
@@ -568,27 +624,7 @@ const SAC_PLATFORM_REGISTRY = (function () {
       }
     });
 
-    const statTotal = document.getElementById("statTotal");
-    if (statTotal) {
-      let clicks = 0;
-      let timer = null;
-      const kpi = statTotal.parentElement;
-      if (kpi) {
-        kpi.title = "Super Admin : triple-clic pour ouvrir ou fermer le registre";
-        kpi.style.cursor = "pointer";
-      }
-      kpi?.addEventListener("click", () => {
-        clicks += 1;
-        clearTimeout(timer);
-        timer = setTimeout(() => {
-          clicks = 0;
-        }, 900);
-        if (clicks >= 3) {
-          clicks = 0;
-          toggle(session, showSectionFn, toastFn);
-        }
-      });
-    }
+    bindRegistryToggleTargets(session, showSectionFn, toastFn);
   }
 
   return {
