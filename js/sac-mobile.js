@@ -138,12 +138,58 @@
     if (ios) document.documentElement.classList.add("sac-ios");
   }
 
+  function assetBase() {
+    var el = document.querySelector('script[src*="sac-mobile.js"]');
+    if (el) {
+      var src = el.getAttribute("src") || "";
+      if (src.indexOf("../js/") === 0) return "../";
+      if (src.indexOf("js/") === 0) return "";
+    }
+    if (typeof SAC_PORTAL !== "undefined" && SAC_PORTAL.inPortalFolder && SAC_PORTAL.inPortalFolder()) {
+      return "../";
+    }
+    return "";
+  }
+
+  function initFloatingBack() {
+    if (document.body.dataset.sacFloatingBackReady) return;
+    document.body.dataset.sacFloatingBackReady = "1";
+
+    var base = assetBase();
+    var cssHref = base + "css/floating-back.css";
+
+    if (!document.querySelector('link[href*="floating-back.css"]')) {
+      var link = document.createElement("link");
+      link.rel = "stylesheet";
+      link.href = cssHref;
+      document.head.appendChild(link);
+    }
+
+    function mount() {
+      if (typeof SAC_FLOATING_BACK !== "undefined") {
+        SAC_FLOATING_BACK.init({ base: base });
+        return;
+      }
+      var script = document.createElement("script");
+      script.src = base + "js/sac-floating-back.js";
+      script.onload = function () {
+        if (typeof SAC_FLOATING_BACK !== "undefined") {
+          SAC_FLOATING_BACK.init({ base: base });
+        }
+      };
+      document.body.appendChild(script);
+    }
+
+    mount();
+  }
+
   function init() {
     initTouchClasses();
     initDashboardTabs();
     wrapTables(document);
     initTableObserver();
     initPlatformSidebar();
+    initFloatingBack();
   }
 
   window.SAC_MOBILE = {

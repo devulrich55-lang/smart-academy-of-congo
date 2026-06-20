@@ -1,0 +1,111 @@
+/* Bouton retour flottant — déplaçable, style SAC pro */
+.sac-floating-back {
+  position: fixed;
+  z-index: 10050;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 0.95rem 0.55rem 0.55rem;
+  margin: 0;
+  border: 1px solid rgba(12, 61, 110, 0.14);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow:
+    0 10px 32px rgba(12, 61, 110, 0.16),
+    0 2px 8px rgba(15, 23, 42, 0.08);
+  color: #0c3d6e;
+  font-family: "DM Sans", system-ui, sans-serif;
+  font-size: 0.86rem;
+  font-weight: 600;
+  line-height: 1;
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+  transition: box-shadow 0.2s ease, transform 0.15s ease, border-color 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.sac-floating-back:hover {
+  border-color: rgba(12, 61, 110, 0.28);
+  box-shadow:
+    0 12px 36px rgba(12, 61, 110, 0.22),
+    0 4px 12px rgba(15, 23, 42, 0.1);
+}
+
+.sac-floating-back:focus-visible {
+  outline: 2px solid #145a9e;
+  outline-offset: 3px;
+}
+
+.sac-floating-back.is-dragging {
+  cursor: grabbing;
+  transform: scale(1.04);
+  border-color: rgba(12, 61, 110, 0.35);
+  box-shadow:
+    0 16px 44px rgba(12, 61, 110, 0.28),
+    0 6px 16px rgba(15, 23, 42, 0.12);
+}
+
+.sac-floating-back__icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: linear-gradient(145deg, #0c3d6e 0%, #145a9e 100%);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-size: 1.05rem;
+  flex-shrink: 0;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.sac-floating-back__label {
+  white-space: nowrap;
+  letter-spacing: 0.01em;
+}
+
+.sac-floating-back__grip {
+  font-size: 0.72rem;
+  line-height: 0.85;
+  letter-spacing: -0.12em;
+  color: rgba(12, 61, 110, 0.45);
+  margin-left: 0.1rem;
+  transform: rotate(90deg);
+}
+
+@media (max-width: 420px) {
+  .sac-floating-back__label {
+    display: none;
+  }
+
+  .sac-floating-back {
+    padding: 0.5rem;
+    border-radius: 50%;
+    width: 48px;
+    height: 48px;
+    justify-content: center;
+  }
+
+  .sac-floating-back__grip {
+    display: none;
+  }
+}
+
+@media print {
+  .sac-floating-back {
+    display: none !important;
+  }
+}
+
+html[data-theme="dark"] .sac-floating-back {
+  background: rgba(15, 23, 42, 0.92);
+  border-color: rgba(148, 163, 184, 0.25);
+  color: #e2e8f0;
+  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.45);
+}
+
+html[data-theme="dark"] .sac-floating-back__grip {
+  color: rgba(148, 163, 184, 0.55);
+}
