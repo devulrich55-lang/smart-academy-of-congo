@@ -58,11 +58,19 @@ const SAC_API = (function () {
 
   function tagApiSession(session) {
     if (!session) return null;
-    return {
+    const tagged = {
       ...session,
       authSource: "api",
       connectedAt: session.connectedAt || new Date().toISOString(),
     };
+    if (
+      tagged.logoUrl &&
+      tagged.role === "universite" &&
+      typeof SAC_UNIVERSITY_LOGO !== "undefined"
+    ) {
+      SAC_UNIVERSITY_LOGO.registerForUniversity(tagged);
+    }
+    return tagged;
   }
 
   const TOKEN_ACCESS = "sac_access_token";

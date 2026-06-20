@@ -22,6 +22,13 @@ const SAC_SESSION = (function () {
 
   function saveSession(session) {
     localStorage.setItem("sac_session", JSON.stringify(session));
+    if (
+      session?.logoUrl &&
+      session.role === "universite" &&
+      typeof SAC_UNIVERSITY_LOGO !== "undefined"
+    ) {
+      SAC_UNIVERSITY_LOGO.registerForUniversity(session);
+    }
   }
 
   function clearSession() {

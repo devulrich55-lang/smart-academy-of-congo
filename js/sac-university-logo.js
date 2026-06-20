@@ -146,6 +146,8 @@ const SAC_UNIVERSITY_LOGO = (function () {
 
   function applyToProfile(session, selector) {
     const code = resolveUniversiteCode(session);
+    const directLogo = session?.logoUrl || null;
+    if (directLogo) registerForUniversity(session);
     const sel = selector || "[data-uni-profile-logo]";
     document.querySelectorAll(sel).forEach((img) => {
       const alt =
@@ -154,7 +156,13 @@ const SAC_UNIVERSITY_LOGO = (function () {
           ? SAC_UNIVERSITIES.NAMES[code] || code
           : code) ||
         "Logo établissement";
-      applyToImg(img, code, alt);
+      if (directLogo) {
+        img.src = directLogo;
+        if (alt) img.alt = alt;
+        img.dataset.uniLogoApplied = "1";
+      } else {
+        applyToImg(img, code, alt);
+      }
     });
   }
 
