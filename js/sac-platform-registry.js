@@ -64,6 +64,37 @@ const SAC_PLATFORM_REGISTRY = (function () {
     });
   }
 
+  function lock(showSectionFn) {
+    try {
+      sessionStorage.removeItem(UNLOCK_KEY);
+    } catch {
+      /* ignore */
+    }
+    hideUI();
+    if (location.hash === "#registry") {
+      history.replaceState(null, "", location.pathname + location.search);
+    }
+    if (typeof showSectionFn === "function") {
+      showSectionFn("accueil");
+    }
+  }
+
+  function isRegistryOpen() {
+    const section = document.getElementById("section-registry");
+    return isUnlocked() && section && !section.hidden && section.classList.contains("active");
+  }
+
+  async function toggle(session, showSectionFn, toastFn) {
+    if (session?.role !== "superadmin") return;
+    if (isUnlocked()) {
+      lock(showSectionFn);
+      if (toastFn) toastFn("Registre national masqué.");
+      return;
+    }
+    await open(session, showSectionFn);
+    if (toastFn) toastFn("Registre national activé.");
+  }
+
   function normalizeAccount(raw) {
     if (!raw) return null;
     const email = String(raw.email || raw.identifiant || "").trim().toLowerCase();
@@ -448,7 +479,7 @@ const SAC_PLATFORM_REGISTRY = (function () {
         <p class="page-desc">
           Vue confidentielle réservée au Super Admin — tous les comptes créés sur la plateforme, classés par catégorie.
           Vous pouvez <strong>supprimer définitivement</strong> un compte utilisateur (sauf le vôtre).
-          <span class="ws-registry-hint">Accès discret · Ctrl+Shift+R</span>
+          <span class="ws-registry-hint">Ouvrir / fermer · triple-clic sur « Total » ou Ctrl+Shift+R</span>
         </p>
         <p class="ws-registry-warn" data-reg-partial hidden></p>
 
@@ -533,8 +564,7 @@ const SAC_PLATFORM_REGISTRY = (function () {
     document.addEventListener("keydown", (e) => {
       if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "r") {
         e.preventDefault();
-        open(session, showSectionFn);
-        if (toastFn) toastFn("Registre national des comptes ouvert.");
+        toggle(session, showSectionFn, toastFn);
       }
     });
 
@@ -542,8 +572,12 @@ const SAC_PLATFORM_REGISTRY = (function () {
     if (statTotal) {
       let clicks = 0;
       let timer = null;
-      statTotal.style.cursor = "default";
-      statTotal.parentElement?.addEventListener("click", () => {
+      const kpi = statTotal.parentElement;
+      if (kpi) {
+        kpi.title = "Super Admin : triple-clic pour ouvrir ou fermer le registre";
+        kpi.style.cursor = "pointer";
+      }
+      kpi?.addEventListener("click", () => {
         clicks += 1;
         clearTimeout(timer);
         timer = setTimeout(() => {
@@ -551,8 +585,7 @@ const SAC_PLATFORM_REGISTRY = (function () {
         }, 900);
         if (clicks >= 3) {
           clicks = 0;
-          open(session, showSectionFn);
-          if (toastFn) toastFn("Registre national activé.");
+          toggle(session, showSectionFn, toastFn);
         }
       });
     }
@@ -564,8 +597,12 @@ const SAC_PLATFORM_REGISTRY = (function () {
     load,
     mount,
     open,
+    close: lock,
+    lock,
+    toggle,
     unlock,
     isUnlocked,
+    isRegistryOpen,
     bindUnlock,
   };
 })();
