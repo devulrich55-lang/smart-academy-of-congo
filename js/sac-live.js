@@ -16,7 +16,11 @@ const SAC_LIVE = (function () {
 
   let activeRoomUser = null;
 
+  let activeRoomIsHost = false;
+
   let refreshSidePanelFn = null;
+
+  let patchQaListFn = null;
 
   let activeSidePanelTab = "docs";
 
@@ -875,7 +879,7 @@ const SAC_LIVE = (function () {
         if (activeRoomSession) {
           activeRoomSession.questions = questions;
           if (activeRoomId) upsertLocal({ ...getById(activeRoomId), questions });
-          if (typeof refreshSidePanelFn === "function") refreshSidePanelFn();
+          if (typeof patchQaListFn === "function") patchQaListFn(questions);
         }
       },
       onParticipantsChange: (list) => {
@@ -966,6 +970,54 @@ const SAC_LIVE = (function () {
 
 
 
+    function renderQaListHtml(qList) {
+      if (!qList.length) {
+        return "<p class='live-side__empty'>Aucune question pour le moment — posez la première ci-dessus.</p>";
+      }
+      return qList
+        .map(
+          (q) =>
+            `<div class="live-side__qa-item"><strong>${esc(q.author)}</strong><p>${esc(q.text)}</p>` +
+            (q.answer
+              ? `<p class="live-side__answer">↳ ${esc(q.answer)}</p>`
+              : isHost
+                ? `<button type="button" class="live-btn live-btn--ghost" data-answer="${esc(q.id)}">Répondre</button>`
+                : "") +
+            `</div>`
+        )
+        .join("");
+    }
+
+    function bindQaAnswerButtons() {
+      const body = panel.querySelector("#sacLiveSideBody");
+      if (!body) return;
+      body.querySelectorAll("[data-answer]").forEach((btn) => {
+        btn.onclick = async () => {
+          const ans = prompt("Votre réponse :");
+          if (!ans) return;
+          const updated = await answerQuestion(liveSession.id, btn.dataset.answer, ans);
+          Object.assign(liveSession, updated);
+          patchQaListFn(liveSession.questions || []);
+        };
+      });
+    }
+
+    function patchQaList(qList) {
+      const tab = panel.querySelector('.live-side__tab[data-side="qa"]');
+      if (tab) {
+        tab.textContent = qList.length ? "❓ Q&R (" + qList.length + ")" : "❓ Q&R";
+      }
+      const list = panel.querySelector(".live-side__qa-list");
+      if (list) {
+        list.innerHTML = renderQaListHtml(qList);
+        bindQaAnswerButtons();
+      } else if (activeSidePanelTab === "qa" && typeof refreshSidePanelFn === "function") {
+        refreshSidePanelFn();
+      }
+    }
+
+    patchQaListFn = patchQaList;
+
     function showPanel(id) {
 
       activeSidePanelTab = id;
@@ -1004,22 +1056,7 @@ const SAC_LIVE = (function () {
 
           </form>
 
-          <div class="live-side__qa-list">${
-            qs.length
-              ? qs
-                  .map(
-                    (q) =>
-                      `<div class="live-side__qa-item"><strong>${esc(q.author)}</strong><p>${esc(q.text)}</p>` +
-                      (q.answer
-                        ? `<p class="live-side__answer">↳ ${esc(q.answer)}</p>`
-                        : isHost
-                          ? `<button type="button" class="live-btn live-btn--ghost" data-answer="${esc(q.id)}">Répondre</button>`
-                          : "") +
-                      `</div>`
-                  )
-                  .join("")
-              : "<p class='live-side__empty'>Aucune question pour le moment — posez la première ci-dessus.</p>"
-          }</div>`;
+          <div class="live-side__qa-list">${renderQaListHtml(qs)}</div>`;
 
         body.querySelector("#sacLiveQaForm")?.addEventListener("submit", async (e) => {
 
@@ -1033,27 +1070,13 @@ const SAC_LIVE = (function () {
 
           Object.assign(liveSession, updated);
 
-          showPanel("qa");
+          input.value = "";
+
+          patchQaList(liveSession.questions || []);
 
         });
 
-        body.querySelectorAll("[data-answer]").forEach((btn) => {
-
-          btn.onclick = async () => {
-
-            const ans = prompt("Votre réponse :");
-
-            if (!ans) return;
-
-            const updated = await answerQuestion(liveSession.id, btn.dataset.answer, ans);
-
-            Object.assign(liveSession, updated);
-
-            showPanel("qa");
-
-          };
-
-        });
+        bindQaAnswerButtons();
 
         return;
 
@@ -1199,6 +1222,8 @@ const SAC_LIVE = (function () {
 
     activeRoomUser = user;
 
+    activeRoomIsHost = isHost;
+
 
 
     let overlay = document.getElementById("sacLiveRoomOverlay");
@@ -1277,7 +1302,11 @@ const SAC_LIVE = (function () {
 
     activeRoomUser = null;
 
+    activeRoomIsHost = false;
+
     refreshSidePanelFn = null;
+
+    patchQaListFn = null;
 
     if (typeof SAC_WEBRTC_ROOM !== "undefined") SAC_WEBRTC_ROOM.leave();
 

@@ -229,7 +229,10 @@ const SAC_MEETINGS = (function () {
     return updateLocal(id, { transcript, ...ai });
   }
 
-  function openRoom(meeting, userName) {
+  function openRoom(meeting, userName, session) {
+    const user = session || (typeof SAC_SESSION !== "undefined" ? SAC_SESSION.getSession() : null);
+    const role = user?.role || "";
+    const isHost = ["professeur", "universite", "assistant", "section"].includes(role);
     let el = document.getElementById("sacMtgRoom");
     if (!el) {
       el = document.createElement("div");
@@ -263,6 +266,8 @@ const SAC_MEETINGS = (function () {
       SAC_WEBRTC_ROOM.attachToHost("sacMtgRoomFrame", {
         roomId: room,
         displayName: userName || "SAC",
+        userRole: role,
+        isHost,
         onLeave: closeRoom,
         onParticipantsChange: (list) => {
           const root = document.getElementById("sacMtgPresenceRoot");
@@ -399,13 +404,13 @@ const SAC_MEETINGS = (function () {
       root.querySelectorAll("[data-join]").forEach((btn) => {
         btn.onclick = async () => {
           const m = await joinMeeting(btn.dataset.join);
-          openRoom(m, userName);
+          openRoom(m, userName, session);
         };
       });
       root.querySelectorAll("[data-start]").forEach((btn) => {
         btn.onclick = async () => {
           const m = await startMeeting(btn.dataset.start);
-          openRoom(m, userName);
+          openRoom(m, userName, session);
           renderList();
         };
       });

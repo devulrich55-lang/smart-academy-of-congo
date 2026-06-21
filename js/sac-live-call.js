@@ -353,7 +353,7 @@ const SAC_LIVE_CALL = (function () {
 
     if (payload.kind === "meeting" && typeof SAC_MEETINGS !== "undefined") {
       const m = await SAC_MEETINGS.joinMeeting(payload.sessionId);
-      SAC_MEETINGS.openRoom(m, name);
+      SAC_MEETINGS.openRoom(m, name, session);
       return m;
     }
 

@@ -211,7 +211,7 @@ const SAC_VIDEO_LIVE = (function () {
 
     const created = await SAC_MEETINGS.createMeeting(payload);
     const live = await SAC_MEETINGS.startMeeting(created.id);
-    SAC_MEETINGS.openRoom(live, userName);
+    SAC_MEETINGS.openRoom(live, userName, session);
     return { kind: type, data: live };
   }
 
@@ -281,7 +281,7 @@ const SAC_VIDEO_LIVE = (function () {
         try {
           if (typeof SAC_API !== "undefined") await SAC_API.wakeServer();
           const m = await SAC_MEETINGS.joinMeeting(btn.dataset.joinMtg);
-          SAC_MEETINGS.openRoom(m, userName);
+          SAC_MEETINGS.openRoom(m, userName, session);
         } catch (err) {
           alert(err.message || "Impossible de rejoindre la réunion.");
         } finally {
