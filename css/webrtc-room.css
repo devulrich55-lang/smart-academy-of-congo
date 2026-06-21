@@ -64,6 +64,43 @@
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
 }
 
+/* Vue étudiant : professeur en grand, soi en mini */
+.sac-webrtc__grid[data-mode="audience"] {
+  position: relative;
+  display: block;
+  padding: 0;
+  gap: 0;
+}
+
+.sac-webrtc__grid[data-mode="audience"] .sac-webrtc__tile--host {
+  width: 100%;
+  height: 100%;
+  min-height: 220px;
+  max-height: none;
+  aspect-ratio: auto;
+  border-radius: 0;
+}
+
+.sac-webrtc__grid[data-mode="audience"] .sac-webrtc__tile--local {
+  position: absolute;
+  bottom: max(0.5rem, env(safe-area-inset-bottom));
+  right: max(0.5rem, env(safe-area-inset-right));
+  width: min(28vw, 110px);
+  height: auto;
+  aspect-ratio: 3 / 4;
+  z-index: 5;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+  border: 2px solid rgba(255, 255, 255, 0.35);
+}
+
+.sac-webrtc__grid[data-mode="audience"] .sac-webrtc__tile--peer {
+  display: none;
+}
+
+.sac-webrtc__grid[data-mode="host"] .sac-webrtc__tile--host {
+  outline: 2px solid rgba(34, 197, 94, 0.45);
+}
+
 .sac-webrtc__tile {
   position: relative;
   background: #1e293b;

@@ -12,6 +12,14 @@ const SAC_LIVE = (function () {
 
   let activeRoomId = null;
 
+  let activeRoomSession = null;
+
+  let activeRoomUser = null;
+
+  let refreshSidePanelFn = null;
+
+  let activeSidePanelTab = "docs";
+
 
 
   function read(key) {
@@ -754,7 +762,13 @@ const SAC_LIVE = (function () {
 
     ];
 
-    return patchLocal(sessionId, { questions });
+    const updated = patchLocal(sessionId, { questions });
+
+    if (typeof SAC_WEBRTC_ROOM !== "undefined" && SAC_WEBRTC_ROOM.isActive()) {
+      SAC_WEBRTC_ROOM.sendQuestion(questions[0]);
+    }
+
+    return updated;
 
   }
 
@@ -772,7 +786,13 @@ const SAC_LIVE = (function () {
 
     );
 
-    return patchLocal(sessionId, { questions });
+    const updated = patchLocal(sessionId, { questions });
+
+    if (typeof SAC_WEBRTC_ROOM !== "undefined" && SAC_WEBRTC_ROOM.isActive()) {
+      SAC_WEBRTC_ROOM.sendAnswer(questionId, answer);
+    }
+
+    return updated;
 
   }
 
@@ -838,15 +858,26 @@ const SAC_LIVE = (function () {
     return liveSession.roomName || sanitizeRoom(liveSession.title, liveSession.id);
   }
 
-  function openSacVideoRoom(hostId, roomName, userName, onLeave) {
+  function openSacVideoRoom(hostId, roomName, user, onLeave) {
     if (typeof SAC_WEBRTC_ROOM === "undefined") {
       alert("Module vidéo SAC indisponible.");
       return;
     }
+    const userName = displayName(user);
+    const isHost = isHostRole(user?.role);
     SAC_WEBRTC_ROOM.attachToHost(hostId, {
       roomId: roomName,
       displayName: userName,
+      userRole: user?.role || "",
+      isHost,
       onLeave,
+      onQaUpdate: (questions) => {
+        if (activeRoomSession) {
+          activeRoomSession.questions = questions;
+          if (activeRoomId) upsertLocal({ ...getById(activeRoomId), questions });
+          if (typeof refreshSidePanelFn === "function") refreshSidePanelFn();
+        }
+      },
       onParticipantsChange: (list) => {
         const root = document.getElementById("sacLivePresenceRoot");
         if (root && typeof SAC_WEBRTC_ROOM !== "undefined") {
@@ -937,7 +968,11 @@ const SAC_LIVE = (function () {
 
     function showPanel(id) {
 
+      activeSidePanelTab = id;
+
       const body = panel.querySelector("#sacLiveSideBody");
+
+      const qs = liveSession.questions || [];
 
       if (id === "docs") {
         body.innerHTML = `
@@ -969,29 +1004,22 @@ const SAC_LIVE = (function () {
 
           </form>
 
-          <div class="live-side__qa-list">${qs
-
-            .map(
-
-              (q) =>
-
-                `<div class="live-side__qa-item"><strong>${esc(q.author)}</strong><p>${esc(q.text)}</p>` +
-
-                (q.answer
-
-                  ? `<p class="live-side__answer">↳ ${esc(q.answer)}</p>`
-
-                  : isHost
-
-                    ? `<button type="button" class="live-btn live-btn--ghost" data-answer="${esc(q.id)}">Répondre</button>`
-
-                    : "") +
-
-                `</div>`
-
-            )
-
-            .join("")}</div>`;
+          <div class="live-side__qa-list">${
+            qs.length
+              ? qs
+                  .map(
+                    (q) =>
+                      `<div class="live-side__qa-item"><strong>${esc(q.author)}</strong><p>${esc(q.text)}</p>` +
+                      (q.answer
+                        ? `<p class="live-side__answer">↳ ${esc(q.answer)}</p>`
+                        : isHost
+                          ? `<button type="button" class="live-btn live-btn--ghost" data-answer="${esc(q.id)}">Répondre</button>`
+                          : "") +
+                      `</div>`
+                  )
+                  .join("")
+              : "<p class='live-side__empty'>Aucune question pour le moment — posez la première ci-dessus.</p>"
+          }</div>`;
 
         body.querySelector("#sacLiveQaForm")?.addEventListener("submit", async (e) => {
 
@@ -1151,6 +1179,8 @@ const SAC_LIVE = (function () {
 
     });
 
+    refreshSidePanelFn = () => showPanel(activeSidePanelTab);
+
     showPanel("docs");
 
   }
@@ -1164,6 +1194,10 @@ const SAC_LIVE = (function () {
     const isHost = isHostRole(user?.role);
 
     activeRoomId = liveSession.id;
+
+    activeRoomSession = liveSession;
+
+    activeRoomUser = user;
 
 
 
@@ -1223,7 +1257,7 @@ const SAC_LIVE = (function () {
 
       (fresh.attendance?.length || 0) + " présent(s) · " + (fresh.documents?.length || 0) + " document(s)";
 
-    openSacVideoRoom("sacLiveRoomFrame", liveRoomName(fresh), userName, closeRoom);
+    openSacVideoRoom("sacLiveRoomFrame", liveRoomName(fresh), user, closeRoom);
 
     renderSidePanel(fresh, user, isHost);
 
@@ -1238,6 +1272,12 @@ const SAC_LIVE = (function () {
   function closeRoom() {
 
     activeRoomId = null;
+
+    activeRoomSession = null;
+
+    activeRoomUser = null;
+
+    refreshSidePanelFn = null;
 
     if (typeof SAC_WEBRTC_ROOM !== "undefined") SAC_WEBRTC_ROOM.leave();
 

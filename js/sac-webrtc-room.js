@@ -12,6 +12,18 @@ const SAC_WEBRTC_ROOM = (function () {
 
   let active = null;
 
+  const HOST_ROLES = ["professeur", "universite", "assistant", "section"];
+
+  function isHostRole(role) {
+    return HOST_ROLES.includes(String(role || "").toLowerCase());
+  }
+
+  function shouldConnectToPeer(localRole, remoteRole) {
+    if (isHostRole(localRole)) return true;
+    if (String(localRole || "").toLowerCase() === "etudiant") return isHostRole(remoteRole);
+    return true;
+  }
+
   function esc(s) {
     return String(s ?? "")
       .replace(/&/g, "&amp;")
@@ -48,17 +60,21 @@ const SAC_WEBRTC_ROOM = (function () {
       this.opts = opts;
       this.roomId = opts.roomId;
       this.displayName = opts.displayName || "Participant";
+      this.userRole = opts.userRole || "";
+      this.isAudience = !opts.isHost && String(this.userRole).toLowerCase() === "etudiant";
       this.container = opts.container;
       this.peerId = null;
       this.peers = new Map();
       this.ws = null;
       this.localStream = null;
       this.screenStream = null;
-      this.micOn = true;
-      this.camOn = true;
+      this.micOn = !this.isAudience;
+      this.camOn = !this.isAudience;
       this.recorder = null;
       this.recordChunks = [];
       this.participants = [];
+      this.qaQuestions = [];
+      this.peerMicStates = new Map();
       this.reconnectAttempts = 0;
       this.destroyed = false;
     }
@@ -117,12 +133,22 @@ const SAC_WEBRTC_ROOM = (function () {
         this.setStatus("Caméra/micro inaccessible : " + (err.message || err));
         throw err;
       }
+      if (this.isAudience) {
+        this.localStream.getAudioTracks().forEach((t) => {
+          t.enabled = false;
+        });
+        this.localStream.getVideoTracks().forEach((t) => {
+          t.enabled = false;
+        });
+        this.container.querySelector("#sacWrtcMic")?.classList.add("sac-webrtc__btn--off");
+        this.container.querySelector("#sacWrtcCam")?.classList.add("sac-webrtc__btn--off");
+      }
       this.addLocalTile();
       this.participants = [
         {
           peerId: "local",
           displayName: this.displayName,
-          role: "",
+          role: this.userRole,
           isSelf: true,
         },
       ];
@@ -182,6 +208,11 @@ const SAC_WEBRTC_ROOM = (function () {
     updateGridLayout() {
       const count = this.grid.querySelectorAll(".sac-webrtc__tile").length;
       this.grid.dataset.count = String(count);
+      this.grid.dataset.mode = this.isAudience ? "audience" : "host";
+      if (this.isAudience) {
+        this.grid.dataset.layout = "audience";
+        return;
+      }
       if (count <= 1) this.grid.dataset.layout = "solo";
       else if (count === 2) this.grid.dataset.layout = "duo";
       else this.grid.dataset.layout = "multi";
@@ -246,9 +277,18 @@ const SAC_WEBRTC_ROOM = (function () {
       const type = msg.type;
       if (type === "welcome") {
         this.peerId = msg.peerId;
+        if (msg.role) this.userRole = msg.role;
         this.setStatus((msg.peers?.length || 0) + " connecté(s) · Live SAC");
         this.setParticipantsFromServer(msg.peers, msg.displayName || this.displayName);
-        (msg.peers || []).forEach((p) => this.createPeer(p.peerId, p.displayName, true));
+        (msg.chatLog || []).forEach((m) => this.showFloatingComment(m));
+        (msg.qaLog || []).forEach((m) => this.ingestQa(m, false));
+        this.emitQaUpdate();
+        (msg.peers || []).forEach((p) => {
+          if (shouldConnectToPeer(this.userRole, p.role)) {
+            this.createPeer(p.peerId, p.displayName, true, p.role);
+          }
+        });
+        if (this.isAudience) this.sendMicState();
         return;
       }
       if (type === "participants") {
@@ -257,16 +297,24 @@ const SAC_WEBRTC_ROOM = (function () {
       }
       if (type === "peer-joined") {
         this.addParticipant(msg.peerId, msg.displayName, msg.role);
-        this.createPeer(msg.peerId, msg.displayName, false);
+        if (shouldConnectToPeer(this.userRole, msg.role)) {
+          this.createPeer(msg.peerId, msg.displayName, false, msg.role);
+        }
         return;
       }
       if (type === "peer-left") {
         this.removeParticipant(msg.peerId);
         this.removePeer(msg.peerId);
+        this.peerMicStates.delete(msg.peerId);
+        return;
+      }
+      if (type === "mic-state" && msg.peerId) {
+        this.peerMicStates.set(msg.peerId, !!msg.micOn);
+        this.applyRemoteAudio(msg.peerId, msg.role);
         return;
       }
       if (type === "offer" && msg.from) {
-        this.handleOffer(msg.from, msg.sdp);
+        this.handleOffer(msg.from, msg.sdp, msg.role);
         return;
       }
       if (type === "answer" && msg.from) {
@@ -279,6 +327,10 @@ const SAC_WEBRTC_ROOM = (function () {
       }
       if (type === "chat" && msg.message) {
         this.showFloatingComment(msg.message);
+        return;
+      }
+      if (type === "qa" && msg.message) {
+        this.ingestQa(msg.message, true);
       }
     }
 
@@ -290,12 +342,62 @@ const SAC_WEBRTC_ROOM = (function () {
 
     sendChat(text) {
       this.send({ type: "chat", text });
-      this.showFloatingComment({
-        displayName: this.displayName,
-        text,
-        at: new Date().toISOString(),
-        self: true,
+    }
+
+    sendMicState() {
+      this.send({ type: "mic-state", micOn: this.micOn });
+    }
+
+    sendQuestion(question) {
+      if (!question?.text) return;
+      this.send({
+        type: "qa-question",
+        id: question.id,
+        text: question.text,
+        author: question.author,
+        authorEmail: question.authorEmail,
       });
+    }
+
+    sendAnswer(questionId, answer) {
+      if (!questionId || !answer) return;
+      this.send({ type: "qa-answer", questionId, answer });
+    }
+
+    ingestQa(message, notify) {
+      if (!message) return;
+      if (message.kind === "answer" && message.id) {
+        const idx = this.qaQuestions.findIndex((q) => q.id === message.id);
+        if (idx >= 0) {
+          this.qaQuestions[idx] = {
+            ...this.qaQuestions[idx],
+            answer: message.answer || "",
+            answeredAt: message.answeredAt || "",
+            answeredBy: message.answeredBy || "",
+          };
+        }
+      } else if (message.text) {
+        const exists = this.qaQuestions.some((q) => q.id === message.id);
+        if (!exists) {
+          this.qaQuestions.unshift({
+            id: message.id || "q-" + Date.now(),
+            text: message.text,
+            author: message.author || "Participant",
+            authorEmail: message.authorEmail || "",
+            createdAt: message.createdAt || new Date().toISOString(),
+            answer: message.answer || "",
+          });
+        }
+      }
+      if (notify && typeof this.opts.onQaUpdate === "function") {
+        this.opts.onQaUpdate(this.qaQuestions.slice());
+      }
+    }
+
+    emitQaUpdate() {
+      if (typeof this.opts.onQaUpdate === "function") {
+        this.opts.onQaUpdate(this.qaQuestions.slice());
+      }
     }
 
     showFloatingComment(msg) {
@@ -303,9 +405,10 @@ const SAC_WEBRTC_ROOM = (function () {
       while (this.floatLayer.children.length >= 6) {
         this.floatLayer.firstChild?.remove();
       }
+      const isSelf = msg.peerId && msg.peerId === this.peerId;
       const bubble = document.createElement("div");
       bubble.className =
-        "sac-webrtc__float-item" + (msg.self ? " sac-webrtc__float-item--self" : "");
+        "sac-webrtc__float-item" + (isSelf ? " sac-webrtc__float-item--self" : "");
       const who = esc(msg.displayName || "Participant");
       bubble.innerHTML = `<span class="sac-webrtc__float-name">${who}</span> ${esc(msg.text)}`;
       bubble.style.left = `${8 + Math.floor(Math.random() * 52)}%`;
@@ -317,16 +420,39 @@ const SAC_WEBRTC_ROOM = (function () {
       }, 5200);
     }
 
+    applyRemoteAudio(peerId, role) {
+      const remote = this.peers.get(peerId);
+      if (!remote?.video?.srcObject) return;
+      const stream = remote.video.srcObject;
+      const audioTracks = stream.getAudioTracks();
+      if (!audioTracks.length) return;
+
+      let allow = true;
+      const remoteRole = role || remote.role;
+      if (this.isAudience) {
+        allow = isHostRole(remoteRole);
+      } else if (isHostRole(this.userRole)) {
+        allow = isHostRole(remoteRole) || this.peerMicStates.get(peerId) === true;
+      }
+
+      audioTracks.forEach((t) => {
+        t.enabled = allow;
+      });
+      remote.video.muted = !allow;
+    }
+
     getSendStream() {
       if (this.screenStream) return this.screenStream;
       return this.localStream;
     }
 
-    async createPeer(remoteId, name, initiator) {
+    async createPeer(remoteId, name, initiator, role) {
       if (remoteId === this.peerId || this.peers.has(remoteId)) return;
+      if (!shouldConnectToPeer(this.userRole, role)) return;
 
       const pc = new RTCPeerConnection(ICE);
-      const remote = { id: remoteId, name, pc, tile: null, video: null };
+      const remote = { id: remoteId, name, role: role || "", pc, tile: null, video: null };
+      this.peerMicStates.set(remoteId, isHostRole(role));
 
       this.getSendStream().getTracks().forEach((track) => {
         pc.addTrack(track, this.getSendStream());
@@ -340,13 +466,19 @@ const SAC_WEBRTC_ROOM = (function () {
 
       pc.ontrack = (ev) => {
         if (!remote.video) {
-          remote.tile = this.createRemoteTile(remoteId, name);
+          remote.tile = this.createRemoteTile(remoteId, name, role);
           remote.video = remote.tile.querySelector("video");
           this.updateGridLayout();
         }
         if (remote.video.srcObject !== ev.streams[0]) {
           remote.video.srcObject = ev.streams[0];
+          remote.video.muted = false;
+          remote.video.playsInline = true;
+          remote.video.setAttribute("playsinline", "");
+          const playPromise = remote.video.play();
+          if (playPromise && typeof playPromise.catch === "function") playPromise.catch(() => {});
         }
+        this.applyRemoteAudio(remoteId, role);
       };
 
       pc.onconnectionstatechange = () => {
@@ -360,29 +492,36 @@ const SAC_WEBRTC_ROOM = (function () {
       if (initiator) {
         const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
-        this.send({ type: "offer", target: remoteId, sdp: pc.localDescription });
+        this.send({ type: "offer", target: remoteId, sdp: pc.localDescription, role: this.userRole });
       }
     }
 
-    createRemoteTile(id, name) {
+    createRemoteTile(id, name, role) {
       const tile = document.createElement("div");
       tile.className = "sac-webrtc__tile";
+      if (isHostRole(role)) tile.classList.add("sac-webrtc__tile--host");
+      else tile.classList.add("sac-webrtc__tile--peer");
       tile.dataset.peer = id;
       const video = document.createElement("video");
       video.autoplay = true;
       video.playsInline = true;
       video.setAttribute("playsinline", "");
+      video.muted = false;
       const label = document.createElement("span");
       label.className = "sac-webrtc__label";
-      label.textContent = name || "Participant";
+      label.textContent = (isHostRole(role) ? "🎓 " : "") + (name || "Participant");
       tile.appendChild(video);
       tile.appendChild(label);
-      this.grid.appendChild(tile);
+      if (this.isAudience && isHostRole(role)) {
+        this.grid.insertBefore(tile, this.grid.firstChild);
+      } else {
+        this.grid.appendChild(tile);
+      }
       return tile;
     }
 
-    async handleOffer(from, sdp) {
-      await this.createPeer(from, "Participant", false);
+    async handleOffer(from, sdp, role) {
+      await this.createPeer(from, "Participant", false, role);
       const remote = this.peers.get(from);
       if (!remote) return;
       await remote.pc.setRemoteDescription(sdp);
@@ -434,6 +573,7 @@ const SAC_WEBRTC_ROOM = (function () {
         t.enabled = this.micOn;
       });
       this.container.querySelector("#sacWrtcMic").classList.toggle("sac-webrtc__btn--off", !this.micOn);
+      this.sendMicState();
     }
 
     toggleCam() {
@@ -585,6 +725,14 @@ const SAC_WEBRTC_ROOM = (function () {
     return join({ ...opts, container });
   }
 
+  function sendQuestion(question) {
+    if (active) active.sendQuestion(question);
+  }
+
+  function sendAnswer(questionId, answer) {
+    if (active) active.sendAnswer(questionId, answer);
+  }
+
   return {
     join,
     leave,
@@ -592,5 +740,8 @@ const SAC_WEBRTC_ROOM = (function () {
     attachToHost,
     ensureVideoHost,
     renderPresenceList,
+    sendQuestion,
+    sendAnswer,
+    isHostRole,
   };
 })();
