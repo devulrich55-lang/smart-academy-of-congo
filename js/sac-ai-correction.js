@@ -8,9 +8,9 @@ const SAC_AI_CORRECTION = (function () {
 
   const STATUS_LABELS = {
     depose: "Déposé",
-    correction_ia: "Correction IA en cours",
-    note_provisoire: "Note provisoire — en attente prof",
-    valide: "Note finale validée",
+    correction_ia: "Analyse en cours",
+    note_provisoire: "En attente professeur",
+    valide: "Note validée",
     rejete: "Rejeté",
   };
 
@@ -360,6 +360,72 @@ const SAC_AI_CORRECTION = (function () {
     return null;
   }
 
+  function buildProfBrief(mode, score, sectionRatio, overlap, strengths, weaknesses) {
+    const lines = [`Suggestion IA : ${score}/20 (non définitive).`];
+    lines.push(
+      mode === "web_research"
+        ? "Base : recherche internet (copie prof absente)."
+        : "Base : copie de référence du professeur."
+    );
+    const note =
+      weaknesses[0] ||
+      strengths[0] ||
+      `Conformité estimée : ${Math.round(sectionRatio * 100)} %.`;
+    lines.push(String(note).slice(0, 140));
+    return lines.slice(0, 3);
+  }
+
+  function renderStudentSubmissionBody(sub, esc) {
+    if (sub.status === "rejete") {
+      return `<p class="ai-student-msg ai-student-msg--rej">Dépôt non accepté. Contactez votre professeur.</p>`;
+    }
+    if (sub.status === "correction_ia") {
+      return `<p class="ai-student-msg">Analyse en cours…</p>`;
+    }
+    if (sub.status === "note_provisoire") {
+      return `<p class="ai-student-msg">Travail reçu. Votre professeur validera la note finale.</p>`;
+    }
+    if (sub.status === "valide" && sub.finalGrade != null) {
+      return `<p class="ai-student-msg ai-student-msg--ok">Note : ${esc(sub.finalGrade)}/20</p>`;
+    }
+    return "";
+  }
+
+  function renderProfessorSubmissionBody(sub, esc, options) {
+    let body = options.simple ? "" : renderFlowStep(sub.status === "valide" ? 5 : 4);
+    if (sub.status === "rejete") {
+      const rejectMsg = sub.professorComment || sub.aiComments?.[0] || REJECT_MSG_NO_SOURCE;
+      body += `<p class="ai-reject-msg">✕ ${esc(rejectMsg)}</p>`;
+      return body;
+    }
+    if (sub.status === "note_provisoire" && sub.provisionalGrade != null) {
+      const brief =
+        sub.aiBriefForProf && sub.aiBriefForProf.length
+          ? sub.aiBriefForProf
+          : [`Suggestion IA : ${sub.provisionalGrade}/20 (non définitive).`];
+      body += `<div class="ai-prof-brief">
+        <p class="ai-prof-brief__title">Aide à la décision (concis)</p>
+        <ul class="ai-prof-brief__list">${brief.map((line) => `<li>${esc(line)}</li>`).join("")}</ul>
+      </div>`;
+    }
+    if (sub.status === "valide" && sub.finalGrade != null) {
+      body += `<p class="ai-student-msg ai-student-msg--ok">Note validée : ${esc(sub.finalGrade)}/20</p>`;
+    }
+    if (options.validate && sub.status === "note_provisoire") {
+      body += `<form class="ai-validate-form" data-validate-id="${esc(sub.id)}">
+        <p class="ai-validate-hint">Vous seul décidez de la note finale.</p>
+        <label>Suggestion IA (/20)<input type="number" class="fi" name="finalGrade" min="0" max="20" step="0.5" value="${sub.provisionalGrade}" /></label>
+        <label>Votre commentaire<textarea class="fi" name="comment" rows="2" placeholder="Observations courtes…"></textarea></label>
+        <div style="display:flex;flex-wrap:wrap;gap:0.5rem;">
+          <button type="submit" class="btn btn--role btn--sm" data-action="validate">✓ Valider la note</button>
+          <button type="button" class="btn btn--ghost btn--sm" data-action="modify">✎ Modifier & valider</button>
+          <button type="button" class="btn btn--ghost btn--sm" data-action="reject" style="color:#b91c1c">✕ Rejeter</button>
+        </div>
+      </form>`;
+    }
+    return body;
+  }
+
   function buildRejection(reason, message) {
     return {
       status: "rejete",
@@ -369,6 +435,7 @@ const SAC_AI_CORRECTION = (function () {
       aiComments: [message],
       aiStrengths: [],
       aiWeaknesses: [],
+      aiBriefForProf: [message],
       rubricScores: null,
       aiProgress: 100,
       usedReference: false,
@@ -483,12 +550,22 @@ const SAC_AI_CORRECTION = (function () {
       );
     }
 
+    const aiBriefForProf = buildProfBrief(
+      mode,
+      score,
+      sectionRatio,
+      overlap,
+      strengths,
+      weaknesses
+    );
+
     return {
       provisionalGrade: score,
       originalityScore: Math.min(99, Math.max(40, Math.round(55 + overlap * 35))),
       aiComments: comments,
-      aiStrengths: strengths.length ? strengths : ["Dépôt analysé et comparé aux références disponibles"],
+      aiStrengths: strengths,
       aiWeaknesses: weaknesses,
+      aiBriefForProf,
       rubricScores: {
         conformite_reference: Math.round(sectionRatio * 20 * 10) / 10,
         alignement_modele: Math.round(overlap * 20 * 10) / 10,
@@ -769,75 +846,16 @@ const SAC_AI_CORRECTION = (function () {
         .replace(/&/g, "&amp;")
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;");
-    let step = 1;
-    if (sub.status === "correction_ia") step = 2;
-    if (sub.status === "note_provisoire") step = 3;
-    if (sub.status === "valide") step = 5;
-    if (sub.status === "rejete") step = 2;
 
-    let body = options.simple ? "" : renderFlowStep(step);
-    if (sub.status === "rejete") {
-      const rejectMsg =
-        sub.professorComment ||
-        sub.aiComments?.[0] ||
-        (sub.rejectionReason === "REFERENCE_EMPTY"
-          ? REJECT_MSG_REFERENCE_EMPTY
-          : REJECT_MSG_NO_SOURCE);
-      body += `<p class="ai-reject-msg" style="margin-top:0.75rem;padding:0.75rem;background:#fef2f2;border-left:4px solid #b91c1c;color:#991b1b;border-radius:6px;font-size:0.9rem;">✕ ${esc(rejectMsg)}</p>`;
-    }
-    if (sub.status === "correction_ia") {
-      body += `<div class="ai-progress"><div class="ai-progress__bar" style="width:${sub.aiProgress || 80}%"></div></div>
-        <p style="font-size:0.85rem;color:var(--text-muted)">Correction en cours… ${sub.aiProgress || 80}%</p>`;
-    }
-    if (sub.provisionalGrade != null && sub.status !== "depose" && sub.status !== "rejete") {
-      body += `<div class="ai-result">
-        <div class="ai-result__card"><strong>${sub.provisionalGrade}/20</strong><span>Note provisoire IA</span></div>
-        <div class="ai-result__card"><strong>${sub.originalityScore || "—"}%</strong><span>Originalité</span></div>
-      </div>`;
-      if (sub.usedReference) {
-        body += `<p class="ai-ref-used">📋 Correction effectuée selon la copie de référence du professeur.</p>`;
-      }
-      if (sub.usedWebResearch) {
-        body += `<p class="ai-ref-used ai-ref-used--web">🌐 Copie prof absente — correction par recherche internet automatique (sources fiables).</p>`;
-        if (sub.researchSources?.length) {
-          body += `<div class="ai-comments"><strong>Sources consultées</strong><ul>${sub.researchSources
-            .map((source) => {
-              const label = esc(source.title || source.source || "Source");
-              return source.url
-                ? `<li><a href="${esc(source.url)}" target="_blank" rel="noopener">${label}</a> (${esc(source.source || "")})</li>`
-                : `<li>${label} (${esc(source.source || "")})</li>`;
-            })
-            .join("")}</ul></div>`;
-        }
-      }
-      if (sub.aiStrengths?.length) {
-        body += `<div class="ai-comments"><strong>Points forts</strong><ul>${sub.aiStrengths.map((c) => `<li>${esc(c)}</li>`).join("")}</ul></div>`;
-      }
-      if (sub.aiWeaknesses?.length) {
-        body += `<div class="ai-comments"><strong>À améliorer</strong><ul>${sub.aiWeaknesses.map((c) => `<li>${esc(c)}</li>`).join("")}</ul></div>`;
-      }
-      if (sub.aiComments?.length) {
-        body += `<div class="ai-comments"><strong>Commentaires IA</strong><ul>${sub.aiComments.map((c) => `<li>${esc(c)}</li>`).join("")}</ul></div>`;
-      }
-    }
-    if (sub.status === "valide" && sub.finalGrade != null) {
-      body += `<p style="margin-top:0.75rem;font-weight:600;color:var(--success,#0d7a4a)">✓ Note finale validée : ${sub.finalGrade}/20 — relevé de cotes mis à jour automatiquement.</p>`;
-    }
-    if (options.validate && sub.status === "note_provisoire") {
-      body += `<form class="ai-validate-form" data-validate-id="${esc(sub.id)}">
-        <label>Note finale (/20)<input type="number" class="fi" name="finalGrade" min="0" max="20" step="0.5" value="${sub.provisionalGrade}" /></label>
-        <label>Commentaire (prof / assistant)<textarea class="fi" name="comment" rows="2" placeholder="Observations…"></textarea></label>
-        <div style="display:flex;flex-wrap:wrap;gap:0.5rem;">
-          <button type="submit" class="btn btn--role btn--sm" data-action="validate">✓ Valider</button>
-          <button type="button" class="btn btn--ghost btn--sm" data-action="modify">✎ Modifier & valider</button>
-          <button type="button" class="btn btn--ghost btn--sm" data-action="reject" style="color:#b91c1c">✕ Rejeter</button>
-        </div>
-      </form>`;
-    }
+    const isStudent = options.audience === "student" || (options.simple && !options.validate);
+    const body = isStudent
+      ? renderStudentSubmissionBody(sub, esc)
+      : renderProfessorSubmissionBody(sub, esc, options);
+
     return `<article class="ai-sub-card">
       <div class="ai-sub-card__head">
         <div>
-          <div class="ai-sub-card__title">${esc(sub.assignmentTitle)}</div>
+          <div class="ai-sub-card__title">${esc(sub.assignmentTitle || sub.courseName)}</div>
           <div class="ai-sub-card__meta">${esc(sub.courseName)} · ${esc(sub.studentName || sub.studentEmail)}</div>
         </div>
         <span class="ai-status ${statusClass(sub.status)}">${esc(statusLabel(sub.status))}</span>
@@ -891,7 +909,7 @@ const SAC_AI_CORRECTION = (function () {
             <div class="ai-deposit__actions">
               <button type="submit" class="ai-submit-btn">
                 <span class="ai-submit-btn__icon">📤</span>
-                <span>Déposer & corriger</span>
+                <span>Déposer</span>
               </button>
             </div>
           </form>`
@@ -908,7 +926,7 @@ const SAC_AI_CORRECTION = (function () {
       const listEl = container.querySelector("#aiStudentList");
       const subs = await listForStudent(student);
       listEl.innerHTML = subs.length
-        ? subs.map((s) => renderSubmissionCard(s, { simple: true })).join("")
+        ? subs.map((s) => renderSubmissionCard(s, { audience: "student" })).join("")
         : '<p class="pub-empty">Aucun travail déposé.</p>';
     }
 
@@ -949,7 +967,7 @@ const SAC_AI_CORRECTION = (function () {
       const btnLabel = btn.querySelector("span:last-child");
       const defaultLabel = btnLabel.textContent;
       btn.disabled = true;
-      btnLabel.textContent = "Analyse IA et recherche documentaire…";
+      btnLabel.textContent = "Envoi en cours…";
       try {
         await submitWork(
           student,
@@ -969,6 +987,7 @@ const SAC_AI_CORRECTION = (function () {
         fileNameEl.classList.remove("ai-file-upload__name--selected");
         fileUploadEl.classList.remove("ai-file-upload--has-file");
         await refresh();
+        alert("Travail déposé. Votre professeur validera la note finale.");
       } catch (err) {
         alert(err.message || "Erreur lors du dépôt");
       }
@@ -1107,8 +1126,7 @@ const SAC_AI_CORRECTION = (function () {
       <div class="panel" style="border-left:4px solid var(--prof,#c9a227);margin-top:1rem;">
         <div class="panel__head"><h2>🤖 Validation des corrections IA</h2></div>
         <div class="panel__body">
-          ${renderFlowStep(4)}
-          <p class="page-desc" style="margin:0 0 1rem;font-size:0.88rem;">Validez, modifiez ou rejetez les notes provisoires proposées par l'agent IA. Après validation, les fiches de cotes et bulletins sont mis à jour automatiquement.</p>
+          <p class="page-desc" style="margin:0 0 1rem;font-size:0.88rem;">L'IA propose une suggestion courte. <strong>Vous seul validez la note finale.</strong></p>
           <div id="aiProfPending"></div>
         </div>
       </div>
@@ -1231,10 +1249,8 @@ const SAC_AI_CORRECTION = (function () {
       <div class="panel" style="border-left:4px solid var(--assistant,#6b4c9a);">
         <div class="panel__head"><h2>🤖 Validation des corrections IA</h2></div>
         <div class="panel__body">
-          ${renderFlowStep(4)}
           <p class="page-desc" style="margin:0 0 1rem;font-size:0.88rem;">
-            En tant qu'assistant, validez ou modifiez les notes provisoires proposées par l'agent IA.
-            Après validation, les fiches de cotes et le relevé étudiant sont remplis et calculés automatiquement.
+            L'IA aide avec une suggestion brève. <strong>Vous validez la note finale.</strong>
           </p>
           <div id="aiAssistantPending"><p class="pub-empty">Chargement…</p></div>
         </div>
