@@ -880,6 +880,16 @@ const SAC_AI_CORRECTION = (function () {
       .join("")}</div>`;
   }
 
+  function courseDisplayName(courseOrSub) {
+    if (typeof SAC_COURSES !== "undefined" && SAC_COURSES.pickCourseTitle) {
+      return SAC_COURSES.pickCourseTitle(courseOrSub);
+    }
+    const name = String(courseOrSub?.courseName || "").trim();
+    const code = String(courseOrSub?.courseCode || "").trim();
+    if (name && normText(name) !== normText(code)) return name;
+    return name || "Cours";
+  }
+
   function renderSubmissionCard(sub, options = {}) {
     const esc = (s) =>
       String(s ?? "")
@@ -898,11 +908,13 @@ const SAC_AI_CORRECTION = (function () {
       </div>`;
     }
 
+    const courseLabel = courseDisplayName(sub);
+
     return `<article class="ai-sub-card" data-sub-id="${esc(sub.id || "")}">
       <div class="ai-sub-card__head">
         <div>
-          <div class="ai-sub-card__title">${esc(sub.assignmentTitle || sub.courseName)}</div>
-          <div class="ai-sub-card__meta">${esc(sub.courseName)} · ${esc(sub.studentName || sub.studentEmail)}</div>
+          <div class="ai-sub-card__title">${esc(courseLabel)}</div>
+          <div class="ai-sub-card__meta">${esc(sub.studentName || sub.studentEmail)}</div>
         </div>
         <span class="ai-status ${statusClass(sub.status)}">${esc(statusLabel(sub.status))}</span>
       </div>
@@ -915,7 +927,7 @@ const SAC_AI_CORRECTION = (function () {
     const facultyCourses = (courses || []).filter((c) => c?.courseCode);
     const courseOptions = facultyCourses
       .map((c) => {
-        const name = c.courseName || c.courseCode || "Cours";
+        const name = courseDisplayName(c);
         const prof = c.professorName ? ` · ${c.professorName}` : "";
         return `<option value="${c.courseCode}" data-name="${name}" data-classe="${c.classe || ""}" data-prof="${c.professorEmail || ""}">${name}${prof}</option>`;
       })
@@ -932,9 +944,9 @@ const SAC_AI_CORRECTION = (function () {
               ? `<form id="aiSubmitForm" class="ai-deposit__form">
             <div class="ai-form-grid">
               <div class="ai-field ai-field--full">
-                <label class="ai-field__label" for="aiCourseCode"><span class="ai-field__icon">📚</span> Cours concerné</label>
-                <select class="ai-field__input" id="aiCourseCode" name="courseCode" required>${courseOptions}</select>
-                <span class="ai-field__hint">Choisissez le cours par son nom (liste de votre faculté).</span>
+                <label class="ai-field__label" for="aiCourseSelect"><span class="ai-field__icon">📚</span> Cours concerné</label>
+                <select class="ai-field__input" id="aiCourseSelect" name="courseCode" required>${courseOptions}</select>
+                <span class="ai-field__hint">Choisissez le cours par son intitulé (nom complet).</span>
               </div>
               <div class="ai-field ai-field--full">
                 <label class="ai-field__label" for="aiTextContent"><span class="ai-field__icon">📝</span> Votre travail (texte)</label>
@@ -1047,9 +1059,15 @@ const SAC_AI_CORRECTION = (function () {
           student,
           {
             courseCode: fd.get("courseCode"),
-            courseName: opt?.dataset?.name || fd.get("courseCode"),
+            courseName: courseDisplayName({
+              courseCode: fd.get("courseCode"),
+              courseName: opt?.dataset?.name || "",
+            }),
             classe: opt?.dataset?.classe || "",
-            assignmentTitle: opt?.dataset?.name || fd.get("courseCode"),
+            assignmentTitle: courseDisplayName({
+              courseCode: fd.get("courseCode"),
+              courseName: opt?.dataset?.name || "",
+            }),
             textContent: fd.get("textContent"),
             semester: "s1-2025",
             professorEmail: opt?.dataset?.prof || student.professorEmail,

@@ -38,6 +38,28 @@ const SAC_COURSES = (function () {
     return r === "professeur" || r === "assistant" || r === "universite";
   }
 
+  /** Nom affiché du cours — jamais le code seul. */
+  function pickCourseTitle(course) {
+    const code = String(course?.courseCode || course?.code || "").trim();
+    const candidates = [
+      course?.courseName,
+      course?.intitule,
+      course?.nom,
+      course?.name,
+      course?.libelle,
+      course?.title,
+    ]
+      .map((value) => String(value || "").trim())
+      .filter(Boolean);
+    const title = candidates.find((candidate) => !code || norm(candidate) !== norm(code));
+    if (title) return title;
+    if (course?.filiere && course?.classe) {
+      return `${course.filiere} — ${course.classe}`;
+    }
+    if (course?.classe) return `Cours — ${course.classe}`;
+    return candidates[0] || "Cours";
+  }
+
   function addFacultyCourse(list, seen, course, professorEmail, professorName, student) {
     if (!course?.courseCode) return;
     const code = String(course.courseCode).trim();
@@ -48,7 +70,7 @@ const SAC_COURSES = (function () {
     seen.add(code);
     list.push({
       courseCode: code,
-      courseName: course.courseName || code,
+      courseName: pickCourseTitle(course),
       classe: course.classe || course.niveau || student.classe || "",
       filiere: course.filiere || student.filiere || "",
       niveau: course.niveau || student.niveau || "",
@@ -125,7 +147,7 @@ const SAC_COURSES = (function () {
             seen.add(code);
             courses.push({
               courseCode: code,
-              courseName: course.courseName || code,
+              courseName: pickCourseTitle(course),
               classe: course.classe || course.niveau || student.classe || "",
               filiere: course.filiere || prof.filiere || student.filiere || "",
               niveau: course.niveau || student.niveau || "",
@@ -137,7 +159,7 @@ const SAC_COURSES = (function () {
     }
 
     return courses.sort((a, b) =>
-      String(a.courseCode || "").localeCompare(String(b.courseCode || ""), "fr")
+      pickCourseTitle(a).localeCompare(pickCourseTitle(b), "fr")
     );
   }
 
@@ -294,6 +316,7 @@ const SAC_COURSES = (function () {
     getUserByEmail,
     getTeachingClasses,
     getFacultyCoursesForStudent,
+    pickCourseTitle,
     classLabel,
     studentProfile,
     studentSeesDocument,
