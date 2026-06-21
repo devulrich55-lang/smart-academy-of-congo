@@ -4,6 +4,7 @@
  */
 const SAC_TARIFFS = (function () {
   const PLATFORM_STORAGE_KEY = "sac_platform_tariffs";
+  const PLATFORM_SYNC_INTERVAL_MS = 30000;
   const ROLES = ["etudiant", "assistant", "professeur", "universite"];
 
   const FALLBACK_CDF_PER_USD = 2300;
@@ -119,6 +120,80 @@ const SAC_TARIFFS = (function () {
   }
 
   let platformEnsured = false;
+  let platformSyncTimer = null;
+  let platformSyncFingerprint = null;
+  const platformListeners = new Set();
+
+  function platformFingerprint(settings) {
+    if (!settings) return "";
+    const f = settings.fees || {};
+    return [
+      settings.updatedAt || "",
+      settings.cdfPerUsd,
+      ROLES.map((r) => f[r]?.amount).join(","),
+    ].join("|");
+  }
+
+  function notifyPlatformTariffsChanged() {
+    syncPricingTierLabels();
+    syncPublicFeeLine("homeFeeLine");
+    const detail = getPlatformSettings();
+    window.dispatchEvent(
+      new CustomEvent("sac-platform-tariffs-updated", { detail })
+    );
+    platformListeners.forEach((fn) => {
+      try {
+        fn(detail);
+      } catch (err) {
+        console.warn("[SAC_TARIFFS] listener:", err);
+      }
+    });
+  }
+
+  function onPlatformTariffsUpdated(fn) {
+    if (typeof fn !== "function") return () => {};
+    platformListeners.add(fn);
+    return () => platformListeners.delete(fn);
+  }
+
+  async function refreshPlatformFromServer() {
+    const before = platformFingerprint(getPlatformSettings());
+    await loadPlatformSettings(true);
+    const after = platformFingerprint(getPlatformSettings());
+    if (after !== before) {
+      platformSyncFingerprint = after;
+      notifyPlatformTariffsChanged();
+    } else {
+      platformSyncFingerprint = after;
+    }
+    return getPlatformSettings();
+  }
+
+  function startPlatformSyncPolling(intervalMs) {
+    if (platformSyncTimer) return;
+    platformSyncFingerprint = platformFingerprint(getPlatformSettings());
+    const ms = intervalMs || PLATFORM_SYNC_INTERVAL_MS;
+    platformSyncTimer = setInterval(() => {
+      refreshPlatformFromServer().catch(() => {});
+    }, ms);
+    if (typeof window !== "undefined") {
+      window.addEventListener("storage", (e) => {
+        if (e.key !== PLATFORM_STORAGE_KEY) return;
+        platformCache = readStoredPlatformSettings();
+        clearCache();
+        const fp = platformFingerprint(platformCache);
+        if (fp !== platformSyncFingerprint) {
+          platformSyncFingerprint = fp;
+          notifyPlatformTariffsChanged();
+        }
+      });
+      document.addEventListener("visibilitychange", () => {
+        if (!document.hidden) {
+          refreshPlatformFromServer().catch(() => {});
+        }
+      });
+    }
+  }
 
   async function ensurePlatformSettings(force) {
     if (force) return loadPlatformSettings(true);
@@ -176,6 +251,8 @@ const SAC_TARIFFS = (function () {
         console.warn("[SAC_TARIFFS] API plateforme:", err.message || err);
       }
     }
+    platformSyncFingerprint = platformFingerprint(next);
+    notifyPlatformTariffsChanged();
     return next;
   }
 
@@ -598,5 +675,12 @@ const SAC_TARIFFS = (function () {
     toCdf,
     syncPricingTierLabels,
     syncPublicFeeLine,
+    refreshPlatformFromServer,
+    startPlatformSyncPolling,
+    onPlatformTariffsUpdated,
   };
 })();
+
+if (typeof SAC_TARIFFS !== "undefined") {
+  SAC_TARIFFS.startPlatformSyncPolling(30000);
+}

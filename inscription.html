@@ -1641,7 +1641,7 @@
   <script src="js/sac-identity.js"></script>
   <script src="js/sac-session.js?v=20260617d"></script>
   <script src="js/sac-api.js?v=20260617d"></script>
-  <script src="js/sac-tariffs.js?v=20260622"></script>
+  <script src="js/sac-tariffs.js?v=20260623b"></script>
   <script src="js/sac-sections.js"></script>
   <script src="js/sac-section-accounts.js"></script>
   <script src="js/sac-section-approval.js"></script>
@@ -3035,6 +3035,11 @@
         markPaymentPaid("usd", "stripe-return");
       }
     })();
+
+    window.addEventListener("sac-platform-tariffs-updated", () => {
+      activeFee = null;
+      refreshPricing(currentRole);
+    });
 
     ["universiteEtu", "universiteProf", "universiteAssist"].forEach((id) => {
       const el = document.getElementById(id);
