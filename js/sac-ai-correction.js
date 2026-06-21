@@ -713,6 +713,7 @@ const SAC_AI_CORRECTION = (function () {
     const list = getLocal();
     list.unshift(sub);
     saveLocal(list);
+    localStorage.removeItem(studentHistoryClearedKey(student.email || student.identifiant));
 
     if (typeof SAC_API !== "undefined" && (await SAC_API.ensureOnline())) {
       try {
@@ -728,9 +729,48 @@ const SAC_AI_CORRECTION = (function () {
     return sub;
   }
 
+  function studentHistoryClearedKey(email) {
+    return "sac_ai_cleared_" + String(email || "").toLowerCase();
+  }
+
+  async function deleteStudentSubmission(student, submissionId) {
+    const email = (student.email || student.identifiant || "").toLowerCase();
+    const list = getLocal();
+    const target = list.find((s) => s.id === submissionId);
+    if (!target || (target.studentEmail || "").toLowerCase() !== email) {
+      throw new Error("Travail introuvable.");
+    }
+    saveLocal(list.filter((s) => s.id !== submissionId));
+    if (typeof SAC_API !== "undefined" && (await SAC_API.ensureOnline())) {
+      try {
+        await SAC_API.platformRequest(`/platform/corrections/${submissionId}`, {
+          method: "DELETE",
+        });
+      } catch {
+        /* supprimé localement */
+      }
+    }
+  }
+
+  async function clearStudentHistory(student) {
+    const email = (student.email || student.identifiant || "").toLowerCase();
+    saveLocal(getLocal().filter((s) => (s.studentEmail || "").toLowerCase() !== email));
+    localStorage.setItem(studentHistoryClearedKey(email), String(Date.now()));
+    if (typeof SAC_API !== "undefined" && (await SAC_API.ensureOnline())) {
+      try {
+        await SAC_API.platformRequest("/platform/corrections/me", { method: "DELETE" });
+      } catch {
+        /* historique local effacé */
+      }
+    }
+  }
+
   async function listForStudent(student) {
     const email = (student.email || student.identifiant || "").toLowerCase();
     const local = getLocal().filter((s) => (s.studentEmail || "").toLowerCase() === email);
+    if (!local.length && localStorage.getItem(studentHistoryClearedKey(email))) {
+      return [];
+    }
     if (typeof SAC_API !== "undefined" && (await SAC_API.ensureOnline())) {
       try {
         const json = await SAC_API.platformRequest("/platform/corrections/me");
@@ -848,11 +888,17 @@ const SAC_AI_CORRECTION = (function () {
         .replace(/>/g, "&gt;");
 
     const isStudent = options.audience === "student" || (options.simple && !options.validate);
-    const body = isStudent
+    let body = isStudent
       ? renderStudentSubmissionBody(sub, esc)
       : renderProfessorSubmissionBody(sub, esc, options);
 
-    return `<article class="ai-sub-card">
+    if (isStudent && sub.id) {
+      body += `<div class="ai-student-actions">
+        <button type="button" class="btn btn--ghost btn--sm ai-student-delete" data-delete-sub="${esc(sub.id)}">Supprimer</button>
+      </div>`;
+    }
+
+    return `<article class="ai-sub-card" data-sub-id="${esc(sub.id || "")}">
       <div class="ai-sub-card__head">
         <div>
           <div class="ai-sub-card__title">${esc(sub.assignmentTitle || sub.courseName)}</div>
@@ -868,10 +914,11 @@ const SAC_AI_CORRECTION = (function () {
     if (!container) return;
     const facultyCourses = (courses || []).filter((c) => c?.courseCode);
     const courseOptions = facultyCourses
-      .map(
-        (c) =>
-          `<option value="${c.courseCode}" data-name="${c.courseName || c.courseCode}" data-classe="${c.classe || ""}" data-prof="${c.professorEmail || ""}">${c.courseCode} — ${c.courseName || ""}${c.professorName ? " · " + c.professorName : ""}</option>`
-      )
+      .map((c) => {
+        const name = c.courseName || c.courseCode || "Cours";
+        const prof = c.professorName ? ` · ${c.professorName}` : "";
+        return `<option value="${c.courseCode}" data-name="${name}" data-classe="${c.classe || ""}" data-prof="${c.professorEmail || ""}">${name}${prof}</option>`;
+      })
       .join("");
 
     container.innerHTML = `
@@ -887,7 +934,7 @@ const SAC_AI_CORRECTION = (function () {
               <div class="ai-field ai-field--full">
                 <label class="ai-field__label" for="aiCourseCode"><span class="ai-field__icon">📚</span> Cours concerné</label>
                 <select class="ai-field__input" id="aiCourseCode" name="courseCode" required>${courseOptions}</select>
-                <span class="ai-field__hint">Liste des cours de votre faculté inscrits par les professeurs.</span>
+                <span class="ai-field__hint">Choisissez le cours par son nom (liste de votre faculté).</span>
               </div>
               <div class="ai-field ai-field--full">
                 <label class="ai-field__label" for="aiTextContent"><span class="ai-field__icon">📝</span> Votre travail (texte)</label>
@@ -918,9 +965,35 @@ const SAC_AI_CORRECTION = (function () {
         </div>
       </div>
       <div class="panel" style="margin-top:1rem;">
-        <div class="panel__head"><h2>Mes travaux corrigés</h2></div>
+        <div class="panel__head ai-student-history__head">
+          <h2>Mes travaux</h2>
+          <button type="button" class="btn btn--ghost btn--sm" id="aiClearHistory">Effacer l'historique</button>
+        </div>
         <div class="panel__body" id="aiStudentList"><p class="pub-empty">Chargement…</p></div>
       </div>`;
+
+    function bindStudentHistoryActions() {
+      container.querySelector("#aiClearHistory")?.addEventListener("click", async () => {
+        if (!confirm("Effacer tout votre historique de dépôts IA ? Cette action est définitive.")) return;
+        try {
+          await clearStudentHistory(student);
+          await refresh();
+        } catch (err) {
+          alert(err.message || "Impossible d'effacer l'historique.");
+        }
+      });
+      container.querySelectorAll("[data-delete-sub]").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          if (!confirm("Supprimer ce dépôt de votre historique ?")) return;
+          try {
+            await deleteStudentSubmission(student, btn.dataset.deleteSub);
+            await refresh();
+          } catch (err) {
+            alert(err.message || "Impossible de supprimer ce dépôt.");
+          }
+        });
+      });
+    }
 
     async function refresh() {
       const listEl = container.querySelector("#aiStudentList");
@@ -928,6 +1001,7 @@ const SAC_AI_CORRECTION = (function () {
       listEl.innerHTML = subs.length
         ? subs.map((s) => renderSubmissionCard(s, { audience: "student" })).join("")
         : '<p class="pub-empty">Aucun travail déposé.</p>';
+      bindStudentHistoryActions();
     }
 
     if (!facultyCourses.length) {
@@ -1286,6 +1360,8 @@ const SAC_AI_CORRECTION = (function () {
   return {
     submitWork,
     listForStudent,
+    deleteStudentSubmission,
+    clearStudentHistory,
     listPendingProfessor,
     validateSubmission,
     syncGradesAfterValidation,

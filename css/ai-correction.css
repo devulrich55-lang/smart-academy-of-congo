@@ -513,3 +513,22 @@
   font-size: 0.82rem;
   color: #64748b;
 }
+
+.ai-student-history__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.ai-student-actions {
+  margin-top: 0.5rem;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.ai-student-delete {
+  color: #64748b !important;
+  font-size: 0.78rem !important;
+}
