@@ -120,6 +120,14 @@ const SAC_WEBRTC_ROOM = (function () {
 
     async connect() {
       this.renderShell();
+      if (typeof SAC_API !== "undefined" && SAC_API.wakeServer) {
+        this.setStatus("Réveil du serveur SAC… (30–90 s sur Render)");
+        try {
+          await SAC_API.wakeServer({ attempts: 8, timeoutMs: 55000, delayMs: 7000 });
+        } catch {
+          /* on retente via WebSocket */
+        }
+      }
       try {
         this.localStream = await navigator.mediaDevices.getUserMedia({
           audio: true,
@@ -241,6 +249,14 @@ const SAC_WEBRTC_ROOM = (function () {
     async openSocket() {
       if (this.destroyed) return;
       const url = buildWsUrl(this.roomId);
+      if (!url) {
+        this.setStatus("URL WebRTC invalide — vérifiez la connexion");
+        return;
+      }
+      if (this.reconnectAttempts === 0 && typeof SAC_API !== "undefined" && SAC_API.ensureOnline) {
+        this.setStatus("Connexion à l'API live…");
+        await SAC_API.ensureOnline(true);
+      }
       this.ws = new WebSocket(url);
 
       this.ws.onopen = () => {
@@ -252,12 +268,18 @@ const SAC_WEBRTC_ROOM = (function () {
           this.setStatus("Session terminée");
           return;
         }
-        if (this.reconnectAttempts < 6) {
+        if (this.reconnectAttempts < 12) {
           this.reconnectAttempts += 1;
-          this.setStatus("Reconnexion… (" + this.reconnectAttempts + "/6)");
-          setTimeout(() => this.openSocket(), 2000);
+          this.setStatus(
+            "Reconnexion… (" +
+              this.reconnectAttempts +
+              "/12) — le serveur Render peut mettre 1 min à démarrer"
+          );
+          setTimeout(() => this.openSocket(), 5000);
         } else {
-          this.setStatus("Connexion fermée — déployez l'API WebRTC");
+          this.setStatus(
+            "API live indisponible — vérifiez le déploiement WebRTC sur Render ou attendez 1 min et rouvrez le live"
+          );
         }
       };
       this.ws.onerror = () => {

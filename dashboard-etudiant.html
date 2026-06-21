@@ -1620,6 +1620,9 @@
           onSelfOnline: SAC_PRESENCE.bindSelfPresence("selfPresence", "profilePresence"),
         });
       }
+      if (typeof SAC_API !== "undefined" && SAC_API.wakeServer) {
+        SAC_API.wakeServer({ attempts: 4, timeoutMs: 40000, delayMs: 5000 });
+      }
       if (typeof SAC_LIVE_CALL !== "undefined") {
         SAC_LIVE_CALL.init(session);
       }
