@@ -700,7 +700,7 @@
                 <span class="tariff-row__label">Frais académiques / trimestre</span>
                 <div class="tariff-row__controls">
                   <select class="tariff-currency" disabled aria-label="Devise"><option>USD</option></select>
-                  <input type="number" class="tariff-amount" id="tarifAcademicTrim" min="1" max="5000" step="0.01" required />
+                  <input type="number" class="tariff-amount" id="tarifAcademicTrim" min="1" max="50000" step="0.01" required />
                 </div>
                 <span class="tariff-row__cdf" id="tarifAcademicTrimCdf">≈ — CDF</span>
               </div>
@@ -1696,17 +1696,26 @@
         try {
           const code = SAC_UNIVERSITY.campusCode(session);
           let membersUpdated = 0;
+          let savedRemote = false;
           if (typeof SAC_API !== "undefined" && (await SAC_API.ensureOnline())) {
-            const data = await SAC_API.updateCampusTariffs({ academicFees });
-            session.campusAcademicFees = data.academicFees || academicFees;
-            localStorage.setItem("sac_session", JSON.stringify(session));
-            if (code) {
-              const sync = SAC_TARIFFS.syncCampusAcademicFeesToStudents(code, session.campusAcademicFees);
-              membersUpdated = sync.updated || data.membersUpdated || 0;
+            try {
+              const data = await SAC_API.updateCampusTariffs({ academicFees });
+              session.campusAcademicFees = data.academicFees || academicFees;
+              localStorage.setItem("sac_session", JSON.stringify(session));
+              membersUpdated = data.membersUpdated || 0;
+              savedRemote = true;
+              if (code && session.campusAcademicFees) {
+                const sync = SAC_TARIFFS.syncCampusAcademicFeesToStudents(code, session.campusAcademicFees);
+                membersUpdated = Math.max(membersUpdated, sync.updated || 0);
+              }
+            } catch (apiErr) {
+              console.warn("[Campus] API frais académiques:", apiErr.message || apiErr);
             }
-          } else {
+          }
+          if (!savedRemote) {
             const saved = SAC_TARIFFS.saveLocalCampusAcademicFees(session, academicFees);
             session.campusAcademicFees = saved.campusAcademicFees || academicFees;
+            localStorage.setItem("sac_session", JSON.stringify(session));
             membersUpdated = saved.membersUpdated || 0;
           }
           SAC_TARIFFS.clearCache();
