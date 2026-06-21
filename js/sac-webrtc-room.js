@@ -175,6 +175,15 @@ const SAC_WEBRTC_ROOM = (function () {
         });
         this.container.querySelector("#sacWrtcMic")?.classList.add("sac-webrtc__btn--off");
         this.container.querySelector("#sacWrtcCam")?.classList.add("sac-webrtc__btn--off");
+      } else {
+        this.micOn = true;
+        this.camOn = true;
+        this.localStream.getAudioTracks().forEach((t) => {
+          t.enabled = true;
+        });
+        this.localStream.getVideoTracks().forEach((t) => {
+          t.enabled = true;
+        });
       }
       this.addLocalTile();
       this.participants = [
@@ -192,10 +201,8 @@ const SAC_WEBRTC_ROOM = (function () {
         this.stage.addEventListener(
           "click",
           () => {
-            this.peers.forEach((remote, id) => {
-              this.applyRemoteAudio(id, remote.role);
-              if (remote.audio) remote.audio.play().catch(() => {});
-              if (remote.video) remote.video.play().catch(() => {});
+            this.peers.forEach((remote) => {
+              this.playRemoteMedia(remote, remote.role);
             });
           },
           { once: true }
@@ -357,9 +364,9 @@ const SAC_WEBRTC_ROOM = (function () {
         (msg.qaLog || []).forEach((m) => this.ingestQa(m, false));
         this.emitQaUpdate();
         (msg.peers || []).forEach((p) => {
-          if (shouldConnectToPeer(this.userRole, p.role)) {
-            this.createPeer(p.peerId, p.displayName, true, p.role);
-          }
+          if (!shouldConnectToPeer(this.userRole, p.role)) return;
+          if (this.isAudience && p.role && !isHostRole(p.role)) return;
+          this.createPeer(p.peerId, p.displayName, isHostRole(this.userRole), p.role);
         });
         if (this.isAudience) this.sendMicState();
         return;
@@ -372,13 +379,27 @@ const SAC_WEBRTC_ROOM = (function () {
           if (p.role) remote.role = p.role;
           this.syncRemoteTileRole(remote, p.role);
           this.applyRemoteAudio(p.peerId, p.role);
+          this.playRemoteMedia(remote, p.role);
         });
+        if (this.isAudience) {
+          (msg.list || []).forEach((p) => {
+            if (!isHostRole(p.role)) return;
+            if (this.peers.has(p.peerId)) return;
+            if (!shouldConnectToPeer(this.userRole, p.role)) return;
+            this.createPeer(p.peerId, p.displayName, isHostRole(this.userRole), p.role);
+          });
+          this.peers.forEach((remote, id) => {
+            if (remote.role && !isHostRole(remote.role)) {
+              this.removePeer(id);
+            }
+          });
+        }
         return;
       }
       if (type === "peer-joined") {
         this.addParticipant(msg.peerId, msg.displayName, msg.role);
         if (shouldConnectToPeer(this.userRole, msg.role)) {
-          this.createPeer(msg.peerId, msg.displayName, false, msg.role);
+          this.createPeer(msg.peerId, msg.displayName, isHostRole(this.userRole), msg.role);
         }
         return;
       }
@@ -502,9 +523,11 @@ const SAC_WEBRTC_ROOM = (function () {
 
     syncRemoteTileRole(remote, role) {
       if (!remote?.tile) return;
-      remote.tile.classList.remove("sac-webrtc__tile--host", "sac-webrtc__tile--peer");
-      if (this.isAudience || isHostRole(role)) {
+      remote.tile.classList.remove("sac-webrtc__tile--host", "sac-webrtc__tile--peer", "sac-webrtc__tile--hidden");
+      if (isHostRole(role)) {
         remote.tile.classList.add("sac-webrtc__tile--host");
+      } else if (this.isAudience) {
+        remote.tile.classList.add("sac-webrtc__tile--peer", "sac-webrtc__tile--hidden");
       } else {
         remote.tile.classList.add("sac-webrtc__tile--peer");
       }
@@ -556,30 +579,59 @@ const SAC_WEBRTC_ROOM = (function () {
     }
 
     bindRemoteStream(remote, ev, role) {
-      const stream =
-        ev.streams && ev.streams[0] ? ev.streams[0] : new MediaStream([ev.track]);
       if (ev.track) {
         ev.track.enabled = true;
       }
+      if (!remote.mediaStream) {
+        remote.mediaStream = new MediaStream();
+      }
+      if (ev.track) {
+        remote.mediaStream
+          .getTracks()
+          .filter((t) => t.kind === ev.track.kind)
+          .forEach((t) => remote.mediaStream.removeTrack(t));
+        remote.mediaStream.addTrack(ev.track);
+        ev.track.onunmute = () => this.playRemoteMedia(remote, role || remote.role);
+        ev.track.onmute = () => this.updateRemoteMediaStatus(remote);
+      }
+
+      const isHostRemote = isHostRole(role || remote.role) || (this.isAudience && !remote.role);
       if (!remote.video) {
         remote.tile = this.createRemoteTile(remote.id, remote.name, role || remote.role);
         remote.video = remote.tile.querySelector("video");
         this.updateGridLayout();
       }
-      if (remote.video.srcObject !== stream) {
-        remote.video.srcObject = stream;
-      }
+
+      this.playRemoteMedia(remote, role || remote.role);
+      this.updateRemoteMediaStatus(remote);
+    }
+
+    playRemoteMedia(remote, role) {
+      if (!remote?.mediaStream || !remote.video) return;
+      remote.video.srcObject = remote.mediaStream;
       remote.video.muted = false;
       remote.video.playsInline = true;
       remote.video.setAttribute("playsinline", "");
       remote.video.setAttribute("webkit-playsinline", "");
-      this.attachRemotePlayback(remote, stream);
+      this.attachRemotePlayback(remote, remote.mediaStream);
       const playVideo = remote.video.play();
       if (playVideo && typeof playVideo.catch === "function") playVideo.catch(() => {});
-      remote.tile.classList.add("sac-webrtc__tile--playing");
+      if (remote.audio) {
+        const playAudio = remote.audio.play();
+        if (playAudio && typeof playAudio.catch === "function") playAudio.catch(() => {});
+      }
+      remote.tile?.classList.add("sac-webrtc__tile--playing");
       this.applyRemoteAudio(remote.id, role || remote.role);
-      if (this.isAudience) {
-        this.setStatus("Connecté · Touchez l'écran si vous n'entendez pas le professeur");
+    }
+
+    updateRemoteMediaStatus(remote) {
+      if (!remote?.mediaStream || !remote.tile) return;
+      const hasLiveVideo = remote.mediaStream
+        .getVideoTracks()
+        .some((t) => t.readyState === "live" && t.enabled && !t.muted);
+      remote.tile.classList.toggle("sac-webrtc__tile--no-video", !hasLiveVideo);
+      if (this.isAudience && isHostRole(remote.role) && !hasLiveVideo) {
+        this.setStatus("Professeur connecté — caméra en attente ou désactivée");
       }
     }
 
@@ -588,17 +640,21 @@ const SAC_WEBRTC_ROOM = (function () {
       if (!shouldConnectToPeer(this.userRole, role)) return;
 
       const pc = new RTCPeerConnection(ICE);
-      const remote = { id: remoteId, name, role: role || "", pc, tile: null, video: null, audio: null };
+      const remote = {
+        id: remoteId,
+        name,
+        role: role || "",
+        pc,
+        tile: null,
+        video: null,
+        audio: null,
+        mediaStream: null,
+      };
       this.peerMicStates.set(remoteId, isHostRole(role));
 
-      if (this.isAudience) {
-        pc.addTransceiver("video", { direction: "recvonly" });
-        pc.addTransceiver("audio", { direction: "recvonly" });
-      } else {
-        this.getSendStream().getTracks().forEach((track) => {
-          pc.addTrack(track, this.getSendStream());
-        });
-      }
+      this.getSendStream().getTracks().forEach((track) => {
+        pc.addTrack(track, this.getSendStream());
+      });
 
       pc.onicecandidate = (ev) => {
         if (ev.candidate) {
@@ -635,7 +691,7 @@ const SAC_WEBRTC_ROOM = (function () {
       this.peers.set(remoteId, remote);
 
       if (initiator) {
-        const offer = await pc.createOffer();
+        const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true });
         await pc.setLocalDescription(offer);
         this.send({ type: "offer", target: remoteId, sdp: pc.localDescription, role: this.userRole });
       }
@@ -644,10 +700,12 @@ const SAC_WEBRTC_ROOM = (function () {
     createRemoteTile(id, name, role) {
       const tile = document.createElement("div");
       tile.className = "sac-webrtc__tile";
-      if (this.isAudience || isHostRole(role)) {
+      const showAsHost = isHostRole(role) || (this.isAudience && !role);
+      if (showAsHost) {
         tile.classList.add("sac-webrtc__tile--host");
       } else {
         tile.classList.add("sac-webrtc__tile--peer");
+        if (this.isAudience) tile.classList.add("sac-webrtc__tile--hidden");
       }
       tile.dataset.peer = id;
       const video = document.createElement("video");
@@ -657,11 +715,11 @@ const SAC_WEBRTC_ROOM = (function () {
       video.muted = false;
       const label = document.createElement("span");
       label.className = "sac-webrtc__label";
-      const hostTag = this.isAudience || isHostRole(role) ? "🎓 " : "";
+      const hostTag = showAsHost ? "🎓 " : "";
       label.textContent = hostTag + (name || "Participant");
       tile.appendChild(video);
       tile.appendChild(label);
-      if (this.isAudience || isHostRole(role)) {
+      if (showAsHost) {
         this.grid.insertBefore(tile, this.grid.firstChild);
       } else {
         this.grid.appendChild(tile);
