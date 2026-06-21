@@ -401,8 +401,11 @@
         return;
       }
 
-      if (ROLES[currentRole].showUniversite && !universiteSelect.value) {
+      const uniVal = resolveLoginUniversite(idVal);
+
+      if (ROLES[currentRole].showUniversite && !uniVal) {
         universiteSelect.focus();
+        alert("Sélectionnez l'université de votre inscription ou saisissez d'abord votre e-mail.");
         updateSteps(2);
         return;
       }
@@ -424,7 +427,7 @@
             btnSubmit.textContent = "Connexion en cours…";
             try {
               apiSession = await SAC_API.login(idVal, pwdVal, currentRole, {
-                universite: ROLES[currentRole].showUniversite ? universiteSelect.value : null,
+                universite: uniVal,
               });
             } catch (err) {
               apiError = err.message || "Identifiant ou mot de passe incorrect.";
@@ -438,6 +441,9 @@
         }
 
         if (typeof SAC_API !== "undefined" && SAC_API.isOnline()) {
+          if (currentRole === "section" && (await tryLocalSectionLogin(idVal, pwdVal))) {
+            return;
+          }
           alert(apiError || "Identifiant ou mot de passe incorrect.");
           return;
         }
@@ -505,7 +511,7 @@
 
       const uniCheck = SAC_IDENTITY.assertUniversiteOnLogin(
         found,
-        ROLES[currentRole].showUniversite ? universiteSelect.value : null
+        resolveLoginUniversite(idVal) || SAC_IDENTITY.getRegisteredUniversite(found)
       );
       if (!uniCheck.ok) {
         alert(uniCheck.message);
@@ -520,8 +526,74 @@
       redirectAfterLogin(session);
     });
 
-    identifiant.addEventListener("input", () => identifiant.setCustomValidity(""));
+    identifiant.addEventListener("input", () => {
+      identifiant.setCustomValidity("");
+      syncUniversiteFromAccount();
+    });
     identifiant.addEventListener("blur", syncUniversiteFromAccount);
+
+    function universiteLabelForUser(user, code) {
+      if (!code) return "";
+      if (user?.sectionName) return user.sectionName;
+      if (user?.nomUniversite) return user.nomUniversite;
+      if (typeof SAC_UNIVERSITIES !== "undefined" && SAC_UNIVERSITIES.NAMES[code]) {
+        return SAC_UNIVERSITIES.NAMES[code];
+      }
+      return code;
+    }
+
+    function ensureUniversiteOption(code, label) {
+      if (!code || !universiteSelect) return;
+      const has = Array.from(universiteSelect.options).some((o) => o.value === code);
+      if (!has) {
+        const opt = document.createElement("option");
+        opt.value = code;
+        opt.textContent = label || code;
+        universiteSelect.appendChild(opt);
+      }
+      universiteSelect.value = code;
+    }
+
+    function resolveLoginUniversite(idVal) {
+      if (!ROLES[currentRole].showUniversite) return null;
+      if (universiteSelect.value) return universiteSelect.value;
+      const found = SAC_IDENTITY.findUserByLoginId(SAC_IDENTITY.getLocalUsers(), idVal);
+      if (found && found.role === currentRole) {
+        const reg = SAC_IDENTITY.getRegisteredUniversite(found);
+        if (reg) {
+          ensureUniversiteOption(reg, universiteLabelForUser(found, reg));
+          universiteSelect.disabled = true;
+          const hint = document.getElementById("uniLockHint");
+          if (hint) hint.classList.add("visible");
+          return reg;
+        }
+      }
+      return null;
+    }
+
+    async function tryLocalSectionLogin(idVal, pwdVal) {
+      const users = SAC_IDENTITY.getLocalUsers();
+      const found = SAC_IDENTITY.findUserByLoginId(users, idVal);
+      if (!found || found.role !== currentRole) return false;
+
+      const cred = await SAC_IDENTITY.verifyLoginCredentials(found, pwdVal);
+      if (!cred.ok) {
+        alert(cred.message);
+        return true;
+      }
+
+      const uniVal = resolveLoginUniversite(idVal) || SAC_IDENTITY.getRegisteredUniversite(found);
+      const uniCheck = SAC_IDENTITY.assertUniversiteOnLogin(found, uniVal);
+      if (!uniCheck.ok) {
+        alert(uniCheck.message);
+        return true;
+      }
+
+      const session = SAC_IDENTITY.buildSessionFromUser(found);
+      session.authSource = "local";
+      redirectAfterLogin(session);
+      return true;
+    }
 
     function syncUniversiteFromAccount() {
       const hint = document.getElementById("uniLockHint");
@@ -531,7 +603,7 @@
       if (found && found.role === currentRole) {
         const reg = SAC_IDENTITY.getRegisteredUniversite(found);
         if (reg) {
-          universiteSelect.value = reg;
+          ensureUniversiteOption(reg, universiteLabelForUser(found, reg));
           universiteSelect.disabled = true;
           if (hint) hint.classList.add("visible");
           return;

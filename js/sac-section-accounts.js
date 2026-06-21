@@ -55,6 +55,7 @@ const SAC_SECTION_ACCOUNTS = (function () {
     users.push({
       ...profile,
       passwordHash: hashed,
+      universiteLocked: section.universite,
       createdAt: new Date().toISOString(),
     });
     localStorage.setItem("sac_users", JSON.stringify(users));
@@ -141,6 +142,7 @@ const SAC_SECTION_ACCOUNTS = (function () {
     users.push({
       ...profile,
       passwordHash: hashed,
+      universiteLocked: uniCode,
       createdAt: new Date().toISOString(),
     });
     localStorage.setItem("sac_users", JSON.stringify(users));

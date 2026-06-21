@@ -350,13 +350,14 @@ const SAC_IDENTITY = (function () {
     const registered = getRegisteredUniversite(user);
     if (!registered) return { ok: true, universite: selectedUniversite || null };
     if (user.role === "universite") return { ok: true, universite: registered };
-    if (!selectedUniversite) {
+    const selected = selectedUniversite || registered;
+    if (!selected) {
       return {
         ok: false,
         message: "Sélectionnez l'université enregistrée lors de votre inscription.",
       };
     }
-    if (selectedUniversite !== registered) {
+    if (selected !== registered) {
       const name =
         typeof SAC_UNIVERSITIES !== "undefined"
           ? SAC_UNIVERSITIES.NAMES[registered] || registered
@@ -459,6 +460,8 @@ const SAC_IDENTITY = (function () {
       sectionId: user.sectionId || null,
       classe: user.classe || null,
       sectionName: user.sectionName || null,
+      sectionKind: user.sectionKind || null,
+      isRector: user.isRector === true || user.sectionKind === "recteur",
       nomination: user.nomination || null,
       grade: user.grade || null,
       fonction: user.fonction || null,
