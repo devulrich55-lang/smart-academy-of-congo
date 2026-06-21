@@ -3,12 +3,20 @@
  */
 const SAC_DATA = (function () {
   const STORAGE_KEY = "sac_documents";
-  const PUBLISH_ROLES = ["professeur", "assistant", "universite"];
+  const PUBLISH_ROLES = ["professeur", "assistant", "universite", "section"];
   const SOURCE_BY_ROLE = {
     professeur: "professeur",
     assistant: "assistant",
     universite: "administration",
+    section: "administration",
   };
+
+  function universiteMatchDoc(a, b) {
+    if (typeof SAC_SECTIONS !== "undefined" && SAC_SECTIONS.universiteMatches) {
+      return SAC_SECTIONS.universiteMatches(a, b);
+    }
+    return String(a || "") === String(b || "");
+  }
 
   let cache = null;
   let useApi = false;
@@ -152,7 +160,19 @@ const SAC_DATA = (function () {
       (d) =>
         d.source === "administration" &&
         d.audienceType !== "section" &&
-        d.universite === uni
+        universiteMatchDoc(d.universite, uni)
+    );
+  }
+
+  /** Publications ciblées section créées par l'université */
+  function getSectionPublicationsForHead(session) {
+    const sectionId = session?.sectionId;
+    if (!sectionId) return [];
+    return getAll().filter(
+      (d) =>
+        d.source === "administration" &&
+        d.audienceType === "section" &&
+        d.sectionId === sectionId
     );
   }
 
@@ -182,6 +202,14 @@ const SAC_DATA = (function () {
   function canEdit(session, doc) {
     if (!session || !doc) return false;
     if (session.role === "universite") return doc.source === "administration";
+    if (session.role === "section" && doc.audienceType === "section") {
+      if (doc.sectionId && session.sectionId && doc.sectionId !== session.sectionId) {
+        return false;
+      }
+      const authorMatch =
+        doc.authorId === session.identifiant || doc.authorId === session.userId;
+      return doc.source === "administration" && authorMatch;
+    }
     const src = SOURCE_BY_ROLE[session.role];
     const authorMatch =
       doc.authorId === session.identifiant || doc.authorId === session.userId;
@@ -427,6 +455,7 @@ const SAC_DATA = (function () {
     getTeachingForStudent,
     getCampusPublicationsForStudent,
     getCampusPublicationsForStaff,
+    getSectionPublicationsForHead,
     getPublicationsByAuthor,
     canPublish,
     canEdit,

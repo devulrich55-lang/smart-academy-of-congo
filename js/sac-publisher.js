@@ -536,16 +536,120 @@ function SAC_initSectionPublisher(session, rootId, getSectionId, getSectionLabel
   return SAC_initPublisherPage({
     session,
     rootId: rootId || "sectionPublisherRoot",
-    accentColor: "#0d7a4a",
+    accentColor: "#0e7490",
     pageTitle: "Informations pour la section",
     pageDesc:
-      "<strong>Publication section :</strong> choisissez la section à gauche, puis diffusez annonces, documents, photos ou vidéos. <em>Seuls les étudiants de cette section</em> les verront.",
+      "<strong>Publication section :</strong> diffusez annonces, documents, photos ou vidéos. <em>Seuls les étudiants de votre section / filière</em> les verront.",
     multiFile: true,
     maxFiles: 10,
     sectionMode: true,
     getSectionId,
     getSectionLabel,
   });
+}
+
+/** Chef de section connecté — publie pour sa section (sectionId dans la session) */
+function SAC_initSectionHeadPublisher(session, rootId) {
+  const getSectionId = () => session.sectionId;
+  const getSectionLabel = () => {
+    if (session.sectionName && session.filiere) {
+      return session.sectionName + " — " + session.filiere;
+    }
+    if (session.sectionName) return session.sectionName;
+    if (typeof SAC_SECTIONS !== "undefined" && session.sectionId) {
+      const sec = SAC_SECTIONS.getSectionById(session.sectionId);
+      if (sec) return sec.name + " — " + sec.filiere;
+    }
+    return session.filiere || "Ma section";
+  };
+  return SAC_initSectionPublisher(session, rootId || "sectionHeadPublisherRoot", getSectionId, getSectionLabel);
+}
+
+function SAC_renderDocumentFeedList(docs, rootEl, emptyText) {
+  if (!rootEl) return;
+  if (!docs?.length) {
+    rootEl.innerHTML =
+      '<p class="empty" style="margin:0;">' +
+      escapeHtml(emptyText || "Aucune publication pour le moment.") +
+      "</p>";
+    return;
+  }
+  const icons = { info: "📢", document: "📄", image: "🖼️", audio: "🔊", video: "🎬" };
+  rootEl.innerHTML = docs
+    .map((doc) => {
+      const tag =
+        doc.audienceType === "section"
+          ? `<span class="pub-class-tag">Section · ${escapeHtml(doc.sectionName || doc.filiere || "")}</span>`
+          : doc.audienceType === "campus"
+            ? '<span class="pub-class-tag">Campus entier</span>'
+            : "";
+      return `<article class="pub-item">
+        <div>
+          <strong>${icons[doc.mediaCategory] || "📄"} ${escapeHtml(doc.title)}</strong> ${tag}
+          <div class="pub-meta">${escapeHtml(doc.type || "—")} · ${escapeHtml(doc.date || "")} · ${escapeHtml(doc.author || "")}</div>
+          ${doc.description ? `<p class="pub-desc">${escapeHtml(doc.description)}</p>` : ""}
+        </div>
+      </article>`;
+    })
+    .join("");
+}
+
+/** Vue lecture : publications université + national + publisher section */
+async function SAC_mountSectionPublicationsPage(session, opts) {
+  if (!session) return;
+  const isRector =
+    typeof SAC_SECTION_APPROVAL !== "undefined" && SAC_SECTION_APPROVAL.isRector(session);
+  const uni = session.universite || "";
+
+  await SAC_DATA.ensureReady();
+  if (typeof SAC_HOME_NEWS !== "undefined" && SAC_HOME_NEWS.ensureSynced) {
+    await SAC_HOME_NEWS.ensureSynced();
+  }
+
+  const campusDocs = SAC_DATA.getCampusPublicationsForStaff(session);
+  const sectionUniDocs = SAC_DATA.getSectionPublicationsForHead(session);
+  SAC_renderDocumentFeedList(
+    campusDocs,
+    document.getElementById(opts?.campusDocsRoot || "secCampusDocsFeed"),
+    "Aucun document campus publié par l'université."
+  );
+  SAC_renderDocumentFeedList(
+    sectionUniDocs,
+    document.getElementById(opts?.sectionUniDocsRoot || "secSectionUniDocsFeed"),
+    "Aucune publication université ciblée pour votre section."
+  );
+
+  const newsRoot = document.getElementById(opts?.campusNewsRoot || "secCampusNewsFeed");
+  if (newsRoot && typeof SAC_HOME_NEWS !== "undefined") {
+    const news = SAC_HOME_NEWS.getUniversityNewsForStudent(uni);
+    if (!news.length) {
+      newsRoot.innerHTML =
+        '<p class="empty" style="margin:0;">Aucune annonce université pour le moment.</p>';
+    } else {
+      newsRoot.innerHTML =
+        '<div class="hn-readonly-feed">' + news.map((n) => SAC_HOME_NEWS.renderCard(n)).join("") + "</div>";
+    }
+  }
+
+  if (typeof SAC_HOME_NEWS !== "undefined" && SAC_HOME_NEWS.renderNationalFeedReadonly) {
+    SAC_HOME_NEWS.renderNationalFeedReadonly(opts?.nationalRoot || "secNationalFeed");
+  }
+
+  const pubRoot = document.getElementById(opts?.publisherRoot || "sectionHeadPublisherRoot");
+  if (pubRoot && !isRector && session.sectionId) {
+    if (!pubRoot.dataset.ready) {
+      pubRoot._sacPublisher = SAC_initSectionHeadPublisher(session, pubRoot.id);
+      pubRoot.dataset.ready = "1";
+    } else if (pubRoot._sacPublisher?.renderList) {
+      pubRoot._sacPublisher.renderList();
+    }
+  } else if (pubRoot && isRector) {
+    pubRoot.innerHTML =
+      '<p class="page-desc" style="margin:0;padding:1rem;background:var(--bg);border-radius:8px;border:1px dashed var(--border);">En tant que recteur, consultez les publications université ci-dessus. La publication section est réservée au chef de section nommé.</p>';
+  } else if (pubRoot && !session.sectionId) {
+    pubRoot.innerHTML =
+      '<p class="page-desc" style="margin:0;padding:1rem;background:var(--bg);border-radius:8px;border:1px dashed var(--border);">Section non identifiée — impossible de publier. Contactez l\'administration université.</p>';
+  }
 }
 
 /** Espace publication sur l'onglet « Mon campus » (profil université) */

@@ -16,6 +16,7 @@
   <link rel="stylesheet" href="css/webrtc-room.css" />
   <link rel="stylesheet" href="css/presence.css" />
   <link rel="stylesheet" href="css/theme.css" />
+  <link rel="stylesheet" href="css/home-news.css" />
   <link rel="stylesheet" href="css/mobile.css" />
   <style>
     :root { --section: #0e7490; }
@@ -31,6 +32,24 @@
       border-radius: 8px;
       font-size: 0.88rem;
       color: var(--success);
+    }
+    .comm-filter { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; }
+    .comm-filter button {
+      padding: 0.45rem 0.9rem; border-radius: 100px; border: 1.5px solid var(--border);
+      background: #fff; font-size: 0.82rem; font-weight: 600; cursor: pointer;
+      font-family: inherit; color: var(--muted);
+    }
+    .comm-filter button.active {
+      border-color: var(--section); color: var(--section);
+      background: rgba(14,116,144,0.08);
+    }
+    .comm-panel { display: none; }
+    .comm-panel.active { display: block; }
+    .pub-desc { margin: 0.35rem 0 0; font-size: 0.88rem; color: var(--muted); }
+    .pub-meta { font-size: 0.78rem; color: var(--muted); margin-top: 0.25rem; }
+    .pub-class-tag {
+      display: inline-block; font-size: 0.72rem; padding: 0.15rem 0.45rem;
+      border-radius: 100px; background: rgba(14,116,144,0.12); color: var(--section); margin-left: 0.35rem;
     }
   </style>
   <meta name="theme-color" content="#0e7490" />
@@ -55,6 +74,7 @@
       <button type="button" class="nav-tab nav-tab--priority" data-section="validations-personnel" id="navValidationsPersonnel">👨‍🏫 Valider prof. &amp; assistants</button>
       <button type="button" class="nav-tab nav-tab--priority" data-section="inscriptions" id="navInscriptions">👤 Créer des comptes étudiants</button>
       <button type="button" class="nav-tab nav-tab--priority" data-section="reclamations">📩 Réclamations</button>
+      <button type="button" class="nav-tab nav-tab--priority" data-section="publications">📢 Publications</button>
       <button type="button" class="nav-tab nav-tab--priority" data-section="live">🎥 Live section</button>
     </nav>
   </header>
@@ -94,6 +114,7 @@
             <button type="button" class="btn btn--ghost" data-goto="validations-personnel">Valider prof. &amp; assistants</button>
             <button type="button" class="btn btn--ghost" data-goto="inscriptions">Créer un compte étudiant</button>
             <button type="button" class="btn btn--ghost" data-goto="reclamations">Voir les réclamations</button>
+            <button type="button" class="btn btn--ghost" data-goto="publications">Publications université</button>
             <button type="button" class="btn btn--ghost" data-goto="live">Lancer un live section</button>
           </div>
         </div>
@@ -258,6 +279,65 @@
       </div>
     </section>
 
+    <section class="page-section" id="section-publications">
+      <h1 class="page-title">Publications — université &amp; section</h1>
+      <p class="page-desc">
+        Consultez les communiqués officiels de votre établissement et publiez des informations
+        pour les étudiants de votre section / filière.
+      </p>
+
+      <div class="comm-filter" id="secCommFilter">
+        <button type="button" class="active" data-sec-comm="campus">🏛️ Campus université</button>
+        <button type="button" data-sec-comm="section-uni">📋 Pour ma section (université)</button>
+        <button type="button" data-sec-comm="national">🇨🇩 Espace national</button>
+        <button type="button" data-sec-comm="publish" id="secCommPublishTab">📢 Publier — ma section</button>
+      </div>
+
+      <div class="comm-panel active" id="secCommCampus" data-sec-comm-panel="campus">
+        <div class="panel" style="margin-bottom:1rem;">
+          <div class="panel__head"><h2>Annonces courtes — profil étudiants</h2></div>
+          <div class="panel__body"><div id="secCampusNewsFeed"></div></div>
+        </div>
+        <div class="panel">
+          <div class="panel__head"><h2>Documents &amp; médias campus</h2></div>
+          <div class="panel__body">
+            <p class="page-desc" style="margin:0 0 1rem;font-size:0.88rem;">
+              Publications officielles visibles par <strong>tout le campus</strong> (comme sur le dashboard université).
+            </p>
+            <div id="secCampusDocsFeed"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="comm-panel" id="secCommSectionUni" data-sec-comm-panel="section-uni">
+        <div class="panel">
+          <div class="panel__head"><h2>Publications université — votre section</h2></div>
+          <div class="panel__body">
+            <p class="page-desc" style="margin:0 0 1rem;font-size:0.88rem;">
+              Messages ciblés publiés par le <strong>DG / administration université</strong> uniquement pour votre faculté / filière.
+            </p>
+            <div id="secSectionUniDocsFeed"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="comm-panel" id="secCommNational" data-sec-comm-panel="national">
+        <div class="panel">
+          <div class="panel__head"><h2>Espace national Smart Academy</h2></div>
+          <div class="panel__body">
+            <p class="page-desc" style="margin:0 0 1rem;font-size:0.88rem;">
+              Annonces nationales (Ministère, concours, informations inter-universités).
+            </p>
+            <div id="secNationalFeed"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="comm-panel" id="secCommPublish" data-sec-comm-panel="publish">
+        <div id="sectionHeadPublisherRoot"></div>
+      </div>
+    </section>
+
     <section class="page-section" id="section-reclamations">
       <h1 class="page-title">Réclamations de la section</h1>
       <p class="page-desc">Demandes des étudiants de votre filière — scolarité, notes, frais, documents…</p>
@@ -297,6 +377,10 @@
   <script src="js/sac-sections.js?v=20260621"></script>
   <script src="js/sac-section-accounts.js?v=20260621"></script>
   <script src="js/sac-section-approval.js?v=20260621"></script>
+  <script src="js/sac-courses.js"></script>
+  <script src="js/sac-data.js?v=20260621"></script>
+  <script src="js/sac-home-news.js"></script>
+  <script src="js/sac-publisher.js?v=20260621"></script>
   <script src="js/sac-live-call.js"></script>
   <script src="js/sac-webrtc-room.js"></script>
   <script src="js/sac-live.js"></script>
@@ -341,6 +425,8 @@
         document.querySelectorAll('[data-goto="validations-etudiants"], [data-goto="inscriptions"]').forEach((el) => {
           el.style.display = "none";
         });
+        const pubTabRector = document.getElementById("secCommPublishTab");
+        if (pubTabRector) pubTabRector.style.display = "none";
       }
 
       await SAC_SECTIONS.ensureReady(session);
@@ -397,7 +483,33 @@
         if (id === "validations-personnel") renderPendingStaff();
         if (id === "inscriptions") renderStudents();
         if (id === "reclamations") renderReclamations();
+        if (id === "publications") initSectionPublications();
         if (id === "live") renderSectionLive();
+      }
+
+      function setSecCommFilter(commId) {
+        document.querySelectorAll("#secCommFilter [data-sec-comm]").forEach((btn) => {
+          btn.classList.toggle("active", btn.dataset.secComm === commId);
+        });
+        document.querySelectorAll("[data-sec-comm-panel]").forEach((panel) => {
+          panel.classList.toggle("active", panel.dataset.secCommPanel === commId);
+        });
+        if (commId === "publish") initSectionPublications(true);
+      }
+
+      let publicationsReady = false;
+      async function initSectionPublications(refreshPublisherOnly) {
+        if (typeof SAC_mountSectionPublicationsPage !== "function") return;
+        if (!refreshPublisherOnly || !publicationsReady) {
+          await SAC_mountSectionPublicationsPage(session, {
+            campusDocsRoot: "secCampusDocsFeed",
+            sectionUniDocsRoot: "secSectionUniDocsFeed",
+            campusNewsRoot: "secCampusNewsFeed",
+            nationalRoot: "secNationalFeed",
+            publisherRoot: "sectionHeadPublisherRoot",
+          });
+          publicationsReady = true;
+        }
       }
 
       function renderStats() {
@@ -725,6 +837,9 @@
         b.addEventListener("click", () => showSection(b.dataset.goto));
       });
       document.getElementById("filterStatut").addEventListener("change", renderReclamations);
+      document.querySelectorAll("#secCommFilter [data-sec-comm]").forEach((btn) => {
+        btn.addEventListener("click", () => setSecCommFilter(btn.dataset.secComm));
+      });
       document.getElementById("btnLogout").addEventListener("click", () => {
         SAC_SESSION.logout("index.html");
       });
