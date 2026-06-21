@@ -227,11 +227,18 @@ const SAC_API = (function () {
     }
 
     if (res.status === 401 && path !== "/auth/login" && path !== "/auth/refresh" && path !== "/auth/forgot-password" && path !== "/auth/reset-password") {
-      const refreshed = await refresh();
+      const refreshed = await refresh({ soft: options.softAuth });
       if (refreshed) {
         return request(path, options);
       }
-      clearClientSession();
+      if (!options.softAuth) {
+        clearClientSession();
+      }
+      const authErr = new Error(apiErrorMessage(data) || ERROR_MESSAGES.AUTH_REQUIRED);
+      authErr.code = data.error || "AUTH_REQUIRED";
+      authErr.status = 401;
+      authErr.sessionInvalid = !options.softAuth;
+      throw authErr;
     }
 
     if (!res.ok) {
@@ -240,7 +247,9 @@ const SAC_API = (function () {
       err.status = res.status;
       if (data.error === "USER_NOT_FOUND" || data.error === "TOKEN_EXPIRED") {
         err.sessionInvalid = true;
-        clearClientSession();
+        if (!options.softAuth) {
+          clearClientSession();
+        }
       }
       throw err;
     }
@@ -448,7 +457,7 @@ const SAC_API = (function () {
     return sessionCache;
   }
 
-  async function refresh() {
+  async function refresh(opts) {
     try {
       const refreshToken = isCrossOriginApi()
         ? sessionStorage.getItem(TOKEN_REFRESH)
@@ -456,13 +465,16 @@ const SAC_API = (function () {
       const data = await request("/auth/refresh", {
         method: "POST",
         body: refreshToken ? JSON.stringify({ refreshToken }) : undefined,
+        softAuth: !!(opts && opts.soft),
       });
       sessionCache = tagApiSession(data.session);
       saveApiTokens(data.accessToken, data.refreshToken);
       localStorage.setItem("sac_session", JSON.stringify(sessionCache));
       return true;
     } catch {
-      clearClientSession();
+      if (!opts || !opts.soft) {
+        clearClientSession();
+      }
       return false;
     }
   }
@@ -482,7 +494,17 @@ const SAC_API = (function () {
     clearClientSession();
   }
 
-  async function me() {
+  async function me(opts) {
+    if (opts && opts.soft) {
+      try {
+        const data = await request("/auth/me", { softAuth: true });
+        sessionCache = tagApiSession(data.session);
+        localStorage.setItem("sac_session", JSON.stringify(sessionCache));
+        return sessionCache;
+      } catch {
+        return null;
+      }
+    }
     const data = await request("/auth/me");
     sessionCache = tagApiSession(data.session);
     localStorage.setItem("sac_session", JSON.stringify(sessionCache));

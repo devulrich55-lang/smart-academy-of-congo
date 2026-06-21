@@ -92,9 +92,15 @@
   <script src="js/sac-live.js"></script>
   <script>
     (async function () {
+      if (typeof SAC_API !== "undefined" && SAC_API.wakeServer) {
+        SAC_API.wakeServer({ attempts: 3, timeoutMs: 35000, delayMs: 4000 }).catch(() => {});
+      }
+
       let session = null;
-      if (typeof SAC_SESSION.verifySession === "function") {
-        session = await SAC_SESSION.verifySession();
+      if (typeof SAC_SESSION.resolveNavigationSession === "function") {
+        session = await SAC_SESSION.resolveNavigationSession();
+      } else if (typeof SAC_SESSION.getActiveSession === "function") {
+        session = SAC_SESSION.getActiveSession();
       } else {
         session = SAC_SESSION.getSession();
       }

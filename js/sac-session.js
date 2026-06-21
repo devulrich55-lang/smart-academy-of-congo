@@ -222,6 +222,37 @@ const SAC_SESSION = (function () {
   }
 
   /**
+   * Session pour navigation interne (dashboard ↔ écosystème) —
+   * conserve la connexion même si l'API est lente ou indisponible.
+   */
+  async function resolveNavigationSession(requiredRole) {
+    const local = getActiveSession() || getSession();
+    if (requiredRole && local && local.role !== requiredRole) return null;
+    if (!local?.identifiant) return null;
+
+    const synced = syncSessionWithAccount(requiredRole) || local;
+
+    if (typeof SAC_API !== "undefined") {
+      try {
+        const online = await SAC_API.ensureOnline();
+        if (online && typeof SAC_API.me === "function") {
+          const serverSession = await SAC_API.me({ soft: true });
+          if (serverSession) {
+            if (requiredRole && serverSession.role !== requiredRole) return null;
+            saveSession(serverSession);
+            clearPostRegistration();
+            return serverSession;
+          }
+        }
+      } catch {
+        /* conserver la session locale */
+      }
+    }
+
+    return synced;
+  }
+
+  /**
    * Vérifie la session : JWT serveur obligatoire si l'API est joignable.
    */
   async function verifySession(requiredRole) {
@@ -354,6 +385,7 @@ const SAC_SESSION = (function () {
     allowLocalAuth,
     getActiveSession,
     restoreSession,
+    resolveNavigationSession,
     verifySession,
     syncSessionWithAccount,
     guard,
