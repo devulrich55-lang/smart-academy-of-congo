@@ -66,6 +66,13 @@ const SAC_SECTION_APPROVAL = (function () {
     if (sectionSession?.sectionName && !profile.sectionName) {
       profile.sectionName = sectionSession.sectionName;
     }
+    if (
+      profile.role === "etudiant" &&
+      typeof SAC_SECTIONS !== "undefined" &&
+      SAC_SECTIONS.linkStudentToSection
+    ) {
+      SAC_SECTIONS.linkStudentToSection(profile);
+    }
     return profile;
   }
 
@@ -79,8 +86,20 @@ const SAC_SECTION_APPROVAL = (function () {
   }
 
   function filiereMatches(a, b) {
+    if (typeof SAC_SECTIONS !== "undefined" && SAC_SECTIONS.filiereMatches) {
+      return SAC_SECTIONS.filiereMatches(a, b);
+    }
     if (!a || !b) return false;
-    return a === b || a.includes(b) || b.includes(a);
+    const na = String(a).trim().toLowerCase();
+    const nb = String(b).trim().toLowerCase();
+    return na === nb || na.includes(nb) || nb.includes(na);
+  }
+
+  function universiteMatches(a, b) {
+    if (typeof SAC_SECTIONS !== "undefined" && SAC_SECTIONS.universiteMatches) {
+      return SAC_SECTIONS.universiteMatches(a, b);
+    }
+    return String(a || "") === String(b || "");
   }
 
   function isRector(session) {
@@ -91,10 +110,11 @@ const SAC_SECTION_APPROVAL = (function () {
   }
 
   function matchesStudentSection(user, sectionSession) {
-    if (!user || user.role !== "etudiant" || !sectionSession) return false;
-    if (String(user.universite || "") !== String(sectionSession.universite || "")) {
-      return false;
+    if (typeof SAC_SECTIONS !== "undefined" && SAC_SECTIONS.studentMatchesSection) {
+      return SAC_SECTIONS.studentMatchesSection(user, sectionSession);
     }
+    if (!user || user.role !== "etudiant" || !sectionSession) return false;
+    if (!universiteMatches(user.universite, sectionSession.universite)) return false;
     const sectionId = sectionSession.sectionId;
     if (sectionId && user.sectionId === sectionId) return true;
     const sf = String(sectionSession.filiere || "")
@@ -106,9 +126,7 @@ const SAC_SECTION_APPROVAL = (function () {
 
   function matchesStaffSection(user, sectionSession) {
     if (!user || !STAFF_ROLES.includes(user.role) || !sectionSession) return false;
-    if (String(user.universite || "") !== String(sectionSession.universite || "")) {
-      return false;
-    }
+    if (!universiteMatches(user.universite, sectionSession.universite)) return false;
     if (user.role === "assistant") {
       const sf = String(sectionSession.filiere || "")
         .trim()
@@ -340,6 +358,13 @@ const SAC_SECTION_APPROVAL = (function () {
 
   function mirrorLocalUser(profile, opts) {
     if (typeof SAC_IDENTITY === "undefined") return;
+    if (
+      profile?.role === "etudiant" &&
+      typeof SAC_SECTIONS !== "undefined" &&
+      SAC_SECTIONS.linkStudentToSection
+    ) {
+      profile = SAC_SECTIONS.linkStudentToSection({ ...profile });
+    }
     const users = SAC_IDENTITY.getLocalUsers();
     const email = SAC_IDENTITY.normalizeEmail(profile.email);
     const idx = users.findIndex(
@@ -373,7 +398,7 @@ const SAC_SECTION_APPROVAL = (function () {
         if (isRector(sectionSession)) {
           return (
             u.role === "professeur" &&
-            String(u.universite || "") === String(sectionSession.universite || "")
+            universiteMatches(u.universite, sectionSession.universite)
           );
         }
         return matchesStaffSection(u, sectionSession);
@@ -432,7 +457,7 @@ const SAC_SECTION_APPROVAL = (function () {
         if (user.role !== "professeur") {
           throw new Error("Le recteur valide uniquement les inscriptions professeur.");
         }
-        if (String(user.universite || "") !== String(sectionSession.universite || "")) {
+        if (!universiteMatches(user.universite, sectionSession.universite)) {
           throw new Error("Ce professeur n'appartient pas à votre université.");
         }
       } else if (!matchesStaffSection(user, sectionSession)) {

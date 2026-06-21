@@ -779,7 +779,8 @@
           let students = SAC_SECTION_ACCOUNTS.getStudentsForSection(session);
           if (typeof SAC_API !== "undefined" && (await SAC_API.ensureOnline())) {
             try {
-              students = await SAC_API.listSectionStudents();
+              const apiStudents = await SAC_API.listSectionStudents();
+              students = SAC_SECTION_ACCOUNTS.mergeStudentsByEmail(students, apiStudents);
             } catch { /* local */ }
           }
           const tbody = document.getElementById("chefStudentsTable");

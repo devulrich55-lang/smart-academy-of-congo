@@ -35,6 +35,103 @@ const SAC_SECTIONS = (function () {
     return (s || "").trim().toLowerCase().normalize("NFD").replace(/\p{Diacritic}/gu, "");
   }
 
+  /** Code campus — insensible à la casse et aux caractères spéciaux. */
+  function normalizeUniversite(code) {
+    return String(code || "")
+      .trim()
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/\p{Diacritic}/gu, "")
+      .replace(/[^a-z0-9]/g, "");
+  }
+
+  function universiteMatches(a, b) {
+    const na = normalizeUniversite(a);
+    const nb = normalizeUniversite(b);
+    if (!na || !nb) return false;
+    return na === nb || na.includes(nb) || nb.includes(na);
+  }
+
+  /** Filière / faculté — ignore accents, casse, tirets et ponctuation. */
+  function normalizeFiliere(value) {
+    return norm(value).replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
+  }
+
+  function filiereTokens(value) {
+    return normalizeFiliere(value)
+      .split(" ")
+      .filter((w) => w.length >= 3);
+  }
+
+  function filiereMatches(a, b) {
+    const fa = normalizeFiliere(a);
+    const fb = normalizeFiliere(b);
+    if (!fa || !fb) return false;
+    if (fa === fb || fa.includes(fb) || fb.includes(fa)) return true;
+    const wordsA = filiereTokens(a);
+    const wordsB = new Set(filiereTokens(b));
+    if (!wordsA.length || !wordsB.size) return false;
+    const shared = wordsA.filter((w) => wordsB.has(w));
+    if (shared.some((w) => w.length >= 5)) return true;
+    return shared.length >= 2;
+  }
+
+  function studentFilieres(student) {
+    const out = [];
+    if (student?.filiere) out.push(student.filiere);
+    if (student?.departement) out.push(student.departement);
+    (student?.coursClasses || []).forEach((c) => {
+      if (c?.filiere) out.push(c.filiere);
+    });
+    return [...new Set(out.filter(Boolean))];
+  }
+
+  function linkStudentToSection(student) {
+    if (!student || student.role !== "etudiant") return student;
+    const match = findSectionForStudent(student);
+    if (match) {
+      student.sectionId = match.id;
+      student.sectionName = match.name;
+    }
+    return student;
+  }
+
+  function studentMatchesSection(student, sectionSession) {
+    if (!student || student.role !== "etudiant" || !sectionSession) return false;
+    if (!universiteMatches(student.universite, sectionSession.universite)) return false;
+
+    const sectionId = sectionSession.sectionId;
+    if (sectionId && student.sectionId === sectionId) return true;
+
+    const resolved = findSectionForStudent(student);
+    if (sectionId && resolved?.id === sectionId) return true;
+
+    const sectionFiliere =
+      sectionSession.filiere || (sectionId ? getSectionById(sectionId)?.filiere : null);
+    if (!sectionFiliere) return !!resolved;
+
+    const filieres = studentFilieres(student);
+    if (!filieres.length) return false;
+    return filieres.some((uf) => filiereMatches(uf, sectionFiliere));
+  }
+
+  function repairStudentsForSection(sectionSession) {
+    if (!sectionSession || typeof SAC_IDENTITY === "undefined") return 0;
+    const users = SAC_IDENTITY.getLocalUsers();
+    let updated = 0;
+    const next = users.map((u) => {
+      if (u.role !== "etudiant" || !studentMatchesSection(u, sectionSession)) return u;
+      const linked = linkStudentToSection({ ...u });
+      if (linked.sectionId !== u.sectionId || linked.sectionName !== u.sectionName) {
+        updated += 1;
+        return linked;
+      }
+      return u;
+    });
+    if (updated) localStorage.setItem("sac_users", JSON.stringify(next));
+    return updated;
+  }
+
   function getSections() {
     return JSON.parse(localStorage.getItem(SECTIONS_KEY) || "[]");
   }
@@ -177,23 +274,24 @@ const SAC_SECTIONS = (function () {
   }
 
   function findSectionForStudent(student) {
-    const sections = getSections();
-    const sf = norm(student.filiere);
+    const sections = getSections().filter((s) => s.active !== false);
     const uni = student.universite;
+    const uniSections = sections.filter((s) => universiteMatches(s.universite, uni));
+    if (!uniSections.length) return null;
 
-    let match = sections.find(
-      (s) =>
-        s.universite === uni &&
-        s.active !== false &&
-        sf &&
-        (norm(s.filiere) === sf ||
-          sf.includes(norm(s.filiere)) ||
-          norm(s.filiere).includes(sf))
+    if (student.sectionId) {
+      const direct = uniSections.find((s) => s.id === student.sectionId);
+      if (direct) return direct;
+    }
+
+    const filieres = studentFilieres(student);
+    let match = uniSections.find((s) =>
+      filieres.some((uf) => filiereMatches(uf, s.filiere))
     );
 
-    if (!match && uni) {
-      match = sections.find(
-        (s) => s.universite === uni && s.active !== false && norm(s.filiere) === "toutes filieres"
+    if (!match) {
+      match = uniSections.find(
+        (s) => normalizeFiliere(s.filiere) === "toutes filieres"
       );
     }
 
@@ -253,7 +351,9 @@ const SAC_SECTIONS = (function () {
   function studentInSection(student, sectionId) {
     const sec = getSectionById(sectionId);
     if (!sec || sec.active === false) return false;
-    if (student.universite && sec.universite !== student.universite) return false;
+    if (student.universite && !universiteMatches(sec.universite, student.universite)) {
+      return false;
+    }
     if (student.sectionId) return student.sectionId === sectionId;
     const match = findSectionForStudent(student);
     return match?.id === sectionId;
@@ -635,6 +735,14 @@ const SAC_SECTIONS = (function () {
     getSectionById,
     findSectionForStudent,
     studentInSection,
+    normalizeUniversite,
+    universiteMatches,
+    normalizeFiliere,
+    filiereMatches,
+    studentFilieres,
+    studentMatchesSection,
+    linkStudentToSection,
+    repairStudentsForSection,
     importSectionsForUniversity,
     createSection,
     createSectionAccount,

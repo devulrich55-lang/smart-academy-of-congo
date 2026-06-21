@@ -294,9 +294,9 @@
   <script src="js/sac-session.js?v=20260620"></script>
   <script src="js/sac-api.js?v=20260620"></script>
   <script src="js/sac-university-logo.js"></script>
-  <script src="js/sac-sections.js"></script>
-  <script src="js/sac-section-accounts.js"></script>
-  <script src="js/sac-section-approval.js"></script>
+  <script src="js/sac-sections.js?v=20260621"></script>
+  <script src="js/sac-section-accounts.js?v=20260621"></script>
+  <script src="js/sac-section-approval.js?v=20260621"></script>
   <script src="js/sac-live-call.js"></script>
   <script src="js/sac-webrtc-room.js"></script>
   <script src="js/sac-live.js"></script>
@@ -354,6 +354,15 @@
         session.sectionId = sectionMeta.id;
         session.sectionName = sectionMeta.name;
         SAC_SESSION.saveSession(session);
+      }
+      if (sectionMeta) {
+        if (!session.filiere) session.filiere = sectionMeta.filiere;
+        if (!session.sectionName) session.sectionName = sectionMeta.name;
+        SAC_SESSION.saveSession(session);
+      }
+
+      if (typeof SAC_SECTIONS !== "undefined" && SAC_SECTIONS.repairStudentsForSection) {
+        SAC_SECTIONS.repairStudentsForSection(session);
       }
 
       const sectionName = session.sectionName || sectionMeta?.name || (isRector ? "Recteur" : "Section");
@@ -556,8 +565,15 @@
         let students = SAC_SECTION_ACCOUNTS.getStudentsForSection(session);
         if (typeof SAC_API !== "undefined" && (await SAC_API.ensureOnline())) {
           try {
-            students = await SAC_API.listSectionStudents();
-          } catch { /* local fallback */ }
+            const apiStudents = await SAC_API.listSectionStudents();
+            students = SAC_SECTION_ACCOUNTS.mergeStudentsByEmail(students, apiStudents);
+            students = students.filter((u) => {
+              if (typeof SAC_SECTIONS !== "undefined" && SAC_SECTIONS.studentMatchesSection) {
+                return SAC_SECTIONS.studentMatchesSection(u, session);
+              }
+              return true;
+            });
+          } catch { /* repli local */ }
         }
 
         const tbody = document.getElementById("studentsTable");

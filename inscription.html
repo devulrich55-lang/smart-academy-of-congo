@@ -2490,6 +2490,14 @@
         profile.sectionApproval = "pending";
       }
 
+      if (
+        profile.role === "etudiant" &&
+        typeof SAC_SECTIONS !== "undefined" &&
+        SAC_SECTIONS.linkStudentToSection
+      ) {
+        profile = SAC_SECTIONS.linkStudentToSection(profile);
+      }
+
       const needsSectionWait =
         profile.role === "etudiant" ||
         profile.role === "professeur" ||

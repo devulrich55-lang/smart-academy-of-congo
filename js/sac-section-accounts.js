@@ -313,30 +313,54 @@ const SAC_SECTION_ACCOUNTS = (function () {
     return profile;
   }
 
-  function getStudentsForSection(sectionSession) {
+  function getStudentsForSection(sectionSession, opts) {
+    const includePending = opts?.includePending === true;
     const actor =
       typeof SAC_NOMINATIONS !== "undefined"
         ? SAC_NOMINATIONS.buildSectionHeadActor(sectionSession) || sectionSession
         : sectionSession;
     const users = SAC_IDENTITY.getLocalUsers();
-    const sectionId = actor.sectionId;
-    const uni = actor.universite;
-    const filiere = (actor.filiere || "").trim().toLowerCase();
 
     return users.filter((u) => {
       if (u.role !== "etudiant") return false;
       if (
+        !includePending &&
         typeof SAC_SECTION_APPROVAL !== "undefined" &&
         SAC_SECTION_APPROVAL.requiresApproval(u.role) &&
         !SAC_SECTION_APPROVAL.isApproved(u)
       ) {
         return false;
       }
+      if (typeof SAC_SECTIONS !== "undefined" && SAC_SECTIONS.studentMatchesSection) {
+        return SAC_SECTIONS.studentMatchesSection(u, actor);
+      }
+      const sectionId = actor.sectionId;
+      const uni = actor.universite;
+      const filiere = (actor.filiere || "").trim().toLowerCase();
       if (sectionId && u.sectionId === sectionId) return true;
-      if (u.universite !== uni) return false;
+      if (String(u.universite || "") !== String(uni || "")) return false;
       const uf = (u.filiere || "").trim().toLowerCase();
       return filiere && (uf === filiere || uf.includes(filiere) || filiere.includes(uf));
     });
+  }
+
+  function mergeStudentsByEmail(localList, apiList) {
+    const byEmail = new Map();
+    const keyOf = (s) =>
+      typeof SAC_IDENTITY !== "undefined"
+        ? SAC_IDENTITY.normalizeEmail(s.email)
+        : String(s.email || "").trim().toLowerCase();
+    (localList || []).forEach((s) => {
+      const key = keyOf(s);
+      if (key) byEmail.set(key, s);
+    });
+    (apiList || []).forEach((s) => {
+      const key = keyOf(s);
+      if (!key) return;
+      const prev = byEmail.get(key) || {};
+      byEmail.set(key, { ...prev, ...s });
+    });
+    return [...byEmail.values()];
   }
 
   function getRectorForUniversity(universiteCode) {
@@ -357,6 +381,7 @@ const SAC_SECTION_ACCOUNTS = (function () {
     updateRectorPassword,
     createStudentAccount,
     getStudentsForSection,
+    mergeStudentsByEmail,
     splitResponsableName,
   };
 })();
