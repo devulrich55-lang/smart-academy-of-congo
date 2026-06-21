@@ -535,20 +535,56 @@ const SAC_TARIFFS = (function () {
   async function refreshStudentFeesFromCampus(session) {
     if (!session || session.role !== "etudiant") return null;
     await ensurePlatformSettings();
-    const users = JSON.parse(localStorage.getItem("sac_users") || "[]");
+    let users = [];
+    try {
+      users = JSON.parse(localStorage.getItem("sac_users") || "[]");
+    } catch {
+      users = [];
+    }
     const idx = users.findIndex((u) => u.role === "etudiant" && u.email === session?.identifiant);
     const uni = (idx >= 0 ? users[idx].universite : null) || session?.universite;
-    const acad = await fetchCampusAcademicFees(uni);
+
+    let acad = null;
+    let apiUniversityFees = null;
+
+    if (typeof SAC_API !== "undefined" && (await SAC_API.ensureOnline())) {
+      try {
+        const me = await SAC_API.me();
+        if (me?.campusAcademicFees) {
+          acad = normalizeAcademicFees(me.campusAcademicFees);
+        }
+        if (me?.universityFees?.length) {
+          apiUniversityFees = me.universityFees;
+        }
+      } catch {
+        /* repli campus */
+      }
+    }
+
+    if (!acad) {
+      acad = await fetchCampusAcademicFees(uni);
+    }
+
+    const userRef = {
+      ...(idx >= 0 ? users[idx] : {}),
+      payment: (idx >= 0 ? users[idx].payment : null) || session?.payment,
+      inscriptionFee:
+        (idx >= 0 ? users[idx].inscriptionFee : null) ||
+        session?.inscriptionFee ||
+        defaultFor("etudiant"),
+    };
+    const universityFees =
+      apiUniversityFees || buildUniversityFeesForStudent(userRef, acad);
+
     if (idx >= 0) {
       users[idx] = applyAcademicFeesToStudent(users[idx], acad, uni);
+      users[idx].universityFees = universityFees;
       if (!users[idx].inscriptionFee) {
         users[idx].inscriptionFee = defaultFor("etudiant");
       }
       localStorage.setItem("sac_users", JSON.stringify(users));
     }
-    const me = idx >= 0 ? users[idx] : null;
-    const userRef = me || { payment: session.payment, inscriptionFee: defaultFor("etudiant") };
-    const universityFees = buildUniversityFeesForStudent(userRef, acad);
+
     const sess = JSON.parse(localStorage.getItem("sac_session") || "null");
     if (sess && sess.role === "etudiant" && sess.identifiant === session.identifiant) {
       Object.assign(sess, {
@@ -559,7 +595,7 @@ const SAC_TARIFFS = (function () {
       });
       localStorage.setItem("sac_session", JSON.stringify(sess));
     }
-    return me;
+    return idx >= 0 ? users[idx] : { universityFees, campusAcademicFees: acad };
   }
 
   function saveLocalCampusAcademicFees(session, academicFees) {
@@ -639,6 +675,22 @@ const SAC_TARIFFS = (function () {
       banks;
   }
 
+  function startStudentFeesSyncPolling(intervalMs) {
+    const ms = intervalMs || PLATFORM_SYNC_INTERVAL_MS;
+    setInterval(() => {
+      try {
+        const sess =
+          typeof SAC_SESSION !== "undefined" ? SAC_SESSION.getSession() : null;
+        if (!sess || sess.role !== "etudiant") return;
+        refreshStudentFeesFromCampus(sess).then(() => {
+          window.dispatchEvent(new CustomEvent("sac-student-fees-updated"));
+        });
+      } catch {
+        /* ignore */
+      }
+    }, ms);
+  }
+
   return {
     get CDF_PER_USD() {
       return getCdfPerUsd();
@@ -678,9 +730,19 @@ const SAC_TARIFFS = (function () {
     refreshPlatformFromServer,
     startPlatformSyncPolling,
     onPlatformTariffsUpdated,
+    startStudentFeesSyncPolling,
   };
 })();
 
 if (typeof SAC_TARIFFS !== "undefined") {
   SAC_TARIFFS.startPlatformSyncPolling(30000);
+  try {
+    const bootSess =
+      typeof SAC_SESSION !== "undefined" ? SAC_SESSION.getSession() : null;
+    if (bootSess?.role === "etudiant") {
+      SAC_TARIFFS.startStudentFeesSyncPolling(30000);
+    }
+  } catch {
+    /* ignore */
+  }
 }

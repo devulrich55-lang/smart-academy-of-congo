@@ -906,7 +906,7 @@
   <script src="js/sac-section-approval.js"></script>
   <script src="js/sac-session.js?v=20260617d"></script>
   <script src="js/sac-api.js?v=20260617d"></script>
-  <script src="js/sac-tariffs.js?v=20260623"></script>
+  <script src="js/sac-tariffs.js?v=20260623c"></script>
   <script src="js/sac-university-logo.js"></script>
   <script src="js/sac-courses.js"></script>
   <script src="js/sac-sections.js"></script>
@@ -1345,8 +1345,8 @@
         classe: pick(found?.classe, session?.classe, ""),
         dateNaissance: found?.dateNaissance || session?.dateNaissance || "—",
         inscriptionFee: found?.inscriptionFee || session?.inscriptionFee || null,
-        campusAcademicFees: found?.campusAcademicFees || session?.campusAcademicFees || null,
-        universityFees: found?.universityFees || null,
+        campusAcademicFees: session?.campusAcademicFees || found?.campusAcademicFees || null,
+        universityFees: session?.universityFees || found?.universityFees || null,
         campusTariffs: found?.campusTariffs || null,
         payment: found?.payment || session?.payment || null,
       };
@@ -1368,15 +1368,16 @@
     }
 
     function getStudentFeesList(profile) {
-      if (profile?.universityFees?.length) return profile.universityFees;
       if (typeof SAC_TARIFFS !== "undefined") {
-        const acad = profile?.campusAcademicFees || SAC_TARIFFS.normalizeAcademicFees(null);
+        const acad =
+          profile?.campusAcademicFees || SAC_TARIFFS.normalizeAcademicFees(null);
         const userRef = {
           ...profile,
           inscriptionFee: profile?.inscriptionFee || SAC_TARIFFS.defaultFor("etudiant"),
         };
         return SAC_TARIFFS.buildUniversityFeesForStudent(userRef, acad);
       }
+      if (profile?.universityFees?.length) return profile.universityFees;
       return DEFAULT_FEES;
     }
 
@@ -1500,7 +1501,7 @@
           let sess = SAC_SESSION.getSession();
           if (sess) {
             await SAC_TARIFFS.refreshStudentFeesFromCampus(sess);
-            sess = SAC_SESSION.syncSessionWithAccount("etudiant") || sess;
+            sess = SAC_SESSION.getSession() || sess;
             renderFees(getStudentProfile(sess));
           }
         });
@@ -1597,6 +1598,12 @@
       }
     }
 
+    window.addEventListener("sac-student-fees-updated", () => {
+      const sess = SAC_SESSION.getSession();
+      if (!sess || sess.role !== "etudiant") return;
+      renderFees(getStudentProfile(sess));
+    });
+
     (async function initDashboard() {
       let session = await SAC_SESSION.guard("etudiant");
       if (!session) return;
@@ -1624,7 +1631,8 @@
       if (typeof SAC_TARIFFS !== "undefined") {
         await SAC_TARIFFS.ensurePlatformSettings();
         await SAC_TARIFFS.refreshStudentFeesFromCampus(session);
-        session = SAC_SESSION.syncSessionWithAccount("etudiant") || session;
+        session = SAC_SESSION.getSession() || session;
+        SAC_TARIFFS.startStudentFeesSyncPolling(30000);
       }
       await SAC_DATA.ensureReady();
       await SAC_DATA.refreshFromServer();
