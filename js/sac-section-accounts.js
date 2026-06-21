@@ -142,6 +142,9 @@ const SAC_SECTION_ACCOUNTS = (function () {
     users.push({
       ...profile,
       passwordHash: hashed,
+      sectionApproval: "approved",
+      sectionApprovedAt: new Date().toISOString(),
+      sectionApprovedBy: actor.identifiant || actor.userId || null,
       createdAt: new Date().toISOString(),
     });
     localStorage.setItem("sac_users", JSON.stringify(users));
@@ -161,6 +164,13 @@ const SAC_SECTION_ACCOUNTS = (function () {
 
     return users.filter((u) => {
       if (u.role !== "etudiant") return false;
+      if (
+        typeof SAC_SECTION_APPROVAL !== "undefined" &&
+        SAC_SECTION_APPROVAL.requiresApproval(u.role) &&
+        !SAC_SECTION_APPROVAL.isApproved(u)
+      ) {
+        return false;
+      }
       if (sectionId && u.sectionId === sectionId) return true;
       if (u.universite !== uni) return false;
       const uf = (u.filiere || "").trim().toLowerCase();

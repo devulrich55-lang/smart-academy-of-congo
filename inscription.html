@@ -1185,7 +1185,7 @@
       </div>
 
       <p class="role-note" id="roleNote">
-        Votre compte sera lié à votre université. Vous pourrez consulter vos cotes et frais dès validation de votre inscription par l'administration.
+        Après votre paiement, présentez-vous à la section de votre filière avec votre dossier complet sous 24 h pour la validation de votre compte.
       </p>
 
       <form id="registerForm" novalidate>
@@ -1258,14 +1258,13 @@
               <span class="field-error" data-for="departement">Département requis</span>
             </div>
             <div class="form-group">
-              <label for="grade">Grade</label>
-              <select class="form-input" id="grade" name="grade">
-                <option value="assistant">Assistant</option>
-                <option value="chef">Chef de travaux</option>
-                <option value="maitre">Maître de conférences</option>
+              <label for="grade">Grade <span class="hint">*</span></label>
+              <select class="form-input" id="grade" name="grade" required>
+                <option value="">— Choisir —</option>
                 <option value="professeur">Professeur ordinaire</option>
-                <option value="vacataire">Vacataire</option>
+                <option value="associe">Professeur associé</option>
               </select>
+              <span class="field-error" data-for="grade">Sélectionnez votre grade</span>
             </div>
             <div class="form-group">
               <label for="numEmploye">N° employé <span class="hint">(optionnel)</span></label>
@@ -1301,13 +1300,12 @@
             </div>
             <div class="form-group">
               <label for="fonction">Fonction <span class="hint">*</span></label>
-              <select class="form-input" id="fonction" name="fonction">
-                <option value="admin">Assistant administratif</option>
-                <option value="scolarite">Assistant scolarité</option>
-                <option value="finances">Assistant finances</option>
-                <option value="accueil">Agent d'accueil</option>
-                <option value="direction">Assistant de direction</option>
+              <select class="form-input" id="fonction" name="fonction" required>
+                <option value="">— Choisir —</option>
+                <option value="assistant">Assistant</option>
+                <option value="chef_travaux">Chef de travaux</option>
               </select>
+              <span class="field-error" data-for="fonction">Sélectionnez votre fonction</span>
             </div>
             <div class="form-group">
               <label for="numAssist">N° matricule / employé <span class="hint">(optionnel)</span></label>
@@ -1618,6 +1616,7 @@
   <script src="js/sac-api.js?v=20260617d"></script>
   <script src="js/sac-tariffs.js"></script>
   <script src="js/sac-sections.js"></script>
+  <script src="js/sac-section-approval.js"></script>
   <script>
     /* Comptes officiels — tous les paiements de la plateforme */
     const BANK_ACCOUNTS = {
@@ -1695,7 +1694,7 @@
       etudiant: {
         badge: "Inscription étudiant",
         icon: "🎓",
-        note: "Votre compte sera lié à votre université. Vous pourrez consulter vos cotes et frais dès validation de votre inscription par l'administration.",
+        note: "Après votre paiement, présentez-vous à la section de votre filière avec votre dossier complet sous 24 h. L'accès à votre espace sera ouvert après validation par le chef de section.",
         benefits: [
           "Consultez vos notes et relevés de cotes en ligne",
           "Documents, images et audio de vos professeurs (votre classe uniquement)",
@@ -1709,7 +1708,7 @@
       professeur: {
         badge: "Inscription professeur",
         icon: "📚",
-        note: "Votre demande sera validée par l'administration de votre université avant l'activation complète de votre compte (saisie des notes, listes d'étudiants).",
+        note: "Votre inscription sera validée par le chef de section de votre filière sous 24 h. Attendez l'activation de votre compte — aucune présentation de dossier n'est requise.",
         benefits: [
           "Déclarez vos cours et classes à l'inscription",
           "Publiez infos, PDF, images et audio pour votre classe",
@@ -1723,7 +1722,7 @@
       assistant: {
         badge: "Inscription assistant",
         icon: "📋",
-        note: "Votre compte sera activé par l'administration de votre université. Vous pourrez gérer les dossiers étudiants, les frais et les documents administratifs de votre service.",
+        note: "Votre compte sera activé par l'administration de votre université sous 24 h. Attendez l'ouverture de votre espace — aucune démarche supplémentaire n'est demandée.",
         benefits: [
           "Déclarez les classes que vous accompagnez",
           "Publiez informations et documents pour une classe précise",
@@ -2446,12 +2445,48 @@
         profile.inscriptionFee = getFee(profile.role);
       }
 
+      if (typeof SAC_SECTION_APPROVAL !== "undefined") {
+        SAC_SECTION_APPROVAL.markPending(profile);
+      } else if (
+        profile.role === "etudiant" ||
+        profile.role === "professeur" ||
+        profile.role === "assistant"
+      ) {
+        profile.sectionApproval = "pending";
+      }
+
+      const needsSectionWait =
+        profile.role === "etudiant" ||
+        profile.role === "professeur" ||
+        profile.role === "assistant";
+
       const dashboards = {
         etudiant: "dashboard-etudiant.html",
         professeur: "dashboard-professeur.html",
         assistant: "dashboard-assistant.html",
         universite: "dashboard-universite.html",
       };
+
+      function finishPendingRegistration(mirrorProfile, passwordHash) {
+        if (typeof SAC_SECTION_APPROVAL !== "undefined") {
+          SAC_SECTION_APPROVAL.mirrorLocalUser(mirrorProfile, { passwordHash });
+        }
+        SAC_SESSION.clearSession();
+        if (typeof SAC_API !== "undefined" && typeof SAC_API.clearClientSession === "function") {
+          SAC_API.clearClientSession();
+        }
+        const waitUrl =
+          typeof SAC_SECTION_APPROVAL !== "undefined"
+            ? SAC_SECTION_APPROVAL.pendingPageUrl(profile.role, profile.email, {
+                source: "register",
+              })
+            : "attente-validation.html?role=" +
+              encodeURIComponent(profile.role) +
+              "&email=" +
+              encodeURIComponent(profile.email) +
+              "&source=register";
+        window.location.replace(waitUrl);
+      }
 
       try {
         if (typeof SAC_API !== "undefined") {
@@ -2477,6 +2512,10 @@
                   universite: profile.universite || null,
                   codeUni: profile.codeUni || null,
                 });
+              }
+              if (needsSectionWait) {
+                finishPendingRegistration({ ...profile, payment }, null);
+                return;
               }
               apiSession = {
                 ...apiSession,
@@ -2547,6 +2586,11 @@
           email: profile.email,
           identifiant: profile.email,
         });
+      }
+
+      if (needsSectionWait) {
+        finishPendingRegistration(profile, profile.passwordHash);
+        return;
       }
 
       const session = SAC_IDENTITY.buildSessionFromUser(profile);
@@ -2799,13 +2843,15 @@
       if (currentRole === "professeur") {
         const uni = document.getElementById("universiteProf").value;
         const dept = document.getElementById("departement").value.trim();
+        const grade = document.getElementById("grade").value;
         valid = showError("universiteProf", !uni) && valid;
         valid = showError("departement", dept.length < 2) && valid;
+        valid = showError("grade", !grade, "Sélectionnez votre grade") && valid;
         valid = validateCoursClasses("coursClasseListProf", "coursClassesProf") && valid;
         Object.assign(profile, {
           universite: uni,
           departement: dept,
-          grade: document.getElementById("grade").value,
+          grade,
           numEmploye: document.getElementById("numEmploye").value.trim() || null,
           coursClasses: collectCoursClasses("coursClasseListProf", uni),
         });
@@ -2814,13 +2860,15 @@
       if (currentRole === "assistant") {
         const uni = document.getElementById("universiteAssist").value;
         const service = document.getElementById("service").value;
+        const fonction = document.getElementById("fonction").value;
         valid = showError("universiteAssist", !uni) && valid;
         valid = showError("service", !service) && valid;
+        valid = showError("fonction", !fonction, "Sélectionnez votre fonction") && valid;
         valid = validateCoursClasses("coursClasseListAssist", "coursClassesAssist") && valid;
         Object.assign(profile, {
           universite: uni,
           service,
-          fonction: document.getElementById("fonction").value,
+          fonction,
           numAssist: document.getElementById("numAssist").value.trim() || null,
           coursClasses: collectCoursClasses("coursClasseListAssist", uni),
         });

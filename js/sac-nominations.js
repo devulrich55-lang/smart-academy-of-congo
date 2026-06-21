@@ -5,8 +5,12 @@ const SAC_NOMINATIONS = (function () {
   const GRADE_LABELS = {
     assistant: "Assistant",
     chef: "Chef de travaux",
+    chef_travaux: "Chef de travaux",
     maitre: "Maître de conférences",
     professeur: "Professeur ordinaire",
+    professeur_ordinaire: "Professeur ordinaire",
+    associe: "Professeur associé",
+    professeur_associe: "Professeur associé",
     vacataire: "Vacataire",
   };
 

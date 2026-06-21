@@ -51,6 +51,8 @@
     </div>
     <nav class="nav-tabs" aria-label="Navigation section">
       <button type="button" class="nav-tab active" data-section="accueil">Tableau de bord</button>
+      <button type="button" class="nav-tab nav-tab--priority" data-section="validations-etudiants">🎓 Valider étudiants</button>
+      <button type="button" class="nav-tab nav-tab--priority" data-section="validations-personnel">👨‍🏫 Valider prof. &amp; assistants</button>
       <button type="button" class="nav-tab nav-tab--priority" data-section="inscriptions">👤 Créer des comptes étudiants</button>
       <button type="button" class="nav-tab nav-tab--priority" data-section="reclamations">📩 Réclamations</button>
       <button type="button" class="nav-tab nav-tab--priority" data-section="live">🎥 Live section</button>
@@ -71,6 +73,8 @@
       </div>
 
       <div class="stats">
+        <div class="stat"><strong id="statPendingStudents">0</strong><span>Étudiants en attente</span></div>
+        <div class="stat"><strong id="statPendingStaff">0</strong><span>Prof. / assistants en attente</span></div>
         <div class="stat"><strong id="statStudents">0</strong><span>Étudiants inscrits</span></div>
         <div class="stat"><strong id="statRecOpen">0</strong><span>Réclamations ouvertes</span></div>
         <div class="stat"><strong id="statRecTotal">0</strong><span>Réclamations totales</span></div>
@@ -81,14 +85,96 @@
         <div class="panel__head"><h2>Votre mission</h2></div>
         <div class="panel__body">
           <p class="page-desc" style="margin:0;">
-            En tant que chef de section, vous êtes responsable de <strong>créer les comptes étudiants</strong> de votre filière
-            et de traiter leurs réclamations (scolarité, notes, documents…).
+            Deux validations distinctes sous <strong>24 heures</strong> :
+            les <strong>étudiants</strong> (dossier à vérifier sur place) et le
+            <strong>personnel</strong> professeur / assistant (validation en ligne).
           </p>
           <div style="margin-top:1rem;display:flex;flex-wrap:wrap;gap:0.5rem;">
-            <button type="button" class="btn btn--role" data-goto="inscriptions">Créer un compte étudiant</button>
+            <button type="button" class="btn btn--role" data-goto="validations-etudiants">Valider les étudiants</button>
+            <button type="button" class="btn btn--ghost" data-goto="validations-personnel">Valider prof. &amp; assistants</button>
+            <button type="button" class="btn btn--ghost" data-goto="inscriptions">Créer un compte étudiant</button>
             <button type="button" class="btn btn--ghost" data-goto="reclamations">Voir les réclamations</button>
             <button type="button" class="btn btn--ghost" data-goto="live">Lancer un live section</button>
           </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="page-section" id="section-validations-etudiants">
+      <h1 class="page-title">Valider les inscriptions étudiant</h1>
+      <p class="page-desc">
+        Validation <strong>séparée</strong> réservée aux étudiants de votre filière.
+        L'étudiant doit se présenter avec son <strong>dossier complet</strong> sous <strong>24 heures</strong>.
+      </p>
+
+      <div class="panel" style="margin-bottom:1rem;border-left:4px solid #0e7490;">
+        <div class="panel__body" style="padding:1rem 1.15rem;">
+          <strong style="color:#0e7490;">Validation étudiant — chef de section</strong>
+          <p style="margin:0.5rem 0 0;font-size:0.92rem;line-height:1.55;color:var(--muted);">
+            Vérifiez le dossier sur place (identité, bulletins, preuve de paiement), puis validez pour ouvrir l'accès au tableau de bord étudiant.
+          </p>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel__head"><h2>Étudiants en attente</h2></div>
+        <div class="panel__body">
+          <div style="overflow-x:auto;">
+            <table>
+              <thead>
+                <tr>
+                  <th>Nom</th>
+                  <th>E-mail</th>
+                  <th>Filière</th>
+                  <th>Niveau / classe</th>
+                  <th>Délai 24 h</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="pendingStudentsTable"></tbody>
+            </table>
+          </div>
+          <p class="empty" id="pendingStudentsEmpty" style="display:none;">Aucun étudiant en attente pour votre section.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="page-section" id="section-validations-personnel">
+      <h1 class="page-title">Valider professeurs &amp; assistants</h1>
+      <p class="page-desc">
+        Validation <strong>séparée</strong> du personnel enseignant et administratif de votre filière.
+        Aucun dossier physique — validation en ligne sous <strong>24 heures</strong>.
+      </p>
+
+      <div class="panel" style="margin-bottom:1rem;border-left:4px solid #6b4c9a;">
+        <div class="panel__body" style="padding:1rem 1.15rem;">
+          <strong style="color:#6b4c9a;">Validation personnel — chef de section</strong>
+          <p style="margin:0.5rem 0 0;font-size:0.92rem;line-height:1.55;color:var(--muted);">
+            Professeurs et assistants attendent votre validation en ligne. Confirmez leur appartenance à la filière puis activez leur compte.
+          </p>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel__head"><h2>Professeurs &amp; assistants en attente</h2></div>
+        <div class="panel__body">
+          <div style="overflow-x:auto;">
+            <table>
+              <thead>
+                <tr>
+                  <th>Profil</th>
+                  <th>Nom</th>
+                  <th>E-mail</th>
+                  <th>Filière</th>
+                  <th>Détails</th>
+                  <th>Délai 24 h</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="pendingStaffTable"></tbody>
+            </table>
+          </div>
+          <p class="empty" id="pendingStaffEmpty" style="display:none;">Aucun professeur ou assistant en attente pour votre section.</p>
         </div>
       </div>
     </section>
@@ -210,6 +296,7 @@
   <script src="js/sac-university-logo.js"></script>
   <script src="js/sac-sections.js"></script>
   <script src="js/sac-section-accounts.js"></script>
+  <script src="js/sac-section-approval.js"></script>
   <script src="js/sac-live-call.js"></script>
   <script src="js/sac-webrtc-room.js"></script>
   <script src="js/sac-live.js"></script>
@@ -262,19 +349,158 @@
         });
         document.querySelectorAll(".page-section").forEach((x) => x.classList.remove("active"));
         document.getElementById("section-" + id)?.classList.add("active");
+        if (id === "validations-etudiants") renderPendingStudents();
+        if (id === "validations-personnel") renderPendingStaff();
         if (id === "inscriptions") renderStudents();
         if (id === "reclamations") renderReclamations();
         if (id === "live") renderSectionLive();
       }
 
       function renderStats() {
+        const pendingStudents =
+          typeof SAC_SECTION_APPROVAL !== "undefined"
+            ? SAC_SECTION_APPROVAL.getPendingStudentsForSection(session)
+            : [];
+        const pendingStaff =
+          typeof SAC_SECTION_APPROVAL !== "undefined"
+            ? SAC_SECTION_APPROVAL.getPendingStaffForSection(session)
+            : [];
         const students = SAC_SECTION_ACCOUNTS.getStudentsForSection(session);
         const recs = session.sectionId
           ? SAC_SECTIONS.getReclamationsForSection(session.sectionId)
           : [];
+        document.getElementById("statPendingStudents").textContent = pendingStudents.length;
+        document.getElementById("statPendingStaff").textContent = pendingStaff.length;
         document.getElementById("statStudents").textContent = students.length;
         document.getElementById("statRecOpen").textContent = recs.filter((r) => r.statut === "ouverte").length;
         document.getElementById("statRecTotal").textContent = recs.length;
+      }
+
+      function delayCell(u) {
+        const delay = SAC_SECTION_APPROVAL.formatHoursRemaining(u);
+        const overdue = (SAC_SECTION_APPROVAL.hoursRemaining(u) || 0) <= 0;
+        const delayStyle = overdue
+          ? "color:#b45309;font-weight:600;"
+          : "color:var(--muted);font-size:0.88rem;";
+        return "<td style=\"" + delayStyle + "\">" + esc(delay) + "</td>";
+      }
+
+      function bindPendingActions(tbody, scope, refresh) {
+        tbody.querySelectorAll("[data-approve]").forEach((btn) => {
+          btn.addEventListener("click", async () => {
+            try {
+              if (scope === "student") {
+                await SAC_SECTION_APPROVAL.approveStudent(btn.dataset.approve, session);
+              } else {
+                await SAC_SECTION_APPROVAL.approveStaff(btn.dataset.approve, session);
+              }
+              refresh();
+            } catch (err) {
+              alert(err.message || "Validation impossible.");
+            }
+          });
+        });
+        tbody.querySelectorAll("[data-reject]").forEach((btn) => {
+          btn.addEventListener("click", async () => {
+            const reason = window.prompt("Motif du refus (optionnel) :") || "";
+            try {
+              if (scope === "student") {
+                await SAC_SECTION_APPROVAL.rejectStudent(btn.dataset.reject, session, reason);
+              } else {
+                await SAC_SECTION_APPROVAL.rejectStaff(btn.dataset.reject, session, reason);
+              }
+              refresh();
+            } catch (err) {
+              alert(err.message || "Refus impossible.");
+            }
+          });
+        });
+      }
+
+      function renderPendingStudents() {
+        const tbody = document.getElementById("pendingStudentsTable");
+        const empty = document.getElementById("pendingStudentsEmpty");
+        if (!tbody || typeof SAC_SECTION_APPROVAL === "undefined") return;
+
+        const pending = SAC_SECTION_APPROVAL.getPendingStudentsForSection(session);
+        tbody.innerHTML = pending
+          .map((u) => {
+            const name =
+              typeof SAC_IDENTITY !== "undefined"
+                ? SAC_IDENTITY.getDisplayName(u)
+                : [u.prenom, u.nom].filter(Boolean).join(" ") || u.email;
+            const filiere = SAC_SECTION_APPROVAL.displayFiliere(u);
+            const details =
+              (u.niveau || "—").toUpperCase() + " · " + (u.classe || "—");
+            return (
+              "<tr>" +
+              "<td>" + esc(name) + "</td>" +
+              "<td>" + esc(u.email) + "</td>" +
+              "<td>" + esc(filiere) + "</td>" +
+              "<td>" + esc(details) + "</td>" +
+              delayCell(u) +
+              "<td style=\"white-space:nowrap;\">" +
+              "<button type=\"button\" class=\"btn btn--role btn--sm\" data-approve=\"" + esc(u.email) + "\">Valider</button> " +
+              "<button type=\"button\" class=\"btn btn--ghost btn--sm\" data-reject=\"" + esc(u.email) + "\">Refuser</button>" +
+              "</td>" +
+              "</tr>"
+            );
+          })
+          .join("");
+
+        empty.style.display = pending.length ? "none" : "block";
+        bindPendingActions(tbody, "student", () => {
+          renderPendingStudents();
+          renderStats();
+        });
+      }
+
+      function renderPendingStaff() {
+        const tbody = document.getElementById("pendingStaffTable");
+        const empty = document.getElementById("pendingStaffEmpty");
+        if (!tbody || typeof SAC_SECTION_APPROVAL === "undefined") return;
+
+        const pending = SAC_SECTION_APPROVAL.getPendingStaffForSection(session);
+        tbody.innerHTML = pending
+          .map((u) => {
+            const name =
+              typeof SAC_IDENTITY !== "undefined"
+                ? SAC_IDENTITY.getDisplayName(u)
+                : [u.prenom, u.nom].filter(Boolean).join(" ") || u.email;
+            const role = SAC_SECTION_APPROVAL.roleLabel(u.role);
+            const filiere = SAC_SECTION_APPROVAL.displayFiliere(u);
+            let details = "—";
+            if (u.role === "professeur") {
+              const grade =
+                SAC_SECTION_APPROVAL.GRADE_LABELS[u.grade] || u.grade || "—";
+              details = grade + " · " + (u.departement || "—");
+            } else if (u.role === "assistant") {
+              const fn =
+                SAC_SECTION_APPROVAL.FONCTION_LABELS[u.fonction] || u.fonction || "—";
+              details = fn + " · " + (u.service || "—");
+            }
+            return (
+              "<tr>" +
+              "<td>" + esc(role) + "</td>" +
+              "<td>" + esc(name) + "</td>" +
+              "<td>" + esc(u.email) + "</td>" +
+              "<td>" + esc(filiere) + "</td>" +
+              "<td>" + esc(details) + "</td>" +
+              delayCell(u) +
+              "<td style=\"white-space:nowrap;\">" +
+              "<button type=\"button\" class=\"btn btn--role btn--sm\" data-approve=\"" + esc(u.email) + "\">Valider</button> " +
+              "<button type=\"button\" class=\"btn btn--ghost btn--sm\" data-reject=\"" + esc(u.email) + "\">Refuser</button>" +
+              "</td>" +
+              "</tr>"
+            );
+          })
+          .join("");
+
+        empty.style.display = pending.length ? "none" : "block";
+        bindPendingActions(tbody, "staff", () => {
+          renderPendingStaff();
+          renderStats();
+        });
       }
 
       function renderSectionPresenceStats(data) {

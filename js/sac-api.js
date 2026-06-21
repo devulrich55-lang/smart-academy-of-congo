@@ -372,6 +372,7 @@ const SAC_API = (function () {
     "campusTariffs",
     "grade",
     "fonction",
+    "sectionApproval",
     "nomination",
     "logoUrl",
   ];

@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Validation en cours — Smart Academy of Congo</title>
+  <script src="js/sac-config.js"></script>
+  <script src="js/sac-theme.js"></script>
+  <link rel="icon" href="logos.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="css/logo.css" />
+  <link rel="stylesheet" href="css/theme.css" />
+  <link rel="stylesheet" href="css/connexion.css" />
+  <link rel="stylesheet" href="css/mobile.css" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />
+  <meta name="theme-color" content="#003366" />
+  <style>
+    .wait-deadline {
+      margin-top: 0.85rem;
+      padding: 0.65rem 0.85rem;
+      border-radius: 8px;
+      background: rgba(180, 120, 0, 0.1);
+      border: 1px solid rgba(180, 120, 0, 0.25);
+      font-size: 0.88rem;
+      color: #8a5a00;
+    }
+    .wait-box {
+      padding: 1rem 1.1rem;
+      border-radius: 10px;
+      background: rgba(0, 51, 102, 0.06);
+      border: 1px solid rgba(0, 51, 102, 0.12);
+      margin-bottom: 1.25rem;
+    }
+  </style>
+</head>
+<body class="auth-page">
+  <header class="auth-header">
+    <div class="auth-page__container auth-header__inner">
+      <a href="index.html" class="auth-header__logo logo">
+        <img src="logos.svg" alt="Smart Academy of Congo" class="logo__img" width="44" height="44" />
+        <span class="logo__text">Smart Academy of Congo</span>
+      </a>
+      <a href="index.html" class="auth-header__link">
+        <span aria-hidden="true">←</span>
+        <span>Retour à l'accueil</span>
+      </a>
+    </div>
+  </header>
+
+  <main class="auth-main">
+    <div class="auth-page__container">
+      <section class="auth-card" style="max-width:600px;margin:0 auto;">
+        <div id="waitIcon" style="font-size:2.5rem;margin-bottom:0.75rem;">⏳</div>
+        <h1 id="waitTitle" style="font-family:'Playfair Display',serif;margin:0 0 0.75rem;">—</h1>
+        <p id="waitLead" style="color:var(--muted);line-height:1.55;margin:0 0 1rem;"></p>
+        <div id="waitBox" class="wait-box">
+          <p id="waitDetail" style="margin:0;line-height:1.55;"></p>
+          <p id="waitDeadline" class="wait-deadline" hidden></p>
+          <p id="waitEmail" style="margin:0.75rem 0 0;font-size:0.9rem;color:var(--muted);"></p>
+        </div>
+        <p id="waitHint" style="font-size:0.88rem;color:var(--muted);margin:0 0 1.25rem;"></p>
+        <div style="display:flex;flex-wrap:wrap;gap:0.65rem;">
+          <a href="connexion.html" id="btnConnexion" class="auth-submit" style="text-decoration:none;display:inline-flex;align-items:center;justify-content:center;">Retour à la connexion</a>
+          <a href="index.html" class="auth-link" style="align-self:center;">Accueil</a>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script src="js/sac-identity.js"></script>
+  <script src="js/sac-section-approval.js"></script>
+  <script>
+    (function () {
+      const params = new URLSearchParams(window.location.search);
+      const role = params.get("role") || "etudiant";
+      const email = params.get("email") || "";
+      const status = params.get("status") || "pending";
+      const source =
+        params.get("source") ||
+        (status === "pending_login" ? "login" : "register");
+
+      document.getElementById("btnConnexion").href =
+        "connexion.html?role=" + encodeURIComponent(role);
+
+      const content =
+        typeof SAC_SECTION_APPROVAL !== "undefined"
+          ? SAC_SECTION_APPROVAL.getWaitPageContent(role, { status, source })
+          : null;
+
+      if (content) {
+        document.getElementById("waitIcon").textContent = content.icon;
+        document.getElementById("waitTitle").textContent = content.title;
+        document.getElementById("waitLead").textContent = content.lead;
+        document.getElementById("waitDetail").innerHTML = content.detailHtml;
+        document.getElementById("waitHint").textContent = content.hint || "";
+      }
+
+      if (email) {
+        document.getElementById("waitEmail").textContent = "Compte : " + email;
+      }
+
+      if (status !== "rejected" && typeof SAC_SECTION_APPROVAL !== "undefined") {
+        const local = SAC_IDENTITY.findUserByLoginId(
+          SAC_IDENTITY.getLocalUsers(),
+          email
+        );
+        const deadlineEl = document.getElementById("waitDeadline");
+        if (local && SAC_SECTION_APPROVAL.isPending(local)) {
+          deadlineEl.hidden = false;
+          deadlineEl.textContent =
+            "Délai de validation : 24 heures · " +
+            SAC_SECTION_APPROVAL.formatHoursRemaining(local);
+        } else if (role === "etudiant" || role === "professeur" || role === "assistant") {
+          deadlineEl.hidden = false;
+          deadlineEl.textContent = "Délai de validation : 24 heures à compter de votre inscription.";
+        }
+      }
+    })();
+  </script>
+</body>
+</html>

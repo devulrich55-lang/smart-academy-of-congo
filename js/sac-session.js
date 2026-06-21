@@ -346,6 +346,14 @@ const SAC_SESSION = (function () {
     if (typeof SAC_PORTAL !== "undefined" && SAC_PORTAL.redirectIfWrongRole(session)) {
       return null;
     }
+    if (typeof SAC_SECTION_APPROVAL !== "undefined") {
+      const enriched = SAC_SECTION_APPROVAL.enrichSession(session);
+      if (SAC_SECTION_APPROVAL.shouldBlockDashboard(enriched)) {
+        SAC_SECTION_APPROVAL.redirectPending(enriched);
+        return null;
+      }
+      return enriched;
+    }
     return session;
   }
 
@@ -368,6 +376,13 @@ const SAC_SESSION = (function () {
     const session = await verifySession(wanted || null);
     if (!session || !DASHBOARDS[session.role]) return false;
     if (wanted && wanted !== session.role) return false;
+    if (
+      typeof SAC_SECTION_APPROVAL !== "undefined" &&
+      SAC_SECTION_APPROVAL.shouldBlockDashboard(session)
+    ) {
+      SAC_SECTION_APPROVAL.redirectPending(session);
+      return true;
+    }
     window.location.replace(dashboardUrl(session.role));
     return true;
   }
