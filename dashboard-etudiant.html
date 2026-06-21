@@ -707,8 +707,7 @@
 
     <!-- CORRECTION IA -->
     <section class="page-section" id="section-correction-ia">
-      <h1 class="page-title">Correction automatisée — Agent IA SAC</h1>
-      <p class="page-desc">Déposez vos travaux pour une correction intelligente : analyse du contenu, grille pédagogique, détection de plagiat et note provisoire — validée ensuite par votre professeur.</p>
+      <h1 class="page-title">Correction IA</h1>
       <div id="aiCorrectionStudentRoot"></div>
     </section>
 
@@ -1491,16 +1490,21 @@
         });
       }
       if (id === "correction-ia" && typeof SAC_AI_CORRECTION !== "undefined") {
-        const session = SAC_SESSION.getSession();
-        const p = getStudentProfile(session);
-        const courses = typeof SAC_COURSES !== "undefined"
-          ? SAC_COURSES.getEnrolledCourses?.(session) || []
-          : [{ courseCode: "ECO101", courseName: "Introduction à l'économie", classe: "L2 Gestion" }];
-        aiCorrectionUi = SAC_AI_CORRECTION.mountStudentUI(
-          document.getElementById("aiCorrectionStudentRoot"),
-          { ...session, ...p, email: session.identifiant },
-          courses.length ? courses : [{ courseCode: "TRV1", courseName: "Travail académique", classe: p.filiere }]
-        );
+        const root = document.getElementById("aiCorrectionStudentRoot");
+        root.innerHTML = '<p class="pub-empty">Chargement des cours…</p>';
+        SAC_DATA.refreshFromServer().then(async () => {
+          const session = SAC_SESSION.getSession();
+          const p = getStudentProfile(session);
+          const courses =
+            typeof SAC_COURSES !== "undefined"
+              ? await SAC_COURSES.getFacultyCoursesForStudent(session)
+              : [];
+          aiCorrectionUi = SAC_AI_CORRECTION.mountStudentUI(
+            root,
+            { ...session, ...p, email: session.identifiant, prenom: p.prenom, nom: p.nom },
+            courses
+          );
+        });
       }
       if (id === "live" && typeof SAC_VIDEO_LIVE !== "undefined") {
         SAC_VIDEO_LIVE.mountJoinPanel(

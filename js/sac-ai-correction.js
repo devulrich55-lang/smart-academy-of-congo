@@ -66,15 +66,20 @@ const SAC_AI_CORRECTION = (function () {
     return x === y || x.includes(y) || y.includes(x);
   }
 
-  function filterMatchingReferences(refs, universite, courseCode, assignmentTitle, professorEmail, semester) {
+  function filterMatchingReferences(refs, universite, courseCode, assignmentTitle, professorEmail, semester, courseName) {
     const profLower = (professorEmail || "").toLowerCase();
     return (refs || []).filter((r) => {
       if (r.universite !== universite || r.courseCode !== courseCode) return false;
       if (semester && r.semester && r.semester !== semester) return false;
-      if (!titlesMatch(assignmentTitle, r.assignmentTitle)) return false;
       const rProf = (r.professorEmail || "").toLowerCase();
       if (profLower && rProf && rProf !== profLower) return false;
-      return true;
+      if (!r.assignmentTitle) return true;
+      if (!assignmentTitle) return true;
+      return (
+        titlesMatch(assignmentTitle, r.assignmentTitle) ||
+        titlesMatch(courseName || assignmentTitle, r.assignmentTitle) ||
+        titlesMatch(assignmentTitle, r.courseName)
+      );
     });
   }
 
@@ -86,7 +91,7 @@ const SAC_AI_CORRECTION = (function () {
     return !!(reference && String(reference.referenceText || "").trim().length >= 20);
   }
 
-  async function findReference(universite, courseCode, assignmentTitle, professorEmail, semester) {
+  async function findReference(universite, courseCode, assignmentTitle, professorEmail, semester, courseName) {
     if (typeof SAC_API !== "undefined" && (await SAC_API.ensureOnline())) {
       try {
         const json = await SAC_API.platformRequest("/platform/corrections/references");
@@ -97,7 +102,8 @@ const SAC_AI_CORRECTION = (function () {
             courseCode,
             assignmentTitle,
             professorEmail,
-            semester
+            semester,
+            courseName
           )
         );
         if (match) return match;
@@ -111,7 +117,8 @@ const SAC_AI_CORRECTION = (function () {
       courseCode,
       assignmentTitle,
       professorEmail,
-      semester
+      semester,
+      courseName
     );
     return pickLatestReference(matches);
   }
@@ -560,63 +567,68 @@ const SAC_AI_CORRECTION = (function () {
     return row;
   }
 
+  async function extractSubmissionText(file) {
+    if (!file || !file.size) return "";
+    if (/\.(txt|md)$/i.test(file.name || "")) {
+      return String(await readTextFile(file)).trim();
+    }
+    return "";
+  }
+
   async function submitWork(student, data, file) {
+    let text = String(data.textContent || data.text || "").trim();
+    if (!text && file) {
+      text = await extractSubmissionText(file);
+    }
+    if (!text) {
+      throw new Error(
+        "Collez le texte de votre travail dans le champ prévu, ou joignez un fichier TXT."
+      );
+    }
+
+    const payload = {
+      ...data,
+      textContent: text,
+      assignmentTitle: data.assignmentTitle || data.courseName || data.courseCode,
+    };
+
     const reference = await findReference(
       student.universite,
-      data.courseCode,
-      data.assignmentTitle,
-      data.professorEmail,
-      data.semester
+      payload.courseCode,
+      payload.assignmentTitle,
+      payload.professorEmail,
+      payload.semester,
+      payload.courseName
     );
-    const correctionBundle = await resolveCorrectionSource(reference, data);
+    const correctionBundle = await resolveCorrectionSource(reference, payload);
     if (!correctionBundle) {
       const err = new Error(REJECT_MSG_NO_SOURCE);
       err.code = "NO_CORRECTION_SOURCE";
       throw err;
     }
 
-    const text = data.textContent || data.text || "";
-    const preferLocal =
-      correctionBundle.mode === "web_research" ||
-      typeof SAC_API === "undefined" ||
-      !(await SAC_API.ensureOnline());
-
-    if (!preferLocal) {
-      const payload = {
-        ...data,
-        correctionMode: correctionBundle.mode,
-      };
-      if (file) {
-        const fd = new FormData();
-        Object.entries(payload).forEach(([k, v]) => fd.append(k, v));
-        fd.append("file", file);
-        const json = await SAC_API.uploadFormData("/platform/corrections/submit", fd);
-        return json.submission;
-      }
-      const json = await SAC_API.platformRequest("/platform/corrections/submit", {
-        method: "POST",
-        body: JSON.stringify(payload),
-      });
-      return json.submission;
-    }
-
-    const analysis = analyzeLocally(text, data.courseName, data.assignmentTitle, correctionBundle);
+    const analysis = analyzeLocally(
+      text,
+      payload.courseName,
+      payload.assignmentTitle,
+      correctionBundle
+    );
     const sub = {
       id: uid(),
       studentEmail: student.email || student.identifiant,
       studentName: [student.prenom, student.nom].filter(Boolean).join(" ") || student.displayName,
       studentMatricule: student.matricule,
-      professorEmail: data.professorEmail,
+      professorEmail: payload.professorEmail,
       universite: student.universite,
       filiere: student.filiere,
       niveau: student.niveau,
-      courseCode: data.courseCode,
-      courseName: data.courseName,
-      classe: data.classe,
-      semester: data.semester || "s1-2025",
-      assignmentTitle: data.assignmentTitle,
+      courseCode: payload.courseCode,
+      courseName: payload.courseName,
+      classe: payload.classe,
+      semester: payload.semester || "s1-2025",
+      assignmentTitle: payload.assignmentTitle,
       textContent: text.slice(0, 500),
-      fileType: data.fileType || (file ? file.type : "text"),
+      fileType: payload.fileType || (file ? file.type : "text"),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       ...analysis,
@@ -624,16 +636,38 @@ const SAC_AI_CORRECTION = (function () {
     const list = getLocal();
     list.unshift(sub);
     saveLocal(list);
+
+    if (typeof SAC_API !== "undefined" && (await SAC_API.ensureOnline())) {
+      try {
+        await SAC_API.platformRequest("/platform/corrections/submit", {
+          method: "POST",
+          body: JSON.stringify({ ...payload, correctionMode: correctionBundle.mode }),
+        });
+      } catch {
+        /* correction locale déjà enregistrée */
+      }
+    }
+
     return sub;
   }
 
   async function listForStudent(student) {
     const email = (student.email || student.identifiant || "").toLowerCase();
+    const local = getLocal().filter((s) => (s.studentEmail || "").toLowerCase() === email);
     if (typeof SAC_API !== "undefined" && (await SAC_API.ensureOnline())) {
-      const json = await SAC_API.platformRequest("/platform/corrections/me");
-      return json.submissions || [];
+      try {
+        const json = await SAC_API.platformRequest("/platform/corrections/me");
+        const apiSubs = json.submissions || [];
+        const merged = [...local];
+        apiSubs.forEach((sub) => {
+          if (!merged.some((item) => item.id === sub.id)) merged.push(sub);
+        });
+        return merged.sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
+      } catch {
+        return local.sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
+      }
     }
-    return getLocal().filter((s) => (s.studentEmail || "").toLowerCase() === email);
+    return local.sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
   }
 
   async function listPendingProfessor(prof) {
@@ -741,7 +775,7 @@ const SAC_AI_CORRECTION = (function () {
     if (sub.status === "valide") step = 5;
     if (sub.status === "rejete") step = 2;
 
-    let body = renderFlowStep(step);
+    let body = options.simple ? "" : renderFlowStep(step);
     if (sub.status === "rejete") {
       const rejectMsg =
         sub.professorComment ||
@@ -814,47 +848,41 @@ const SAC_AI_CORRECTION = (function () {
 
   function mountStudentUI(container, student, courses) {
     if (!container) return;
-    const courseOptions = (courses || [])
+    const facultyCourses = (courses || []).filter((c) => c?.courseCode);
+    const courseOptions = facultyCourses
       .map(
         (c) =>
-          `<option value="${c.courseCode}" data-name="${c.courseName || c.courseCode}" data-classe="${c.classe || ""}">${c.courseCode} — ${c.courseName || ""}</option>`
+          `<option value="${c.courseCode}" data-name="${c.courseName || c.courseCode}" data-classe="${c.classe || ""}" data-prof="${c.professorEmail || ""}">${c.courseCode} — ${c.courseName || ""}${c.professorName ? " · " + c.professorName : ""}</option>`
       )
       .join("");
 
     container.innerHTML = `
       <div class="panel ai-deposit-panel">
         <div class="panel__head ai-deposit-panel__head">
-          <div>
-            <h2>🤖 Correction automatisée par l'agent IA SAC</h2>
-            <p class="ai-deposit-panel__subtitle">Dépôt, analyse IA et validation professeur</p>
-          </div>
+          <h2>Déposer un travail</h2>
         </div>
         <div class="panel__body">
-          ${renderFlowStep(1)}
-          <p class="ai-deposit__intro">Déposez votre travail (texte, PDF, Word ou image). L'IA compare d'abord à la <strong>copie de correction du professeur</strong> si elle existe. Sinon, elle effectue une <strong>recherche internet automatique</strong> (Wikipedia, sources ouvertes) pour trouver des réponses fiables dans le domaine du cours. L'orthographe n'est pas pénalisée.</p>
-          <form id="aiSubmitForm" class="ai-deposit__form">
+          ${
+            facultyCourses.length
+              ? `<form id="aiSubmitForm" class="ai-deposit__form">
             <div class="ai-form-grid">
-              <div class="ai-field">
-                <label class="ai-field__label" for="aiCourseCode"><span class="ai-field__icon">📚</span> Cours</label>
-                <select class="ai-field__input" id="aiCourseCode" name="courseCode" required>${courseOptions || '<option value="GEN">Travail général</option>'}</select>
-              </div>
-              <div class="ai-field">
-                <label class="ai-field__label" for="aiAssignmentTitle"><span class="ai-field__icon">✏️</span> Titre du travail</label>
-                <input class="ai-field__input" id="aiAssignmentTitle" name="assignmentTitle" required placeholder="Ex. Travail 1 — Dissertation" />
+              <div class="ai-field ai-field--full">
+                <label class="ai-field__label" for="aiCourseCode"><span class="ai-field__icon">📚</span> Cours concerné</label>
+                <select class="ai-field__input" id="aiCourseCode" name="courseCode" required>${courseOptions}</select>
+                <span class="ai-field__hint">Liste des cours de votre faculté inscrits par les professeurs.</span>
               </div>
               <div class="ai-field ai-field--full">
-                <label class="ai-field__label" for="aiTextContent"><span class="ai-field__icon">📝</span> Contenu (texte)</label>
-                <textarea class="ai-field__textarea" id="aiTextContent" name="textContent" rows="8" placeholder="Collez votre texte ou rédigez ici…"></textarea>
-                <span class="ai-field__hint">Vous pouvez aussi joindre un fichier ci-dessous à la place du texte.</span>
+                <label class="ai-field__label" for="aiTextContent"><span class="ai-field__icon">📝</span> Votre travail (texte)</label>
+                <textarea class="ai-field__textarea" id="aiTextContent" name="textContent" rows="10" placeholder="Collez ici votre dissertation ou réponses…" required></textarea>
               </div>
               <div class="ai-field ai-field--full">
-                <span class="ai-field__label"><span class="ai-field__icon">📎</span> Fichier (PDF, Word, image)</span>
+                <span class="ai-field__label"><span class="ai-field__icon">📎</span> Fichier (optionnel, TXT)</span>
                 <div class="ai-file-upload" id="aiFileUpload">
-                  <input class="ai-file-upload__input" type="file" id="aiFileInput" name="file" accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png,.webp" />
+                  <input class="ai-file-upload__input" type="file" id="aiFileInput" name="file" accept=".txt,.md" />
                   <label class="ai-file-upload__zone" for="aiFileInput">
                     <span class="ai-file-upload__icon">📁</span>
-                    <span class="ai-file-upload__text">Glissez un fichier ou cliquez pour parcourir</span>
-                    <span class="ai-file-upload__hint">PDF, Word, TXT, JPG, PNG — max 10 Mo</span>
+                    <span class="ai-file-upload__text">Joindre un fichier texte</span>
+                    <span class="ai-file-upload__hint">TXT ou MD — le texte sera lu automatiquement</span>
                   </label>
                   <span class="ai-file-upload__name" id="aiFileName">Aucun fichier sélectionné</span>
                 </div>
@@ -863,10 +891,12 @@ const SAC_AI_CORRECTION = (function () {
             <div class="ai-deposit__actions">
               <button type="submit" class="ai-submit-btn">
                 <span class="ai-submit-btn__icon">📤</span>
-                <span>Déposer & lancer la correction IA</span>
+                <span>Déposer & corriger</span>
               </button>
             </div>
-          </form>
+          </form>`
+              : `<p class="pub-empty">Aucun cours disponible pour votre faculté. Les professeurs doivent d'abord inscrire leurs cours lors de leur inscription.</p>`
+          }
         </div>
       </div>
       <div class="panel" style="margin-top:1rem;">
@@ -878,20 +908,30 @@ const SAC_AI_CORRECTION = (function () {
       const listEl = container.querySelector("#aiStudentList");
       const subs = await listForStudent(student);
       listEl.innerHTML = subs.length
-        ? subs.map((s) => renderSubmissionCard(s)).join("")
+        ? subs.map((s) => renderSubmissionCard(s, { simple: true })).join("")
         : '<p class="pub-empty">Aucun travail déposé.</p>';
+    }
+
+    if (!facultyCourses.length) {
+      refresh();
+      return { refresh };
     }
 
     const fileInput = container.querySelector("#aiFileInput");
     const fileNameEl = container.querySelector("#aiFileName");
     const fileUploadEl = container.querySelector("#aiFileUpload");
 
-    fileInput.addEventListener("change", () => {
+    fileInput.addEventListener("change", async () => {
       const file = fileInput.files?.[0];
       if (file) {
         fileNameEl.textContent = file.name;
         fileNameEl.classList.add("ai-file-upload__name--selected");
         fileUploadEl.classList.add("ai-file-upload--has-file");
+        if (/\.(txt|md)$/i.test(file.name)) {
+          const text = await readTextFile(file);
+          const ta = container.querySelector("#aiTextContent");
+          if (ta && !ta.value.trim()) ta.value = text;
+        }
       } else {
         fileNameEl.textContent = "Aucun fichier sélectionné";
         fileNameEl.classList.remove("ai-file-upload__name--selected");
@@ -917,10 +957,10 @@ const SAC_AI_CORRECTION = (function () {
             courseCode: fd.get("courseCode"),
             courseName: opt?.dataset?.name || fd.get("courseCode"),
             classe: opt?.dataset?.classe || "",
-            assignmentTitle: fd.get("assignmentTitle"),
+            assignmentTitle: opt?.dataset?.name || fd.get("courseCode"),
             textContent: fd.get("textContent"),
             semester: "s1-2025",
-            professorEmail: student.professorEmail,
+            professorEmail: opt?.dataset?.prof || student.professorEmail,
           },
           file && file.size ? file : null
         );

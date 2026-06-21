@@ -33,6 +33,114 @@ const SAC_COURSES = (function () {
     return u?.coursClasses || [];
   }
 
+  function isTeachingRole(role) {
+    const r = norm(role);
+    return r === "professeur" || r === "assistant" || r === "universite";
+  }
+
+  function addFacultyCourse(list, seen, course, professorEmail, professorName, student) {
+    if (!course?.courseCode) return;
+    const code = String(course.courseCode).trim();
+    if (!code || seen.has(code)) return;
+    if (course.filiere && student.filiere && !filiereMatch(student.filiere, course.filiere)) return;
+    if (course.niveau && student.niveau && !niveauMatch(student.niveau, course.niveau)) return;
+    if (course.classe && student.classe && !classeMatch(student.classe, course.classe)) return;
+    seen.add(code);
+    list.push({
+      courseCode: code,
+      courseName: course.courseName || code,
+      classe: course.classe || course.niveau || student.classe || "",
+      filiere: course.filiere || student.filiere || "",
+      niveau: course.niveau || student.niveau || "",
+      professorEmail: professorEmail || course.professorEmail || "",
+      professorName: professorName || course.professorName || "",
+    });
+  }
+
+  async function getFacultyCoursesForStudent(session) {
+    const student = studentProfile(session);
+    const courses = [];
+    const seen = new Set();
+
+    const users = JSON.parse(localStorage.getItem("sac_users") || "[]");
+    users
+      .filter((user) => isTeachingRole(user.role))
+      .forEach((prof) => {
+        if (!universiteMatch(student.universite, prof.universite)) return;
+        (prof.coursClasses || []).forEach((course) => {
+          addFacultyCourse(
+            courses,
+            seen,
+            { ...course, universite: prof.universite },
+            prof.email || prof.identifiant,
+            [prof.prenom, prof.nom].filter(Boolean).join(" "),
+            student
+          );
+        });
+      });
+
+    if (typeof SAC_GRADES !== "undefined") {
+      try {
+        await SAC_GRADES.syncFromServer?.(session);
+      } catch {
+        /* ignore */
+      }
+      (SAC_GRADES.getForStudent(student) || []).forEach((grade) => {
+        addFacultyCourse(
+          courses,
+          seen,
+          {
+            courseCode: grade.courseCode || grade.code,
+            courseName: grade.courseName || grade.name,
+            classe: grade.classe,
+            filiere: student.filiere,
+            niveau: student.niveau,
+          },
+          grade.professorEmail,
+          grade.professorName,
+          student
+        );
+      });
+    }
+
+    if (typeof SAC_API !== "undefined" && (await SAC_API.ensureOnline())) {
+      try {
+        const data = await SAC_API.platformRequest("/platform/courses/for-student");
+        (data?.courses || []).forEach((course) => {
+          addFacultyCourse(courses, seen, course, course.professorEmail, course.professorName, student);
+        });
+      } catch {
+        /* endpoint optionnel */
+      }
+    }
+
+    if (!courses.length) {
+      users
+        .filter((user) => isTeachingRole(user.role))
+        .forEach((prof) => {
+          if (!universiteMatch(student.universite, prof.universite)) return;
+          (prof.coursClasses || []).forEach((course) => {
+            const code = String(course?.courseCode || "").trim();
+            if (!code || seen.has(code)) return;
+            seen.add(code);
+            courses.push({
+              courseCode: code,
+              courseName: course.courseName || code,
+              classe: course.classe || course.niveau || student.classe || "",
+              filiere: course.filiere || prof.filiere || student.filiere || "",
+              niveau: course.niveau || student.niveau || "",
+              professorEmail: prof.email || prof.identifiant || "",
+              professorName: [prof.prenom, prof.nom].filter(Boolean).join(" "),
+            });
+          });
+        });
+    }
+
+    return courses.sort((a, b) =>
+      String(a.courseCode || "").localeCompare(String(b.courseCode || ""), "fr")
+    );
+  }
+
   function classLabel(c) {
     return `${c.courseCode} — ${c.courseName} (${c.classe || c.niveau})`;
   }
@@ -185,6 +293,7 @@ const SAC_COURSES = (function () {
     norm,
     getUserByEmail,
     getTeachingClasses,
+    getFacultyCoursesForStudent,
     classLabel,
     studentProfile,
     studentSeesDocument,
