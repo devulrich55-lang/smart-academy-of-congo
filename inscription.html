@@ -1142,7 +1142,7 @@
           <span class="pricing-box__label">Frais d'ouverture de compte</span>
           <div class="pricing-box__amount" id="pricingSidebarAmount">1,00 <span>USD</span></div>
         </div>
-        <p class="pricing-box__note" id="pricingSidebarNote">≈ 2 800 CDF · paiement unique</p>
+        <p class="pricing-box__note" id="pricingSidebarNote">≈ 2 300 FC · paiement unique</p>
       </div>
       <p class="pricing-box__note" style="margin-bottom:0.75rem;">
         <strong>Inscription</strong> : USD → UBA · CDF → First Bank · Orange · M-Pesa
@@ -1525,7 +1525,7 @@
             <p class="phone-alert-mock__body">
               <strong>Smart Academy of Congo</strong> demande un paiement :
             </p>
-            <div class="phone-alert-mock__amount" id="alertAmount">2 800 CDF</div>
+            <div class="phone-alert-mock__amount" id="alertAmount">2 300 FC</div>
             <p class="phone-alert-mock__body" style="font-size:0.8rem;">
               Vers : <span id="alertMerchantPhone">+243 85 184 8859</span><br />
               Entrez votre code secret, puis appuyez sur <strong>Soumettre</strong> pour confirmer l'envoi.
@@ -1574,7 +1574,7 @@
             <div class="bordereau-viewport" data-bordereau-viewport>
               <div class="bordereau-track" data-bordereau-track></div>
             </div>
-            <div class="bank-box__amount-due" id="amountDueCdf">Montant : 2 800 CDF</div>
+            <div class="bank-box__amount-due" id="amountDueCdf">Montant : 2 300 FC</div>
           </div>
         </div>
 
@@ -1587,7 +1587,7 @@
             <div class="bordereau-viewport" data-bordereau-viewport>
               <div class="bordereau-track" data-bordereau-track></div>
             </div>
-            <div class="bank-box__amount-due" id="amountDueOrange">Montant : 2 800 CDF</div>
+            <div class="bank-box__amount-due" id="amountDueOrange">Montant : 2 300 FC</div>
           </div>
         </div>
 
@@ -1600,7 +1600,7 @@
             <div class="bordereau-viewport" data-bordereau-viewport>
               <div class="bordereau-track" data-bordereau-track></div>
             </div>
-            <div class="bank-box__amount-due" id="amountDueMpesa">Montant : 2 800 CDF</div>
+            <div class="bank-box__amount-due" id="amountDueMpesa">Montant : 2 300 FC</div>
           </div>
         </div>
         </div>
@@ -1641,7 +1641,7 @@
   <script src="js/sac-identity.js"></script>
   <script src="js/sac-session.js?v=20260617d"></script>
   <script src="js/sac-api.js?v=20260617d"></script>
-  <script src="js/sac-tariffs.js"></script>
+  <script src="js/sac-tariffs.js?v=20260620"></script>
   <script src="js/sac-sections.js"></script>
   <script src="js/sac-section-accounts.js"></script>
   <script src="js/sac-section-approval.js"></script>
@@ -1713,6 +1713,7 @@
       if (role === "universite" || !uni) {
         activeFee = SAC_TARIFFS.defaultFor(role);
       } else {
+        SAC_TARIFFS.clearCache();
         activeFee = await SAC_TARIFFS.resolve(role, uni);
       }
       updatePricingUI(role);
@@ -1960,7 +1961,7 @@
       document.getElementById("pricingFormAmount").innerHTML = amountHtml;
       document.getElementById("modalAmount").textContent = formatUsd(fee.amount);
 
-      const note = "≈ " + fee.cdf.toLocaleString("fr-FR") + " CDF · paiement unique";
+      const note = "≈ " + fee.cdf.toLocaleString("fr-FR") + " FC · paiement unique";
       document.getElementById("pricingSidebarNote").textContent = note;
 
       const uni = getUniversiteForRole(role);
@@ -1975,13 +1976,13 @@
       document.getElementById("pricingFormNote").textContent =
         "Paiement unique · ≈ " +
         fee.cdf.toLocaleString("fr-FR") +
-        " CDF · USD → UBA · CDF → First Bank, Orange Money ou M-Pesa." +
+        " FC · USD → UBA · CDF → First Bank, Orange Money ou M-Pesa." +
         campusNote;
 
       btnSubmit.textContent = "Continuer — Payer " + fee.amount + " USD";
       btnConfirmPay.textContent = "Confirmer mon paiement";
 
-      const cdfLabel = fee.cdf.toLocaleString("fr-FR") + " CDF";
+      const cdfLabel = fee.cdf.toLocaleString("fr-FR") + " FC";
       const amountUsdEl = document.getElementById("amountDueUsd");
       const amountCdfEl = document.getElementById("amountDueCdf");
       const amountOrangeEl = document.getElementById("amountDueOrange");
@@ -1992,7 +1993,12 @@
       if (amountMpesaEl) amountMpesaEl.textContent = "Montant à envoyer : " + cdfLabel;
 
       document.querySelectorAll(".pricing-tiers li").forEach((li) => {
-        li.classList.toggle("active-tier", li.dataset.tier === role);
+        const isActive = li.dataset.tier === role;
+        li.classList.toggle("active-tier", isActive);
+        if (isActive) {
+          const priceEl = li.querySelector("span:last-child");
+          if (priceEl) priceEl.textContent = fee.amount + " USD";
+        }
       });
 
       renderAllBorderaux();
@@ -2237,6 +2243,7 @@
       pendingTxId = generateTransactionId();
       const uni = profile.universite || getUniversiteForRole(profile.role);
       if (profile.role !== "universite" && uni) {
+        SAC_TARIFFS.clearCache();
         activeFee = await SAC_TARIFFS.resolve(profile.role, uni);
       } else {
         activeFee = SAC_TARIFFS.defaultFor(profile.role);

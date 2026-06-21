@@ -6,19 +6,19 @@
 
 const SAC_TARIFFS = (function () {
 
-  const CDF_PER_USD = 2800;
+  const CDF_PER_USD = 2300;
 
 
 
   const DEFAULT_FEES = {
 
-    etudiant: { amount: 1, currency: "USD", cdf: 2800, label: "Étudiant" },
+    etudiant: { amount: 1, currency: "USD", cdf: 2300, label: "Étudiant" },
 
-    assistant: { amount: 5, currency: "USD", cdf: 14000, label: "Assistant" },
+    assistant: { amount: 5, currency: "USD", cdf: 11500, label: "Assistant" },
 
-    professeur: { amount: 10, currency: "USD", cdf: 28000, label: "Professeur" },
+    professeur: { amount: 10, currency: "USD", cdf: 23000, label: "Professeur" },
 
-    universite: { amount: 20, currency: "USD", cdf: 56000, label: "Université" },
+    universite: { amount: 20, currency: "USD", cdf: 46000, label: "Université" },
 
   };
 

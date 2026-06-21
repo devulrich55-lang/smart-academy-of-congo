@@ -701,7 +701,7 @@
                   <select class="tariff-currency" disabled aria-label="Devise étudiant"><option>USD</option></select>
                   <input type="number" class="tariff-amount" id="tarifEtu" min="0.5" max="500" step="0.01" required />
                 </div>
-                <span class="tariff-row__cdf" id="tarifEtuCdf">≈ 2 800 CDF</span>
+                <span class="tariff-row__cdf" id="tarifEtuCdf">≈ 2 300 CDF</span>
               </div>
 
               <div class="tariff-row">
@@ -711,7 +711,7 @@
                   <select class="tariff-currency" disabled aria-label="Devise assistant"><option>USD</option></select>
                   <input type="number" class="tariff-amount" id="tarifAssist" min="0.5" max="500" step="0.01" required />
                 </div>
-                <span class="tariff-row__cdf" id="tarifAssistCdf">≈ 14 000 CDF</span>
+                <span class="tariff-row__cdf" id="tarifAssistCdf">≈ 11 500 CDF</span>
               </div>
 
               <div class="tariff-row">
@@ -721,12 +721,12 @@
                   <select class="tariff-currency" disabled aria-label="Devise professeur"><option>USD</option></select>
                   <input type="number" class="tariff-amount" id="tarifProf" min="0.5" max="500" step="0.01" required />
                 </div>
-                <span class="tariff-row__cdf" id="tarifProfCdf">≈ 28 000 CDF</span>
+                <span class="tariff-row__cdf" id="tarifProfCdf">≈ 23 000 CDF</span>
               </div>
 
               <p class="tariff-info">
                 <strong>ℹ️ Conversion indicative</strong><br />
-                Les montants CDF affichés utilisent le taux 1 USD = 2 800 CDF.
+                Les montants CDF affichés utilisent le taux 1 USD = 2 300 FC.
               </p>
             </div>
 
@@ -865,7 +865,7 @@
   <script src="js/sac-identity.js"></script>
   <script src="js/sac-session.js"></script>
   <script src="js/sac-api.js"></script>
-  <script src="js/sac-tariffs.js"></script>
+  <script src="js/sac-tariffs.js?v=20260620"></script>
   <script src="js/sac-university-logo.js"></script>
   <script src="js/sac-universities.js"></script>
   <script src="js/sac-data.js"></script>
@@ -1670,7 +1670,7 @@
             if (!el) return;
             el.textContent =
               Number.isFinite(v) && v > 0
-                ? "≈ " + SAC_TARIFFS.toCdf(v).toLocaleString("fr-FR") + " CDF"
+                ? "≈ " + SAC_TARIFFS.toCdf(v).toLocaleString("fr-FR") + " FC"
                 : "";
           }
         );
