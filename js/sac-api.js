@@ -183,11 +183,41 @@ const SAC_API = (function () {
     return request("/webrtc/signal/" + encodeURIComponent(sessionId), { method: "DELETE" });
   }
 
-  function clearClientSession() {
+  function clearClientSession(opts) {
     sessionCache = null;
     sessionStorage.removeItem(TOKEN_ACCESS);
     sessionStorage.removeItem(TOKEN_REFRESH);
+    if (opts && opts.force) {
+      localStorage.removeItem("sac_session");
+      return;
+    }
+    if (isLocalOnlySession()) return;
     localStorage.removeItem("sac_session");
+  }
+
+  function getStoredSession() {
+    try {
+      return JSON.parse(localStorage.getItem("sac_session") || "null");
+    } catch {
+      return null;
+    }
+  }
+
+  /** Compte connecté sans JWT (recteur / section locale) — ne pas effacer sac_session sur 401. */
+  function isLocalOnlySession() {
+    if (hasAuthTokens()) return false;
+    const s = getStoredSession();
+    if (!s?.identifiant) return false;
+    if (s.authSource === "local") return true;
+    if (s.userId && s.userId !== s.identifiant) return false;
+    if (typeof SAC_IDENTITY !== "undefined") {
+      const user = SAC_IDENTITY.findUserByLoginId(
+        SAC_IDENTITY.getLocalUsers(),
+        s.identifiant
+      );
+      return !!user;
+    }
+    return false;
   }
 
   let online = null;
@@ -495,7 +525,7 @@ const SAC_API = (function () {
     } catch {
       /* ignore */
     }
-    clearClientSession();
+    clearClientSession({ force: true });
   }
 
   async function me(opts) {
@@ -1006,6 +1036,7 @@ const SAC_API = (function () {
     getFrontendOrigin,
     hasAuthTokens,
     ensureAuthTokens,
+    isLocalOnlySession,
     clearClientSession,
   };
 })();

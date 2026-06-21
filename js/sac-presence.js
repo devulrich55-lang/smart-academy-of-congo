@@ -38,6 +38,13 @@ const SAC_PRESENCE = (function () {
 
   async function heartbeat(session, hooks) {
     if (!isApiReady()) return;
+    if (
+      typeof SAC_API.hasAuthTokens === "function" &&
+      !SAC_API.hasAuthTokens()
+    ) {
+      safeCall(hooks?.onSelfOnline, false);
+      return;
+    }
     try {
       const online = await SAC_API.ensureOnline();
       if (!online) return;
@@ -50,6 +57,12 @@ const SAC_PRESENCE = (function () {
 
   async function refreshViews(session, hooks) {
     if (!isApiReady()) return;
+    if (
+      typeof SAC_API.hasAuthTokens === "function" &&
+      !SAC_API.hasAuthTokens()
+    ) {
+      return;
+    }
     try {
       if (canFetchSectionPresence(session?.role) && typeof SAC_API.getSectionPresence === "function") {
         const data = await SAC_API.getSectionPresence();

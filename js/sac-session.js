@@ -123,6 +123,26 @@ const SAC_SESSION = (function () {
     return !!(session.userId && session.userId !== session.identifiant);
   }
 
+  /** Session locale valide (recteur / section sans JWT) — à conserver si l'API renvoie 401. */
+  function canKeepLocalSession(session, requiredRole) {
+    if (!session?.identifiant) return false;
+    if (requiredRole && session.role !== requiredRole) return false;
+    if (session.authSource === "local") return true;
+    if (
+      typeof SAC_API !== "undefined" &&
+      typeof SAC_API.hasAuthTokens === "function" &&
+      SAC_API.hasAuthTokens()
+    ) {
+      return false;
+    }
+    if (typeof SAC_IDENTITY === "undefined") return allowLocalAuth();
+    const user = SAC_IDENTITY.findUserByLoginId(
+      SAC_IDENTITY.getLocalUsers(),
+      session.identifiant
+    );
+    return !!user;
+  }
+
   /** Session active pour les pages publiques (sans effacer si rôle différent) */
   function getActiveSession() {
     const session = getSession();
@@ -160,13 +180,19 @@ const SAC_SESSION = (function () {
 
   /** Tente de restaurer la session via cookies API (httpOnly) */
   async function restoreSession() {
+    const local = getSession();
     if (typeof SAC_API !== "undefined" && (await SAC_API.ensureOnline())) {
       try {
-        return await SAC_API.me();
+        const server = await SAC_API.me({ soft: true });
+        if (server) return server;
       } catch {
-        clearSession();
-        return null;
+        /* fall through */
       }
+      if (canKeepLocalSession(local)) {
+        return syncSessionWithAccount(local?.role) || getActiveSession() || local;
+      }
+      clearSession();
+      return null;
     }
     return getActiveSession();
   }
@@ -190,6 +216,7 @@ const SAC_SESSION = (function () {
     const users = SAC_IDENTITY.getLocalUsers();
     const user = SAC_IDENTITY.findUserByLoginId(users, session.identifiant);
     if (!user) {
+      if (canKeepLocalSession(session, requiredRole)) return session;
       if (!allowLocalAuth()) {
         clearSession();
         return null;
@@ -317,6 +344,10 @@ const SAC_SESSION = (function () {
           return local;
         }
 
+        if (canKeepLocalSession(local, requiredRole)) {
+          return syncSessionWithAccount(requiredRole) || local;
+        }
+
         clearSession();
         if (typeof SAC_API !== "undefined" && typeof SAC_API.clearClientSession === "function") {
           SAC_API.clearClientSession();
@@ -326,6 +357,9 @@ const SAC_SESSION = (function () {
     }
 
     if (!allowLocalAuth()) {
+      if (local && canKeepLocalSession(local, requiredRole)) {
+        return syncSessionWithAccount(requiredRole) || local;
+      }
       if (local) clearSession();
       return null;
     }
