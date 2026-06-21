@@ -4,7 +4,7 @@
 const SAC_LIVE_CALL = (function () {
   const SEEN_KEY = "sac_live_call_seen";
   const CHANNEL = "sac-live-call";
-  const POLL_MS = 10000;
+  const POLL_MS = 5000;
 
   let sessionRef = null;
   let pollTimer = null;
@@ -155,7 +155,21 @@ const SAC_LIVE_CALL = (function () {
       const allowed = (payload.allowedEmails || []).map((e) => String(e).toLowerCase());
       if (allowed.includes(email)) return true;
       if ((payload.hostEmail || "").toLowerCase() === email) return true;
-      if (role === "professeur" || role === "section") return true;
+      if (role === "professeur" || role === "assistant" || role === "section") return true;
+      if (role === "etudiant") {
+        if (payload.inviteStudents) {
+          if (payload.universite && session.universite && norm(payload.universite) !== norm(session.universite)) {
+            return false;
+          }
+          return filiereMatch(session.filiere, payload.filiere);
+        }
+        if (payload.filiere || payload.universite) {
+          if (payload.universite && session.universite && norm(payload.universite) !== norm(session.universite)) {
+            return false;
+          }
+          return filiereMatch(session.filiere, payload.filiere);
+        }
+      }
       return false;
     }
 
@@ -257,7 +271,7 @@ const SAC_LIVE_CALL = (function () {
     document.body.style.overflow = "hidden";
   }
 
-  function signalLiveStart(payload) {
+  async function signalLiveStart(payload) {
     const data = {
       ...payload,
       sessionId: payload.sessionId || payload.id,
@@ -271,6 +285,13 @@ const SAC_LIVE_CALL = (function () {
     if (bc) {
       bc.postMessage(data);
     }
+    if (typeof SAC_API !== "undefined" && (await SAC_API.ensureOnline())) {
+      try {
+        await SAC_API.postLiveSignal(data);
+      } catch (err) {
+        console.warn("[SAC_LIVE_CALL] signal API:", err.message || err);
+      }
+    }
   }
 
   function handleSignalPayload(payload) {
@@ -283,6 +304,20 @@ const SAC_LIVE_CALL = (function () {
     const session = sessionRef;
     if (!session) return;
     if (typeof SAC_WEBRTC_ROOM !== "undefined" && SAC_WEBRTC_ROOM.isActive()) return;
+
+    if (typeof SAC_API !== "undefined" && (await SAC_API.ensureOnline())) {
+      try {
+        const apiSignals = await SAC_API.getLiveSignals();
+        for (const item of apiSignals) {
+          if (!isEligible(session, item)) continue;
+          if (wasRecentlySeen(item.sessionId)) continue;
+          showIncomingCall(item);
+          return;
+        }
+      } catch {
+        /* repli local */
+      }
+    }
 
     const liveItems = [];
 
@@ -313,6 +348,10 @@ const SAC_LIVE_CALL = (function () {
           roomName: m.roomName,
           allowedEmails: m.allowedEmails,
           hostEmail: m.hostEmail,
+          universite: m.universite,
+          filiere: m.filiere,
+          type: m.type,
+          inviteStudents: m.type === "conference",
         });
       });
     }
@@ -383,10 +422,21 @@ const SAC_LIVE_CALL = (function () {
     }
   }
 
+  async function clearLiveSignal(sessionId) {
+    if (typeof SAC_API !== "undefined" && (await SAC_API.ensureOnline())) {
+      try {
+        await SAC_API.clearLiveSignal(sessionId);
+      } catch {
+        /* ignore */
+      }
+    }
+  }
+
   return {
     init,
     stop,
     signalLiveStart,
+    clearLiveSignal,
     checkForLiveSignals,
     showIncomingCall,
     hideModal,

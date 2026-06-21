@@ -58,6 +58,48 @@ const SAC_WEBRTC_ROOM = (function () {
       this.camOn = true;
       this.recorder = null;
       this.recordChunks = [];
+      this.participants = [];
+      this.reconnectAttempts = 0;
+      this.destroyed = false;
+    }
+
+    emitParticipants() {
+      if (typeof this.opts.onParticipantsChange === "function") {
+        this.opts.onParticipantsChange(this.participants.slice());
+      }
+    }
+
+    setParticipantsFromServer(list, selfName) {
+      const self = {
+        peerId: this.peerId || "local",
+        displayName: selfName || this.displayName,
+        role: "",
+        isSelf: true,
+      };
+      const others = (list || []).map((p) => ({
+        peerId: p.peerId,
+        displayName: p.displayName || "Participant",
+        role: p.role || "",
+        isSelf: false,
+      }));
+      this.participants = [self, ...others];
+      this.emitParticipants();
+    }
+
+    addParticipant(peerId, displayName, role) {
+      if (this.participants.some((p) => p.peerId === peerId)) return;
+      this.participants.push({
+        peerId,
+        displayName: displayName || "Participant",
+        role: role || "",
+        isSelf: false,
+      });
+      this.emitParticipants();
+    }
+
+    removeParticipant(peerId) {
+      this.participants = this.participants.filter((p) => p.peerId !== peerId);
+      this.emitParticipants();
     }
 
     async connect() {
@@ -76,6 +118,15 @@ const SAC_WEBRTC_ROOM = (function () {
         throw err;
       }
       this.addLocalTile();
+      this.participants = [
+        {
+          peerId: "local",
+          displayName: this.displayName,
+          role: "",
+          isSelf: true,
+        },
+      ];
+      this.emitParticipants();
       this.updateGridLayout();
       await this.openSocket();
     }
@@ -157,12 +208,30 @@ const SAC_WEBRTC_ROOM = (function () {
     }
 
     async openSocket() {
+      if (this.destroyed) return;
       const url = buildWsUrl(this.roomId);
       this.ws = new WebSocket(url);
 
-      this.ws.onopen = () => this.setStatus("Connecté · Salle SAC");
-      this.ws.onclose = () => this.setStatus("Connexion fermée");
-      this.ws.onerror = () => this.setStatus("Erreur serveur SAC");
+      this.ws.onopen = () => {
+        this.reconnectAttempts = 0;
+        this.setStatus("Connecté · Salle SAC");
+      };
+      this.ws.onclose = () => {
+        if (this.destroyed) {
+          this.setStatus("Session terminée");
+          return;
+        }
+        if (this.reconnectAttempts < 6) {
+          this.reconnectAttempts += 1;
+          this.setStatus("Reconnexion… (" + this.reconnectAttempts + "/6)");
+          setTimeout(() => this.openSocket(), 2000);
+        } else {
+          this.setStatus("Connexion fermée — déployez l'API WebRTC");
+        }
+      };
+      this.ws.onerror = () => {
+        if (!this.destroyed) this.setStatus("Erreur serveur SAC");
+      };
       this.ws.onmessage = (ev) => {
         try {
           const msg = JSON.parse(ev.data);
@@ -177,15 +246,22 @@ const SAC_WEBRTC_ROOM = (function () {
       const type = msg.type;
       if (type === "welcome") {
         this.peerId = msg.peerId;
-        this.setStatus((msg.peers?.length || 0) + " participant(s) · Live SAC");
+        this.setStatus((msg.peers?.length || 0) + " connecté(s) · Live SAC");
+        this.setParticipantsFromServer(msg.peers, msg.displayName || this.displayName);
         (msg.peers || []).forEach((p) => this.createPeer(p.peerId, p.displayName, true));
         return;
       }
+      if (type === "participants") {
+        this.setParticipantsFromServer(msg.list, this.displayName);
+        return;
+      }
       if (type === "peer-joined") {
+        this.addParticipant(msg.peerId, msg.displayName, msg.role);
         this.createPeer(msg.peerId, msg.displayName, false);
         return;
       }
       if (type === "peer-left") {
+        this.removeParticipant(msg.peerId);
         this.removePeer(msg.peerId);
         return;
       }
@@ -425,6 +501,7 @@ const SAC_WEBRTC_ROOM = (function () {
     }
 
     destroy() {
+      this.destroyed = true;
       if (this.recorder && this.recorder.state === "recording") {
         this.recorder.stop();
       }
@@ -445,6 +522,34 @@ const SAC_WEBRTC_ROOM = (function () {
       }
       if (this.container) this.container.innerHTML = "";
     }
+  }
+
+  function renderPresenceList(container, participants) {
+    if (!container) return;
+    const list = participants || [];
+    const count = list.length;
+    container.innerHTML = `
+      <div class="sac-live-presence">
+        <div class="sac-live-presence__head">
+          <span class="sac-live-presence__dot" aria-hidden="true"></span>
+          <strong>Présents (${count})</strong>
+        </div>
+        <ul class="sac-live-presence__list">
+          ${
+            list.length
+              ? list
+                  .map(
+                    (p) =>
+                      `<li class="sac-live-presence__item${p.isSelf ? " sac-live-presence__item--self" : ""}">
+                        <span class="sac-live-presence__avatar">${esc((p.displayName || "?")[0])}</span>
+                        <span>${esc(p.displayName || "Participant")}${p.isSelf ? " (vous)" : ""}</span>
+                      </li>`
+                  )
+                  .join("")
+              : "<li class='sac-live-presence__empty'>En attente de participants…</li>"
+          }
+        </ul>
+      </div>`;
   }
 
   async function join(opts) {
@@ -486,5 +591,6 @@ const SAC_WEBRTC_ROOM = (function () {
     isActive,
     attachToHost,
     ensureVideoHost,
+    renderPresenceList,
   };
 })();

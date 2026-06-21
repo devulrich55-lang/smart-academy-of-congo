@@ -149,19 +149,27 @@ const SAC_MEETINGS = (function () {
     return list[idx];
   }
 
+  function meetingSignalPayload(m) {
+    return {
+      kind: "meeting",
+      sessionId: m.id,
+      title: m.title,
+      hostName: m.hostName,
+      roomName: m.roomName,
+      allowedEmails: m.allowedEmails,
+      hostEmail: m.hostEmail,
+      universite: m.universite,
+      filiere: m.filiere,
+      type: m.type,
+      inviteStudents: m.type === "conference" || !!m.filiere,
+    };
+  }
+
   async function startMeeting(id) {
     const d = await api("/platform/meetings/" + id + "/start", { method: "POST" });
     if (d?.meeting) {
       if (typeof SAC_LIVE_CALL !== "undefined") {
-        SAC_LIVE_CALL.signalLiveStart({
-          kind: "meeting",
-          sessionId: d.meeting.id,
-          title: d.meeting.title,
-          hostName: d.meeting.hostName,
-          roomName: d.meeting.roomName,
-          allowedEmails: d.meeting.allowedEmails,
-          hostEmail: d.meeting.hostEmail,
-        });
+        SAC_LIVE_CALL.signalLiveStart(meetingSignalPayload(d.meeting));
       }
       if ("Notification" in window && Notification.permission === "granted") {
         new Notification("📞 Réunion live", {
@@ -174,15 +182,7 @@ const SAC_MEETINGS = (function () {
     }
     const m = updateLocal(id, { status: "live", startedAt: new Date().toISOString() });
     if (typeof SAC_LIVE_CALL !== "undefined") {
-      SAC_LIVE_CALL.signalLiveStart({
-        kind: "meeting",
-        sessionId: m.id,
-        title: m.title,
-        hostName: m.hostName,
-        roomName: m.roomName,
-        allowedEmails: m.allowedEmails,
-        hostEmail: m.hostEmail,
-      });
+      SAC_LIVE_CALL.signalLiveStart(meetingSignalPayload(m));
     }
     return m;
   }
@@ -198,15 +198,24 @@ const SAC_MEETINGS = (function () {
       method: "POST",
       body: JSON.stringify({ transcript }),
     });
-    if (d?.meeting) return d.meeting;
+    if (d?.meeting) {
+      if (typeof SAC_LIVE_CALL !== "undefined") {
+        SAC_LIVE_CALL.clearLiveSignal(id);
+      }
+      return d.meeting;
+    }
     const m = read().find((x) => x.id === id);
     const ai = aiAnalyze(transcript || m?.transcript, m?.title);
-    return updateLocal(id, {
+    const ended = updateLocal(id, {
       status: "ended",
       endedAt: new Date().toISOString(),
       transcript: transcript || m?.transcript,
       ...ai,
     });
+    if (typeof SAC_LIVE_CALL !== "undefined") {
+      SAC_LIVE_CALL.clearLiveSignal(id);
+    }
+    return ended;
   }
 
   async function runAi(id, transcript) {
@@ -240,9 +249,14 @@ const SAC_MEETINGS = (function () {
     }
     document.getElementById("sacMtgRoomTitle").textContent = meeting.title;
     const room = meeting.roomName || "sac-mtg-" + meeting.id.slice(-10);
-    document.getElementById("sacMtgSidePanel").innerHTML =
-      "<p><strong>Commentaires</strong> — barre en bas de la vidéo, affichés sur l'écran.</p>" +
-      "<p style='color:var(--text-muted);font-size:0.8rem'>🖥️ Partage d'écran · ⏺️ Enregistrement local</p>";
+    const side = document.getElementById("sacMtgSidePanel");
+    side.innerHTML = `<div id="sacMtgPresenceRoot"></div>
+      <p class="mtg-side-hint">💬 Commentaires en bas de la vidéo · 🖥️ Partage d'écran · ⏺️ Enregistrement</p>`;
+    if (typeof SAC_WEBRTC_ROOM !== "undefined") {
+      SAC_WEBRTC_ROOM.renderPresenceList(side.querySelector("#sacMtgPresenceRoot"), [
+        { displayName: userName || "Vous", isSelf: true },
+      ]);
+    }
     el.hidden = false;
     document.body.style.overflow = "hidden";
     if (typeof SAC_WEBRTC_ROOM !== "undefined") {
@@ -250,6 +264,10 @@ const SAC_MEETINGS = (function () {
         roomId: room,
         displayName: userName || "SAC",
         onLeave: closeRoom,
+        onParticipantsChange: (list) => {
+          const root = document.getElementById("sacMtgPresenceRoot");
+          if (root) SAC_WEBRTC_ROOM.renderPresenceList(root, list);
+        },
       }).catch((err) => alert(err.message || "Salle live indisponible."));
     }
   }

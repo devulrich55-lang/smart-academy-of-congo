@@ -167,6 +167,22 @@ const SAC_API = (function () {
     return wsUrl;
   }
 
+  async function postLiveSignal(payload) {
+    return request("/webrtc/signal", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async function getLiveSignals() {
+    const data = await request("/webrtc/signals");
+    return data.signals || [];
+  }
+
+  async function clearLiveSignal(sessionId) {
+    return request("/webrtc/signal/" + encodeURIComponent(sessionId), { method: "DELETE" });
+  }
+
   function clearClientSession() {
     sessionCache = null;
     sessionStorage.removeItem(TOKEN_ACCESS);
@@ -911,6 +927,9 @@ const SAC_API = (function () {
     getBase,
     getAccessToken,
     buildWebSocketUrl,
+    postLiveSignal,
+    getLiveSignals,
+    clearLiveSignal,
     getFrontendOrigin,
     hasAuthTokens,
     ensureAuthTokens,

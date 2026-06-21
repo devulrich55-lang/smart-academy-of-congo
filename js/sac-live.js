@@ -475,7 +475,12 @@ const SAC_LIVE = (function () {
 
     });
 
-    if (data?.session) return data.session;
+    if (data?.session) {
+      if (typeof SAC_LIVE_CALL !== "undefined") {
+        SAC_LIVE_CALL.clearLiveSignal(sessionId);
+      }
+      return data.session;
+    }
 
 
 
@@ -506,6 +511,10 @@ const SAC_LIVE = (function () {
     patchLocal(sessionId, { participationReport: row.participationReport });
 
     localNotify(row, "live_session_ended", "Cours terminé", "Rapport et enregistrement pour « " + row.title + " ».");
+
+    if (typeof SAC_LIVE_CALL !== "undefined") {
+      SAC_LIVE_CALL.clearLiveSignal(sessionId);
+    }
 
     return getById(sessionId);
 
@@ -730,6 +739,12 @@ const SAC_LIVE = (function () {
       roomId: roomName,
       displayName: userName,
       onLeave,
+      onParticipantsChange: (list) => {
+        const root = document.getElementById("sacLivePresenceRoot");
+        if (root && typeof SAC_WEBRTC_ROOM !== "undefined") {
+          SAC_WEBRTC_ROOM.renderPresenceList(root, list);
+        }
+      },
     }).catch((err) => {
       alert(err.message || "Impossible d'ouvrir la salle live SAC.");
       if (typeof onLeave === "function") onLeave();
@@ -753,6 +768,8 @@ const SAC_LIVE = (function () {
 
 
     panel.innerHTML = `
+
+      <div id="sacLivePresenceRoot" class="live-side__presence-wrap"></div>
 
       <div class="live-side__tabs">
 
