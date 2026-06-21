@@ -77,6 +77,7 @@ const SAC_WEBRTC_ROOM = (function () {
       this.peerMicStates = new Map();
       this.reconnectAttempts = 0;
       this.destroyed = false;
+      this.probeFail = null;
     }
 
     emitParticipants() {
@@ -126,6 +127,17 @@ const SAC_WEBRTC_ROOM = (function () {
           await SAC_API.wakeServer({ attempts: 8, timeoutMs: 55000, delayMs: 7000 });
         } catch {
           /* on retente via WebSocket */
+        }
+      }
+      if (typeof SAC_API !== "undefined" && SAC_API.probeLiveApi) {
+        this.setStatus("Vérification API live…");
+        const probe = await SAC_API.probeLiveApi();
+        if (!probe.ok) {
+          this.probeFail = probe;
+          this.setStatus(probe.message || "API live indisponible");
+          if (probe.reason === "WEBRTC_MISSING" || probe.reason === "NO_TOKEN" || probe.reason === "AUTH") {
+            throw new Error(probe.message);
+          }
         }
       }
       try {
@@ -277,9 +289,14 @@ const SAC_WEBRTC_ROOM = (function () {
           );
           setTimeout(() => this.openSocket(), 5000);
         } else {
-          this.setStatus(
-            "API live indisponible — vérifiez le déploiement WebRTC sur Render ou attendez 1 min et rouvrez le live"
-          );
+          const pf = this.probeFail;
+          if (pf?.message) {
+            this.setStatus(pf.message);
+          } else {
+            this.setStatus(
+              "Connexion live impossible — vérifiez l'API Render (plan Starter) et reconnectez-vous."
+            );
+          }
         }
       };
       this.ws.onerror = () => {

@@ -847,6 +847,52 @@ const SAC_API = (function () {
     return data;
   }
 
+  /** Diagnostic live — token JWT + route WebRTC sur l'API Render. */
+  async function probeLiveApi() {
+    if (!BASE) {
+      return { ok: false, reason: "NO_API", message: "URL API non configurée." };
+    }
+    if (isCrossOriginApi() && !getAccessToken()) {
+      try {
+        await refresh();
+      } catch {
+        /* ignore */
+      }
+    }
+    if (isCrossOriginApi() && !getAccessToken()) {
+      return {
+        ok: false,
+        reason: "NO_TOKEN",
+        message: "Session expirée — déconnectez-vous et reconnectez-vous pour le live.",
+      };
+    }
+    try {
+      await request("/webrtc/signals");
+      return { ok: true, reason: "OK" };
+    } catch (err) {
+      if (err.status === 404) {
+        return {
+          ok: false,
+          reason: "WEBRTC_MISSING",
+          message:
+            "WebRTC absent sur l'API Render — poussez backend-python vers le dépôt smart-academy-of-congo-API puis redéployez l'API.",
+        };
+      }
+      if (err.status === 401 || err.sessionInvalid) {
+        return {
+          ok: false,
+          reason: "AUTH",
+          message: "Accès refusé — reconnectez-vous puis réessayez le live.",
+        };
+      }
+      return {
+        ok: false,
+        reason: "NETWORK",
+        message: err.message || "API live inaccessible (serveur Render en veille ?).",
+      };
+    }
+  }
+
   function getBase() {
     return BASE;
   }
@@ -863,6 +909,7 @@ const SAC_API = (function () {
   return {
     ping,
     wakeServer,
+    probeLiveApi,
     probeCors,
     ensureOnline,
     isOnline,
