@@ -373,6 +373,9 @@ const SAC_API = (function () {
     "grade",
     "fonction",
     "sectionApproval",
+    "sectionKind",
+    "sectionName",
+    "sectionId",
     "nomination",
     "logoUrl",
   ];

@@ -382,7 +382,7 @@
       updateSteps(3);
 
       const idVal = identifiant.value.trim();
-      const pwdVal = passwordInput.value;
+      const pwdVal = passwordInput.value.trim();
 
       if (idVal.length < 3) {
         identifiant.focus();
@@ -416,6 +416,12 @@
       let apiSession = null;
       let apiError = "";
       try {
+        if (currentRole === "section") {
+          if (await tryLocalSectionLogin(idVal, pwdVal, { silent: true })) {
+            return;
+          }
+        }
+
         if (typeof SAC_API !== "undefined") {
           btnSubmit.textContent = "Réveil du serveur…";
           await SAC_API.wakeServer({
@@ -426,9 +432,13 @@
           if (SAC_API.isOnline()) {
             btnSubmit.textContent = "Connexion en cours…";
             try {
-              apiSession = await SAC_API.login(idVal, pwdVal, currentRole, {
-                universite: uniVal,
-              });
+              if (currentRole === "section") {
+                apiSession = await attemptApiSectionLogin(idVal, pwdVal, uniVal);
+              } else {
+                apiSession = await SAC_API.login(idVal, pwdVal, currentRole, {
+                  universite: uniVal,
+                });
+              }
             } catch (err) {
               apiError = err.message || "Identifiant ou mot de passe incorrect.";
             }
@@ -444,7 +454,10 @@
           if (currentRole === "section" && (await tryLocalSectionLogin(idVal, pwdVal))) {
             return;
           }
-          alert(apiError || "Identifiant ou mot de passe incorrect.");
+          alert(
+            apiError ||
+              "Identifiant ou mot de passe incorrect. Vérifiez l'e-mail, le mot de passe et l'université."
+          );
           return;
         }
 
@@ -556,7 +569,6 @@
 
     function resolveLoginUniversite(idVal) {
       if (!ROLES[currentRole].showUniversite) return null;
-      if (universiteSelect.value) return universiteSelect.value;
       const found = SAC_IDENTITY.findUserByLoginId(SAC_IDENTITY.getLocalUsers(), idVal);
       if (found && found.role === currentRole) {
         const reg = SAC_IDENTITY.getRegisteredUniversite(found);
@@ -568,31 +580,81 @@
           return reg;
         }
       }
+      if (universiteSelect.value) return universiteSelect.value;
       return null;
     }
 
-    async function tryLocalSectionLogin(idVal, pwdVal) {
+    async function tryLocalSectionLogin(idVal, pwdVal, opts) {
+      const silent = opts?.silent === true;
       const users = SAC_IDENTITY.getLocalUsers();
       const found = SAC_IDENTITY.findUserByLoginId(users, idVal);
       if (!found || found.role !== currentRole) return false;
 
       const cred = await SAC_IDENTITY.verifyLoginCredentials(found, pwdVal);
       if (!cred.ok) {
-        alert(cred.message);
-        return true;
+        if (!silent) alert(cred.message);
+        return silent ? false : true;
       }
 
       const uniVal = resolveLoginUniversite(idVal) || SAC_IDENTITY.getRegisteredUniversite(found);
       const uniCheck = SAC_IDENTITY.assertUniversiteOnLogin(found, uniVal);
       if (!uniCheck.ok) {
-        alert(uniCheck.message);
-        return true;
+        if (!silent) alert(uniCheck.message);
+        return !silent;
       }
 
       const session = SAC_IDENTITY.buildSessionFromUser(found);
       session.authSource = "local";
       redirectAfterLogin(session);
       return true;
+    }
+
+    function enrichSectionSession(apiSession, idVal) {
+      if (!apiSession || currentRole !== "section") return apiSession;
+      const local = SAC_IDENTITY.findUserByLoginId(
+        SAC_IDENTITY.getLocalUsers(),
+        idVal
+      );
+      if (local?.sectionKind === "recteur" || local?.isRector) {
+        apiSession.sectionKind = "recteur";
+        apiSession.isRector = true;
+        if (!apiSession.sectionName && local.sectionName) {
+          apiSession.sectionName = local.sectionName;
+        }
+      }
+      if (local?.universite && !apiSession.universite) {
+        apiSession.universite = local.universite;
+      }
+      return apiSession;
+    }
+
+    async function attemptApiSectionLogin(idVal, pwdVal, uniVal) {
+      if (typeof SAC_API === "undefined" || !(await SAC_API.ensureOnline())) {
+        return null;
+      }
+      const local = SAC_IDENTITY.findUserByLoginId(
+        SAC_IDENTITY.getLocalUsers(),
+        idVal
+      );
+      const uniCandidates = [
+        uniVal,
+        local ? SAC_IDENTITY.getRegisteredUniversite(local) : null,
+        null,
+      ].filter((v, i, a) => v !== undefined && a.indexOf(v) === i);
+
+      let lastErr = null;
+      for (const uni of uniCandidates) {
+        try {
+          let session = await SAC_API.login(idVal, pwdVal, "section", {
+            universite: uni,
+          });
+          session = enrichSectionSession(session, idVal);
+          return session;
+        } catch (err) {
+          lastErr = err;
+        }
+      }
+      throw lastErr || new Error("Identifiant ou mot de passe incorrect.");
     }
 
     function syncUniversiteFromAccount() {

@@ -329,17 +329,32 @@ const SAC_IDENTITY = (function () {
   }
 
   async function verifyLoginCredentials(user, password) {
+    const pwd = (password || "").trim();
     if (!user) {
       return { ok: false, message: "Compte introuvable. Inscrivez-vous d'abord." };
     }
+
+    if (!user.passwordHash && user.password && user.password === pwd) {
+      user.passwordHash = await hashPassword(pwd);
+      delete user.password;
+      const users = getLocalUsers();
+      const key = normalizeEmail(user.email);
+      const idx = users.findIndex((u) => normalizeEmail(u.email) === key);
+      if (idx >= 0) {
+        users[idx] = { ...users[idx], passwordHash: user.passwordHash };
+        delete users[idx].password;
+        localStorage.setItem("sac_users", JSON.stringify(users));
+      }
+    }
+
     if (!user.passwordHash) {
       return {
         ok: false,
         message:
-          "Compte créé avant la mise à jour sécurité. Veuillez vous réinscrire ou contacter le support.",
+          "Compte incomplet (mot de passe non enregistré). Demandez à l'université de recréer le compte recteur.",
       };
     }
-    const pwdOk = await verifyPassword(password, user.passwordHash);
+    const pwdOk = await verifyPassword(pwd, user.passwordHash);
     if (!pwdOk) {
       return { ok: false, message: "Mot de passe incorrect. Utilisez celui défini à l'inscription." };
     }

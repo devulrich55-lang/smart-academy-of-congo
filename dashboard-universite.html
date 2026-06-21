@@ -541,6 +541,18 @@
             <strong>Un seul compte recteur</strong> par université — création unique et définitive.
           </p>
           <div id="rectorExistingBox" hidden class="credentials-box" style="margin-bottom:1rem;"></div>
+          <form id="formResetRectorPassword" class="rec-form" hidden style="margin-bottom:1rem;padding:1rem;background:var(--bg);border-radius:8px;border:1px dashed var(--border);">
+            <p style="font-size:0.88rem;color:var(--muted);margin:0 0 0.75rem;">
+              Le recteur ne parvient pas à se connecter ? Définissez un nouveau mot de passe (8 caractères, lettre + chiffre).
+            </p>
+            <div class="form-row-2">
+              <div class="fg">
+                <label for="recteurResetPassword">Nouveau mot de passe recteur *</label>
+                <input type="password" class="fi" id="recteurResetPassword" minlength="8" autocomplete="new-password" />
+              </div>
+            </div>
+            <button type="submit" class="btn btn--ghost">Réinitialiser le mot de passe recteur</button>
+          </form>
           <form id="formCreateRector" class="rec-form">
             <div class="form-row-2">
               <div class="fg">
@@ -1782,6 +1794,7 @@
         if (!box || !form || typeof SAC_SECTION_ACCOUNTS === "undefined") return;
 
         const existing = SAC_SECTION_ACCOUNTS.getRectorForUniversity(session.universite);
+        const resetForm = document.getElementById("formResetRectorPassword");
         if (existing) {
           box.hidden = false;
           box.innerHTML =
@@ -1792,14 +1805,16 @@
             (existing.telephone
               ? "Téléphone : <code>" + esc(existing.telephone) + "</code><br>"
               : "") +
-            '<span style="font-size:0.85rem;">Un seul compte recteur par université. Connexion via <strong>Connexion → Section</strong>.</span>';
+            '<span style="font-size:0.85rem;">Connexion : page <strong>Connexion → Section</strong> avec cet e-mail.</span>';
           form.style.display = "none";
+          if (resetForm) resetForm.hidden = false;
           const panel = document.getElementById("panelRectorAccount");
           if (panel) panel.classList.add("rector-locked");
         } else {
           box.hidden = true;
           box.innerHTML = "";
           form.style.display = "";
+          if (resetForm) resetForm.hidden = true;
           const panel = document.getElementById("panelRectorAccount");
           if (panel) panel.classList.remove("rector-locked");
         }
@@ -1878,6 +1893,36 @@
       });
       document.getElementById("secProfCreateAccount").addEventListener("change", (e) => {
         document.getElementById("secProfAccountFields").style.display = e.target.checked ? "block" : "none";
+      });
+
+      document.getElementById("formResetRectorPassword")?.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const existing = SAC_SECTION_ACCOUNTS.getRectorForUniversity(session.universite);
+        if (!existing) return;
+        const newPwd = document.getElementById("recteurResetPassword").value;
+        const pwdCheck = SAC_IDENTITY.validatePassword(newPwd);
+        if (!pwdCheck.ok) {
+          alert(pwdCheck.message);
+          return;
+        }
+        const uniUser = SAC_IDENTITY.findUserByLoginId(
+          SAC_IDENTITY.getLocalUsers(),
+          session.identifiant || session.userId
+        );
+        try {
+          await SAC_SECTION_ACCOUNTS.updateRectorPassword(
+            {
+              universite: session.universite,
+              nomUniversite: uniUser?.nomUniversite || session.nom,
+            },
+            existing.email,
+            newPwd
+          );
+          showToast("Mot de passe recteur mis à jour — le recteur peut se reconnecter.");
+          e.target.reset();
+        } catch (err) {
+          alert(err.message || "Réinitialisation impossible.");
+        }
       });
 
       document.getElementById("formCreateRector")?.addEventListener("submit", async (e) => {
