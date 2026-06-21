@@ -459,3 +459,7 @@
   font-weight: 600;
   margin: 0.5rem 0 0;
 }
+
+.ai-ref-used--web {
+  color: #0f766e;
+}

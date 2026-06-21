@@ -14,6 +14,11 @@ const SAC_AI_CORRECTION = (function () {
     rejete: "Rejeté",
   };
 
+  const REJECT_MSG_NO_SOURCE =
+    "Impossible de corriger ce travail : aucune copie professeur et aucune source fiable trouvée sur internet pour ce sujet. Vérifiez le titre du travail ou contactez votre professeur.";
+  const REJECT_MSG_REFERENCE_EMPTY =
+    "La copie de référence du professeur est illisible. L'IA tente une recherche internet automatique…";
+
   function uid() {
     return "wrk-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
   }
@@ -42,12 +47,16 @@ const SAC_AI_CORRECTION = (function () {
     localStorage.setItem(REF_STORAGE_KEY, JSON.stringify(list));
   }
 
-  function normTitle(value) {
+  function normText(value) {
     return String(value || "")
       .trim()
       .toLowerCase()
       .normalize("NFD")
       .replace(/\p{Diacritic}/gu, "");
+  }
+
+  function normTitle(value) {
+    return normText(value);
   }
 
   function titlesMatch(a, b) {
@@ -57,9 +66,9 @@ const SAC_AI_CORRECTION = (function () {
     return x === y || x.includes(y) || y.includes(x);
   }
 
-  function findReference(universite, courseCode, assignmentTitle, professorEmail, semester) {
+  function filterMatchingReferences(refs, universite, courseCode, assignmentTitle, professorEmail, semester) {
     const profLower = (professorEmail || "").toLowerCase();
-    const matches = getLocalRefs().filter((r) => {
+    return (refs || []).filter((r) => {
       if (r.universite !== universite || r.courseCode !== courseCode) return false;
       if (semester && r.semester && r.semester !== semester) return false;
       if (!titlesMatch(assignmentTitle, r.assignmentTitle)) return false;
@@ -67,7 +76,44 @@ const SAC_AI_CORRECTION = (function () {
       if (profLower && rProf && rProf !== profLower) return false;
       return true;
     });
+  }
+
+  function pickLatestReference(matches) {
     return matches.sort((a, b) => (b.updatedAt || "").localeCompare(a.updatedAt || ""))[0] || null;
+  }
+
+  function hasUsableReference(reference) {
+    return !!(reference && String(reference.referenceText || "").trim().length >= 20);
+  }
+
+  async function findReference(universite, courseCode, assignmentTitle, professorEmail, semester) {
+    if (typeof SAC_API !== "undefined" && (await SAC_API.ensureOnline())) {
+      try {
+        const json = await SAC_API.platformRequest("/platform/corrections/references");
+        const match = pickLatestReference(
+          filterMatchingReferences(
+            json.references || [],
+            universite,
+            courseCode,
+            assignmentTitle,
+            professorEmail,
+            semester
+          )
+        );
+        if (match) return match;
+      } catch {
+        /* repli localStorage */
+      }
+    }
+    const matches = filterMatchingReferences(
+      getLocalRefs(),
+      universite,
+      courseCode,
+      assignmentTitle,
+      professorEmail,
+      semester
+    );
+    return pickLatestReference(matches);
   }
 
   async function listReferences(prof) {
@@ -136,113 +182,316 @@ const SAC_AI_CORRECTION = (function () {
     });
   }
 
-  function analyzeLocally(text, courseName, title, reference) {
-    const content = String(text || "").trim();
-    const words = content.split(/\s+/).filter(Boolean);
-    const wc = words.length;
-    const sentences = content.split(/[.!?]+/).filter((s) => s.trim().length > 8);
-    const paragraphs = content.split(/\n\n+/).filter((p) => p.trim());
-    const lower = content.toLowerCase();
+  async function fetchJsonSafe(url) {
+    try {
+      const response = await fetch(url, { headers: { Accept: "application/json" } });
+      if (!response.ok) return null;
+      return await response.json();
+    } catch {
+      return null;
+    }
+  }
 
-    const rubric = {
-      contenu: 8,
-      structure: 8,
-      argumentation: 8,
-      originalite: 8,
-      presentation: 8,
+  function buildSearchQueries(courseName, assignmentTitle, studentText) {
+    const queries = [];
+    const title = String(assignmentTitle || "").trim();
+    const course = String(courseName || "").trim();
+    const text = String(studentText || "").trim();
+    if (course && title) queries.push(`${course} ${title}`);
+    if (title) queries.push(title);
+    if (course) queries.push(course);
+    (text.match(/[^.!?\n]{8,}\?/g) || []).slice(0, 4).forEach((q) => queries.push(q.trim()));
+    text
+      .split(/\n+/)
+      .map((line) => line.trim())
+      .filter((line) => line.length > 18)
+      .slice(0, 3)
+      .forEach((line) => queries.push(line.slice(0, 140)));
+    return [...new Set(queries.filter(Boolean))].slice(0, 8);
+  }
+
+  async function wikiSearch(query, lang) {
+    const q = encodeURIComponent(query.slice(0, 120));
+    const data = await fetchJsonSafe(
+      `https://${lang}.wikipedia.org/w/api.php?action=query&list=search&srsearch=${q}&format=json&origin=*&srlimit=2`
+    );
+    return (data?.query?.search || []).map((hit) => ({ title: hit.title, lang, snippet: hit.snippet || "" }));
+  }
+
+  async function wikiSummary(title, lang) {
+    const slug = encodeURIComponent(String(title || "").replace(/ /g, "_"));
+    const data = await fetchJsonSafe(`https://${lang}.wikipedia.org/api/rest_v1/page/summary/${slug}`);
+    if (!data?.extract) return null;
+    return {
+      title: data.title || title,
+      extract: data.extract,
+      url: data.content_urls?.desktop?.page || "",
+      source: `Wikipedia (${lang})`,
     };
+  }
 
-    if (wc >= 180) rubric.contenu += 2;
-    if (wc >= 350) rubric.contenu += 2;
-    if (wc >= 550) rubric.contenu += 1;
-    if (sentences.length >= 6) rubric.argumentation += 1.5;
-    if (paragraphs.length >= 3) rubric.structure += 2;
-    if (paragraphs.length >= 5) rubric.structure += 1;
-    if (/^(introduction|en conclusion|pour conclure|en somme)/im.test(content) || /conclusion/i.test(lower))
-      rubric.structure += 1;
-    if (/bibliograph|référence|source|ouvrage|auteur/i.test(lower)) rubric.presentation += 1.5;
+  async function duckDuckGoLookup(query) {
+    const q = encodeURIComponent(query.slice(0, 200));
+    const data = await fetchJsonSafe(
+      `https://api.duckduckgo.com/?q=${q}&format=json&no_html=1&skip_disambig=1`
+    );
+    if (!data) return null;
+    if (data.AbstractText) {
+      return {
+        title: data.Heading || query,
+        extract: data.AbstractText,
+        url: data.AbstractURL || "",
+        source: "DuckDuckGo",
+      };
+    }
+    const related = (data.RelatedTopics || [])
+      .flatMap((item) => (item.Text ? [item] : item.Topics || []))
+      .filter((item) => item.Text)
+      .slice(0, 4)
+      .map((item) => item.Text)
+      .join("\n");
+    return related
+      ? { title: query, extract: related, url: "", source: "DuckDuckGo" }
+      : null;
+  }
 
-    const courseTokens = (courseName || "")
-      .toLowerCase()
-      .split(/[\s—\-/,]+/)
-      .filter((w) => w.length > 4);
-    const matchedCourse = courseTokens.filter((w) => lower.includes(w)).length;
-    rubric.contenu += Math.min(2, matchedCourse * 0.75);
+  async function requestServerResearch(data) {
+    if (typeof SAC_API === "undefined" || !(await SAC_API.ensureOnline())) return null;
+    try {
+      const json = await SAC_API.platformRequest("/platform/corrections/research", {
+        method: "POST",
+        body: JSON.stringify({
+          courseName: data.courseName,
+          courseCode: data.courseCode,
+          assignmentTitle: data.assignmentTitle,
+          textContent: data.textContent || data.text || "",
+        }),
+      });
+      if (json?.research?.referenceText) return json.research;
+    } catch {
+      /* repli client */
+    }
+    return null;
+  }
 
-    const refText = reference?.referenceText || "";
-    const criteriaNotes = reference?.criteriaNotes || "";
-    const comments = [
-      "Analyse intelligente SAC : contenu, structure et argumentation évalués.",
-      wc >= 300 ? "Développement satisfaisant pour un travail universitaire." : "Développement à approfondir (longueur insuffisante).",
-    ];
+  async function researchWebKnowledge(courseName, assignmentTitle, studentText) {
+    const queries = buildSearchQueries(courseName, assignmentTitle, studentText);
+    const sources = [];
+    const seen = new Set();
+
+    function addSource(entry, query) {
+      if (!entry?.extract) return;
+      const key = normText(entry.extract).slice(0, 100);
+      if (!key || seen.has(key)) return;
+      seen.add(key);
+      sources.push({ ...entry, query });
+    }
+
+    const tasks = [];
+    queries.forEach((query) => {
+      tasks.push(
+        duckDuckGoLookup(query).then((result) => {
+          if (result) addSource(result, query);
+        })
+      );
+      ["fr", "en"].forEach((lang) => {
+        tasks.push(
+          wikiSearch(query, lang).then(async (hits) => {
+            for (const hit of hits.slice(0, 2)) {
+              const summary = await wikiSummary(hit.title, lang);
+              if (summary) addSource(summary, query);
+            }
+          })
+        );
+      });
+    });
+    await Promise.allSettled(tasks);
+
+    if (!sources.length) return null;
+
+    const referenceText = sources
+      .slice(0, 6)
+      .map((source, index) => {
+        const link = source.url ? `\nSource : ${source.url}` : "";
+        return `[Référence ${index + 1} — ${source.source}] ${source.title}\n${source.extract}${link}`;
+      })
+      .join("\n\n");
+
+    return {
+      referenceText,
+      criteriaNotes:
+        "Correction automatique par recherche documentaire (Wikipedia, DuckDuckGo). L'orthographe n'est pas pénalisée.",
+      mode: "web_research",
+      sources: sources.slice(0, 6).map((source) => ({
+        title: source.title,
+        url: source.url,
+        source: source.source,
+      })),
+    };
+  }
+
+  async function resolveCorrectionSource(reference, data) {
+    if (hasUsableReference(reference)) {
+      return { source: reference, mode: "prof_reference", usedWebResearch: false };
+    }
+    const serverResearch = await requestServerResearch(data);
+    if (serverResearch?.referenceText) {
+      return {
+        source: serverResearch,
+        mode: "web_research",
+        usedWebResearch: true,
+      };
+    }
+    const webResearch = await researchWebKnowledge(
+      data.courseName,
+      data.assignmentTitle,
+      data.textContent || data.text || ""
+    );
+    if (webResearch?.referenceText) {
+      return { source: webResearch, mode: "web_research", usedWebResearch: true };
+    }
+    return null;
+  }
+
+  function buildRejection(reason, message) {
+    return {
+      status: "rejete",
+      rejectionReason: reason,
+      provisionalGrade: null,
+      originalityScore: null,
+      aiComments: [message],
+      aiStrengths: [],
+      aiWeaknesses: [],
+      rubricScores: null,
+      aiProgress: 100,
+      usedReference: false,
+      professorComment: message,
+    };
+  }
+
+  function extractReferenceSections(refText) {
+    const blocks = String(refText || "")
+      .split(/\n+/)
+      .map((s) => s.trim())
+      .filter((s) => s.length > 8);
+    if (blocks.length >= 2) return blocks;
+    return String(refText || "")
+      .split(/(?<=[.!?])\s+/)
+      .map((s) => s.trim())
+      .filter((s) => s.length > 20);
+  }
+
+  function sectionMatchRatio(studentNorm, section) {
+    const keyWords = [...new Set(normText(section).match(/\w{4,}/g) || [])].slice(0, 12);
+    if (!keyWords.length) return 0;
+    const hits = keyWords.filter((w) => studentNorm.includes(w)).length;
+    return hits / keyWords.length;
+  }
+
+  function analyzeLocally(text, courseName, title, correctionBundle) {
+    if (!correctionBundle?.source) {
+      return buildRejection("NO_CORRECTION_SOURCE", REJECT_MSG_NO_SOURCE);
+    }
+
+    const reference = correctionBundle.source;
+    const mode = correctionBundle.mode || "prof_reference";
+    const content = String(text || "").trim();
+    const refText = String(reference.referenceText || "").trim();
+    const criteriaNotes = String(reference.criteriaNotes || "").trim();
+    const studentNorm = normText(content);
+    const refNorm = normText(refText);
+
+    const refSections = extractReferenceSections(refText);
+    const missingElements = [];
+    let matchedSections = 0;
+    refSections.forEach((section) => {
+      const ratio = sectionMatchRatio(studentNorm, section);
+      if (ratio >= 0.32) matchedSections += 1;
+      else missingElements.push(section.slice(0, 100) + (section.length > 100 ? "…" : ""));
+    });
+
+    const sectionRatio = refSections.length ? matchedSections / refSections.length : 0;
+    const refWords = new Set(refNorm.match(/\w{4,}/g) || []);
+    const stuWords = new Set(studentNorm.match(/\w{4,}/g) || []);
+    const overlap = refWords.size ? [...refWords].filter((w) => stuWords.has(w)).length / refWords.size : 0;
+
+    let score = refSections.length ? sectionRatio * 14 + overlap * 6 : overlap * 20;
+    if (criteriaNotes && /plagiat|copie|similarit/i.test(criteriaNotes) && overlap > 0.92) {
+      score -= 2;
+    }
+    score = Math.min(20, Math.max(0, Math.round(score * 10) / 10));
+
+    const comments =
+      mode === "web_research"
+        ? [
+            "Copie professeur absente — correction par recherche internet automatique (sources ouvertes fiables).",
+            "L'orthographe n'est pas pénalisée ; seules les réponses factuelles et le fond sont évalués.",
+            `Conformité aux éléments trouvés : ${Math.round(sectionRatio * 100)} %.`,
+            `Alignement avec les références documentaires : ${Math.round(overlap * 100)} %.`,
+          ]
+        : [
+            "Correction effectuée selon la copie de référence du professeur (orthographe non prise en compte).",
+            `Éléments attendus retrouvés : ${Math.round(sectionRatio * 100)} %.`,
+            `Alignement avec le modèle : ${Math.round(overlap * 100)} %.`,
+          ];
+    if (criteriaNotes) {
+      comments.push(`Consignes : ${criteriaNotes.slice(0, 300)}${criteriaNotes.length > 300 ? "…" : ""}`);
+    }
+
     const strengths = [];
     const weaknesses = [];
-
-    if (wc >= 280) strengths.push("Volume de rédaction adapté");
-    if (paragraphs.length >= 3) strengths.push("Structure en paragraphes identifiable");
-    if (matchedCourse >= 2) strengths.push("Vocabulaire aligné sur le cours");
-    if (!strengths.length) strengths.push("Effort de rédaction constaté");
-    if (wc < 220) weaknesses.push("Texte trop court — développez vos idées");
-    if (paragraphs.length < 2) weaknesses.push("Structurer en introduction, développement et conclusion");
-
-    let originality = 72 + Math.min(18, wc / 35) + paragraphs.length;
-
-    if (refText) {
-      const refWords = new Set(refText.toLowerCase().match(/\w{4,}/g) || []);
-      const stuWords = new Set(lower.match(/\w{4,}/g) || []);
-      const overlap =
-        refWords.size > 0 ? [...refWords].filter((w) => stuWords.has(w)).length / refWords.size : 0;
-      const refParas = refText.split(/\n\n+/).filter((p) => p.trim()).length;
-      const paraRatio = refParas ? Math.min(paragraphs.length, refParas) / refParas : 0.5;
-      rubric.contenu += overlap * 3 + paraRatio * 2 - 1;
-      rubric.argumentation += overlap * 2;
-      originality += overlap * 8;
-      comments.unshift(
-        `Alignement avec la copie de référence du professeur : ${Math.round(overlap * 100)} %.`
+    if (sectionRatio >= 0.65) {
+      strengths.push(
+        mode === "web_research"
+          ? "Réponses alignées sur des sources documentaires fiables"
+          : "La plupart des éléments de la copie modèle sont présents"
       );
-      if (overlap >= 0.32) strengths.push("Bon alignement avec le modèle de correction");
-      else {
-        weaknesses.push("Écart notable par rapport à la copie de référence");
-        comments.push("Reprenez les éléments attendus dans la copie corrigée fournie par votre professeur.");
-      }
     } else {
-      comments.push("Aucune copie de référence trouvée — correction basée sur les critères généraux SAC.");
+      weaknesses.push(
+        mode === "web_research"
+          ? "Certaines réponses s'écartent des sources trouvées sur internet"
+          : "Plusieurs éléments attendus dans la copie de référence sont absents"
+      );
     }
-
-    if (criteriaNotes) {
-      comments.push(`Critères professeur : ${criteriaNotes.slice(0, 200)}${criteriaNotes.length > 200 ? "…" : ""}`);
-      if (/plagiat|copie|similarit/i.test(criteriaNotes)) {
-        originality -= 8;
-        weaknesses.push("Vérifier le risque de similarité (critère professeur)");
-      }
-      if (/bibliograph/i.test(criteriaNotes) && !/bibliograph|référence/i.test(lower)) {
-        rubric.presentation -= 2;
-        weaknesses.push("Bibliographie attendue selon les critères du professeur");
-      }
+    if (overlap >= 0.35) {
+      strengths.push(
+        mode === "web_research"
+          ? "Concepts et vocabulaire cohérents avec le domaine"
+          : "Contenu aligné sur le modèle de correction"
+      );
+    } else {
+      weaknesses.push(
+        mode === "web_research"
+          ? "Réponses incomplètes ou éloignées des références du domaine"
+          : "Écart important par rapport à la copie de référence du professeur"
+      );
     }
-
-    Object.keys(rubric).forEach((k) => {
-      rubric[k] = Math.min(20, Math.max(4, Math.round(rubric[k] * 10) / 10));
-    });
-
-    const weights = { contenu: 0.3, structure: 0.2, argumentation: 0.25, originalite: 0.1, presentation: 0.15 };
-    let score = 0;
-    Object.entries(weights).forEach(([k, w]) => {
-      score += (rubric[k] || 8) * w;
-    });
-    score = Math.min(20, Math.max(5, Math.round(score * 10) / 10));
-    originality = Math.min(99, Math.max(55, Math.round(originality)));
+    if (!content.length) {
+      weaknesses.push("Aucun contenu textuel détecté dans le dépôt");
+      score = 0;
+    }
+    if (missingElements.length && missingElements.length <= 4) {
+      weaknesses.push(
+        "Points à revoir : " + missingElements.slice(0, 3).join(" · ")
+      );
+    }
 
     return {
       provisionalGrade: score,
-      originalityScore: originality,
+      originalityScore: Math.min(99, Math.max(40, Math.round(55 + overlap * 35))),
       aiComments: comments,
-      aiStrengths: strengths,
+      aiStrengths: strengths.length ? strengths : ["Dépôt analysé et comparé aux références disponibles"],
       aiWeaknesses: weaknesses,
-      rubricScores: rubric,
+      rubricScores: {
+        conformite_reference: Math.round(sectionRatio * 20 * 10) / 10,
+        alignement_modele: Math.round(overlap * 20 * 10) / 10,
+      },
       aiProgress: 100,
       status: "note_provisoire",
-      usedReference: !!refText,
+      usedReference: mode === "prof_reference",
+      usedWebResearch: mode === "web_research",
+      researchSources: reference.sources || [],
+      correctionMode: mode,
     };
   }
 
@@ -312,30 +561,46 @@ const SAC_AI_CORRECTION = (function () {
   }
 
   async function submitWork(student, data, file) {
-    if (typeof SAC_API !== "undefined" && (await SAC_API.ensureOnline())) {
-        if (file) {
-          const fd = new FormData();
-          Object.entries(data).forEach(([k, v]) => fd.append(k, v));
-          fd.append("file", file);
-          const json = await SAC_API.uploadFormData("/platform/corrections/submit", fd);
-          return json.submission;
-        }
-      const json = await SAC_API.platformRequest("/platform/corrections/submit", {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
-      return json.submission;
-    }
-
-    const text = data.textContent || data.text || "";
-    const reference = findReference(
+    const reference = await findReference(
       student.universite,
       data.courseCode,
       data.assignmentTitle,
       data.professorEmail,
       data.semester
     );
-    const analysis = analyzeLocally(text, data.courseName, data.assignmentTitle, reference);
+    const correctionBundle = await resolveCorrectionSource(reference, data);
+    if (!correctionBundle) {
+      const err = new Error(REJECT_MSG_NO_SOURCE);
+      err.code = "NO_CORRECTION_SOURCE";
+      throw err;
+    }
+
+    const text = data.textContent || data.text || "";
+    const preferLocal =
+      correctionBundle.mode === "web_research" ||
+      typeof SAC_API === "undefined" ||
+      !(await SAC_API.ensureOnline());
+
+    if (!preferLocal) {
+      const payload = {
+        ...data,
+        correctionMode: correctionBundle.mode,
+      };
+      if (file) {
+        const fd = new FormData();
+        Object.entries(payload).forEach(([k, v]) => fd.append(k, v));
+        fd.append("file", file);
+        const json = await SAC_API.uploadFormData("/platform/corrections/submit", fd);
+        return json.submission;
+      }
+      const json = await SAC_API.platformRequest("/platform/corrections/submit", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+      return json.submission;
+    }
+
+    const analysis = analyzeLocally(text, data.courseName, data.assignmentTitle, correctionBundle);
     const sub = {
       id: uid(),
       studentEmail: student.email || student.identifiant,
@@ -474,20 +739,42 @@ const SAC_AI_CORRECTION = (function () {
     if (sub.status === "correction_ia") step = 2;
     if (sub.status === "note_provisoire") step = 3;
     if (sub.status === "valide") step = 5;
-    if (sub.status === "rejete") step = 4;
+    if (sub.status === "rejete") step = 2;
 
     let body = renderFlowStep(step);
+    if (sub.status === "rejete") {
+      const rejectMsg =
+        sub.professorComment ||
+        sub.aiComments?.[0] ||
+        (sub.rejectionReason === "REFERENCE_EMPTY"
+          ? REJECT_MSG_REFERENCE_EMPTY
+          : REJECT_MSG_NO_SOURCE);
+      body += `<p class="ai-reject-msg" style="margin-top:0.75rem;padding:0.75rem;background:#fef2f2;border-left:4px solid #b91c1c;color:#991b1b;border-radius:6px;font-size:0.9rem;">✕ ${esc(rejectMsg)}</p>`;
+    }
     if (sub.status === "correction_ia") {
       body += `<div class="ai-progress"><div class="ai-progress__bar" style="width:${sub.aiProgress || 80}%"></div></div>
         <p style="font-size:0.85rem;color:var(--text-muted)">Correction en cours… ${sub.aiProgress || 80}%</p>`;
     }
-    if (sub.provisionalGrade != null && sub.status !== "depose") {
+    if (sub.provisionalGrade != null && sub.status !== "depose" && sub.status !== "rejete") {
       body += `<div class="ai-result">
         <div class="ai-result__card"><strong>${sub.provisionalGrade}/20</strong><span>Note provisoire IA</span></div>
         <div class="ai-result__card"><strong>${sub.originalityScore || "—"}%</strong><span>Originalité</span></div>
       </div>`;
       if (sub.usedReference) {
         body += `<p class="ai-ref-used">📋 Correction effectuée selon la copie de référence du professeur.</p>`;
+      }
+      if (sub.usedWebResearch) {
+        body += `<p class="ai-ref-used ai-ref-used--web">🌐 Copie prof absente — correction par recherche internet automatique (sources fiables).</p>`;
+        if (sub.researchSources?.length) {
+          body += `<div class="ai-comments"><strong>Sources consultées</strong><ul>${sub.researchSources
+            .map((source) => {
+              const label = esc(source.title || source.source || "Source");
+              return source.url
+                ? `<li><a href="${esc(source.url)}" target="_blank" rel="noopener">${label}</a> (${esc(source.source || "")})</li>`
+                : `<li>${label} (${esc(source.source || "")})</li>`;
+            })
+            .join("")}</ul></div>`;
+        }
       }
       if (sub.aiStrengths?.length) {
         body += `<div class="ai-comments"><strong>Points forts</strong><ul>${sub.aiStrengths.map((c) => `<li>${esc(c)}</li>`).join("")}</ul></div>`;
@@ -544,7 +831,7 @@ const SAC_AI_CORRECTION = (function () {
         </div>
         <div class="panel__body">
           ${renderFlowStep(1)}
-          <p class="ai-deposit__intro">Déposez votre travail (texte, PDF, Word ou image). L'agent IA SAC analyse le contenu selon la copie de correction de votre professeur, détecte les similarités et propose une note provisoire — validée ensuite par votre professeur ou l'assistant du campus.</p>
+          <p class="ai-deposit__intro">Déposez votre travail (texte, PDF, Word ou image). L'IA compare d'abord à la <strong>copie de correction du professeur</strong> si elle existe. Sinon, elle effectue une <strong>recherche internet automatique</strong> (Wikipedia, sources ouvertes) pour trouver des réponses fiables dans le domaine du cours. L'orthographe n'est pas pénalisée.</p>
           <form id="aiSubmitForm" class="ai-deposit__form">
             <div class="ai-form-grid">
               <div class="ai-field">
@@ -622,7 +909,7 @@ const SAC_AI_CORRECTION = (function () {
       const btnLabel = btn.querySelector("span:last-child");
       const defaultLabel = btnLabel.textContent;
       btn.disabled = true;
-      btnLabel.textContent = "Correction IA en cours…";
+      btnLabel.textContent = "Analyse IA et recherche documentaire…";
       try {
         await submitWork(
           student,
@@ -734,7 +1021,7 @@ const SAC_AI_CORRECTION = (function () {
           </div>
         </div>
         <div class="panel__body">
-          <p class="ai-deposit__intro">Déposez une copie corrigée pour un cours et un sujet précis. L'IA comparera chaque travail étudiant à ce modèle pour proposer une note provisoire cohérente avec vos attentes.</p>
+          <p class="ai-deposit__intro">Déposez une copie corrigée pour guider l'IA. Si vous ne déposez pas de copie, l'agent SAC fera une <strong>recherche internet automatique</strong> pour corriger les travaux selon des sources fiables du domaine (sans pénaliser l'orthographe).</p>
           <form id="aiRefForm" class="ai-deposit__form">
             <div class="ai-form-grid">
               <div class="ai-field">
