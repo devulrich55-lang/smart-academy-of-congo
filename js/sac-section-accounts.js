@@ -70,20 +70,32 @@ const SAC_SECTION_ACCOUNTS = (function () {
   }
 
   async function createRectorAccount(uniProfile, account) {
+    const uniCode =
+      uniProfile.universite ||
+      (uniProfile.sigle || "").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 20);
+
+    const existing = getRectorForUniversity(uniCode);
+    if (existing) {
+      throw new Error(
+        "Un compte recteur existe déjà pour cette université (" +
+          existing.email +
+          "). Un seul compte recteur est autorisé — création bloquée."
+      );
+    }
+
     const emailCheck = SAC_IDENTITY.validateEmail(account.email);
     if (!emailCheck.ok) throw new Error(emailCheck.message);
 
     const pwdCheck = SAC_IDENTITY.validatePassword(account.password);
     if (!pwdCheck.ok) throw new Error(pwdCheck.message);
 
-    const phoneCheck = SAC_IDENTITY.validatePhone(
-      account.telephone || uniProfile.telephone || ""
-    );
-    if (!phoneCheck.ok) throw new Error(phoneCheck.message);
-
-    const uniCode =
-      uniProfile.universite ||
-      (uniProfile.sigle || "").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 20);
+    const phoneCheck = SAC_IDENTITY.validatePhone(account.telephone || "");
+    if (!phoneCheck.ok) {
+      throw new Error(
+        phoneCheck.message ||
+          "Numéro de téléphone recteur invalide. Saisissez un mobile congolais (9 chiffres, ex. 085 184 8859)."
+      );
+    }
     const names = splitResponsableName(
       account.responsableNom || uniProfile.responsable || "Recteur"
     );

@@ -1373,11 +1373,19 @@
                   <span class="field-error" data-for="recteurEmail">E-mail recteur valide requis</span>
                 </div>
                 <div class="form-group">
+                  <label for="recteurTelephone">Téléphone mobile recteur <span class="hint">*</span></label>
+                  <input type="tel" class="form-input" id="recteurTelephone" name="recteurTelephone" placeholder="Ex. 085 184 8859" autocomplete="tel" />
+                  <span class="field-error" data-for="recteurTelephone">Mobile congolais valide requis (9 chiffres, ex. 085 184 8859)</span>
+                </div>
+                <div class="form-group">
                   <label for="recteurPassword">Mot de passe recteur <span class="hint">*</span></label>
                   <input type="password" class="form-input" id="recteurPassword" name="recteurPassword" minlength="8" placeholder="Min. 8 caractères" autocomplete="new-password" />
                   <span class="field-error" data-for="recteurPassword">Mot de passe recteur requis (8 car., lettre + chiffre)</span>
                 </div>
               </div>
+              <p style="font-size:0.82rem;color:var(--text-muted);margin:0.75rem 0 0;line-height:1.45;">
+                <strong>Un seul compte recteur</strong> par université — création unique et définitive à l'inscription.
+              </p>
             </div>
             <div class="form-group full">
               <label>Sections / facultés de votre établissement <span class="hint">*</span></label>
@@ -2522,12 +2530,18 @@
         if (
           uniProfile.rectorAccount?.email &&
           uniProfile.rectorAccount?.password &&
+          uniProfile.rectorAccount?.telephone &&
           typeof SAC_SECTION_ACCOUNTS !== "undefined"
         ) {
+          const uniCode = uniProfile.universite || uniProfile.sigle;
+          if (SAC_SECTION_ACCOUNTS.getRectorForUniversity(uniCode)) {
+            console.warn("[SAC] Compte recteur déjà existant pour ce campus.");
+            return;
+          }
           try {
             await SAC_SECTION_ACCOUNTS.createRectorAccount(uniCtx, uniProfile.rectorAccount);
           } catch (err) {
-            console.warn("[SAC] Compte recteur:", err.message || err);
+            alert(err.message || "Impossible de créer le compte recteur.");
           }
         }
       }
@@ -2919,10 +2933,21 @@
         valid = showError("responsable", resp.length < 3) && valid;
         const recteurEmail = document.getElementById("recteurEmail").value.trim();
         const recteurPassword = document.getElementById("recteurPassword").value;
+        const recteurTelephone = document.getElementById("recteurTelephone").value.trim();
         const recteurEm = SAC_IDENTITY.validateEmail(recteurEmail);
         valid = showError("recteurEmail", !recteurEm.ok, recteurEm.message) && valid;
+        const recteurPh = SAC_IDENTITY.validatePhone(recteurTelephone);
+        valid = showError("recteurTelephone", !recteurPh.ok, recteurPh.message) && valid;
         const recteurPw = SAC_IDENTITY.validatePassword(recteurPassword);
         valid = showError("recteurPassword", !recteurPw.ok, recteurPw.message) && valid;
+        const sigleIdPreview = sigle.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 20) || "campus";
+        if (
+          typeof SAC_SECTION_ACCOUNTS !== "undefined" &&
+          SAC_SECTION_ACCOUNTS.getRectorForUniversity(sigleIdPreview)
+        ) {
+          alert("Un compte recteur existe déjà pour cette université. Un seul compte recteur est autorisé.");
+          valid = false;
+        }
         valid = validateFacultySections() && valid;
         const sigleId = sigle.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 20) || "campus";
         Object.assign(profile, {
@@ -2940,8 +2965,8 @@
           rectorAccount: {
             email: recteurEm.value || recteurEmail,
             password: recteurPassword,
+            telephone: recteurPh.value || recteurTelephone,
             responsableNom: resp,
-            telephone: tel,
           },
         });
       }

@@ -538,6 +538,7 @@
             Le <strong>recteur</strong> se connecte via l'onglet <strong>Section</strong> sur la page de connexion,
             avec les mêmes accès que le chef de section pour <strong>valider les premières inscriptions professeur</strong>
             (sous 24 h) avant leur nomination chef de section.
+            <strong>Un seul compte recteur</strong> par université — création unique et définitive.
           </p>
           <div id="rectorExistingBox" hidden class="credentials-box" style="margin-bottom:1rem;"></div>
           <form id="formCreateRector" class="rec-form">
@@ -546,6 +547,12 @@
                 <label for="recteurUniEmail">E-mail de connexion recteur *</label>
                 <input type="email" class="fi" id="recteurUniEmail" required placeholder="Ex. recteur@unikin.cd" autocomplete="off" />
               </div>
+              <div class="fg">
+                <label for="recteurUniTelephone">Téléphone mobile recteur *</label>
+                <input type="tel" class="fi" id="recteurUniTelephone" required placeholder="Ex. 085 184 8859" autocomplete="tel" />
+              </div>
+            </div>
+            <div class="form-row-2">
               <div class="fg">
                 <label for="recteurUniPassword">Mot de passe recteur *</label>
                 <input type="password" class="fi" id="recteurUniPassword" required minlength="8" placeholder="Min. 8 caractères" autocomplete="new-password" />
@@ -1778,16 +1785,23 @@
         if (existing) {
           box.hidden = false;
           box.innerHTML =
-            "<strong>Compte recteur actif</strong><br>" +
-            "E-mail de connexion : <code>" +
+            "<strong>Compte recteur actif — création bloquée</strong><br>" +
+            "E-mail : <code>" +
             esc(existing.email) +
             "</code><br>" +
-            '<span style="font-size:0.85rem;">Le recteur se connecte via <strong>Connexion → Section</strong> pour valider les inscriptions professeur.</span>';
+            (existing.telephone
+              ? "Téléphone : <code>" + esc(existing.telephone) + "</code><br>"
+              : "") +
+            '<span style="font-size:0.85rem;">Un seul compte recteur par université. Connexion via <strong>Connexion → Section</strong>.</span>';
           form.style.display = "none";
+          const panel = document.getElementById("panelRectorAccount");
+          if (panel) panel.classList.add("rector-locked");
         } else {
           box.hidden = true;
           box.innerHTML = "";
           form.style.display = "";
+          const panel = document.getElementById("panelRectorAccount");
+          if (panel) panel.classList.remove("rector-locked");
         }
       }
 
@@ -1868,11 +1882,25 @@
 
       document.getElementById("formCreateRector")?.addEventListener("submit", async (e) => {
         e.preventDefault();
+        if (
+          typeof SAC_SECTION_ACCOUNTS !== "undefined" &&
+          SAC_SECTION_ACCOUNTS.getRectorForUniversity(session.universite)
+        ) {
+          alert("Un compte recteur existe déjà. Un seul compte recteur est autorisé — création bloquée.");
+          renderRectorPanel();
+          return;
+        }
         const email = document.getElementById("recteurUniEmail").value.trim();
         const password = document.getElementById("recteurUniPassword").value;
+        const telephone = document.getElementById("recteurUniTelephone").value.trim();
         const emailCheck = SAC_IDENTITY.validateEmail(email);
         if (!emailCheck.ok) {
           alert(emailCheck.message);
+          return;
+        }
+        const phoneCheck = SAC_IDENTITY.validatePhone(telephone);
+        if (!phoneCheck.ok) {
+          alert(phoneCheck.message);
           return;
         }
         const pwdCheck = SAC_IDENTITY.validatePassword(password);
@@ -1896,8 +1924,8 @@
             {
               email: emailCheck.value,
               password,
+              telephone: phoneCheck.value,
               responsableNom: uniUser?.responsable || session.displayName || "Recteur",
-              telephone: uniUser?.telephone || session.telephone,
             }
           );
           showToast(
