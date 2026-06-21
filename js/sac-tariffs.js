@@ -1,734 +1,602 @@
 /**
-
- * Tarifs d'inscription Smart Academy — défauts plateforme + tarifs campus par université
-
+ * Tarifs d'inscription Smart Academy
+ * — défauts plateforme (Super Admin) + tarifs campus par université (DG)
  */
-
 const SAC_TARIFFS = (function () {
+  const PLATFORM_STORAGE_KEY = "sac_platform_tariffs";
+  const ROLES = ["etudiant", "assistant", "professeur", "universite"];
 
-  const CDF_PER_USD = 2300;
-
-
-
-  const DEFAULT_FEES = {
-
-    etudiant: { amount: 1, currency: "USD", cdf: 2300, label: "Étudiant" },
-
-    assistant: { amount: 5, currency: "USD", cdf: 11500, label: "Assistant" },
-
-    professeur: { amount: 10, currency: "USD", cdf: 23000, label: "Professeur" },
-
-    universite: { amount: 20, currency: "USD", cdf: 46000, label: "Université" },
-
+  const FALLBACK_CDF_PER_USD = 2300;
+  const FALLBACK_FEES = {
+    etudiant: { amount: 1, currency: "USD", label: "Étudiant" },
+    assistant: { amount: 5, currency: "USD", label: "Assistant" },
+    professeur: { amount: 10, currency: "USD", label: "Professeur" },
+    universite: { amount: 20, currency: "USD", label: "Université" },
   };
-
-
 
   const CAMPUS_ROLES = ["etudiant", "professeur", "assistant"];
-
+  const FALLBACK_ACADEMIC_TRIMESTRE = 150;
   const cache = new Map();
+  let platformCache = null;
+  let platformLoadPromise = null;
 
+  function normalizePlatformSettings(raw) {
+    const fees = {};
+    const srcFees = raw?.fees || raw?.tariffs || {};
+    for (const role of ROLES) {
+      const fb = FALLBACK_FEES[role];
+      const r = srcFees[role] || {};
+      const amount = Number(r.amount);
+      fees[role] = {
+        amount: Number.isFinite(amount) && amount > 0 ? amount : fb.amount,
+        currency: r.currency || "USD",
+        label: r.label || fb.label,
+      };
+    }
+    const cdf = Number(raw?.cdfPerUsd ?? raw?.CDF_PER_USD);
+    return {
+      cdfPerUsd: Number.isFinite(cdf) && cdf > 0 ? cdf : FALLBACK_CDF_PER_USD,
+      fees,
+      updatedAt: raw?.updatedAt || null,
+      updatedBy: raw?.updatedBy || null,
+    };
+  }
 
+  function readStoredPlatformSettings() {
+    try {
+      const raw = localStorage.getItem(PLATFORM_STORAGE_KEY);
+      if (!raw) return null;
+      return normalizePlatformSettings(JSON.parse(raw));
+    } catch {
+      return null;
+    }
+  }
+
+  function writeStoredPlatformSettings(settings) {
+    localStorage.setItem(PLATFORM_STORAGE_KEY, JSON.stringify(settings));
+  }
+
+  function getPlatformSettings() {
+    if (platformCache) return platformCache;
+    platformCache = readStoredPlatformSettings() || normalizePlatformSettings(null);
+    return platformCache;
+  }
+
+  function getCdfPerUsd() {
+    return getPlatformSettings().cdfPerUsd;
+  }
+
+  function getDefaultFees() {
+    const fees = getPlatformSettings().fees;
+    const out = {};
+    for (const role of ROLES) {
+      out[role] = {
+        ...fees[role],
+        cdf: toCdf(fees[role].amount),
+      };
+    }
+    return out;
+  }
 
   function toCdf(usd) {
-
-    return Math.round(Number(usd) * CDF_PER_USD);
-
+    return Math.round(Number(usd) * getCdfPerUsd());
   }
-
-
 
   function defaultFor(role) {
-
-    const def = DEFAULT_FEES[role] || DEFAULT_FEES.etudiant;
-
+    const settings = getPlatformSettings();
+    const def = settings.fees[role] || settings.fees.etudiant;
     return {
-
       ...def,
-
       cdf: toCdf(def.amount),
-
     };
-
   }
 
+  async function loadPlatformSettings(force) {
+    if (platformLoadPromise && !force) {
+      await platformLoadPromise;
+      return getPlatformSettings();
+    }
+    platformLoadPromise = (async () => {
+      if (typeof SAC_API !== "undefined" && (await SAC_API.ensureOnline())) {
+        try {
+          const data = await SAC_API.getPlatformTariffs();
+          if (data?.tariffs || data?.fees || data?.cdfPerUsd) {
+            platformCache = normalizePlatformSettings(data);
+            writeStoredPlatformSettings(platformCache);
+            clearCache();
+            return platformCache;
+          }
+        } catch {
+          /* repli localStorage */
+        }
+      }
+      platformCache = readStoredPlatformSettings() || normalizePlatformSettings(null);
+      return platformCache;
+    })();
+    await platformLoadPromise;
+    platformLoadPromise = null;
+    return getPlatformSettings();
+  }
 
+  let platformEnsured = false;
+
+  async function ensurePlatformSettings(force) {
+    if (force) return loadPlatformSettings(true);
+    if (platformEnsured) {
+      if (!platformCache) getPlatformSettings();
+      return platformCache;
+    }
+    platformEnsured = true;
+    return loadPlatformSettings(false);
+  }
+
+  async function savePlatformSettings(session, patch) {
+    if (!session || session.role !== "superadmin") {
+      throw new Error("Seul le Super Administrateur peut modifier les tarifs plateforme.");
+    }
+    const current = getPlatformSettings();
+    const nextFees = { ...current.fees };
+    if (patch?.fees) {
+      for (const role of ROLES) {
+        if (patch.fees[role]) {
+          const amount = Number(patch.fees[role].amount);
+          if (!Number.isFinite(amount) || amount <= 0) {
+            throw new Error("Montant invalide pour " + role);
+          }
+          nextFees[role] = {
+            ...nextFees[role],
+            amount,
+            currency: "USD",
+            label: patch.fees[role].label || nextFees[role].label,
+          };
+        }
+      }
+    }
+    const cdf = patch?.cdfPerUsd != null ? Number(patch.cdfPerUsd) : current.cdfPerUsd;
+    if (!Number.isFinite(cdf) || cdf <= 0) {
+      throw new Error("Taux USD → FC invalide.");
+    }
+    const next = normalizePlatformSettings({
+      cdfPerUsd: cdf,
+      fees: nextFees,
+      updatedAt: new Date().toISOString(),
+      updatedBy: session.identifiant || session.userId,
+    });
+    platformCache = next;
+    writeStoredPlatformSettings(next);
+    clearCache();
+
+    if (typeof SAC_API !== "undefined" && (await SAC_API.ensureOnline())) {
+      try {
+        await SAC_API.updatePlatformTariffs({
+          cdfPerUsd: next.cdfPerUsd,
+          fees: next.fees,
+        });
+      } catch (err) {
+        console.warn("[SAC_TARIFFS] API plateforme:", err.message || err);
+      }
+    }
+    return next;
+  }
 
   function normalizeFee(raw, role) {
-
     if (!raw || typeof raw.amount !== "number") return defaultFor(role);
-
     return {
-
       amount: raw.amount,
-
       currency: raw.currency || "USD",
-
       cdf: toCdf(raw.amount),
-
       label: raw.label || defaultFor(role).label,
-
     };
-
   }
-
-
 
   function findLocalUniversity(universiteCode) {
-
     if (!universiteCode) return null;
-
     const code = String(universiteCode).trim().toLowerCase();
-
     let users = [];
-
     try {
-
       users = JSON.parse(localStorage.getItem("sac_users") || "[]");
-
     } catch {
-
       return null;
-
     }
-
     return users.find((u) => {
-
       if (u.role !== "universite") return false;
-
       const keys = [u.universite, u.sigle, u.codeUni]
-
         .filter(Boolean)
-
         .map((k) => String(k).trim().toLowerCase());
-
       return keys.includes(code);
-
     });
-
   }
 
+  function normalizeAcademicFees(raw, legacyCampusTariffs) {
+    const src = raw || {};
+    let legacyAmount = legacyCampusTariffs?.etudiant?.amount;
+    if (legacyAmount != null && legacyAmount < 10) {
+      legacyAmount = FALLBACK_ACADEMIC_TRIMESTRE;
+    }
+    const trimVal = Number(src.trimestre?.amount ?? src.t1?.amount ?? legacyAmount);
+    const trim =
+      Number.isFinite(trimVal) && trimVal > 0 ? trimVal : FALLBACK_ACADEMIC_TRIMESTRE;
+    const t1 = Number(src.t1?.amount);
+    const t2 = Number(src.t2?.amount);
+    const t3 = Number(src.t3?.amount);
+    return {
+      trimestre: { amount: trim, currency: "USD" },
+      t1: { amount: Number.isFinite(t1) && t1 > 0 ? t1 : trim, currency: "USD" },
+      t2: { amount: Number.isFinite(t2) && t2 > 0 ? t2 : trim, currency: "USD" },
+      t3: { amount: Number.isFinite(t3) && t3 > 0 ? t3 : trim, currency: "USD" },
+    };
+  }
 
+  function getLocalCampusAcademicFees(universiteCode) {
+    const uni = findLocalUniversity(universiteCode);
+    if (!uni) return null;
+    if (uni.campusAcademicFees) {
+      return normalizeAcademicFees(uni.campusAcademicFees, uni.campusTariffs);
+    }
+    if (uni.campusTariffs?.etudiant) {
+      return normalizeAcademicFees(null, uni.campusTariffs);
+    }
+    return null;
+  }
+
+  async function fetchCampusAcademicFees(universiteCode) {
+    if (!universiteCode) return normalizeAcademicFees(null);
+    if (typeof SAC_API !== "undefined" && (await SAC_API.ensureOnline())) {
+      try {
+        const data = await SAC_API.getCampusTariffs(universiteCode);
+        if (data?.academicFees) {
+          return normalizeAcademicFees(data.academicFees);
+        }
+        if (data?.tariffs?.etudiant) {
+          return normalizeAcademicFees(null, data.tariffs);
+        }
+      } catch {
+        /* repli local */
+      }
+    }
+    return getLocalCampusAcademicFees(universiteCode) || normalizeAcademicFees(null);
+  }
 
   function feeFromLocalCampus(universiteCode, role) {
-
     const uni = findLocalUniversity(universiteCode);
-
     const tariffs = uni?.campusTariffs;
-
     if (!tariffs || !tariffs[role]) return null;
-
     return normalizeFee(tariffs[role], role);
-
   }
-
-
 
   async function fetchCampusFee(universiteCode, role) {
-
     if (!universiteCode || !CAMPUS_ROLES.includes(role)) return defaultFor(role);
-
     const key = universiteCode + ":" + role;
-
     if (cache.has(key)) return cache.get(key);
 
-
-
     if (typeof SAC_API !== "undefined" && (await SAC_API.ensureOnline())) {
-
       try {
-
         const data = await SAC_API.getTariff(universiteCode, role);
-
         const fee = normalizeFee(data.fee, role);
-
         cache.set(key, fee);
-
         return fee;
-
       } catch {
-
         /* repli local */
-
       }
-
     }
-
-
 
     const local = feeFromLocalCampus(universiteCode, role);
-
     const fee = local || defaultFor(role);
-
     cache.set(key, fee);
-
     return fee;
-
   }
-
-
 
   async function resolve(role, universiteCode) {
-
-    if (role === "universite" || !universiteCode) return defaultFor(role);
-
-    if (!CAMPUS_ROLES.includes(role)) return defaultFor(role);
-
-    return fetchCampusFee(universiteCode, role);
-
+    await ensurePlatformSettings();
+    return defaultFor(role);
   }
-
-
 
   function clearCache() {
-
     cache.clear();
-
   }
-
-
 
   function normUniCode(code) {
-
-    return String(code || "")
-
-      .trim()
-
-      .toLowerCase();
-
+    return String(code || "").trim().toLowerCase();
   }
-
-
 
   function userBelongsToUniversity(user, universiteCode) {
-
     const code = normUniCode(universiteCode);
-
     if (!code || !user) return false;
-
     const keys = [user.universite, user.universiteLocked, user.sigle]
-
       .filter(Boolean)
-
       .map(normUniCode);
-
     return keys.includes(code);
-
   }
 
-
-
-  /** Factures affichées sur le profil étudiant, dérivées du tarif campus */
-
-  function buildUniversityFeesForStudent(etudiantFee, user) {
-
-    const base = Number(etudiantFee?.amount) || 1;
-
-    const trimBase = Math.round(base * 75 * 100) / 100;
-
+  function buildUniversityFeesForStudent(user, academicFees) {
+    const acad = academicFees || normalizeAcademicFees(null);
+    const inscFee = user?.inscriptionFee || defaultFor("etudiant");
+    const inscAmount = Number(inscFee.amount) || defaultFor("etudiant").amount;
     const paidInscription =
-
       user?.payment?.status === "verified" ||
-
       user?.payment?.status === "pending_verification" ||
-
       !!user?.payment?.paidAt;
-
     const year = new Date().getFullYear();
-
-    return [
-
+    const trimesters = [
+      { key: "t1", label: "Frais académiques T1", term: "Trimestre 1", status: "Payé", date: `${year}-10-12` },
       {
-
-        label: "Frais d'inscription (Smart Academy)",
-
-        term: `Année ${year}-${year + 1}`,
-
-        amount: base,
-
-        amountCdf: etudiantFee?.cdf != null ? etudiantFee.cdf : toCdf(base),
-
-        currency: "USD",
-
-        status: paidInscription ? "Payé" : "En attente",
-
-        date: paidInscription
-
-          ? (user.payment?.paidAt || "").slice(0, 10) || "—"
-
-          : "—",
-
-        source: "campus_tarif",
-
-      },
-
-      {
-
-        label: "Frais académiques T1",
-
-        term: "Trimestre 1",
-
-        amount: trimBase,
-
-        amountCdf: toCdf(trimBase),
-
-        status: "Payé",
-
-        date: `${year}-10-12`,
-
-        source: "campus_tarif",
-
-      },
-
-      {
-
+        key: "t2",
         label: "Frais académiques T2",
-
         term: "Trimestre 2",
-
-        amount: trimBase,
-
-        amountCdf: toCdf(trimBase),
-
         status: "Payé",
-
         date: `${year + 1}-01-20`,
-
-        source: "campus_tarif",
-
       },
-
-      {
-
-        label: "Frais académiques T3",
-
-        term: "Trimestre 3",
-
-        amount: trimBase,
-
-        amountCdf: toCdf(trimBase),
-
-        status: "En attente",
-
-        date: "—",
-
-        source: "campus_tarif",
-
-      },
-
+      { key: "t3", label: "Frais académiques T3", term: "Trimestre 3", status: "En attente", date: "—" },
     ];
-
+    const rows = [
+      {
+        label: "Frais d'inscription (Smart Academy)",
+        term: `Année ${year}-${year + 1}`,
+        amount: inscAmount,
+        amountCdf: inscFee.cdf != null ? inscFee.cdf : toCdf(inscAmount),
+        currency: "USD",
+        status: paidInscription ? "Payé" : "En attente",
+        date: paidInscription ? (user?.payment?.paidAt || "").slice(0, 10) || "—" : "—",
+        source: "platform_inscription",
+      },
+    ];
+    for (const t of trimesters) {
+      const amt = Number(acad[t.key]?.amount) || acad.trimestre.amount;
+      rows.push({
+        label: t.label,
+        term: t.term,
+        amount: amt,
+        amountCdf: toCdf(amt),
+        currency: "USD",
+        status: t.status,
+        date: t.date,
+        source: "campus_academic",
+      });
+    }
+    return rows;
   }
 
-
+  function applyAcademicFeesToStudent(user, academicFees, universiteCode) {
+    if (!user || user.role !== "etudiant") return user;
+    const acad = normalizeAcademicFees(academicFees);
+    user.campusAcademicFees = acad;
+    user.campusAcademicFeesSyncedAt = new Date().toISOString();
+    user.campusAcademicFeesUniversite = universiteCode || user.campusAcademicFeesUniversite;
+    if (!user.inscriptionFee) {
+      user.inscriptionFee = defaultFor("etudiant");
+    }
+    user.universityFees = buildUniversityFeesForStudent(user, acad);
+    return user;
+  }
 
   function applyTariffsToMemberProfile(user, tariffs, universiteCode) {
-
     if (!user || !tariffs) return user;
-
-    const role = user.role;
-
-    if (!CAMPUS_ROLES.includes(role)) return user;
-
-    const fee = normalizeFee(tariffs[role], role);
-
-    user.campusTariffs = { ...tariffs };
-
-    user.campusTariffsSyncedAt = new Date().toISOString();
-
-    user.campusTariffsUniversite = universiteCode;
-
-    user.inscriptionFee = fee;
-
-    if (role === "etudiant") {
-
-      user.universityFees = buildUniversityFeesForStudent(fee, user);
-
+    if (user.role === "etudiant") {
+      const acad = tariffs.trimestre || tariffs.t1 ? normalizeAcademicFees(tariffs) : normalizeAcademicFees(null, tariffs);
+      return applyAcademicFeesToStudent(user, acad, universiteCode);
     }
-
     return user;
-
   }
 
-
-
-  /**
-
-   * Propage les tarifs campus sur tous les comptes liés à cette université (localStorage).
-
-   */
+  function syncCampusAcademicFeesToStudents(universiteCode, academicFees) {
+    const code = universiteCode || "";
+    const acad = normalizeAcademicFees(academicFees);
+    if (!code) return { updated: 0 };
+    let users = [];
+    try {
+      users = JSON.parse(localStorage.getItem("sac_users") || "[]");
+    } catch {
+      return { updated: 0 };
+    }
+    let updated = 0;
+    users = users.map((u) => {
+      if (u.role !== "etudiant") return u;
+      if (!userBelongsToUniversity(u, code)) return u;
+      updated++;
+      return applyAcademicFeesToStudent({ ...u }, acad, code);
+    });
+    localStorage.setItem("sac_users", JSON.stringify(users));
+    const sess = JSON.parse(localStorage.getItem("sac_session") || "null");
+    if (sess?.role === "etudiant" && userBelongsToUniversity(sess, code)) {
+      const me = users.find((u) => u.role === "etudiant" && u.email === sess.identifiant);
+      if (me) {
+        Object.assign(sess, {
+          campusAcademicFees: me.campusAcademicFees,
+          universityFees: me.universityFees,
+          campusAcademicFeesSyncedAt: me.campusAcademicFeesSyncedAt,
+          inscriptionFee: me.inscriptionFee,
+        });
+        localStorage.setItem("sac_session", JSON.stringify(sess));
+      }
+    }
+    clearCache();
+    return { updated };
+  }
 
   function syncCampusTariffsToMembers(universiteCode, tariffs) {
-
-    const code = universiteCode || "";
-
-    if (!code || !tariffs) return { updated: 0 };
-
-
-
-    let users = [];
-
-    try {
-
-      users = JSON.parse(localStorage.getItem("sac_users") || "[]");
-
-    } catch {
-
-      return { updated: 0 };
-
-    }
-
-
-
-    let updated = 0;
-
-    users = users.map((u) => {
-
-      if (u.role === "universite") return u;
-
-      if (!CAMPUS_ROLES.includes(u.role)) return u;
-
-      if (!userBelongsToUniversity(u, code)) return u;
-
-      updated++;
-
-      return applyTariffsToMemberProfile({ ...u }, tariffs, code);
-
-    });
-
-    localStorage.setItem("sac_users", JSON.stringify(users));
-
-
-
-    const sess = JSON.parse(localStorage.getItem("sac_session") || "null");
-
-    if (sess && CAMPUS_ROLES.includes(sess.role) && userBelongsToUniversity(sess, code)) {
-
-      const me = users.find(
-
-        (u) =>
-
-          u.email === sess.identifiant ||
-
-          u.role === sess.role
-
-      );
-
-      if (me) {
-
-        Object.assign(sess, {
-
-          campusTariffs: me.campusTariffs,
-
-          inscriptionFee: me.inscriptionFee,
-
-          universityFees: me.universityFees,
-
-          campusTariffsSyncedAt: me.campusTariffsSyncedAt,
-
-        });
-
-        localStorage.setItem("sac_session", JSON.stringify(sess));
-
-      }
-
-    }
-
-    clearCache();
-
-    return { updated };
-
+    const acad = tariffs?.trimestre || tariffs?.t1 ? normalizeAcademicFees(tariffs) : normalizeAcademicFees(null, tariffs);
+    return syncCampusAcademicFeesToStudents(universiteCode, acad);
   }
-
-
 
   function getLocalCampusTariffPack(universiteCode) {
-
     const uni = findLocalUniversity(universiteCode);
-
     if (!uni?.campusTariffs) return null;
-
     const pack = {};
-
     for (const role of CAMPUS_ROLES) {
-
       if (uni.campusTariffs[role]) {
-
         pack[role] = normalizeFee(uni.campusTariffs[role], role);
-
       }
-
     }
-
     return Object.keys(pack).length ? pack : null;
-
   }
-
-
 
   async function fetchCampusTariffPack(universiteCode) {
-
     if (!universiteCode) return null;
-
     if (typeof SAC_API !== "undefined" && (await SAC_API.ensureOnline())) {
-
       try {
-
         const data = await SAC_API.getCampusTariffs(universiteCode);
-
         if (!data?.tariffs) return null;
-
         return { ...data.tariffs };
-
       } catch {
-
         /* repli local */
-
       }
-
     }
-
     return getLocalCampusTariffPack(universiteCode);
-
   }
-
-
-
-  /** Applique les tarifs campus sur un nouveau compte (inscription) */
 
   async function applyCampusTariffsOnRegister(profile) {
-
-    if (!profile || !CAMPUS_ROLES.includes(profile.role)) return profile;
-
-    const uni =
-
-      profile.universite ||
-
-      profile.universiteLocked ||
-
-      profile.sigle;
-
+    await ensurePlatformSettings();
+    if (!profile) return profile;
+    profile.inscriptionFee = profile.inscriptionFee || defaultFor(profile.role);
+    if (profile.role !== "etudiant") return profile;
+    const uni = profile.universite || profile.universiteLocked || profile.sigle;
     if (!uni) return profile;
-
-    const tariffs = await fetchCampusTariffPack(uni);
-
-    if (!tariffs) {
-
-      profile.inscriptionFee =
-
-        profile.inscriptionFee || (await resolve(profile.role, uni));
-
-      return profile;
-
-    }
-
-    return applyTariffsToMemberProfile(profile, tariffs, uni);
-
+    const acad = await fetchCampusAcademicFees(uni);
+    return applyAcademicFeesToStudent(profile, acad, uni);
   }
-
-
-
-  /** Met à jour le profil étudiant depuis les tarifs campus actuels de son université */
 
   async function refreshStudentFeesFromCampus(session) {
-
     if (!session || session.role !== "etudiant") return null;
-
-
-
+    await ensurePlatformSettings();
     const users = JSON.parse(localStorage.getItem("sac_users") || "[]");
-
-    const idx = users.findIndex(
-
-      (u) => u.role === "etudiant" && u.email === session?.identifiant
-
-    );
-
-    const uni =
-
-      (idx >= 0 ? users[idx].universite : null) || session?.universite;
-
-    const tariffs = await fetchCampusTariffPack(uni);
-
-    if (!tariffs?.etudiant) {
-
-      return idx >= 0 ? users[idx] : null;
-
-    }
-
-
-
+    const idx = users.findIndex((u) => u.role === "etudiant" && u.email === session?.identifiant);
+    const uni = (idx >= 0 ? users[idx].universite : null) || session?.universite;
+    const acad = await fetchCampusAcademicFees(uni);
     if (idx >= 0) {
-
-      users[idx] = applyTariffsToMemberProfile(users[idx], tariffs, uni);
-
+      users[idx] = applyAcademicFeesToStudent(users[idx], acad, uni);
+      if (!users[idx].inscriptionFee) {
+        users[idx].inscriptionFee = defaultFor("etudiant");
+      }
       localStorage.setItem("sac_users", JSON.stringify(users));
-
     }
-
-
-
     const me = idx >= 0 ? users[idx] : null;
-
-    const fee = normalizeFee(tariffs.etudiant, "etudiant");
-
-    const universityFees = buildUniversityFeesForStudent(fee, {
-
-      payment: me?.payment || session.payment,
-
-    });
-
+    const userRef = me || { payment: session.payment, inscriptionFee: defaultFor("etudiant") };
+    const universityFees = buildUniversityFeesForStudent(userRef, acad);
     const sess = JSON.parse(localStorage.getItem("sac_session") || "null");
-
     if (sess && sess.role === "etudiant" && sess.identifiant === session.identifiant) {
-
       Object.assign(sess, {
-
-        inscriptionFee: fee,
-
+        inscriptionFee: userRef.inscriptionFee || defaultFor("etudiant"),
         universityFees,
-
-        campusTariffs: tariffs,
-
-        campusTariffsSyncedAt: new Date().toISOString(),
-
+        campusAcademicFees: acad,
+        campusAcademicFeesSyncedAt: new Date().toISOString(),
       });
-
       localStorage.setItem("sac_session", JSON.stringify(sess));
-
     }
-
     return me;
-
   }
 
-
+  function saveLocalCampusAcademicFees(session, academicFees) {
+    const code = session.universite || session.codeUni || session.sigle;
+    if (!code) throw new Error("Code campus manquant");
+    const acad = normalizeAcademicFees(academicFees);
+    let users = [];
+    try {
+      users = JSON.parse(localStorage.getItem("sac_users") || "[]");
+    } catch {
+      users = [];
+    }
+    const idx = users.findIndex(
+      (u) =>
+        u.role === "universite" &&
+        (u.email === session.identifiant || u.userId === session.userId || u.id === session.userId)
+    );
+    const entry = {
+      ...(idx >= 0 ? users[idx] : {}),
+      role: "universite",
+      email: session.identifiant,
+      universite: code,
+      campusAcademicFees: acad,
+      campusAcademicFeesUpdatedAt: new Date().toISOString(),
+    };
+    if (idx >= 0) users[idx] = { ...users[idx], ...entry };
+    else users.push(entry);
+    localStorage.setItem("sac_users", JSON.stringify(users));
+    const sess = JSON.parse(localStorage.getItem("sac_session") || "{}");
+    if (sess.role === "universite") {
+      sess.campusAcademicFees = acad;
+      localStorage.setItem("sac_session", JSON.stringify(sess));
+    }
+    clearCache();
+    const sync = syncCampusAcademicFeesToStudents(code, acad);
+    return { campusAcademicFees: acad, membersUpdated: sync.updated };
+  }
 
   function saveLocalCampusTariffs(session, tariffs) {
-
-    const code =
-
-      session.universite || session.codeUni || session.sigle;
-
-    if (!code) throw new Error("Code campus manquant");
-
-
-
-    let users = [];
-
-    try {
-
-      users = JSON.parse(localStorage.getItem("sac_users") || "[]");
-
-    } catch {
-
-      users = [];
-
-    }
-
-
-
-    const idx = users.findIndex(
-
-      (u) =>
-
-        u.role === "universite" &&
-
-        (u.email === session.identifiant ||
-
-          u.userId === session.userId ||
-
-          u.id === session.userId)
-
-    );
-
-    const campusOnly = {};
-
-    for (const role of CAMPUS_ROLES) {
-
-      if (tariffs[role]) campusOnly[role] = tariffs[role];
-
-    }
-
-    const entry = {
-
-      ...(idx >= 0 ? users[idx] : {}),
-
-      role: "universite",
-
-      email: session.identifiant,
-
-      universite: code,
-
-      campusTariffs: { ...(users[idx]?.campusTariffs || {}), ...campusOnly },
-
-    };
-
-    if (idx >= 0) users[idx] = { ...users[idx], ...entry };
-
-    else users.push(entry);
-
-    localStorage.setItem("sac_users", JSON.stringify(users));
-
-
-
-    const sess = JSON.parse(localStorage.getItem("sac_session") || "{}");
-
-    if (sess.role === "universite") {
-
-      sess.campusTariffs = entry.campusTariffs;
-
-      localStorage.setItem("sac_session", JSON.stringify(sess));
-
-    }
-
-    clearCache();
-
-    const sync = syncCampusTariffsToMembers(code, entry.campusTariffs);
-
-    return { campusTariffs: entry.campusTariffs, membersUpdated: sync.updated };
-
+    const acad = tariffs?.trimestre || tariffs?.t1
+      ? normalizeAcademicFees(tariffs)
+      : {
+          trimestre: {
+            amount: Number(tariffs?.etudiant?.amount) || FALLBACK_ACADEMIC_TRIMESTRE,
+            currency: "USD",
+          },
+        };
+    const saved = saveLocalCampusAcademicFees(session, acad);
+    return { campusTariffs: tariffs, campusAcademicFees: saved.campusAcademicFees, membersUpdated: saved.membersUpdated };
   }
 
+  /** Met à jour l'affichage des paliers sur inscription.html */
+  function syncPricingTierLabels() {
+    const defs = getDefaultFees();
+    document.querySelectorAll(".pricing-tiers li[data-tier]").forEach((li) => {
+      const role = li.dataset.tier;
+      const fee = defs[role];
+      const priceEl = li.querySelector("span:last-child");
+      if (fee && priceEl) priceEl.textContent = fee.amount + " USD";
+    });
+  }
 
+  /** Ligne tarifs publique (accueil, etc.) */
+  function syncPublicFeeLine(elementId) {
+    const el = document.getElementById(elementId);
+    if (!el) return;
+    const defs = getDefaultFees();
+    const banks = el.dataset.banksHtml || "";
+    el.innerHTML =
+      "Étudiant <strong>" +
+      defs.etudiant.amount +
+      " USD</strong> · Assistant <strong>" +
+      defs.assistant.amount +
+      " USD</strong> · Professeur <strong>" +
+      defs.professeur.amount +
+      " USD</strong>" +
+      banks;
+  }
 
   return {
-
-    CDF_PER_USD,
-
-    DEFAULT_FEES,
-
+    get CDF_PER_USD() {
+      return getCdfPerUsd();
+    },
+    get DEFAULT_FEES() {
+      return getDefaultFees();
+    },
+    ROLES,
     CAMPUS_ROLES,
-
+    getPlatformSettings,
+    getDefaultFees,
+    loadPlatformSettings,
+    ensurePlatformSettings,
+    savePlatformSettings,
     defaultFor,
-
     resolve,
-
     fetchCampusFee,
-
     clearCache,
-
     saveLocalCampusTariffs,
-
+    saveLocalCampusAcademicFees,
     syncCampusTariffsToMembers,
-
+    syncCampusAcademicFeesToStudents,
     getLocalCampusTariffPack,
-
+    getLocalCampusAcademicFees,
     fetchCampusTariffPack,
-
+    fetchCampusAcademicFees,
+    normalizeAcademicFees,
     applyCampusTariffsOnRegister,
-
     refreshStudentFeesFromCampus,
-
     buildUniversityFeesForStudent,
-
+    applyAcademicFeesToStudent,
     applyTariffsToMemberProfile,
-
     userBelongsToUniversity,
-
     toCdf,
-
+    syncPricingTierLabels,
+    syncPublicFeeLine,
   };
-
 })();
-

@@ -340,7 +340,7 @@
   <script src="js/sac-section-approval.js"></script>
   <script src="js/sac-session.js?v=20260617b"></script>
   <script src="js/sac-api.js?v=20260617b"></script>
-  <script src="js/sac-tariffs.js"></script>
+  <script src="js/sac-tariffs.js?v=20260622"></script>
   <script src="js/sac-university-logo.js"></script>
   <script src="js/sac-courses.js"></script>
   <script src="js/sac-data.js"></script>
@@ -731,13 +731,12 @@
 
       async function applyCampusTariffToProfile() {
         if (typeof SAC_TARIFFS === "undefined") return;
+        await SAC_TARIFFS.ensurePlatformSettings();
         const users = SAC_IDENTITY.getLocalUsers();
         const idx = users.findIndex((u) => u.role === "professeur" && u.email === session.identifiant);
         if (idx < 0) return;
-        const uni = users[idx].universite || session.universite;
-        const tariffs = await SAC_TARIFFS.fetchCampusTariffPack(uni);
-        if (tariffs?.professeur) {
-          users[idx] = SAC_TARIFFS.applyTariffsToMemberProfile(users[idx], tariffs, uni);
+        if (!users[idx].inscriptionFee) {
+          users[idx].inscriptionFee = SAC_TARIFFS.defaultFor("professeur");
           localStorage.setItem("sac_users", JSON.stringify(users));
           session = SAC_SESSION.syncSessionWithAccount("professeur") || session;
         }

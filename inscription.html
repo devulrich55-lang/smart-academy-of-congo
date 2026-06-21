@@ -1641,7 +1641,7 @@
   <script src="js/sac-identity.js"></script>
   <script src="js/sac-session.js?v=20260617d"></script>
   <script src="js/sac-api.js?v=20260617d"></script>
-  <script src="js/sac-tariffs.js?v=20260620"></script>
+  <script src="js/sac-tariffs.js?v=20260622"></script>
   <script src="js/sac-sections.js"></script>
   <script src="js/sac-section-accounts.js"></script>
   <script src="js/sac-section-approval.js"></script>
@@ -1680,7 +1680,7 @@
       },
     };
 
-    const FEES = SAC_TARIFFS.DEFAULT_FEES;
+    const FEES = () => SAC_TARIFFS.getDefaultFees();
     let activeFee = null;
 
     /* Liens Stripe Payment Link par profil */
@@ -1704,18 +1704,13 @@
 
     function getFee(role) {
       if (activeFee && (role === currentRole || role === pendingProfile?.role)) return activeFee;
-      return FEES[role] || FEES.etudiant;
+      return FEES()[role] || FEES().etudiant;
     }
 
     async function refreshPricing(role) {
       role = role || currentRole;
-      const uni = getUniversiteForRole(role);
-      if (role === "universite" || !uni) {
-        activeFee = SAC_TARIFFS.defaultFor(role);
-      } else {
-        SAC_TARIFFS.clearCache();
-        activeFee = await SAC_TARIFFS.resolve(role, uni);
-      }
+      await SAC_TARIFFS.ensurePlatformSettings();
+      activeFee = SAC_TARIFFS.defaultFor(role);
       updatePricingUI(role);
     }
 
@@ -3019,6 +3014,28 @@
 
     SAC_UNIVERSITIES.populateAll("[data-sac-universities]");
 
+    (async function bootstrapPricing() {
+      if (typeof SAC_TARIFFS !== "undefined") {
+        await SAC_TARIFFS.ensurePlatformSettings();
+        SAC_TARIFFS.syncPricingTierLabels();
+      }
+      const params = new URLSearchParams(window.location.search);
+      const roleParam = params.get("role");
+      if (roleParam === "universite") {
+        window.location.replace("admin-uni/");
+      } else if (roleParam === "section") {
+        window.location.replace("connexion.html?role=section");
+      } else if (roleParam && ROLES[roleParam]) {
+        setRole(roleParam);
+      } else {
+        setRole("etudiant");
+      }
+      if (params.get("paid") === "1" && roleParam) {
+        pendingProfile = { role: roleParam, email: "stripe@return", nom: "Utilisateur" };
+        markPaymentPaid("usd", "stripe-return");
+      }
+    })();
+
     ["universiteEtu", "universiteProf", "universiteAssist"].forEach((id) => {
       const el = document.getElementById(id);
       if (!el) return;
@@ -3032,23 +3049,6 @@
         }
       });
     });
-
-    const params = new URLSearchParams(window.location.search);
-    const roleParam = params.get("role");
-    if (roleParam === "universite") {
-      window.location.replace("admin-uni/");
-    } else if (roleParam === "section") {
-      window.location.replace("connexion.html?role=section");
-    } else if (roleParam && ROLES[roleParam]) {
-      setRole(roleParam);
-    } else {
-      setRole("etudiant");
-    }
-
-    if (params.get("paid") === "1" && roleParam) {
-      pendingProfile = { role: roleParam, email: "stripe@return", nom: "Utilisateur" };
-      markPaymentPaid("usd", "stripe-return");
-    }
   </script>
   <script src="js/sac-mobile.js" defer></script>
 </body>

@@ -68,6 +68,51 @@ const SAC_ADMIN_DASHBOARD = (function () {
         });
       }
     }
+    if (id === "tarifs") {
+      const session = SAC_SESSION.getSession();
+      if (session?.role === "superadmin") loadPlatformTariffForm(session);
+    }
+  }
+
+  function updatePlatformTariffHints() {
+    if (typeof SAC_TARIFFS === "undefined") return;
+    const rate = parseFloat(document.getElementById("platformCdfRate")?.value);
+    const pairs = [
+      ["platformFeeEtu", "platformFeeEtuFc"],
+      ["platformFeeAssist", "platformFeeAssistFc"],
+      ["platformFeeProf", "platformFeeProfFc"],
+      ["platformFeeUni", "platformFeeUniFc"],
+    ];
+    pairs.forEach(([inpId, hintId]) => {
+      const v = parseFloat(document.getElementById(inpId)?.value);
+      const el = document.getElementById(hintId);
+      if (!el) return;
+      el.textContent =
+        Number.isFinite(v) && v > 0 && Number.isFinite(rate) && rate > 0
+          ? "≈ " + Math.round(v * rate).toLocaleString("fr-FR") + " FC"
+          : "";
+    });
+  }
+
+  async function loadPlatformTariffForm(session) {
+    if (typeof SAC_TARIFFS === "undefined") return;
+    await SAC_TARIFFS.loadPlatformSettings(true);
+    const settings = SAC_TARIFFS.getPlatformSettings();
+    const fees = settings.fees;
+    document.getElementById("platformCdfRate").value = settings.cdfPerUsd;
+    document.getElementById("platformFeeEtu").value = fees.etudiant.amount;
+    document.getElementById("platformFeeAssist").value = fees.assistant.amount;
+    document.getElementById("platformFeeProf").value = fees.professeur.amount;
+    document.getElementById("platformFeeUni").value = fees.universite.amount;
+    updatePlatformTariffHints();
+    const meta = document.getElementById("platformTariffUpdated");
+    if (meta) {
+      meta.textContent = settings.updatedAt
+        ? "Dernière mise à jour : " +
+          new Date(settings.updatedAt).toLocaleString("fr-FR") +
+          (settings.updatedBy ? " · " + settings.updatedBy : "")
+        : "Tarifs par défaut plateforme";
+    }
   }
 
   async function reloadActivities() {
@@ -338,7 +383,10 @@ const SAC_ADMIN_DASHBOARD = (function () {
 
     if (isSuper) {
       document.getElementById("tabCreate")?.removeAttribute("hidden");
+      document.getElementById("tabTarifs")?.removeAttribute("hidden");
+      document.getElementById("btnQuickTarifs")?.removeAttribute("hidden");
       document.getElementById("section-create")?.classList.remove("ws-only-super-hidden");
+      document.getElementById("section-tarifs")?.classList.remove("ws-only-super-hidden");
       document.querySelectorAll(".ws-only-super-hidden").forEach((el) => el.classList.remove("ws-only-super-hidden"));
       document.querySelectorAll(".col-actions").forEach((c) => (c.style.display = ""));
       const hint = document.getElementById("listHint");
@@ -440,6 +488,44 @@ const SAC_ADMIN_DASHBOARD = (function () {
       }
     });
 
+    [
+      "platformCdfRate",
+      "platformFeeEtu",
+      "platformFeeAssist",
+      "platformFeeProf",
+      "platformFeeUni",
+    ].forEach((id) => {
+      document.getElementById(id)?.addEventListener("input", updatePlatformTariffHints);
+    });
+
+    document.getElementById("formPlatformTariffs")?.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (!isSuper || typeof SAC_TARIFFS === "undefined") return;
+      try {
+        await SAC_TARIFFS.savePlatformSettings(session, {
+          cdfPerUsd: parseFloat(document.getElementById("platformCdfRate").value),
+          fees: {
+            etudiant: { amount: parseFloat(document.getElementById("platformFeeEtu").value) },
+            assistant: { amount: parseFloat(document.getElementById("platformFeeAssist").value) },
+            professeur: { amount: parseFloat(document.getElementById("platformFeeProf").value) },
+            universite: { amount: parseFloat(document.getElementById("platformFeeUni").value) },
+          },
+        });
+        const msg = document.getElementById("platformTariffMsg");
+        if (msg) {
+          msg.textContent = "Tarifs enregistrés — visibles sur inscription et tous les profils.";
+          msg.style.display = "inline";
+          setTimeout(() => {
+            msg.style.display = "none";
+          }, 6000);
+        }
+        toast("Tarifs plateforme enregistrés.");
+        await loadPlatformTariffForm(session);
+      } catch (err) {
+        alert(err.message || "Enregistrement impossible.");
+      }
+    });
+
     await refresh(session, isSuper);
     await reloadActivities();
 
@@ -455,6 +541,7 @@ const SAC_ADMIN_DASHBOARD = (function () {
 
     if (isSuper) {
       startPresencePolling();
+      loadPlatformTariffForm(session);
       document.addEventListener("visibilitychange", () => {
         if (document.hidden) stopPresencePolling();
         else startPresencePolling();

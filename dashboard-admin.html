@@ -41,6 +41,7 @@
       <button type="button" class="nav-tab nav-tab--priority ws-only-ministere-hidden" data-section="live" id="tabLive">🎥 Espace live</button>
       <button type="button" class="nav-tab nav-tab--priority" data-section="create" id="tabCreate" hidden>➕ Créer un compte</button>
       <button type="button" class="nav-tab ws-registry-secret" data-section="registry" id="tabRegistry" hidden>📊 Registre</button>
+      <button type="button" class="nav-tab ws-only-super-hidden" data-section="tarifs" id="tabTarifs" hidden>💰 Tarifs inscription</button>
       <button type="button" class="nav-tab" data-section="securite">🔒 Sécurité</button>
     </nav>
   </header>
@@ -156,6 +157,7 @@
           <button type="button" class="btn btn--role ws-only-ministere-hidden" data-goto="publier" id="btnQuickPublier">📢 Publier sur le panneau public</button>
           <button type="button" class="btn btn--role ws-only-ministere-hidden" data-goto="live" id="btnQuickLive">🎥 Live avec les universités</button>
           <button type="button" class="btn btn--role ws-only-super-hidden" data-goto="create" id="btnQuickCreate">➕ Créer un compte</button>
+          <button type="button" class="btn btn--role ws-only-super-hidden" data-goto="tarifs" id="btnQuickTarifs" hidden>💰 Tarifs inscription</button>
           <button type="button" class="btn btn--ghost" data-goto="securite">🔒 Politique de sécurité</button>
         </div>
       </div>
@@ -342,6 +344,62 @@
       <div id="platformRegistryRoot"></div>
     </section>
 
+    <!-- TARIFS PLATEFORME (Super Admin) -->
+    <section class="page-section ws-only-super-hidden" id="section-tarifs">
+      <h1 class="page-title">Tarifs d'inscription — plateforme</h1>
+      <p class="page-desc">
+        Définissez les frais d'inscription Smart Academy par profil. Ces montants s'affichent sur
+        <strong>inscription</strong>, les tableaux de bord et les paiements. Les <strong>frais académiques</strong> sont fixés par chaque université (DG).
+      </p>
+
+      <div class="panel panel--ws panel--accent-gold">
+        <div class="panel__head">
+          <h2>Frais par profil (USD)</h2>
+          <span id="platformTariffUpdated" style="font-size:0.82rem;color:var(--muted);"></span>
+        </div>
+        <div class="panel__body">
+          <form id="formPlatformTariffs">
+            <div class="ws-form-grid" style="margin-bottom:1rem;">
+              <div class="fg">
+                <label for="platformCdfRate">Taux de change 1 USD = … FC *</label>
+                <input type="number" class="fi" id="platformCdfRate" min="500" max="100000" step="1" required />
+              </div>
+            </div>
+            <div class="ws-form-grid">
+              <div class="fg">
+                <label for="platformFeeEtu">🎓 Étudiant (USD) *</label>
+                <input type="number" class="fi" id="platformFeeEtu" min="0.5" max="500" step="0.01" required />
+                <span class="ws-field-hint" id="platformFeeEtuFc"></span>
+              </div>
+              <div class="fg">
+                <label for="platformFeeAssist">📋 Assistant (USD) *</label>
+                <input type="number" class="fi" id="platformFeeAssist" min="0.5" max="500" step="0.01" required />
+                <span class="ws-field-hint" id="platformFeeAssistFc"></span>
+              </div>
+              <div class="fg">
+                <label for="platformFeeProf">📚 Professeur (USD) *</label>
+                <input type="number" class="fi" id="platformFeeProf" min="0.5" max="500" step="0.01" required />
+                <span class="ws-field-hint" id="platformFeeProfFc"></span>
+              </div>
+              <div class="fg">
+                <label for="platformFeeUni">🏛️ Université (USD) *</label>
+                <input type="number" class="fi" id="platformFeeUni" min="0.5" max="500" step="0.01" required />
+                <span class="ws-field-hint" id="platformFeeUniFc"></span>
+              </div>
+            </div>
+            <p class="page-desc" style="margin:1rem 0 0;font-size:0.88rem;">
+              Les universités fixent ensuite les <strong>frais académiques</strong> pour leur campus
+              (onglet Campus &amp; frais). Le tarif <strong>université</strong> reste celui défini ici.
+            </p>
+            <div style="margin-top:1.15rem;display:flex;gap:0.75rem;flex-wrap:wrap;align-items:center;">
+              <button type="submit" class="btn btn--role">Enregistrer les tarifs plateforme</button>
+              <span id="platformTariffMsg" style="font-size:0.88rem;color:var(--success);display:none;"></span>
+            </div>
+          </form>
+        </div>
+      </div>
+    </section>
+
     <!-- SÉCURITÉ -->
     <section class="page-section" id="section-securite">
       <h1 class="page-title">Sécurité & conformité</h1>
@@ -390,6 +448,7 @@
   <script src="js/sac-ministry-live.js"></script>
   <script src="js/sac-home-news.js"></script>
   <script src="js/sac-platform-registry.js"></script>
+  <script src="js/sac-tariffs.js?v=20260622"></script>
   <script src="js/sac-admin-activities.js"></script>
   <script src="js/sac-admin-dashboard.js"></script>
   <script>

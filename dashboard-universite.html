@@ -241,7 +241,7 @@
       <button type="button" class="nav-tab nav-tab--priority" data-section="sections">🏫 Sections & réclamations</button>
       <button type="button" class="nav-tab nav-tab--priority" data-section="reunions">🎥 Réunions</button>
       <button type="button" class="nav-tab" data-section="activites">📋 Activités</button>
-      <button type="button" class="nav-tab" data-section="administration">⚙️ Campus & tarifs</button>
+      <button type="button" class="nav-tab" data-section="administration">⚙️ Campus & frais</button>
     </nav>
   </header>
 
@@ -295,7 +295,7 @@
           <button type="button" class="btn btn--ghost" data-goto="administration" data-focus="payments">💳 Valider les paiements</button>
           <button type="button" class="btn btn--ghost" data-goto="administration" data-focus="professors">👨‍🏫 Enseignants & nominations</button>
           <button type="button" class="btn btn--ghost" data-goto="administration" data-focus="sections">🏫 Sections & responsables</button>
-          <button type="button" class="btn btn--ghost" data-goto="administration" data-focus="tariffs">💰 Tarifs campus</button>
+          <button type="button" class="btn btn--ghost" data-goto="administration" data-focus="tariffs">📚 Frais académiques</button>
         </div>
       </div>
 
@@ -516,8 +516,8 @@
 
     <!-- ADMINISTRATION -->
     <section class="page-section" id="section-administration">
-      <h1 class="page-title">Campus & tarifs</h1>
-      <p class="page-desc">Profil de l'établissement, sections & responsables, frais d'inscription et validation des paiements.</p>
+      <h1 class="page-title">Campus & frais académiques</h1>
+      <p class="page-desc">Profil de l'établissement, sections & responsables, frais académiques campus et validation des paiements.</p>
 
       <div class="panel">
         <div class="panel__head"><h2>Établissement</h2></div>
@@ -684,54 +684,36 @@
 
       <div class="panel panel--workspace" id="panelTariffs">
         <div class="panel__head">
-          <h2>Tarifs d'inscription campus</h2>
-          <span style="font-size:0.82rem;color:var(--muted);">Synchronisés sur les profils du campus</span>
+          <h2>Frais académiques campus</h2>
+          <span style="font-size:0.82rem;color:var(--muted);">Synchronisés sur les comptes étudiants</span>
         </div>
         <div class="panel__body">
           <p class="page-desc" style="margin:0 0 1.25rem;">
-            Gérez les frais d'inscription Smart Academy et validez les paiements des membres de votre établissement.
+            Fixez les frais académiques de votre établissement (par trimestre). Les montants apparaissent dans l'onglet
+            <strong>Frais</strong> de chaque étudiant inscrit sur votre campus. Les frais d'inscription Smart Academy restent définis par le Super Administrateur.
           </p>
 
           <form id="formCampusTariffs">
             <div class="tariff-form-card">
               <div class="tariff-row">
-                <span class="tariff-row__icon" aria-hidden="true">🎓</span>
-                <span class="tariff-row__label">Étudiant</span>
-                <div class="tariff-row__controls">
-                  <select class="tariff-currency" disabled aria-label="Devise étudiant"><option>USD</option></select>
-                  <input type="number" class="tariff-amount" id="tarifEtu" min="0.5" max="500" step="0.01" required />
-                </div>
-                <span class="tariff-row__cdf" id="tarifEtuCdf">≈ 2 300 CDF</span>
-              </div>
-
-              <div class="tariff-row">
-                <span class="tariff-row__icon" aria-hidden="true">📋</span>
-                <span class="tariff-row__label">Assistant</span>
-                <div class="tariff-row__controls">
-                  <select class="tariff-currency" disabled aria-label="Devise assistant"><option>USD</option></select>
-                  <input type="number" class="tariff-amount" id="tarifAssist" min="0.5" max="500" step="0.01" required />
-                </div>
-                <span class="tariff-row__cdf" id="tarifAssistCdf">≈ 11 500 CDF</span>
-              </div>
-
-              <div class="tariff-row">
                 <span class="tariff-row__icon" aria-hidden="true">📚</span>
-                <span class="tariff-row__label">Professeur</span>
+                <span class="tariff-row__label">Frais académiques / trimestre</span>
                 <div class="tariff-row__controls">
-                  <select class="tariff-currency" disabled aria-label="Devise professeur"><option>USD</option></select>
-                  <input type="number" class="tariff-amount" id="tarifProf" min="0.5" max="500" step="0.01" required />
+                  <select class="tariff-currency" disabled aria-label="Devise"><option>USD</option></select>
+                  <input type="number" class="tariff-amount" id="tarifAcademicTrim" min="1" max="5000" step="0.01" required />
                 </div>
-                <span class="tariff-row__cdf" id="tarifProfCdf">≈ 23 000 CDF</span>
+                <span class="tariff-row__cdf" id="tarifAcademicTrimCdf">≈ — CDF</span>
               </div>
 
               <p class="tariff-info">
-                <strong>ℹ️ Conversion indicative</strong><br />
-                Les montants CDF affichés utilisent le taux 1 USD = 2 300 FC.
+                <strong>ℹ️ Application</strong><br />
+                Ce montant s'applique aux trois trimestres (T1, T2, T3) affichés sur le profil étudiant.
+                Conversion CDF : 1 USD = <span id="tarifCdfRateHint">2 300</span> FC (taux Super Administrateur).
               </p>
             </div>
 
             <div class="tariffs-save-row">
-              <button type="submit" class="btn btn--role">Enregistrer les tarifs</button>
+              <button type="submit" class="btn btn--role">Enregistrer les frais académiques</button>
               <p id="tarifSaveMsg" style="display:none;margin:0;font-size:0.88rem;color:var(--uni);"></p>
             </div>
           </form>
@@ -865,7 +847,7 @@
   <script src="js/sac-identity.js"></script>
   <script src="js/sac-session.js"></script>
   <script src="js/sac-api.js"></script>
-  <script src="js/sac-tariffs.js?v=20260620"></script>
+  <script src="js/sac-tariffs.js?v=20260623"></script>
   <script src="js/sac-university-logo.js"></script>
   <script src="js/sac-universities.js"></script>
   <script src="js/sac-data.js"></script>
@@ -1661,73 +1643,79 @@
         });
       }
 
-      /* Tarifs */
+      /* Frais académiques campus */
       function updateCdfHints() {
-        [["tarifEtu", "tarifEtuCdf"], ["tarifProf", "tarifProfCdf"], ["tarifAssist", "tarifAssistCdf"]].forEach(
-          ([inpId, hintId]) => {
-            const v = parseFloat(document.getElementById(inpId)?.value);
-            const el = document.getElementById(hintId);
-            if (!el) return;
-            el.textContent =
-              Number.isFinite(v) && v > 0
-                ? "≈ " + SAC_TARIFFS.toCdf(v).toLocaleString("fr-FR") + " FC"
-                : "";
-          }
-        );
+        const v = parseFloat(document.getElementById("tarifAcademicTrim")?.value);
+        const el = document.getElementById("tarifAcademicTrimCdf");
+        if (!el) return;
+        el.textContent =
+          Number.isFinite(v) && v > 0
+            ? "≈ " + SAC_TARIFFS.toCdf(v).toLocaleString("fr-FR") + " CDF"
+            : "";
       }
 
       async function loadCampusTariffForm() {
-        const defs = SAC_TARIFFS.DEFAULT_FEES;
-        let pack = session.campusTariffs;
+        await SAC_TARIFFS.ensurePlatformSettings();
+        const rateEl = document.getElementById("tarifCdfRateHint");
+        if (rateEl) {
+          rateEl.textContent = SAC_TARIFFS.CDF_PER_USD.toLocaleString("fr-FR");
+        }
         const code = SAC_UNIVERSITY.campusCode(session);
+        let acad = session.campusAcademicFees;
         if (code && typeof SAC_API !== "undefined" && (await SAC_API.ensureOnline())) {
           try {
             const data = await SAC_API.getCampusTariffs(code);
-            pack = data.tariffs || pack;
-          } catch { /* défauts */ }
+            acad = data.academicFees || acad;
+          } catch { /* repli local */ }
         }
-        const t = pack || {};
-        document.getElementById("tarifEtu").value = t.etudiant?.amount ?? defs.etudiant.amount;
-        document.getElementById("tarifProf").value = t.professeur?.amount ?? defs.professeur.amount;
-        document.getElementById("tarifAssist").value = t.assistant?.amount ?? defs.assistant.amount;
+        if (!acad) {
+          acad = await SAC_TARIFFS.fetchCampusAcademicFees(code);
+        } else {
+          acad = SAC_TARIFFS.normalizeAcademicFees(acad);
+        }
+        document.getElementById("tarifAcademicTrim").value = acad.trimestre.amount;
         updateCdfHints();
       }
 
-      ["tarifEtu", "tarifProf", "tarifAssist"].forEach((id) => {
-        document.getElementById(id)?.addEventListener("input", updateCdfHints);
-      });
+      document.getElementById("tarifAcademicTrim")?.addEventListener("input", updateCdfHints);
 
       document.getElementById("formCampusTariffs").addEventListener("submit", async (e) => {
         e.preventDefault();
         const msg = document.getElementById("tarifSaveMsg");
-        const tariffs = {
-          etudiant: { amount: parseFloat(document.getElementById("tarifEtu").value) },
-          professeur: { amount: parseFloat(document.getElementById("tarifProf").value) },
-          assistant: { amount: parseFloat(document.getElementById("tarifAssist").value) },
+        const amount = parseFloat(document.getElementById("tarifAcademicTrim").value);
+        if (!Number.isFinite(amount) || amount <= 0) {
+          alert("Montant invalide.");
+          return;
+        }
+        const academicFees = {
+          trimestre: { amount, currency: "USD" },
+          t1: { amount, currency: "USD" },
+          t2: { amount, currency: "USD" },
+          t3: { amount, currency: "USD" },
         };
         try {
           const code = SAC_UNIVERSITY.campusCode(session);
           let membersUpdated = 0;
           if (typeof SAC_API !== "undefined" && (await SAC_API.ensureOnline())) {
-            const data = await SAC_API.updateCampusTariffs(tariffs);
-            session.campusTariffs = data.tariffs || tariffs;
+            const data = await SAC_API.updateCampusTariffs({ academicFees });
+            session.campusAcademicFees = data.academicFees || academicFees;
             localStorage.setItem("sac_session", JSON.stringify(session));
-            if (code && data.tariffs) {
-              const sync = SAC_TARIFFS.syncCampusTariffsToMembers(code, session.campusTariffs);
+            if (code) {
+              const sync = SAC_TARIFFS.syncCampusAcademicFeesToStudents(code, session.campusAcademicFees);
               membersUpdated = sync.updated || data.membersUpdated || 0;
             }
           } else {
-            const saved = SAC_TARIFFS.saveLocalCampusTariffs(session, tariffs);
-            session.campusTariffs = saved.campusTariffs || tariffs;
+            const saved = SAC_TARIFFS.saveLocalCampusAcademicFees(session, academicFees);
+            session.campusAcademicFees = saved.campusAcademicFees || academicFees;
             membersUpdated = saved.membersUpdated || 0;
           }
           SAC_TARIFFS.clearCache();
-          msg.textContent = membersUpdated + " profil(s) mis à jour avec les nouveaux tarifs.";
+          msg.textContent = membersUpdated + " compte(s) étudiant(s) mis à jour avec les nouveaux frais académiques.";
           msg.style.display = "block";
-          showToast("Tarifs campus enregistrés.");
+          showToast("Frais académiques enregistrés.");
           setTimeout(() => { msg.style.display = "none"; }, 5000);
         } catch (err) {
-          alert(err.message || "Impossible d'enregistrer les tarifs.");
+          alert(err.message || "Impossible d'enregistrer les frais académiques.");
         }
       });
 

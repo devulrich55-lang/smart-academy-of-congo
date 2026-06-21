@@ -399,6 +399,7 @@ const SAC_API = (function () {
     "facultySections",
     "inscriptionFee",
     "universityFees",
+    "campusAcademicFees",
     "campusTariffs",
     "grade",
     "fonction",
@@ -666,6 +667,17 @@ const SAC_API = (function () {
     return request("/tariffs/campus", {
       method: "PATCH",
       body: JSON.stringify({ tariffs }),
+    });
+  }
+
+  async function getPlatformTariffs() {
+    return request("/tariffs/platform", { softAuth: true });
+  }
+
+  async function updatePlatformTariffs(payload) {
+    return request("/tariffs/platform", {
+      method: "PATCH",
+      body: JSON.stringify(payload),
     });
   }
 
@@ -995,6 +1007,8 @@ const SAC_API = (function () {
     getTariff,
     getCampusTariffs,
     updateCampusTariffs,
+    getPlatformTariffs,
+    updatePlatformTariffs,
     listSections,
     upsertSection,
     patchSection,

@@ -486,6 +486,8 @@ const SAC_IDENTITY = (function () {
       departement: user.departement || null,
       inscriptionFee: user.inscriptionFee || null,
       universityFees: user.universityFees || null,
+      campusAcademicFees: user.campusAcademicFees || null,
+      campusAcademicFeesSyncedAt: user.campusAcademicFeesSyncedAt || null,
       campusTariffs: user.campusTariffs || null,
       campusTariffsSyncedAt: user.campusTariffsSyncedAt || null,
       logoUrl:

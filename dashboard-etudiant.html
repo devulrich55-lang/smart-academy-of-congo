@@ -906,7 +906,7 @@
   <script src="js/sac-section-approval.js"></script>
   <script src="js/sac-session.js?v=20260617d"></script>
   <script src="js/sac-api.js?v=20260617d"></script>
-  <script src="js/sac-tariffs.js"></script>
+  <script src="js/sac-tariffs.js?v=20260623"></script>
   <script src="js/sac-university-logo.js"></script>
   <script src="js/sac-courses.js"></script>
   <script src="js/sac-sections.js"></script>
@@ -1345,6 +1345,7 @@
         classe: pick(found?.classe, session?.classe, ""),
         dateNaissance: found?.dateNaissance || session?.dateNaissance || "—",
         inscriptionFee: found?.inscriptionFee || session?.inscriptionFee || null,
+        campusAcademicFees: found?.campusAcademicFees || session?.campusAcademicFees || null,
         universityFees: found?.universityFees || null,
         campusTariffs: found?.campusTariffs || null,
         payment: found?.payment || session?.payment || null,
@@ -1368,6 +1369,14 @@
 
     function getStudentFeesList(profile) {
       if (profile?.universityFees?.length) return profile.universityFees;
+      if (typeof SAC_TARIFFS !== "undefined") {
+        const acad = profile?.campusAcademicFees || SAC_TARIFFS.normalizeAcademicFees(null);
+        const userRef = {
+          ...profile,
+          inscriptionFee: profile?.inscriptionFee || SAC_TARIFFS.defaultFor("etudiant"),
+        };
+        return SAC_TARIFFS.buildUniversityFeesForStudent(userRef, acad);
+      }
       return DEFAULT_FEES;
     }
 
@@ -1403,17 +1412,22 @@
         <div class="info-row"><span>Matricule</span><span>${p.matricule}</span></div>
       `;
 
-      const tarifEtu = p.inscriptionFee;
-      const tarifHtml = tarifEtu
-        ? `<div class="info-row"><span>Tarif campus (inscription SAC)</span><span><strong>${tarifEtu.amount} USD</strong> · ~${(tarifEtu.cdf || 0).toLocaleString("fr-FR")} CDF</span></div>`
-        : `<div class="info-row"><span>Tarif campus</span><span style="color:var(--muted);">Défini par votre université</span></div>`;
+      const tarifSac = p.inscriptionFee || (typeof SAC_TARIFFS !== "undefined" ? SAC_TARIFFS.defaultFor("etudiant") : null);
+      const acad = p.campusAcademicFees;
+      const tarifSacHtml = tarifSac
+        ? `<div class="info-row"><span>Inscription Smart Academy</span><span><strong>${tarifSac.amount} USD</strong> · ~${(tarifSac.cdf || 0).toLocaleString("fr-FR")} CDF</span></div>`
+        : "";
+      const tarifAcadHtml = acad?.trimestre
+        ? `<div class="info-row"><span>Frais académiques campus</span><span><strong>${acad.trimestre.amount} USD</strong> / trimestre · ~${(typeof SAC_TARIFFS !== "undefined" ? SAC_TARIFFS.toCdf(acad.trimestre.amount) : 0).toLocaleString("fr-FR")} CDF</span></div>`
+        : `<div class="info-row"><span>Frais académiques campus</span><span style="color:var(--muted);">Définis par votre université</span></div>`;
 
       document.getElementById("profileAcademic").innerHTML = `
         <div class="info-row"><span>Université</span><span>${UNI_NAMES[p.universite] || p.universite}</span></div>
         <div class="info-row"><span>Faculté / Filière</span><span>${p.filiere}</span></div>
         <div class="info-row"><span>Niveau</span><span>${NIVEAU_LABELS[p.niveau] || p.niveau}</span></div>
         ${p.classe ? `<div class="info-row"><span>Classe / groupe</span><span>${escapeHtml(p.classe)}</span></div>` : ""}
-        ${tarifHtml}
+        ${tarifSacHtml}
+        ${tarifAcadHtml}
         <div class="info-row"><span>Année académique</span><span>2024 — 2025</span></div>
         <div class="info-row"><span>Statut</span><span class="status-ok">Inscrit · Actif</span></div>
       `;
@@ -1481,6 +1495,16 @@
       document.querySelectorAll(".nav-tab").forEach((t) => t.classList.remove("active"));
       document.getElementById("section-" + id).classList.add("active");
       document.querySelector(`.nav-tab[data-section="${id}"]`)?.classList.add("active");
+      if (id === "frais") {
+        SAC_TARIFFS.ensurePlatformSettings().then(async () => {
+          let sess = SAC_SESSION.getSession();
+          if (sess) {
+            await SAC_TARIFFS.refreshStudentFeesFromCampus(sess);
+            sess = SAC_SESSION.syncSessionWithAccount("etudiant") || sess;
+            renderFees(getStudentProfile(sess));
+          }
+        });
+      }
       if (id === "documents" || id === "profil" || id === "accueil") {
         SAC_DATA.refreshFromServer().then(() => {
           const session = SAC_SESSION.getSession();
@@ -1598,6 +1622,7 @@
         }
       }
       if (typeof SAC_TARIFFS !== "undefined") {
+        await SAC_TARIFFS.ensurePlatformSettings();
         await SAC_TARIFFS.refreshStudentFeesFromCampus(session);
         session = SAC_SESSION.syncSessionWithAccount("etudiant") || session;
       }

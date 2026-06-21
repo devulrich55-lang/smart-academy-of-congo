@@ -103,15 +103,12 @@ const SAC_TASKS = (function () {
       verifiedBy: session.identifiant || session.userId,
     };
 
-    if (
-      users[idx].role === "etudiant" &&
-      typeof SAC_TARIFFS !== "undefined" &&
-      users[idx].inscriptionFee
-    ) {
-      users[idx].universityFees = SAC_TARIFFS.buildUniversityFeesForStudent(
-        users[idx].inscriptionFee,
-        users[idx]
-      );
+    if (users[idx].role === "etudiant" && typeof SAC_TARIFFS !== "undefined") {
+      const acad =
+        users[idx].campusAcademicFees ||
+        SAC_TARIFFS.getLocalCampusAcademicFees(users[idx].universite) ||
+        SAC_TARIFFS.normalizeAcademicFees(null);
+      users[idx].universityFees = SAC_TARIFFS.buildUniversityFeesForStudent(users[idx], acad);
     }
 
     localStorage.setItem("sac_users", JSON.stringify(users));
