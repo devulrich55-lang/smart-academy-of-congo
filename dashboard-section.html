@@ -43,7 +43,7 @@
         <span class="logo__text">Smart Academy</span>
       </a>
       <div style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;">
-        <span class="badge-role">🏫 Chef de section</span>
+        <span class="badge-role" id="roleBadgeSection">🏫 Chef de section</span>
         <span id="userName" style="font-size:0.9rem;color:var(--muted);"></span>
         <span id="selfPresence" class="online-dot">hors ligne</span>
         <button type="button" class="btn btn--ghost" id="btnLogout">Déconnexion</button>
@@ -51,9 +51,9 @@
     </div>
     <nav class="nav-tabs" aria-label="Navigation section">
       <button type="button" class="nav-tab active" data-section="accueil">Tableau de bord</button>
-      <button type="button" class="nav-tab nav-tab--priority" data-section="validations-etudiants">🎓 Valider étudiants</button>
-      <button type="button" class="nav-tab nav-tab--priority" data-section="validations-personnel">👨‍🏫 Valider prof. &amp; assistants</button>
-      <button type="button" class="nav-tab nav-tab--priority" data-section="inscriptions">👤 Créer des comptes étudiants</button>
+      <button type="button" class="nav-tab nav-tab--priority" data-section="validations-etudiants" id="navValidationsEtudiants">🎓 Valider étudiants</button>
+      <button type="button" class="nav-tab nav-tab--priority" data-section="validations-personnel" id="navValidationsPersonnel">👨‍🏫 Valider prof. &amp; assistants</button>
+      <button type="button" class="nav-tab nav-tab--priority" data-section="inscriptions" id="navInscriptions">👤 Créer des comptes étudiants</button>
       <button type="button" class="nav-tab nav-tab--priority" data-section="reclamations">📩 Réclamations</button>
       <button type="button" class="nav-tab nav-tab--priority" data-section="live">🎥 Live section</button>
     </nav>
@@ -73,8 +73,8 @@
       </div>
 
       <div class="stats">
-        <div class="stat"><strong id="statPendingStudents">0</strong><span>Étudiants en attente</span></div>
-        <div class="stat"><strong id="statPendingStaff">0</strong><span>Prof. / assistants en attente</span></div>
+        <div class="stat" id="statPendingStudentsWrap"><strong id="statPendingStudents">0</strong><span>Étudiants en attente</span></div>
+        <div class="stat"><strong id="statPendingStaff">0</strong><span id="statPendingStaffLabel">Prof. / assistants en attente</span></div>
         <div class="stat"><strong id="statStudents">0</strong><span>Étudiants inscrits</span></div>
         <div class="stat"><strong id="statRecOpen">0</strong><span>Réclamations ouvertes</span></div>
         <div class="stat"><strong id="statRecTotal">0</strong><span>Réclamations totales</span></div>
@@ -309,6 +309,40 @@
       if (!session) return;
 
       session = SAC_SESSION.syncSessionWithAccount("section") || session;
+      const isRector =
+        typeof SAC_SECTION_APPROVAL !== "undefined" &&
+        SAC_SECTION_APPROVAL.isRector(session);
+
+      if (isRector) {
+        document.getElementById("roleBadgeSection").textContent = "🎓 Recteur";
+        document.getElementById("navValidationsEtudiants").style.display = "none";
+        document.getElementById("navInscriptions").style.display = "none";
+        document.getElementById("statPendingStudentsWrap").style.display = "none";
+        const staffLabel = document.getElementById("statPendingStaffLabel");
+        if (staffLabel) staffLabel.textContent = "Professeurs en attente";
+        const navPersonnel = document.getElementById("navValidationsPersonnel");
+        if (navPersonnel) navPersonnel.textContent = "👨‍🏫 Valider professeurs";
+        const personnelTitle = document.querySelector("#section-validations-personnel .page-title");
+        if (personnelTitle) personnelTitle.textContent = "Valider les inscriptions professeur";
+        const personnelDesc = document.querySelector("#section-validations-personnel .page-desc");
+        if (personnelDesc) {
+          personnelDesc.innerHTML =
+            "En tant que <strong>recteur</strong>, validez les premières inscriptions professeur de votre campus " +
+            "<strong>sous 24 heures</strong>, avant leur nomination chef de section.";
+        }
+        const personnelPanelHead = document.querySelector("#section-validations-personnel .panel__head h2");
+        if (personnelPanelHead) personnelPanelHead.textContent = "Professeurs en attente";
+        const accueilMission = document.querySelector("#section-accueil .page-desc");
+        if (accueilMission) {
+          accueilMission.innerHTML =
+            "En tant que <strong>recteur</strong>, validez les premières inscriptions <strong>professeur</strong> " +
+            "de votre campus sous <strong>24 heures</strong>, avant leur nomination chef de section.";
+        }
+        document.querySelectorAll('[data-goto="validations-etudiants"], [data-goto="inscriptions"]').forEach((el) => {
+          el.style.display = "none";
+        });
+      }
+
       await SAC_SECTIONS.ensureReady(session);
       const sectionMeta = session.sectionId
         ? SAC_SECTIONS.getSectionById(session.sectionId)
@@ -322,12 +356,13 @@
         SAC_SESSION.saveSession(session);
       }
 
-      const sectionName = session.sectionName || sectionMeta?.name || "Section";
+      const sectionName = session.sectionName || sectionMeta?.name || (isRector ? "Recteur" : "Section");
       document.getElementById("profileName").textContent = sectionName;
-      document.getElementById("profileMeta").textContent =
-        (session.filiere || sectionMeta?.filiere || "—") +
-        " · " +
-        (session.universite || "—");
+      document.getElementById("profileMeta").textContent = isRector
+        ? "Campus · " + (session.universite || "—")
+        : (session.filiere || sectionMeta?.filiere || "—") +
+          " · " +
+          (session.universite || "—");
       document.getElementById("userName").textContent =
         typeof SAC_IDENTITY !== "undefined"
           ? SAC_IDENTITY.getDisplayName(session)
@@ -460,7 +495,10 @@
         const empty = document.getElementById("pendingStaffEmpty");
         if (!tbody || typeof SAC_SECTION_APPROVAL === "undefined") return;
 
-        const pending = SAC_SECTION_APPROVAL.getPendingStaffForSection(session);
+        let pending = SAC_SECTION_APPROVAL.getPendingStaffForSection(session);
+        if (isRector) {
+          pending = pending.filter((u) => u.role === "professeur");
+        }
         tbody.innerHTML = pending
           .map((u) => {
             const name =
@@ -497,6 +535,11 @@
           .join("");
 
         empty.style.display = pending.length ? "none" : "block";
+        if (empty) {
+          empty.textContent = isRector
+            ? "Aucun professeur en attente pour votre campus."
+            : "Aucun professeur ou assistant en attente pour votre section.";
+        }
         bindPendingActions(tbody, "staff", () => {
           renderPendingStaff();
           renderStats();
@@ -671,7 +714,11 @@
       });
 
       renderStats();
-      renderStudents();
+      if (isRector) {
+        showSection("validations-personnel");
+      } else {
+        renderStudents();
+      }
       renderReclamations();
       renderSectionLive();
       if (typeof SAC_PRESENCE !== "undefined") {

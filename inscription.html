@@ -1360,6 +1360,25 @@
               <input type="text" class="form-input" id="responsable" name="responsable" placeholder="Ex. Dr. Jean Mukendi" />
               <span class="field-error" data-for="responsable">Nom du responsable requis</span>
             </div>
+            <div class="form-group full" id="grpRecteurAccount" style="padding:1rem;background:rgba(14,116,144,0.06);border:1px solid rgba(14,116,144,0.15);border-radius:10px;">
+              <label style="font-weight:600;margin-bottom:0.35rem;display:block;">Compte de connexion du recteur</label>
+              <p style="font-size:0.85rem;color:var(--text-muted);margin:0 0 0.85rem;line-height:1.5;">
+                Le recteur se connecte via l'onglet <strong>Section</strong> (connexion) avec les mêmes droits que le chef de section
+                pour <strong>valider les premières inscriptions professeur</strong> avant leur nomination chef de section.
+              </p>
+              <div class="form-grid" style="gap:0.75rem;">
+                <div class="form-group">
+                  <label for="recteurEmail">E-mail de connexion recteur <span class="hint">*</span></label>
+                  <input type="email" class="form-input" id="recteurEmail" name="recteurEmail" placeholder="Ex. recteur@unikin.cd" autocomplete="off" />
+                  <span class="field-error" data-for="recteurEmail">E-mail recteur valide requis</span>
+                </div>
+                <div class="form-group">
+                  <label for="recteurPassword">Mot de passe recteur <span class="hint">*</span></label>
+                  <input type="password" class="form-input" id="recteurPassword" name="recteurPassword" minlength="8" placeholder="Min. 8 caractères" autocomplete="new-password" />
+                  <span class="field-error" data-for="recteurPassword">Mot de passe recteur requis (8 car., lettre + chiffre)</span>
+                </div>
+              </div>
+            </div>
             <div class="form-group full">
               <label>Sections / facultés de votre établissement <span class="hint">*</span></label>
               <p style="font-size:0.85rem;color:var(--text-muted);margin:0 0 0.75rem;">
@@ -1616,6 +1635,7 @@
   <script src="js/sac-api.js?v=20260617d"></script>
   <script src="js/sac-tariffs.js"></script>
   <script src="js/sac-sections.js"></script>
+  <script src="js/sac-section-accounts.js"></script>
   <script src="js/sac-section-approval.js"></script>
   <script>
     /* Comptes officiels — tous les paiements de la plateforme */
@@ -2488,6 +2508,30 @@
         window.location.replace(waitUrl);
       }
 
+      async function setupUniversityExtras(uniProfile) {
+        if (uniProfile.role !== "universite") return;
+        const uniCtx = {
+          ...uniProfile,
+          email: uniProfile.email,
+          identifiant: uniProfile.email,
+          userId: uniProfile.email,
+        };
+        if (uniProfile.facultySections?.length && typeof SAC_SECTIONS !== "undefined") {
+          SAC_SECTIONS.importSectionsForUniversity(uniCtx);
+        }
+        if (
+          uniProfile.rectorAccount?.email &&
+          uniProfile.rectorAccount?.password &&
+          typeof SAC_SECTION_ACCOUNTS !== "undefined"
+        ) {
+          try {
+            await SAC_SECTION_ACCOUNTS.createRectorAccount(uniCtx, uniProfile.rectorAccount);
+          } catch (err) {
+            console.warn("[SAC] Compte recteur:", err.message || err);
+          }
+        }
+      }
+
       try {
         if (typeof SAC_API !== "undefined") {
           const online =
@@ -2524,13 +2568,7 @@
               };
               SAC_SESSION.saveSession(apiSession);
               SAC_SESSION.markPostRegistration(profile.role);
-              if (profile.role === "universite" && profile.facultySections?.length && typeof SAC_SECTIONS !== "undefined") {
-                SAC_SECTIONS.importSectionsForUniversity({
-                  ...profile,
-                  email: profile.email,
-                  identifiant: profile.email,
-                });
-              }
+              await setupUniversityExtras(profile);
               const target = dashboards[profile.role];
               if (!target) {
                 alert("Rôle inconnu : " + profile.role);
@@ -2580,12 +2618,8 @@
       users.push(profile);
       localStorage.setItem("sac_users", JSON.stringify(users));
 
-      if (profile.role === "universite" && profile.facultySections?.length && typeof SAC_SECTIONS !== "undefined") {
-        SAC_SECTIONS.importSectionsForUniversity({
-          ...profile,
-          email: profile.email,
-          identifiant: profile.email,
-        });
+      if (profile.role === "universite") {
+        await setupUniversityExtras(profile);
       }
 
       if (needsSectionWait) {
@@ -2883,6 +2917,12 @@
         valid = showError("sigle", sigle.length < 2) && valid;
         valid = showError("ville", ville.length < 2) && valid;
         valid = showError("responsable", resp.length < 3) && valid;
+        const recteurEmail = document.getElementById("recteurEmail").value.trim();
+        const recteurPassword = document.getElementById("recteurPassword").value;
+        const recteurEm = SAC_IDENTITY.validateEmail(recteurEmail);
+        valid = showError("recteurEmail", !recteurEm.ok, recteurEm.message) && valid;
+        const recteurPw = SAC_IDENTITY.validatePassword(recteurPassword);
+        valid = showError("recteurPassword", !recteurPw.ok, recteurPw.message) && valid;
         valid = validateFacultySections() && valid;
         const sigleId = sigle.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 20) || "campus";
         Object.assign(profile, {
@@ -2897,6 +2937,12 @@
           siteWeb: document.getElementById("siteWeb").value.trim() || null,
           responsable: resp,
           facultySections: collectFacultySections(),
+          rectorAccount: {
+            email: recteurEm.value || recteurEmail,
+            password: recteurPassword,
+            responsableNom: resp,
+            telephone: tel,
+          },
         });
       }
 

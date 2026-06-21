@@ -69,6 +69,80 @@ const SAC_SECTION_ACCOUNTS = (function () {
     };
   }
 
+  async function createRectorAccount(uniProfile, account) {
+    const emailCheck = SAC_IDENTITY.validateEmail(account.email);
+    if (!emailCheck.ok) throw new Error(emailCheck.message);
+
+    const pwdCheck = SAC_IDENTITY.validatePassword(account.password);
+    if (!pwdCheck.ok) throw new Error(pwdCheck.message);
+
+    const phoneCheck = SAC_IDENTITY.validatePhone(
+      account.telephone || uniProfile.telephone || ""
+    );
+    if (!phoneCheck.ok) throw new Error(phoneCheck.message);
+
+    const uniCode =
+      uniProfile.universite ||
+      (uniProfile.sigle || "").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 20);
+    const names = splitResponsableName(
+      account.responsableNom || uniProfile.responsable || "Recteur"
+    );
+    const campusName = uniProfile.nomUniversite || uniProfile.nom || uniCode;
+
+    const profile = {
+      role: "section",
+      sectionKind: "recteur",
+      isRector: true,
+      email: emailCheck.value,
+      password: account.password,
+      telephone: phoneCheck.value,
+      prenom: account.prenom || names.prenom,
+      nom: account.nom || names.nom,
+      universite: uniCode,
+      sectionName: "Recteur — " + campusName,
+      filiere: null,
+      sectionId: null,
+      payment: { status: "verified", method: "university_delegate" },
+    };
+
+    const dup = SAC_IDENTITY.checkRegistration(profile);
+    if (!dup.ok) throw new Error(dup.message);
+
+    if (typeof SAC_API !== "undefined" && (await SAC_API.ensureOnline())) {
+      try {
+        await SAC_API.createSectionHeadAccount({
+          email: profile.email,
+          password: account.password,
+          telephone: profile.telephone,
+          prenom: profile.prenom,
+          nom: profile.nom,
+          sectionKind: "recteur",
+          universite: uniCode,
+        });
+      } catch (err) {
+        console.warn("[SAC_SECTION_ACCOUNTS] API recteur:", err.message || err);
+      }
+    }
+
+    const users = SAC_IDENTITY.getLocalUsers();
+    const hashed = await SAC_IDENTITY.hashPassword(account.password);
+    users.push({
+      ...profile,
+      passwordHash: hashed,
+      createdAt: new Date().toISOString(),
+    });
+    localStorage.setItem("sac_users", JSON.stringify(users));
+
+    return {
+      credentials: {
+        email: profile.email,
+        password: account.password,
+        role: "section",
+        sectionKind: "recteur",
+      },
+    };
+  }
+
   async function createStudentAccount(sectionSession, student) {
     const actor =
       typeof SAC_NOMINATIONS !== "undefined"
@@ -178,8 +252,21 @@ const SAC_SECTION_ACCOUNTS = (function () {
     });
   }
 
+  function getRectorForUniversity(universiteCode) {
+    const code = String(universiteCode || "").trim();
+    if (!code || typeof SAC_IDENTITY === "undefined") return null;
+    return SAC_IDENTITY.getLocalUsers().find(
+      (u) =>
+        u.role === "section" &&
+        (u.sectionKind === "recteur" || u.isRector === true) &&
+        String(u.universite || "") === code
+    );
+  }
+
   return {
     createHeadAccount,
+    createRectorAccount,
+    getRectorForUniversity,
     createStudentAccount,
     getStudentsForSection,
     splitResponsableName,

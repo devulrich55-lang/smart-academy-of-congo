@@ -83,6 +83,13 @@ const SAC_SECTION_APPROVAL = (function () {
     return a === b || a.includes(b) || b.includes(a);
   }
 
+  function isRector(session) {
+    return (
+      session?.role === "section" &&
+      (session.sectionKind === "recteur" || session.isRector === true)
+    );
+  }
+
   function matchesStudentSection(user, sectionSession) {
     if (!user || user.role !== "etudiant" || !sectionSession) return false;
     if (String(user.universite || "") !== String(sectionSession.universite || "")) {
@@ -358,10 +365,18 @@ const SAC_SECTION_APPROVAL = (function () {
     return SAC_IDENTITY.getLocalUsers().filter((u) => {
       if (!isPending(u)) return false;
       if (roleFilter === "student") {
+        if (isRector(sectionSession)) return false;
         return u.role === "etudiant" && matchesStudentSection(u, sectionSession);
       }
       if (roleFilter === "staff") {
-        return STAFF_ROLES.includes(u.role) && matchesStaffSection(u, sectionSession);
+        if (!STAFF_ROLES.includes(u.role)) return false;
+        if (isRector(sectionSession)) {
+          return (
+            u.role === "professeur" &&
+            String(u.universite || "") === String(sectionSession.universite || "")
+          );
+        }
+        return matchesStaffSection(u, sectionSession);
       }
       return ROLES.includes(u.role) && matchesSection(u, sectionSession);
     });
@@ -413,7 +428,14 @@ const SAC_SECTION_APPROVAL = (function () {
       if (!STAFF_ROLES.includes(user.role)) {
         throw new Error("Cette validation concerne uniquement professeurs et assistants.");
       }
-      if (!matchesStaffSection(user, sectionSession)) {
+      if (isRector(sectionSession)) {
+        if (user.role !== "professeur") {
+          throw new Error("Le recteur valide uniquement les inscriptions professeur.");
+        }
+        if (String(user.universite || "") !== String(sectionSession.universite || "")) {
+          throw new Error("Ce professeur n'appartient pas à votre université.");
+        }
+      } else if (!matchesStaffSection(user, sectionSession)) {
         throw new Error("Ce compte personnel n'appartient pas à votre section / filière.");
       }
     } else if (!matchesSection(user, sectionSession)) {
@@ -479,6 +501,7 @@ const SAC_SECTION_APPROVAL = (function () {
     STATUS,
     GRADE_LABELS,
     FONCTION_LABELS,
+    isRector,
     requiresApproval,
     getStatus,
     isApproved,
