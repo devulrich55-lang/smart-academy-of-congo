@@ -110,8 +110,16 @@
   z-index: 1;
 }
 
+.sac-webrtc__tile--cam-off-remote::before {
+  content: "Caméra désactivée";
+}
+
 .sac-webrtc__tile--no-video video {
   opacity: 0;
+}
+
+.sac-webrtc__tile--host:not(.sac-webrtc__tile--no-video):not(.sac-webrtc__tile--cam-off-remote) video {
+  opacity: 1;
 }
 
 .sac-webrtc__grid[data-mode="audience"] .sac-webrtc__tile--local.sac-webrtc__tile--cam-off {

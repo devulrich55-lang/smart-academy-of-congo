@@ -24,6 +24,19 @@ const SAC_WEBRTC_ROOM = (function () {
 
   const HOST_ROLES = ["professeur", "universite", "assistant", "section"];
 
+  const AUDIO_CONSTRAINTS = {
+    echoCancellation: true,
+    noiseSuppression: true,
+    autoGainControl: true,
+    voiceIsolation: true,
+  };
+
+  const VIDEO_CONSTRAINTS = {
+    width: { ideal: 1280, max: 1920 },
+    height: { ideal: 720, max: 1080 },
+    facingMode: "user",
+  };
+
   function isHostRole(role) {
     return HOST_ROLES.includes(String(role || "").toLowerCase());
   }
@@ -155,16 +168,26 @@ const SAC_WEBRTC_ROOM = (function () {
       }
       try {
         this.localStream = await navigator.mediaDevices.getUserMedia({
-          audio: true,
-          video: {
-            width: { ideal: 1280, max: 1920 },
-            height: { ideal: 720, max: 1080 },
-            facingMode: "user",
-          },
+          audio: AUDIO_CONSTRAINTS,
+          video: VIDEO_CONSTRAINTS,
         });
       } catch (err) {
-        this.setStatus("Caméra/micro inaccessible : " + (err.message || err));
-        throw err;
+        try {
+          this.localStream = await navigator.mediaDevices.getUserMedia({
+            audio: AUDIO_CONSTRAINTS,
+            video: false,
+          });
+          if (!this.isAudience) {
+            this.setStatus("Micro actif — appuyez sur 📷 pour activer la caméra");
+          }
+        } catch (err2) {
+          this.setStatus("Caméra/micro inaccessible : " + (err2.message || err2));
+          throw err2;
+        }
+      }
+      const audioTrack = this.localStream.getAudioTracks()[0];
+      if (audioTrack?.applyConstraints) {
+        audioTrack.applyConstraints(AUDIO_CONSTRAINTS).catch(() => {});
       }
       if (this.isAudience) {
         this.localStream.getAudioTracks().forEach((t) => {
@@ -591,8 +614,15 @@ const SAC_WEBRTC_ROOM = (function () {
           .filter((t) => t.kind === ev.track.kind)
           .forEach((t) => remote.mediaStream.removeTrack(t));
         remote.mediaStream.addTrack(ev.track);
-        ev.track.onunmute = () => this.playRemoteMedia(remote, role || remote.role);
+        ev.track.onunmute = () => {
+          this.playRemoteMedia(remote, role || remote.role);
+          this.updateRemoteMediaStatus(remote);
+        };
         ev.track.onmute = () => this.updateRemoteMediaStatus(remote);
+        if (ev.track.kind === "video") {
+          setTimeout(() => this.updateRemoteMediaStatus(remote), 400);
+          setTimeout(() => this.updateRemoteMediaStatus(remote), 2000);
+        }
       }
 
       const isHostRemote = isHostRole(role || remote.role) || (this.isAudience && !remote.role);
@@ -626,12 +656,20 @@ const SAC_WEBRTC_ROOM = (function () {
 
     updateRemoteMediaStatus(remote) {
       if (!remote?.mediaStream || !remote.tile) return;
-      const hasLiveVideo = remote.mediaStream
-        .getVideoTracks()
-        .some((t) => t.readyState === "live" && t.enabled && !t.muted);
-      remote.tile.classList.toggle("sac-webrtc__tile--no-video", !hasLiveVideo);
-      if (this.isAudience && isHostRole(remote.role) && !hasLiveVideo) {
-        this.setStatus("Professeur connecté — caméra en attente ou désactivée");
+      const videoTracks = remote.mediaStream.getVideoTracks().filter((t) => t.readyState !== "ended");
+      const hasVideoTrack = videoTracks.length > 0;
+      const camEnabled = videoTracks.some((t) => t.enabled);
+      const showNoVideo = !hasVideoTrack || !camEnabled;
+      remote.tile.classList.toggle("sac-webrtc__tile--no-video", showNoVideo);
+      remote.tile.classList.toggle("sac-webrtc__tile--cam-off-remote", hasVideoTrack && !camEnabled);
+      if (this.isAudience && isHostRole(remote.role)) {
+        if (!hasVideoTrack) {
+          this.setStatus("Professeur connecté — caméra en attente…");
+        } else if (!camEnabled) {
+          this.setStatus("Professeur connecté — caméra désactivée");
+        } else {
+          this.setStatus("Connecté · Touchez l'écran si vous n'entendez pas le professeur");
+        }
       }
     }
 
@@ -669,6 +707,17 @@ const SAC_WEBRTC_ROOM = (function () {
       pc.onconnectionstatechange = () => {
         if (pc.connectionState === "connected") {
           this.applyRemoteAudio(remoteId, remote.role);
+          if (isHostRole(this.userRole)) {
+            this.ensureHostVideoSent(remote).catch(() => {});
+          }
+          if (this.isAudience && isHostRole(remote.role)) {
+            [600, 2000, 4500].forEach((ms) => {
+              setTimeout(() => {
+                this.updateRemoteMediaStatus(remote);
+                this.playRemoteMedia(remote, remote.role);
+              }, ms);
+            });
+          }
         }
         if (pc.connectionState === "failed") {
           this.setStatus("Connexion vidéo échouée — réseau mobile : réessayez ou changez de connexion");
@@ -782,6 +831,42 @@ const SAC_WEBRTC_ROOM = (function () {
       });
     }
 
+    async ensureHostVideoSent(remote) {
+      if (!remote?.pc || !this.localStream || this.isAudience) return;
+      const videoTrack = this.localStream.getVideoTracks()[0];
+      if (!videoTrack || !this.camOn) return;
+      videoTrack.enabled = true;
+      const sender = remote.pc.getSenders().find((s) => s.track && s.track.kind === "video");
+      if (!sender || !sender.track) {
+        remote.pc.addTrack(videoTrack, this.localStream);
+        await this.renegotiatePeer(remote);
+      }
+    }
+
+    async acquireVideoTrack() {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: false,
+        video: VIDEO_CONSTRAINTS,
+      });
+      const track = stream.getVideoTracks()[0];
+      if (!track) return;
+      const old = this.localStream.getVideoTracks()[0];
+      if (old) {
+        old.stop();
+        this.localStream.removeTrack(old);
+      }
+      this.localStream.addTrack(track);
+      track.enabled = this.camOn;
+      if (this.localVideo) {
+        this.localVideo.srcObject = this.localStream;
+        this.localVideo.style.opacity = this.camOn ? "1" : "0";
+      }
+      this.replaceTracksOnPeers(this.localStream);
+      for (const remote of this.peers.values()) {
+        await this.renegotiatePeer(remote);
+      }
+    }
+
     async renegotiatePeer(remote) {
       if (!remote?.pc) return;
       const offer = await remote.pc.createOffer();
@@ -834,9 +919,17 @@ const SAC_WEBRTC_ROOM = (function () {
 
     toggleCam() {
       this.camOn = !this.camOn;
-      this.localStream.getVideoTracks().forEach((t) => {
-        t.enabled = this.camOn;
-      });
+      const videoTracks = this.localStream.getVideoTracks();
+      if (videoTracks.length) {
+        videoTracks.forEach((t) => {
+          t.enabled = this.camOn;
+        });
+      } else if (this.camOn && !this.isAudience) {
+        this.acquireVideoTrack().catch(() => {
+          this.camOn = false;
+          this.setStatus("Impossible d'activer la caméra");
+        });
+      }
       if (this.localVideo) {
         this.localVideo.style.opacity = this.camOn ? "1" : "0";
       }
@@ -845,6 +938,8 @@ const SAC_WEBRTC_ROOM = (function () {
       this.container.querySelector("#sacWrtcCam").classList.toggle("sac-webrtc__btn--off", !this.camOn);
       if (this.isAudience && this.camOn) {
         this.ensureAudienceSenders().catch(() => {});
+      } else if (!this.isAudience && this.camOn && videoTracks.length) {
+        this.peers.forEach((remote) => this.ensureHostVideoSent(remote).catch(() => {}));
       }
     }
 
@@ -855,6 +950,9 @@ const SAC_WEBRTC_ROOM = (function () {
         this.screenStream = null;
         btn.classList.remove("sac-webrtc__btn--active");
         this.replaceTracksOnPeers(this.localStream);
+        for (const remote of this.peers.values()) {
+          await this.renegotiatePeer(remote);
+        }
         if (this.localVideo) this.localVideo.srcObject = this.localStream;
         return;
       }
@@ -865,6 +963,9 @@ const SAC_WEBRTC_ROOM = (function () {
         });
         btn.classList.add("sac-webrtc__btn--active");
         this.replaceTracksOnPeers(this.screenStream);
+        for (const remote of this.peers.values()) {
+          await this.renegotiatePeer(remote);
+        }
         if (this.localVideo) this.localVideo.srcObject = this.screenStream;
         this.screenStream.getVideoTracks()[0].onended = () => this.toggleScreen();
       } catch {
