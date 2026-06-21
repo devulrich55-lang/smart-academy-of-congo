@@ -158,6 +158,86 @@ const SAC_LIVE = (function () {
 
 
 
+  function signalToSessionRow(sig) {
+
+    return {
+
+      id: sig.sessionId,
+
+      title: sig.title || "Cours en direct",
+
+      professorName: sig.hostName || "Professeur",
+
+      roomName: sig.roomName,
+
+      universite: sig.universite,
+
+      filiere: sig.filiere,
+
+      niveau: sig.niveau,
+
+      status: "live",
+
+      joinUrl: sig.roomName ? "sac-live:" + sig.roomName : "",
+
+      updatedAt: new Date().toISOString(),
+
+      ...emptySessionExtras(),
+
+    };
+
+  }
+
+
+
+  function upsertLocal(row) {
+
+    if (!row?.id) return null;
+
+    const list = read(STORAGE_KEY);
+
+    const idx = list.findIndex((x) => x.id === row.id);
+
+    if (idx >= 0) {
+
+      list[idx] = {
+
+        ...list[idx],
+
+        ...row,
+
+        updatedAt: row.updatedAt || new Date().toISOString(),
+
+      };
+
+      write(STORAGE_KEY, list);
+
+      return list[idx];
+
+    }
+
+    const fresh = {
+
+      ...emptySessionExtras(),
+
+      ...row,
+
+      createdAt: row.createdAt || new Date().toISOString(),
+
+      updatedAt: row.updatedAt || new Date().toISOString(),
+
+    };
+
+    list.unshift(fresh);
+
+    write(STORAGE_KEY, list);
+
+    return fresh;
+
+  }
+
+
+
   function patchLocal(sessionId, patch) {
 
     const list = read(STORAGE_KEY);
@@ -310,7 +390,33 @@ const SAC_LIVE = (function () {
 
     const data = await api("/platform/live/sessions");
 
-    if (data?.sessions) return data.sessions;
+    if (data?.sessions) {
+
+      data.sessions.forEach((row) => upsertLocal(row));
+
+      return data.sessions;
+
+    }
+
+    if (typeof SAC_API !== "undefined" && (await SAC_API.ensureOnline())) {
+
+      try {
+
+        const signals = await SAC_API.getLiveSignals();
+
+        signals
+
+          .filter((sig) => sig.kind === "course" && sig.sessionId)
+
+          .forEach((sig) => upsertLocal(signalToSessionRow(sig)));
+
+      } catch {
+
+        /* signaux optionnels */
+
+      }
+
+    }
 
     const s = getSession();
 
@@ -563,6 +669,8 @@ const SAC_LIVE = (function () {
     const data = await api("/platform/live/sessions/" + sessionId + "/join", { method: "POST" });
 
     if (data?.session) {
+
+      upsertLocal(data.session);
 
       if (u?.role === "etudiant") await recordAttendance(sessionId, u);
 
@@ -1670,6 +1778,10 @@ const SAC_LIVE = (function () {
     endSession,
 
     joinSession,
+
+    upsertLocal,
+
+    signalToSessionRow,
 
     recordAttendance,
 

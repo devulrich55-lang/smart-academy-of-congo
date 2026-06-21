@@ -2,16 +2,21 @@
  * Signal d'appel live — notification + sonnerie pour rejoindre
  */
 const SAC_LIVE_CALL = (function () {
-  const SEEN_KEY = "sac_live_call_seen";
+  const DECLINED_KEY = "sac_live_call_declined";
   const CHANNEL = "sac-live-call";
-  const POLL_MS = 5000;
+  const POLL_MS = 3000;
 
   let sessionRef = null;
   let pollTimer = null;
   let modalEl = null;
   let ringTimer = null;
+  let vibrateTimer = null;
   let audioCtx = null;
+  let ringAudio = null;
+  let ringBlobUrl = null;
+  let audioUnlocked = false;
   let bc = null;
+  let activePayload = null;
 
   function esc(s) {
     return String(s ?? "")
@@ -25,29 +30,106 @@ const SAC_LIVE_CALL = (function () {
     return [s?.prenom, s?.nom].filter(Boolean).join(" ") || s?.email || "Participant";
   }
 
-  function getSeen() {
+  function getDeclined() {
     try {
-      return JSON.parse(sessionStorage.getItem(SEEN_KEY) || "{}");
+      return JSON.parse(sessionStorage.getItem(DECLINED_KEY) || "{}");
     } catch {
       return {};
     }
   }
 
-  function markSeen(id) {
-    const seen = getSeen();
-    seen[id] = Date.now();
-    const keys = Object.keys(seen);
+  function markDeclined(id) {
+    const declined = getDeclined();
+    declined[id] = Date.now();
+    const keys = Object.keys(declined);
     if (keys.length > 40) {
-      keys.sort((a, b) => seen[a] - seen[b]);
-      keys.slice(0, keys.length - 40).forEach((k) => delete seen[k]);
+      keys.sort((a, b) => declined[a] - declined[b]);
+      keys.slice(0, keys.length - 40).forEach((k) => delete declined[k]);
     }
-    sessionStorage.setItem(SEEN_KEY, JSON.stringify(seen));
+    sessionStorage.setItem(DECLINED_KEY, JSON.stringify(declined));
   }
 
-  function wasRecentlySeen(id) {
-    const seen = getSeen();
-    const t = seen[id];
+  function wasRecentlyDeclined(id) {
+    const declined = getDeclined();
+    const t = declined[id];
     return t && Date.now() - t < 3600000;
+  }
+
+  function createPhoneRingBlobUrl() {
+    const sampleRate = 44100;
+    const duration = 1.4;
+    const samples = Math.floor(sampleRate * duration);
+    const buf = new ArrayBuffer(44 + samples * 2);
+    const view = new DataView(buf);
+
+    function writeStr(offset, str) {
+      for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i));
+    }
+
+    writeStr(0, "RIFF");
+    view.setUint32(4, 36 + samples * 2, true);
+    writeStr(8, "WAVE");
+    writeStr(12, "fmt ");
+    view.setUint32(16, 16, true);
+    view.setUint16(20, 1, true);
+    view.setUint16(22, 1, true);
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, sampleRate * 2, true);
+    view.setUint16(32, 2, true);
+    view.setUint16(34, 16, true);
+    writeStr(36, "data");
+    view.setUint32(40, samples * 2, true);
+
+    for (let i = 0; i < samples; i++) {
+      const t = i / sampleRate;
+      const ringOn = (t % 1.4) < 0.9;
+      const env = ringOn ? (t % 0.45 < 0.05 ? (t % 0.45) / 0.05 : 1) : 0;
+      const sample =
+        env *
+        0.42 *
+        (Math.sin(2 * Math.PI * 440 * t) + Math.sin(2 * Math.PI * 480 * t));
+      view.setInt16(44 + i * 2, Math.max(-32767, Math.min(32767, sample * 32767)), true);
+    }
+
+    const blob = new Blob([buf], { type: "audio/wav" });
+    return URL.createObjectURL(blob);
+  }
+
+  function ensureRingAudio() {
+    if (!ringAudio) {
+      ringAudio = document.createElement("audio");
+      ringAudio.id = "sacCallRing";
+      ringAudio.loop = true;
+      ringAudio.setAttribute("playsinline", "");
+      ringAudio.setAttribute("webkit-playsinline", "true");
+      ringAudio.preload = "auto";
+      if (!ringBlobUrl) ringBlobUrl = createPhoneRingBlobUrl();
+      ringAudio.src = ringBlobUrl;
+      ringAudio.style.cssText = "position:fixed;left:-9999px;width:1px;height:1px;";
+      document.body.appendChild(ringAudio);
+    }
+    return ringAudio;
+  }
+
+  function unlockAudio() {
+    if (audioUnlocked) return;
+    audioUnlocked = true;
+    ensureRingAudio();
+    try {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioCtx.state === "suspended") audioCtx.resume();
+      const p = ringAudio.play();
+      if (p && typeof p.then === "function") {
+        p.then(() => {
+          ringAudio.pause();
+          ringAudio.currentTime = 0;
+        }).catch(() => {});
+      }
+    } catch {
+      /* ignore */
+    }
   }
 
   function requestNotifPermission() {
@@ -68,6 +150,7 @@ const SAC_LIVE_CALL = (function () {
       });
       n.onclick = () => {
         window.focus();
+        if (activePayload) showIncomingCall(activePayload, true);
         n.close();
       };
     } catch {
@@ -75,28 +158,61 @@ const SAC_LIVE_CALL = (function () {
     }
   }
 
+  function playWebAudioTone() {
+    if (!audioCtx) {
+      try {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      } catch {
+        return;
+      }
+    }
+    if (audioCtx.state === "suspended") audioCtx.resume();
+    const osc1 = audioCtx.createOscillator();
+    const osc2 = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc1.frequency.value = 440;
+    osc2.frequency.value = 480;
+    osc1.type = "square";
+    osc2.type = "square";
+    osc1.connect(gain);
+    osc2.connect(gain);
+    gain.connect(audioCtx.destination);
+    gain.gain.setValueAtTime(0.35, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.85);
+    osc1.start();
+    osc2.start();
+    osc1.stop(audioCtx.currentTime + 0.9);
+    osc2.stop(audioCtx.currentTime + 0.9);
+  }
+
+  function startVibrate() {
+    if (!navigator.vibrate) return;
+    stopVibrate();
+    const pattern = [700, 350, 700, 350, 700, 900];
+    navigator.vibrate(pattern);
+    vibrateTimer = setInterval(() => navigator.vibrate(pattern), 2800);
+  }
+
+  function stopVibrate() {
+    if (vibrateTimer) {
+      clearInterval(vibrateTimer);
+      vibrateTimer = null;
+    }
+    if (navigator.vibrate) navigator.vibrate(0);
+  }
+
   function startRing() {
     stopRing();
-    try {
-      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      const playTone = () => {
-        if (!audioCtx) return;
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.frequency.value = 880;
-        osc.type = "sine";
-        gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.45);
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.5);
-      };
-      playTone();
-      ringTimer = setInterval(playTone, 1200);
-    } catch {
-      /* pas de son */
+    ensureRingAudio();
+    playWebAudioTone();
+    ringTimer = setInterval(playWebAudioTone, 1400);
+    const playPromise = ringAudio.play();
+    if (playPromise && typeof playPromise.catch === "function") {
+      playPromise.catch(() => {
+        /* iOS peut bloquer sans interaction — Web Audio + vibration restent actifs */
+      });
     }
+    startVibrate();
   }
 
   function stopRing() {
@@ -104,13 +220,14 @@ const SAC_LIVE_CALL = (function () {
       clearInterval(ringTimer);
       ringTimer = null;
     }
-    if (audioCtx) {
+    stopVibrate();
+    if (ringAudio) {
       try {
-        audioCtx.close();
+        ringAudio.pause();
+        ringAudio.currentTime = 0;
       } catch {
         /* ignore */
       }
-      audioCtx = null;
     }
   }
 
@@ -195,8 +312,16 @@ const SAC_LIVE_CALL = (function () {
     return "Réunion live";
   }
 
+  function syncCourseFromPayload(payload) {
+    if (payload.kind !== "course" || typeof SAC_LIVE === "undefined") return;
+    if (SAC_LIVE.upsertLocal && SAC_LIVE.signalToSessionRow) {
+      SAC_LIVE.upsertLocal(SAC_LIVE.signalToSessionRow(payload));
+    }
+  }
+
   function hideModal() {
     stopRing();
+    activePayload = null;
     if (modalEl) {
       modalEl.remove();
       modalEl = null;
@@ -204,41 +329,95 @@ const SAC_LIVE_CALL = (function () {
     document.body.style.overflow = "";
   }
 
-  async function acceptCall(payload) {
-    hideModal();
-    markSeen(payload.sessionId);
+  async function joinFromPayload(payload, user) {
+    const session = user || sessionRef || (typeof SAC_SESSION !== "undefined" ? SAC_SESSION.getSession() : null);
+    if (!session) throw new Error("Session utilisateur introuvable.");
 
-    const session = sessionRef || (typeof SAC_SESSION !== "undefined" ? SAC_SESSION.getSession() : null);
-    if (!session) return;
+    if (typeof SAC_API !== "undefined") {
+      await SAC_API.wakeServer();
+      if (!(await SAC_API.ensureOnline(true))) {
+        throw new Error("Serveur inaccessible. Vérifiez votre connexion et réessayez.");
+      }
+    }
 
-    const name = displayName(session);
+    syncCourseFromPayload(payload);
     window.dispatchEvent(new CustomEvent("sac:goto-live"));
 
+    if (payload.kind === "course" && typeof SAC_LIVE !== "undefined") {
+      const s = await SAC_LIVE.joinSession(payload.sessionId, session);
+      SAC_LIVE.openRoom(s, session);
+      return s;
+    }
+
+    const name = displayName(session);
+
+    if (payload.kind === "meeting" && typeof SAC_MEETINGS !== "undefined") {
+      const m = await SAC_MEETINGS.joinMeeting(payload.sessionId);
+      SAC_MEETINGS.openRoom(m, name);
+      return m;
+    }
+
+    if (payload.kind === "ministry" && typeof SAC_MINISTRY_LIVE !== "undefined") {
+      const row = await SAC_MINISTRY_LIVE.getSession(payload.sessionId);
+      if (!row) throw new Error("Live introuvable.");
+      SAC_MINISTRY_LIVE.openRoom(row, name, session);
+      return row;
+    }
+
+    throw new Error("Type de live non reconnu.");
+  }
+
+  async function joinCourse(sessionId, user) {
+    const session = user || sessionRef;
+    let row = null;
+
+    if (typeof SAC_LIVE !== "undefined") {
+      const sessions = await SAC_LIVE.listSessions();
+      row = sessions.find((s) => s.id === sessionId) || null;
+    }
+
+    const payload = {
+      kind: "course",
+      sessionId,
+      title: row?.title || "Cours en direct",
+      hostName: row?.professorName,
+      roomName: row?.roomName,
+      universite: row?.universite || session?.universite,
+      filiere: row?.filiere || session?.filiere,
+      niveau: row?.niveau || session?.niveau,
+    };
+
+    return joinFromPayload(payload, session);
+  }
+
+  async function acceptCall(payload) {
+    const acceptBtn = modalEl?.querySelector("[data-call-accept]");
+    if (acceptBtn) {
+      acceptBtn.disabled = true;
+      acceptBtn.textContent = "Connexion…";
+    }
+    stopRing();
+
     try {
-      if (payload.kind === "course" && typeof SAC_LIVE !== "undefined") {
-        const s = await SAC_LIVE.joinSession(payload.sessionId, session);
-        SAC_LIVE.openRoom(s, session);
-        return;
-      }
-      if (payload.kind === "meeting" && typeof SAC_MEETINGS !== "undefined") {
-        const m = await SAC_MEETINGS.joinMeeting(payload.sessionId);
-        SAC_MEETINGS.openRoom(m, name);
-        return;
-      }
-      if (payload.kind === "ministry" && typeof SAC_MINISTRY_LIVE !== "undefined") {
-        const row = await SAC_MINISTRY_LIVE.getSession(payload.sessionId);
-        if (row) SAC_MINISTRY_LIVE.openRoom(row, name, session);
-      }
+      await joinFromPayload(payload);
+      hideModal();
     } catch (err) {
       alert(err.message || "Impossible de rejoindre le live.");
+      if (acceptBtn) {
+        acceptBtn.disabled = false;
+        acceptBtn.textContent = "Rejoindre";
+      }
+      startRing();
     }
   }
 
-  function showIncomingCall(payload) {
+  function showIncomingCall(payload, force) {
     if (!isEligible(sessionRef, payload)) return;
-    if (wasRecentlySeen(payload.sessionId) && modalEl) return;
+    if (!force && wasRecentlyDeclined(payload.sessionId)) return;
     if (modalEl) return;
 
+    activePayload = payload;
+    syncCourseFromPayload(payload);
     startRing();
     pushNotif(
       "📞 Appel live SAC",
@@ -255,6 +434,7 @@ const SAC_LIVE_CALL = (function () {
           <strong>${esc(payload.hostName || "Animateur")}</strong><br/>
           ${esc(payload.title || "Session en direct")}
         </p>
+        <p class="sac-live-call__hint">Sonnerie active — touchez « Rejoindre » pour entrer dans la salle</p>
         <div class="sac-live-call__actions">
           <button type="button" class="sac-live-call__btn sac-live-call__btn--decline" data-call-decline>Refuser</button>
           <button type="button" class="sac-live-call__btn sac-live-call__btn--accept" data-call-accept>Rejoindre</button>
@@ -262,13 +442,15 @@ const SAC_LIVE_CALL = (function () {
       </div>`;
 
     modalEl.querySelector("[data-call-decline]").onclick = () => {
-      markSeen(payload.sessionId);
+      markDeclined(payload.sessionId);
       hideModal();
     };
     modalEl.querySelector("[data-call-accept]").onclick = () => acceptCall(payload);
 
     document.body.appendChild(modalEl);
     document.body.style.overflow = "hidden";
+    unlockAudio();
+    startRing();
   }
 
   async function signalLiveStart(payload) {
@@ -296,7 +478,7 @@ const SAC_LIVE_CALL = (function () {
 
   function handleSignalPayload(payload) {
     if (!payload?.sessionId) return;
-    if (wasRecentlySeen(payload.sessionId)) return;
+    if (wasRecentlyDeclined(payload.sessionId)) return;
     showIncomingCall(payload);
   }
 
@@ -310,7 +492,7 @@ const SAC_LIVE_CALL = (function () {
         const apiSignals = await SAC_API.getLiveSignals();
         for (const item of apiSignals) {
           if (!isEligible(session, item)) continue;
-          if (wasRecentlySeen(item.sessionId)) continue;
+          if (wasRecentlyDeclined(item.sessionId)) continue;
           showIncomingCall(item);
           return;
         }
@@ -372,7 +554,7 @@ const SAC_LIVE_CALL = (function () {
 
     for (const item of liveItems) {
       if (!isEligible(session, item)) continue;
-      if (wasRecentlySeen(item.sessionId)) continue;
+      if (wasRecentlyDeclined(item.sessionId)) continue;
       showIncomingCall(item);
       break;
     }
@@ -381,6 +563,11 @@ const SAC_LIVE_CALL = (function () {
   function init(session) {
     sessionRef = session;
     requestNotifPermission();
+    ensureRingAudio();
+
+    const unlockOnce = () => unlockAudio();
+    document.addEventListener("touchstart", unlockOnce, { once: true, passive: true });
+    document.addEventListener("click", unlockOnce, { once: true, passive: true });
 
     if (typeof BroadcastChannel !== "undefined") {
       bc = new BroadcastChannel(CHANNEL);
@@ -401,6 +588,10 @@ const SAC_LIVE_CALL = (function () {
     pollTimer = setInterval(checkForLiveSignals, POLL_MS);
     checkForLiveSignals();
 
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden) checkForLiveSignals();
+    });
+
     if (!window.__sacLiveCallGotoBound) {
       window.__sacLiveCallGotoBound = true;
       window.addEventListener("sac:goto-live", () => {
@@ -419,6 +610,10 @@ const SAC_LIVE_CALL = (function () {
     if (bc) {
       bc.close();
       bc = null;
+    }
+    if (ringBlobUrl) {
+      URL.revokeObjectURL(ringBlobUrl);
+      ringBlobUrl = null;
     }
   }
 
@@ -440,5 +635,8 @@ const SAC_LIVE_CALL = (function () {
     checkForLiveSignals,
     showIncomingCall,
     hideModal,
+    joinCourse,
+    joinFromPayload,
+    unlockAudio,
   };
 })();

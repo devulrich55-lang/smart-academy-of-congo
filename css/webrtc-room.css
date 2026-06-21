@@ -347,7 +347,14 @@
 .sac-live-call__sub {
   font-size: 0.88rem;
   color: #cbd5e1;
-  margin: 0 0 1.25rem;
+  margin: 0 0 0.5rem;
+}
+
+.sac-live-call__hint {
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.65);
+  margin: 0 0 1rem;
+  line-height: 1.35;
 }
 
 .sac-live-call__actions {

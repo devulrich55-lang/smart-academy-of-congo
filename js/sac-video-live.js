@@ -176,7 +176,7 @@ const SAC_VIDEO_LIVE = (function () {
         niveau: session.niveau,
       });
       const live = await SAC_LIVE.startSession(row.id);
-      SAC_LIVE.openRoom(live, userName);
+      SAC_LIVE.openRoom(live, session);
       return { kind: "course", data: live };
     }
 
@@ -275,15 +275,41 @@ const SAC_VIDEO_LIVE = (function () {
 
     container.querySelectorAll("[data-join-mtg]").forEach((btn) => {
       btn.addEventListener("click", async () => {
-        const m = await SAC_MEETINGS.joinMeeting(btn.dataset.joinMtg);
-        SAC_MEETINGS.openRoom(m, userName);
+        btn.disabled = true;
+        const label = btn.textContent;
+        btn.textContent = "Connexion…";
+        try {
+          if (typeof SAC_API !== "undefined") await SAC_API.wakeServer();
+          const m = await SAC_MEETINGS.joinMeeting(btn.dataset.joinMtg);
+          SAC_MEETINGS.openRoom(m, userName);
+        } catch (err) {
+          alert(err.message || "Impossible de rejoindre la réunion.");
+        } finally {
+          btn.disabled = false;
+          btn.textContent = label;
+        }
       });
     });
 
     container.querySelectorAll("[data-join-live]").forEach((btn) => {
       btn.addEventListener("click", async () => {
-        const s = await SAC_LIVE.joinSession(btn.dataset.joinLive, session);
-        SAC_LIVE.openRoom(s, userName);
+        btn.disabled = true;
+        const label = btn.textContent;
+        btn.textContent = "Connexion…";
+        try {
+          if (typeof SAC_LIVE_CALL !== "undefined" && SAC_LIVE_CALL.joinCourse) {
+            await SAC_LIVE_CALL.joinCourse(btn.dataset.joinLive, session);
+          } else {
+            if (typeof SAC_API !== "undefined") await SAC_API.wakeServer();
+            const s = await SAC_LIVE.joinSession(btn.dataset.joinLive, session);
+            SAC_LIVE.openRoom(s, session);
+          }
+        } catch (err) {
+          alert(err.message || "Impossible de rejoindre le cours live.");
+        } finally {
+          btn.disabled = false;
+          btn.textContent = label;
+        }
       });
     });
   }
