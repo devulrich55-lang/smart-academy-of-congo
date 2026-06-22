@@ -590,6 +590,29 @@ const SAC_API = (function () {
     return data.students || [];
   }
 
+  /** Recteur : tente plusieurs routes pour lister tous les étudiants du campus. */
+  async function listCampusSectionStudents(universite) {
+    const uni = universite ? String(universite).trim() : "";
+    const paths = [
+      uni ? "/sections/students?scope=campus&universite=" + encodeURIComponent(uni) : null,
+      uni ? "/sections/students?universite=" + encodeURIComponent(uni) : null,
+      "/sections/students?scope=campus",
+      "/sections/students",
+    ].filter(Boolean);
+    let last = [];
+    for (const path of paths) {
+      try {
+        const data = await request(path);
+        const list = data.students || data.accounts || [];
+        if (list.length) return list;
+        last = list;
+      } catch {
+        /* essai suivant */
+      }
+    }
+    return last;
+  }
+
   async function listCampusProfessors() {
     const data = await request("/nominations/professors");
     return data.professors || [];
@@ -1007,6 +1030,7 @@ const SAC_API = (function () {
     createSectionStudent,
     createSectionHeadAccount,
     listSectionStudents,
+    listCampusSectionStudents,
     listCampusProfessors,
     nominateProfessor,
     revokeProfessorNomination,

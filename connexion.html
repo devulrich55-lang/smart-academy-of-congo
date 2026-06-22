@@ -281,6 +281,25 @@
         return;
       }
       SAC_SESSION.saveSession(enriched);
+      if (
+        enriched.role === "section" &&
+        enriched.authSource === "api" &&
+        typeof SAC_SECTION_APPROVAL !== "undefined" &&
+        SAC_SECTION_APPROVAL.mirrorLocalUser
+      ) {
+        SAC_SECTION_APPROVAL.mirrorLocalUser({
+          email: enriched.identifiant || enriched.email,
+          role: "section",
+          prenom: enriched.prenom,
+          nom: enriched.nom,
+          universite: enriched.universite,
+          universiteLocked: enriched.universiteLocked || enriched.universite,
+          sectionKind: enriched.sectionKind,
+          isRector: enriched.isRector,
+          sectionName: enriched.sectionName,
+          sectionApproval: "approved",
+        });
+      }
       if (enriched.role === "etudiant" && typeof SAC_TARIFFS !== "undefined") {
         try {
           await SAC_TARIFFS.ensurePlatformSettings();
@@ -624,6 +643,10 @@
 
     function enrichSectionSession(apiSession, idVal) {
       if (!apiSession || currentRole !== "section") return apiSession;
+      if (apiSession.sectionKind === "recteur" || apiSession.isRector) {
+        apiSession.sectionKind = "recteur";
+        apiSession.isRector = true;
+      }
       const local = SAC_IDENTITY.findUserByLoginId(
         SAC_IDENTITY.getLocalUsers(),
         idVal
@@ -637,6 +660,9 @@
       }
       if (local?.universite && !apiSession.universite) {
         apiSession.universite = local.universite;
+      }
+      if (typeof SAC_UNIVERSITIES !== "undefined" && SAC_UNIVERSITIES.normalizeProfileCampus) {
+        SAC_UNIVERSITIES.normalizeProfileCampus(apiSession);
       }
       return apiSession;
     }

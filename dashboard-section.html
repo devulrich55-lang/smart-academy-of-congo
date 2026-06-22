@@ -398,6 +398,10 @@
       if (!session) return;
 
       session = SAC_SESSION.syncSessionWithAccount("section") || session;
+      if (typeof SAC_UNIVERSITIES !== "undefined" && SAC_UNIVERSITIES.normalizeProfileCampus) {
+        SAC_UNIVERSITIES.normalizeProfileCampus(session);
+        SAC_SESSION.saveSession(session);
+      }
       const isRector =
         typeof SAC_SECTION_APPROVAL !== "undefined" &&
         SAC_SECTION_APPROVAL.isRector(session);

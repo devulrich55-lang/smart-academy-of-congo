@@ -38,7 +38,14 @@ const SAC_SECTION_APPROVAL = (function () {
     }
     if (userOrSession.sectionApprovalRequestedAt) return STATUS.pending;
     if (userOrSession.payment) return STATUS.pending;
-    return STATUS.approved;
+    if (userOrSession.paymentStatus === "pending_verification") return STATUS.pending;
+    if (userOrSession.createdAt && userOrSession.role === "etudiant") return STATUS.pending;
+    return STATUS.pending;
+  }
+
+  function isExplicitlyClosed(user) {
+    const raw = user?.sectionApproval;
+    return raw === STATUS.approved || raw === STATUS.rejected;
   }
 
   function isApproved(userOrSession) {
@@ -116,17 +123,29 @@ const SAC_SECTION_APPROVAL = (function () {
   }
 
   function campusCode(session) {
-    return (
+    const raw =
       session?.universite ||
       session?.universiteLocked ||
       session?.sigle ||
       session?.codeUni ||
-      ""
-    );
+      "";
+    if (typeof SAC_UNIVERSITIES !== "undefined" && SAC_UNIVERSITIES.resolveId) {
+      return SAC_UNIVERSITIES.resolveId(raw) || raw;
+    }
+    return raw;
   }
 
   function userCampusCode(user) {
-    return user?.universite || user?.universiteLocked || user?.sigle || "";
+    const raw =
+      user?.universite ||
+      user?.universiteLocked ||
+      user?.sigle ||
+      user?.codeUni ||
+      "";
+    if (typeof SAC_UNIVERSITIES !== "undefined" && SAC_UNIVERSITIES.resolveId) {
+      return SAC_UNIVERSITIES.resolveId(raw) || raw;
+    }
+    return raw;
   }
 
   function matchesCampusUser(user, sectionSession) {
@@ -136,6 +155,9 @@ const SAC_SECTION_APPROVAL = (function () {
   function resolveSectionActor(sectionSession) {
     if (!sectionSession) return sectionSession;
     const actor = { ...sectionSession };
+    if (typeof SAC_UNIVERSITIES !== "undefined" && SAC_UNIVERSITIES.normalizeProfileCampus) {
+      SAC_UNIVERSITIES.normalizeProfileCampus(actor);
+    }
     if (isRector(sectionSession)) {
       actor.isRector = true;
       actor.sectionKind = actor.sectionKind || "recteur";
@@ -177,8 +199,30 @@ const SAC_SECTION_APPROVAL = (function () {
     return user;
   }
 
+  async function fetchApiStudentsForApproval(sectionSession) {
+    if (typeof SAC_API === "undefined") return [];
+    const actor = resolveSectionActor(sectionSession);
+    const uni = campusCode(actor);
+    const campusWide = isRector(sectionSession);
+
+    if (campusWide && typeof SAC_API.listCampusSectionStudents === "function") {
+      try {
+        const campusList = await SAC_API.listCampusSectionStudents(uni);
+        if (campusList?.length) return campusList;
+      } catch {
+        /* repli listSectionStudents */
+      }
+    }
+
+    try {
+      return (await SAC_API.listSectionStudents()) || [];
+    } catch {
+      return [];
+    }
+  }
+
   async function syncPendingStudentsFromApi(sectionSession) {
-    if (typeof SAC_API === "undefined" || typeof SAC_SECTION_ACCOUNTS === "undefined") return;
+    if (typeof SAC_API === "undefined") return;
     let online = false;
     try {
       online = await SAC_API.ensureOnline();
@@ -187,23 +231,33 @@ const SAC_SECTION_APPROVAL = (function () {
     }
     if (!online) return;
     try {
-      const apiStudents = await SAC_API.listSectionStudents();
+      const apiStudents = await fetchApiStudentsForApproval(sectionSession);
       const actor = resolveSectionActor(sectionSession);
+      const campusWide = isRector(sectionSession);
+      let mirrored = 0;
       (apiStudents || []).forEach((raw) => {
         let u = repairStudentCampus({ ...raw });
         if (u.role !== "etudiant") return;
-        const inScope = isRector(sectionSession)
+        const inScope = campusWide
           ? matchesCampusUser(u, actor)
           : matchesStudentSection(u, actor);
         if (!inScope) return;
-        if (getStatus(u) !== STATUS.pending) return;
+        if (isExplicitlyClosed(u)) return;
         mirrorLocalUser({
           ...u,
           sectionApproval: STATUS.pending,
           sectionApprovalRequestedAt:
             u.sectionApprovalRequestedAt || u.createdAt || new Date().toISOString(),
         });
+        mirrored += 1;
       });
+      if (!mirrored && campusWide && apiStudents.length) {
+        console.warn(
+          "[SAC_SECTION_APPROVAL] Étudiants API visibles mais aucun ne correspond au campus du recteur (" +
+            campusCode(actor) +
+            "). Vérifiez l'université du compte recteur."
+        );
+      }
     } catch (err) {
       console.warn("[SAC_SECTION_APPROVAL] sync API étudiants:", err.message || err);
     }
