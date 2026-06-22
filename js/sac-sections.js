@@ -113,7 +113,16 @@ const SAC_SECTIONS = (function () {
     const studentUni =
       student.universite || student.universiteLocked || student.sigle;
     const sectionUni =
-      sectionSession.universite || sectionSession.universiteLocked || sectionSession.sigle;
+      sectionSession.universite ||
+      sectionSession.universiteLocked ||
+      sectionSession.sigle ||
+      sectionSession.codeUni;
+    if (
+      sectionSession.isRector ||
+      sectionSession.sectionKind === "recteur"
+    ) {
+      return universiteMatches(studentUni, sectionUni);
+    }
     if (!universiteMatches(studentUni, sectionUni)) return false;
 
     const sectionId = sectionSession.sectionId;
@@ -134,9 +143,18 @@ const SAC_SECTIONS = (function () {
   function repairStudentsForSection(sectionSession) {
     if (!sectionSession || typeof SAC_IDENTITY === "undefined") return 0;
     const users = SAC_IDENTITY.getLocalUsers();
+    const campusWide =
+      sectionSession.isRector || sectionSession.sectionKind === "recteur";
     let updated = 0;
     const next = users.map((u) => {
-      if (u.role !== "etudiant" || !studentMatchesSection(u, sectionSession)) return u;
+      if (u.role !== "etudiant") return u;
+      const belongs = campusWide
+        ? universiteMatches(
+            u.universite || u.universiteLocked,
+            sectionSession.universite || sectionSession.universiteLocked || sectionSession.sigle
+          )
+        : studentMatchesSection(u, sectionSession);
+      if (!belongs) return u;
       const linked = linkStudentToSection({ ...u });
       if (linked.sectionId !== u.sectionId || linked.sectionName !== u.sectionName) {
         updated += 1;
@@ -645,7 +663,7 @@ const SAC_SECTIONS = (function () {
     const code = String(universiteCode || "").trim();
     if (!code) return [];
     return getReclamations()
-      .filter((r) => r.universite === code)
+      .filter((r) => universiteMatches(r.universite, code))
       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
   }
 

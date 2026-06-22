@@ -239,10 +239,26 @@ const SAC_SECTION_ACCOUNTS = (function () {
   }
 
   async function createStudentAccount(sectionSession, student) {
-    const actor =
+    const isRect =
+      typeof SAC_SECTION_APPROVAL !== "undefined" &&
+      SAC_SECTION_APPROVAL.isRector(sectionSession);
+    let actor =
       typeof SAC_NOMINATIONS !== "undefined"
         ? SAC_NOMINATIONS.buildSectionHeadActor(sectionSession) || sectionSession
         : sectionSession;
+    if (isRect) {
+      actor = { ...sectionSession, isRector: true, sectionKind: "recteur" };
+      const pickId = student.sectionId || student.sectionPick;
+      if (pickId && typeof SAC_SECTIONS !== "undefined") {
+        const sec = SAC_SECTIONS.getSectionById(pickId);
+        if (sec) {
+          actor.sectionId = sec.id;
+          actor.sectionName = sec.name;
+          actor.filiere = student.filiere || sec.filiere;
+        }
+      }
+      if (!actor.filiere && student.filiere) actor.filiere = student.filiere;
+    }
     const emailCheck = SAC_IDENTITY.validateEmail(student.email);
     if (!emailCheck.ok) throw new Error(emailCheck.message);
 
@@ -324,6 +340,9 @@ const SAC_SECTION_ACCOUNTS = (function () {
 
   function getStudentsForSection(sectionSession, opts) {
     const includePending = opts?.includePending === true;
+    const isRect =
+      typeof SAC_SECTION_APPROVAL !== "undefined" &&
+      SAC_SECTION_APPROVAL.isRector(sectionSession);
     const actor =
       typeof SAC_NOMINATIONS !== "undefined"
         ? SAC_NOMINATIONS.buildSectionHeadActor(sectionSession) || sectionSession
@@ -339,6 +358,12 @@ const SAC_SECTION_ACCOUNTS = (function () {
         !SAC_SECTION_APPROVAL.isApproved(u)
       ) {
         return false;
+      }
+      if (isRect) {
+        return (
+          typeof SAC_SECTION_APPROVAL !== "undefined" &&
+          SAC_SECTION_APPROVAL.matchesCampusUser(u, sectionSession)
+        );
       }
       if (typeof SAC_SECTIONS !== "undefined" && SAC_SECTIONS.studentMatchesSection) {
         return SAC_SECTIONS.studentMatchesSection(u, actor);

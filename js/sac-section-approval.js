@@ -115,9 +115,32 @@ const SAC_SECTION_APPROVAL = (function () {
     );
   }
 
+  function campusCode(session) {
+    return (
+      session?.universite ||
+      session?.universiteLocked ||
+      session?.sigle ||
+      session?.codeUni ||
+      ""
+    );
+  }
+
+  function userCampusCode(user) {
+    return user?.universite || user?.universiteLocked || user?.sigle || "";
+  }
+
+  function matchesCampusUser(user, sectionSession) {
+    return universiteMatches(userCampusCode(user), campusCode(sectionSession));
+  }
+
   function resolveSectionActor(sectionSession) {
     if (!sectionSession) return sectionSession;
     const actor = { ...sectionSession };
+    if (isRector(sectionSession)) {
+      actor.isRector = true;
+      actor.sectionKind = actor.sectionKind || "recteur";
+      return actor;
+    }
     if (typeof SAC_NOMINATIONS !== "undefined" && SAC_NOMINATIONS.buildSectionHeadActor) {
       const built = SAC_NOMINATIONS.buildSectionHeadActor(sectionSession);
       if (built) return built;
@@ -223,6 +246,9 @@ const SAC_SECTION_APPROVAL = (function () {
   }
 
   function matchesSection(user, sectionSession) {
+    if (isRector(sectionSession)) {
+      return ROLES.includes(user?.role) && matchesCampusUser(user, sectionSession);
+    }
     if (user?.role === "etudiant") return matchesStudentSection(user, sectionSession);
     if (STAFF_ROLES.includes(user?.role)) return matchesStaffSection(user, sectionSession);
     return false;
@@ -471,18 +497,20 @@ const SAC_SECTION_APPROVAL = (function () {
         raw.role === "etudiant" ? repairStudentCampus({ ...raw }) : { ...raw };
       if (!isPending(u)) return false;
       if (roleFilter === "student") {
-        if (isRector(sectionSession)) return false;
+        if (isRector(sectionSession)) {
+          return u.role === "etudiant" && matchesCampusUser(u, actor);
+        }
         return u.role === "etudiant" && matchesStudentSection(u, actor);
       }
       if (roleFilter === "staff") {
         if (!STAFF_ROLES.includes(u.role)) return false;
         if (isRector(sectionSession)) {
-          return (
-            u.role === "professeur" &&
-            universiteMatches(u.universite, actor.universite)
-          );
+          return matchesCampusUser(u, actor);
         }
         return matchesStaffSection(u, actor);
+      }
+      if (isRector(sectionSession)) {
+        return ROLES.includes(u.role) && matchesCampusUser(u, actor);
       }
       return ROLES.includes(u.role) && matchesSection(u, actor);
     });
@@ -510,11 +538,15 @@ const SAC_SECTION_APPROVAL = (function () {
 
   function getApprovedForSection(sectionSession, role) {
     if (typeof SAC_IDENTITY === "undefined") return [];
+    const actor = resolveSectionActor(sectionSession);
     return SAC_IDENTITY.getLocalUsers().filter((u) => {
       if (role && u.role !== role) return false;
       if (!requiresApproval(u.role)) return false;
       if (!isApproved(u)) return false;
-      return matchesSection(u, sectionSession);
+      if (isRector(sectionSession)) {
+        return matchesCampusUser(u, actor);
+      }
+      return matchesSection(u, actor);
     });
   }
 
@@ -522,6 +554,7 @@ const SAC_SECTION_APPROVAL = (function () {
     if (!Object.values(STATUS).includes(status)) {
       throw new Error("Statut de validation invalide.");
     }
+    const actor = resolveSectionActor(sectionSession);
     const users = SAC_IDENTITY.getLocalUsers();
     const key = SAC_IDENTITY.normalizeEmail(email);
     const user = users.find((u) => SAC_IDENTITY.normalizeEmail(u.email) === key);
@@ -535,7 +568,11 @@ const SAC_SECTION_APPROVAL = (function () {
       if (user.role !== "etudiant") {
         throw new Error("Cette validation concerne uniquement les étudiants.");
       }
-      if (!matchesStudentSection(user, sectionSession)) {
+      if (isRector(sectionSession)) {
+        if (!matchesCampusUser(user, actor)) {
+          throw new Error("Cet étudiant n'appartient pas à votre université.");
+        }
+      } else if (!matchesStudentSection(user, actor)) {
         throw new Error("Cet étudiant n'appartient pas à votre section / filière.");
       }
     } else if (scope === "staff") {
@@ -543,16 +580,17 @@ const SAC_SECTION_APPROVAL = (function () {
         throw new Error("Cette validation concerne uniquement professeurs et assistants.");
       }
       if (isRector(sectionSession)) {
-        if (user.role !== "professeur") {
-          throw new Error("Le recteur valide uniquement les inscriptions professeur.");
+        if (!matchesCampusUser(user, actor)) {
+          throw new Error("Ce compte personnel n'appartient pas à votre université.");
         }
-        if (!universiteMatches(user.universite, sectionSession.universite)) {
-          throw new Error("Ce professeur n'appartient pas à votre université.");
-        }
-      } else if (!matchesStaffSection(user, sectionSession)) {
+      } else if (!matchesStaffSection(user, actor)) {
         throw new Error("Ce compte personnel n'appartient pas à votre section / filière.");
       }
-    } else if (!matchesSection(user, sectionSession)) {
+    } else if (isRector(sectionSession)) {
+      if (!matchesCampusUser(user, actor)) {
+        throw new Error("Ce compte n'appartient pas à votre université.");
+      }
+    } else if (!matchesSection(user, actor)) {
       throw new Error("Ce compte n'appartient pas à votre section / filière.");
     }
 
@@ -616,6 +654,8 @@ const SAC_SECTION_APPROVAL = (function () {
     GRADE_LABELS,
     FONCTION_LABELS,
     isRector,
+    matchesCampusUser,
+    campusCode,
     requiresApproval,
     getStatus,
     isApproved,

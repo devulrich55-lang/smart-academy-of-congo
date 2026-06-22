@@ -247,6 +247,11 @@
                 </select>
               </div>
             </div>
+            <div class="fg" id="wrapStuSection" hidden>
+              <label for="stuSectionPick">Section / filière *</label>
+              <select class="fi" id="stuSectionPick" required></select>
+              <p style="font-size:0.8rem;color:var(--muted);margin-top:0.35rem;">Recteur : choisissez la section d'affectation de l'étudiant.</p>
+            </div>
             <div class="fg">
               <label>Classe / groupe *</label>
               <input type="text" class="fi" id="stuClasse" required placeholder="Ex. L2-Gestion Groupe A" />
@@ -398,35 +403,16 @@
         SAC_SECTION_APPROVAL.isRector(session);
 
       if (isRector) {
-        document.getElementById("roleBadgeSection").textContent = "🎓 Recteur";
-        document.getElementById("navValidationsEtudiants").style.display = "none";
-        document.getElementById("navInscriptions").style.display = "none";
-        document.getElementById("statPendingStudentsWrap").style.display = "none";
-        const staffLabel = document.getElementById("statPendingStaffLabel");
-        if (staffLabel) staffLabel.textContent = "Professeurs en attente";
-        const navPersonnel = document.getElementById("navValidationsPersonnel");
-        if (navPersonnel) navPersonnel.textContent = "👨‍🏫 Valider professeurs";
-        const personnelTitle = document.querySelector("#section-validations-personnel .page-title");
-        if (personnelTitle) personnelTitle.textContent = "Valider les inscriptions professeur";
-        const personnelDesc = document.querySelector("#section-validations-personnel .page-desc");
-        if (personnelDesc) {
-          personnelDesc.innerHTML =
-            "En tant que <strong>recteur</strong>, validez les premières inscriptions professeur de votre campus " +
-            "<strong>sous 24 heures</strong>, avant leur nomination chef de section.";
-        }
-        const personnelPanelHead = document.querySelector("#section-validations-personnel .panel__head h2");
-        if (personnelPanelHead) personnelPanelHead.textContent = "Professeurs en attente";
+        document.getElementById("roleBadgeSection").textContent = "🎓 Recteur — contrôle campus";
+        session.isRector = true;
+        session.sectionKind = "recteur";
+        SAC_SESSION.saveSession(session);
         const accueilMission = document.querySelector("#section-accueil .page-desc");
         if (accueilMission) {
           accueilMission.innerHTML =
-            "En tant que <strong>recteur</strong>, validez les premières inscriptions <strong>professeur</strong> " +
-            "de votre campus sous <strong>24 heures</strong>, avant leur nomination chef de section.";
+            "En tant que <strong>recteur</strong>, vous disposez des <strong>mêmes pouvoirs qu'un chef de section</strong> " +
+            "sur <strong>tout le campus</strong> : valider étudiants et personnel, créer des comptes, réclamations, publications et live.";
         }
-        document.querySelectorAll('[data-goto="validations-etudiants"], [data-goto="inscriptions"]').forEach((el) => {
-          el.style.display = "none";
-        });
-        const pubTabRector = document.getElementById("secCommPublishTab");
-        if (pubTabRector) pubTabRector.style.display = "none";
       }
 
       await SAC_SECTIONS.ensureReady(session);
@@ -472,6 +458,33 @@
           .replace(/</g, "&lt;")
           .replace(/"/g, "&quot;");
       }
+
+      function initRectorStudentForm() {
+        if (!isRector) return;
+        const wrapStuSection = document.getElementById("wrapStuSection");
+        const stuSectionPick = document.getElementById("stuSectionPick");
+        if (!wrapStuSection || !stuSectionPick || typeof SAC_SECTIONS === "undefined") return;
+        wrapStuSection.hidden = false;
+        const sections = SAC_SECTIONS.listCampusSections
+          ? SAC_SECTIONS.listCampusSections(session.universite)
+          : SAC_SECTIONS.getSectionsByUniversity(session);
+        stuSectionPick.innerHTML =
+          '<option value="">— Choisir la section / filière —</option>' +
+          sections
+            .map(
+              (s) =>
+                '<option value="' +
+                esc(s.id) +
+                '" data-filiere="' +
+                esc(s.filiere) +
+                '">' +
+                esc(s.name + " — " + s.filiere) +
+                "</option>"
+            )
+            .join("");
+      }
+
+      initRectorStudentForm();
 
       function showSection(id) {
         document.querySelectorAll(".nav-tab").forEach((t) => {
@@ -633,9 +646,6 @@
         if (!tbody || typeof SAC_SECTION_APPROVAL === "undefined") return;
 
         let pending = SAC_SECTION_APPROVAL.getPendingStaffForSection(session);
-        if (isRector) {
-          pending = pending.filter((u) => u.role === "professeur");
-        }
         tbody.innerHTML = pending
           .map((u) => {
             const name =
@@ -674,7 +684,7 @@
         empty.style.display = pending.length ? "none" : "block";
         if (empty) {
           empty.textContent = isRector
-            ? "Aucun professeur en attente pour votre campus."
+            ? "Aucun professeur ou assistant en attente pour votre campus."
             : "Aucun professeur ou assistant en attente pour votre section.";
         }
         bindPendingActions(tbody, "staff", () => {
@@ -758,15 +768,16 @@
 
       function renderReclamations() {
         const filter = document.getElementById("filterStatut").value;
-        let recs = session.sectionId
-          ? SAC_SECTIONS.getReclamationsForSection(session.sectionId)
-          : [];
+        const allRecs = isRector
+          ? SAC_SECTIONS.getReclamationsForUniversity(session)
+          : session.sectionId
+            ? SAC_SECTIONS.getReclamationsForSection(session.sectionId)
+            : [];
+        let recs = allRecs;
         if (filter !== "all") recs = recs.filter((r) => r.statut === filter);
 
         const statsEl = document.getElementById("secRecStats");
-        const counts = SAC_SECTIONS.countByStatut(
-          session.sectionId ? SAC_SECTIONS.getReclamationsForSection(session.sectionId) : []
-        );
+        const counts = SAC_SECTIONS.countByStatut(allRecs);
         statsEl.innerHTML = SAC_SECTIONS.STATUTS.map(
           (s) =>
             `<div class="rec-stat" style="border-left:4px solid ${s.color}"><strong>${counts[s.id] || 0}</strong><span>${s.label}</span></div>`
@@ -823,6 +834,15 @@
         const credBox = document.getElementById("createdCredentials");
         credBox.hidden = true;
         try {
+          if (isRector) {
+            const pick = document.getElementById("stuSectionPick")?.value;
+            if (!pick) {
+              alert("Choisissez la section / filière de l'étudiant.");
+              return;
+            }
+          }
+          const stuSectionPick = document.getElementById("stuSectionPick");
+          const sectionOpt = stuSectionPick?.selectedOptions?.[0];
           const created = await SAC_SECTION_ACCOUNTS.createStudentAccount(session, {
             prenom: document.getElementById("stuPrenom").value,
             nom: document.getElementById("stuNom").value,
@@ -832,6 +852,9 @@
             niveau: document.getElementById("stuNiveau").value,
             classe: document.getElementById("stuClasse").value.trim(),
             password: document.getElementById("stuPassword").value,
+            sectionId: isRector ? stuSectionPick?.value || null : null,
+            sectionPick: isRector ? stuSectionPick?.value || null : null,
+            filiere: isRector ? sectionOpt?.dataset?.filiere || null : null,
           });
           e.target.reset();
           credBox.hidden = false;
@@ -861,11 +884,7 @@
       });
 
       renderStats();
-      if (isRector) {
-        showSection("validations-personnel");
-      } else {
-        renderStudents();
-      }
+      renderStudents();
       renderReclamations();
       renderSectionLive();
       if (typeof SAC_PRESENCE !== "undefined") {

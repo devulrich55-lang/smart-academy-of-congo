@@ -636,16 +636,28 @@ async function SAC_mountSectionPublicationsPage(session, opts) {
   }
 
   const pubRoot = document.getElementById(opts?.publisherRoot || "sectionHeadPublisherRoot");
-  if (pubRoot && !isRector && session.sectionId) {
+  let pubSession = session;
+  if (isRector && !pubSession.sectionId && typeof SAC_SECTIONS !== "undefined") {
+    const first = SAC_SECTIONS.getSectionsByUniversity(session).find((s) => s.active !== false);
+    if (first) {
+      pubSession = {
+        ...session,
+        sectionId: first.id,
+        sectionName: first.name,
+        filiere: first.filiere,
+      };
+    }
+  }
+  if (pubRoot && pubSession.sectionId) {
     if (!pubRoot.dataset.ready) {
-      pubRoot._sacPublisher = SAC_initSectionHeadPublisher(session, pubRoot.id);
+      pubRoot._sacPublisher = SAC_initSectionHeadPublisher(pubSession, pubRoot.id);
       pubRoot.dataset.ready = "1";
     } else if (pubRoot._sacPublisher?.renderList) {
       pubRoot._sacPublisher.renderList();
     }
   } else if (pubRoot && isRector) {
     pubRoot.innerHTML =
-      '<p class="page-desc" style="margin:0;padding:1rem;background:var(--bg);border-radius:8px;border:1px dashed var(--border);">En tant que recteur, consultez les publications université ci-dessus. La publication section est réservée au chef de section nommé.</p>';
+      '<p class="page-desc" style="margin:0;padding:1rem;background:var(--bg);border-radius:8px;border:1px dashed var(--border);">Aucune section enregistrée sur ce campus — ajoutez des sections (Super Admin ou DG) pour publier au nom d\'une filière.</p>';
   } else if (pubRoot && !session.sectionId) {
     pubRoot.innerHTML =
       '<p class="page-desc" style="margin:0;padding:1rem;background:var(--bg);border-radius:8px;border:1px dashed var(--border);">Section non identifiée — impossible de publier. Contactez l\'administration université.</p>';
