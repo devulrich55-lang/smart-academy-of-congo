@@ -248,46 +248,98 @@
     <!-- CRÉER (Super Admin) -->
     <section class="page-section ws-only-super-hidden" id="section-create">
       <h1 class="page-title">Créer un administrateur</h1>
-      <p class="page-desc">Comptes institutionnels — Ministère, Admin université ou Super Admin.</p>
+      <p class="page-desc" id="createPageDesc">Comptes institutionnels — formulaire adapté selon le type choisi.</p>
 
       <div class="panel panel--ws">
         <div class="panel__head">
-          <h2>Nouveau compte</h2>
+          <h2 id="createPanelTitle">Nouveau compte</h2>
           <span style="font-size:0.82rem;color:var(--muted);">Réservé au Super Admin</span>
         </div>
         <div class="panel__body">
           <form id="formCreateAdmin">
-            <div class="ws-form-grid">
-              <div class="fg">
-                <label for="newRole">Type de compte *</label>
-                <select class="fi" id="newRole" required>
-                  <option value="ministere">Ministère</option>
-                  <option value="universite">Admin université</option>
-                  <option value="superadmin">Super Admin</option>
-                </select>
-              </div>
-              <div class="fg">
-                <label for="newEmail">E-mail *</label>
-                <input type="email" class="fi" id="newEmail" required placeholder="admin@ministere.cd" />
-              </div>
-              <div class="fg">
-                <label for="newPrenom">Prénom *</label>
-                <input type="text" class="fi" id="newPrenom" required />
-              </div>
-              <div class="fg">
-                <label for="newNom">Nom *</label>
-                <input type="text" class="fi" id="newNom" required />
-              </div>
-              <div class="fg">
-                <label for="newTel">Téléphone mobile *</label>
-                <input type="tel" class="fi" id="newTel" required placeholder="085 184 8859" />
-              </div>
-              <div class="fg">
-                <label for="newPassword">Mot de passe *</label>
-                <input type="password" class="fi" id="newPassword" required minlength="8" autocomplete="new-password" />
+            <div class="fg" style="max-width:420px;margin-bottom:1rem;">
+              <label for="newRole">Type de compte *</label>
+              <select class="fi" id="newRole" required>
+                <option value="ministere">Ministère (MESU)</option>
+                <option value="superadmin">Super Admin</option>
+                <option value="universite">Admin université (DG campus)</option>
+              </select>
+            </div>
+
+            <!-- Ministère — champs essentiels -->
+            <div id="ministereFields" class="ws-role-panel ws-role-panel--min" hidden>
+              <p class="ws-role-intro">
+                Portail national MESU — identifiants de connexion et responsable habilité uniquement.
+              </p>
+              <div class="ws-form-grid ws-form-grid--compact">
+                <div class="fg" style="grid-column:1/-1;">
+                  <label for="minEmail">E-mail institutionnel *</label>
+                  <input type="email" class="fi" id="minEmail" placeholder="agent@mesu.gouv.cd" autocomplete="off" />
+                </div>
+                <div class="fg" style="grid-column:1/-1;">
+                  <label for="minPassword">Mot de passe *</label>
+                  <input type="password" class="fi" id="minPassword" minlength="8" autocomplete="new-password" placeholder="8 caractères minimum" />
+                </div>
+                <div class="fg" style="grid-column:1/-1;">
+                  <label for="minNomComplet">Nom complet du responsable *</label>
+                  <input type="text" class="fi" id="minNomComplet" placeholder="Ex. Marie Kabongo" />
+                </div>
+                <div class="fg" style="grid-column:1/-1;">
+                  <label for="minFonction">Fonction / service</label>
+                  <input type="text" class="fi" id="minFonction" placeholder="Ex. Direction des universités" />
+                </div>
               </div>
             </div>
-            <div id="uniFields" class="ws-form-grid" style="margin-top:0.85rem;" hidden>
+
+            <!-- Super Admin — champs essentiels -->
+            <div id="superadminFields" class="ws-role-panel ws-role-panel--super" hidden>
+              <p class="ws-role-intro">
+                Compte de gestion centrale SAC — accès réservé à l'équipe technique habilitée.
+              </p>
+              <div class="ws-form-grid ws-form-grid--compact">
+                <div class="fg" style="grid-column:1/-1;">
+                  <label for="saEmail">E-mail Super Admin *</label>
+                  <input type="email" class="fi" id="saEmail" placeholder="admin@superadmin.cd" autocomplete="off" />
+                </div>
+                <div class="fg" style="grid-column:1/-1;">
+                  <label for="saPassword">Mot de passe *</label>
+                  <input type="password" class="fi" id="saPassword" minlength="8" autocomplete="new-password" placeholder="8 caractères minimum" />
+                </div>
+                <div class="fg" style="grid-column:1/-1;">
+                  <label for="saNomComplet">Nom complet *</label>
+                  <input type="text" class="fi" id="saNomComplet" placeholder="Ex. Jean Mukendi" />
+                </div>
+              </div>
+            </div>
+
+            <!-- Admin université — dossier campus complet -->
+            <div id="uniFields" class="ws-role-panel ws-role-panel--uni" hidden>
+              <p class="ws-role-intro">
+                Directeur général ou recteur — établissement, sections faculté, logo et coordonnées du campus.
+              </p>
+              <div class="ws-form-grid">
+                <div class="fg">
+                  <label for="newEmail">E-mail de connexion *</label>
+                  <input type="email" class="fi" id="newEmail" placeholder="dg@unikin.cd" autocomplete="off" />
+                </div>
+                <div class="fg">
+                  <label for="newPassword">Mot de passe *</label>
+                  <input type="password" class="fi" id="newPassword" minlength="8" autocomplete="new-password" />
+                </div>
+                <div class="fg">
+                  <label for="newPrenom">Prénom *</label>
+                  <input type="text" class="fi" id="newPrenom" />
+                </div>
+                <div class="fg">
+                  <label for="newNom">Nom *</label>
+                  <input type="text" class="fi" id="newNom" />
+                </div>
+                <div class="fg">
+                  <label for="newTel">Téléphone mobile *</label>
+                  <input type="tel" class="fi" id="newTel" placeholder="085 184 8859" />
+                </div>
+              </div>
+              <div class="ws-form-grid" style="margin-top:0.85rem;">
               <div class="fg" style="grid-column:1/-1;">
                 <label for="newCampusCatalog">Établissement (catalogue SAC) *</label>
                 <select class="fi" id="newCampusCatalog" data-sac-universities data-empty-label="— Choisir l'université —"></select>
@@ -299,7 +351,7 @@
               </div>
               <div class="fg">
                 <label for="newResponsable">Responsable (DG / Recteur) *</label>
-                <input type="text" class="fi" id="newResponsable" required />
+                <input type="text" class="fi" id="newResponsable" />
               </div>
               <div class="fg">
                 <label for="newCodeUni">Code établissement</label>
@@ -334,9 +386,11 @@
                 <p class="ws-field-hint">PNG, JPG, WebP ou SVG — max. 2 Mo. Affiché sur les profils campus et les relevés de notes.</p>
                 <div class="ws-logo-preview" id="newLogoPreview" hidden></div>
               </div>
+              </div>
             </div>
+
             <div style="margin-top:1.15rem;">
-              <button type="submit" class="btn btn--role">Créer le compte institutionnel</button>
+              <button type="submit" class="btn btn--role" id="btnCreateAdminSubmit">Créer le compte</button>
             </div>
           </form>
         </div>

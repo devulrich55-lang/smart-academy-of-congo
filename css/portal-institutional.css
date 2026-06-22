@@ -206,6 +206,24 @@
   border-color: var(--portal-accent);
 }
 
+.portal-forgot-wrap {
+  display: flex;
+  justify-content: flex-end;
+  margin: -0.35rem 0 0.15rem;
+}
+
+.portal-forgot {
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--portal-accent);
+  text-decoration: none;
+}
+
+.portal-forgot:hover {
+  text-decoration: underline;
+  color: var(--portal-accent-dark);
+}
+
 .portal-submit {
   width: 100%;
   margin-top: 0.5rem;

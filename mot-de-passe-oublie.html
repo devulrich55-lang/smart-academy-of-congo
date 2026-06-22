@@ -6,6 +6,7 @@
   <meta name="description" content="Mot de passe oublié — Smart Academy of Congo" />
   <title>Mot de passe oublié — Smart Academy of Congo</title>
   <script src="js/sac-config.js"></script>
+  <script src="js/sac-portal.js"></script>
   <script src="js/sac-theme.js"></script>
   <link rel="icon" href="logos.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="css/logo.css" />
@@ -22,7 +23,7 @@
         <img src="logos.svg" alt="Smart Academy of Congo" class="logo__img" width="48" height="48" />
         <span class="logo__text">Smart Academy</span>
       </a>
-      <a href="connexion.html" class="header__link">← Retour à la connexion</a>
+      <a href="connexion.html" class="header__link" id="backToLogin">← Retour à la connexion</a>
     </div>
   </header>
 
@@ -47,13 +48,26 @@
 
       <p class="form-footer">
         Vous vous souvenez de votre mot de passe ?
-        <a href="connexion.html">Se connecter</a>
+        <a href="connexion.html" id="footerLoginLink">Se connecter</a>
       </p>
     </section>
   </main>
 
   <script src="js/sac-api.js"></script>
   <script>
+    const portalParam = new URLSearchParams(window.location.search).get("portal");
+    const portalLoginUrl =
+      typeof SAC_PORTAL !== "undefined" && SAC_PORTAL.loginUrlFromPortalQuery
+        ? SAC_PORTAL.loginUrlFromPortalQuery(portalParam)
+        : "connexion.html";
+    const backLink = document.getElementById("backToLogin");
+    const footerLoginLink = document.getElementById("footerLoginLink");
+    if (portalParam && backLink) {
+      backLink.href = portalLoginUrl;
+      backLink.textContent = "← Retour au portail";
+    }
+    if (footerLoginLink) footerLoginLink.href = portalLoginUrl;
+
     const form = document.getElementById("forgotForm");
     const alertBox = document.getElementById("alertBox");
     const btnSubmit = document.getElementById("btnSubmit");
@@ -89,10 +103,16 @@
         const result = await SAC_API.requestPasswordReset(email);
         form.hidden = true;
         showAlert(
-          result.message ||
-            "Si un compte existe avec cet e-mail, un code à 6 chiffres vous a été envoyé par e-mail. Vérifiez Gmail (et les spams).",
+          (result.message ||
+            "Si un compte existe avec cet e-mail, un code à 6 chiffres vous a été envoyé par e-mail. Vérifiez Gmail (et les spams).") +
+            " Vous pouvez maintenant saisir le code sur la page de réinitialisation.",
           "success"
         );
+        const resetQs = new URLSearchParams({ email });
+        if (portalParam) resetQs.set("portal", portalParam);
+        setTimeout(() => {
+          window.location.href = "reinitialisation.html?" + resetQs.toString();
+        }, 2200);
       } catch (err) {
         showAlert(err.message || "Une erreur est survenue. Réessayez plus tard.", "error");
       } finally {

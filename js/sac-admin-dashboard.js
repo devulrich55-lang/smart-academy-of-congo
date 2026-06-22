@@ -427,6 +427,76 @@ const SAC_ADMIN_DASHBOARD = (function () {
 
     const newRole = document.getElementById("newRole");
     const uniFields = document.getElementById("uniFields");
+    const ministereFields = document.getElementById("ministereFields");
+    const superadminFields = document.getElementById("superadminFields");
+
+    function splitFullName(full) {
+      const parts = String(full || "")
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean);
+      if (!parts.length) return { prenom: "", nom: "" };
+      if (parts.length === 1) return { prenom: parts[0], nom: parts[0] };
+      return { prenom: parts[0], nom: parts.slice(1).join(" ") };
+    }
+
+    function setFieldRequired(ids, required) {
+      ids.forEach((id) => {
+        const el = document.getElementById(id);
+        if (el) el.required = !!required;
+      });
+    }
+
+    function updateCreateFormForRole() {
+      const role = newRole?.value || "ministere";
+      if (ministereFields) ministereFields.hidden = role !== "ministere";
+      if (superadminFields) superadminFields.hidden = role !== "superadmin";
+      if (uniFields) uniFields.hidden = role !== "universite";
+
+      setFieldRequired(["minEmail", "minPassword", "minNomComplet"], role === "ministere");
+      setFieldRequired(["saEmail", "saPassword", "saNomComplet"], role === "superadmin");
+      setFieldRequired(
+        ["newEmail", "newPassword", "newPrenom", "newNom", "newTel", "newResponsable", "newCampusCatalog"],
+        role === "universite"
+      );
+
+      const logoInput = document.getElementById("newLogoUniversite");
+      if (logoInput) logoInput.required = role === "universite";
+
+      const pageDesc = document.getElementById("createPageDesc");
+      const panelTitle = document.getElementById("createPanelTitle");
+      const submitBtn = document.getElementById("btnCreateAdminSubmit");
+      const copy = {
+        ministere: {
+          desc: "Compte portail MESU — e-mail, mot de passe et responsable habilité.",
+          title: "Nouveau compte Ministère",
+          submit: "Créer le compte Ministère",
+        },
+        superadmin: {
+          desc: "Compte Super Admin SAC — gestion centrale de la plateforme.",
+          title: "Nouveau compte Super Admin",
+          submit: "Créer le compte Super Admin",
+        },
+        universite: {
+          desc: "Compte DG / recteur — campus, sections faculté, logo et coordonnées.",
+          title: "Nouveau compte Admin université",
+          submit: "Créer le compte campus",
+        },
+      };
+      const c = copy[role] || copy.ministere;
+      if (pageDesc) pageDesc.textContent = c.desc;
+      if (panelTitle) panelTitle.textContent = c.title;
+      if (submitBtn) submitBtn.textContent = c.submit;
+
+      if (role === "universite") {
+        if (typeof SAC_UNIVERSITIES !== "undefined") {
+          SAC_UNIVERSITIES.populateAll("#newCampusCatalog");
+        }
+        ensureAdminFacultySectionsList();
+      } else {
+        resetAdminFacultySectionsList();
+      }
+    }
 
     function createAdminFacultySectionRow() {
       const row = document.createElement("div");
@@ -506,19 +576,7 @@ const SAC_ADMIN_DASHBOARD = (function () {
       document.getElementById("adminFacultySectionsList")?.appendChild(createAdminFacultySectionRow());
     });
 
-    newRole?.addEventListener("change", () => {
-      if (uniFields) uniFields.hidden = newRole.value !== "universite";
-      const logoInput = document.getElementById("newLogoUniversite");
-      if (logoInput) logoInput.required = newRole.value === "universite";
-      if (newRole.value === "universite") {
-        if (typeof SAC_UNIVERSITIES !== "undefined") {
-          SAC_UNIVERSITIES.populateAll("#newCampusCatalog");
-        }
-        ensureAdminFacultySectionsList();
-      } else {
-        resetAdminFacultySectionsList();
-      }
-    });
+    newRole?.addEventListener("change", updateCreateFormForRole);
 
     function fillAdminCampusFromCatalog() {
       const sel = document.getElementById("newCampusCatalog");
@@ -550,18 +608,55 @@ const SAC_ADMIN_DASHBOARD = (function () {
       );
     }
 
+    updateCreateFormForRole();
+
     document.getElementById("formCreateAdmin")?.addEventListener("submit", async (e) => {
       e.preventDefault();
       if (!isSuper) return;
       const role = newRole.value;
-      const payload = {
-        role,
-        email: document.getElementById("newEmail").value.trim(),
-        prenom: document.getElementById("newPrenom").value.trim(),
-        nom: document.getElementById("newNom").value.trim(),
-        telephone: document.getElementById("newTel").value.trim(),
-        password: document.getElementById("newPassword").value,
-      };
+      let payload = { role };
+
+      if (role === "ministere") {
+        const full = document.getElementById("minNomComplet")?.value.trim() || "";
+        const { prenom, nom } = splitFullName(full);
+        if (!full || full.length < 3) {
+          alert("Indiquez le nom complet du responsable.");
+          return;
+        }
+        payload = {
+          role,
+          email: document.getElementById("minEmail")?.value.trim() || "",
+          password: document.getElementById("minPassword")?.value || "",
+          prenom,
+          nom,
+          telephone: "",
+          fonction: document.getElementById("minFonction")?.value.trim() || "",
+        };
+      } else if (role === "superadmin") {
+        const full = document.getElementById("saNomComplet")?.value.trim() || "";
+        const { prenom, nom } = splitFullName(full);
+        if (!full || full.length < 3) {
+          alert("Indiquez le nom complet.");
+          return;
+        }
+        payload = {
+          role,
+          email: document.getElementById("saEmail")?.value.trim() || "",
+          password: document.getElementById("saPassword")?.value || "",
+          prenom,
+          nom,
+          telephone: "",
+        };
+      } else if (role === "universite") {
+        payload = {
+          role,
+          email: document.getElementById("newEmail").value.trim(),
+          prenom: document.getElementById("newPrenom").value.trim(),
+          nom: document.getElementById("newNom").value.trim(),
+          telephone: document.getElementById("newTel").value.trim(),
+          password: document.getElementById("newPassword").value,
+        };
+      }
       if (role === "universite") {
         const catalogId = document.getElementById("newCampusCatalog")?.value;
         if (!catalogId) {
@@ -619,7 +714,7 @@ const SAC_ADMIN_DASHBOARD = (function () {
         }
         toast("Compte créé avec succès.");
         e.target.reset();
-        if (uniFields) uniFields.hidden = true;
+        updateCreateFormForRole();
         resetAdminFacultySectionsList();
         const logoPreview = document.getElementById("newLogoPreview");
         if (logoPreview) {

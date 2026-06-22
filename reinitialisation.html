@@ -6,6 +6,7 @@
   <meta name="description" content="Réinitialisation du mot de passe — Smart Academy of Congo" />
   <title>Nouveau mot de passe — Smart Academy of Congo</title>
   <script src="js/sac-config.js"></script>
+  <script src="js/sac-portal.js"></script>
   <script src="js/sac-theme.js"></script>
   <link rel="icon" href="logos.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="css/logo.css" />
@@ -31,7 +32,7 @@
         <img src="logos.svg" alt="Smart Academy of Congo" class="logo__img" width="48" height="48" />
         <span class="logo__text">Smart Academy</span>
       </a>
-      <a href="connexion.html" class="header__link">← Retour à la connexion</a>
+      <a href="connexion.html" class="header__link" id="backToLogin">← Retour à la connexion</a>
     </div>
   </header>
 
@@ -82,9 +83,9 @@
       </form>
 
       <p class="form-footer">
-        <a href="mot-de-passe-oublie.html">Demander un nouveau code</a>
+        <a href="mot-de-passe-oublie.html" id="forgotAgainLink">Demander un nouveau code</a>
         ·
-        <a href="connexion.html">Se connecter</a>
+        <a href="connexion.html" id="footerLoginLink">Se connecter</a>
       </p>
     </section>
   </main>
@@ -94,6 +95,25 @@
   <script>
     const params = new URLSearchParams(window.location.search);
     const token = params.get("token");
+    const portalParam = params.get("portal");
+    const portalLoginUrl =
+      typeof SAC_PORTAL !== "undefined" && SAC_PORTAL.loginUrlFromPortalQuery
+        ? SAC_PORTAL.loginUrlFromPortalQuery(portalParam)
+        : "connexion.html";
+    const forgotAgainUrl =
+      typeof SAC_PORTAL !== "undefined" && SAC_PORTAL.forgotPasswordUrl
+        ? SAC_PORTAL.forgotPasswordUrl(portalParam)
+        : "mot-de-passe-oublie.html";
+    const backLink = document.getElementById("backToLogin");
+    const footerLoginLink = document.getElementById("footerLoginLink");
+    const forgotAgainLink = document.getElementById("forgotAgainLink");
+    if (portalParam && backLink) {
+      backLink.href = portalLoginUrl;
+      backLink.textContent = "← Retour au portail";
+    }
+    if (footerLoginLink) footerLoginLink.href = portalLoginUrl;
+    if (forgotAgainLink) forgotAgainLink.href = forgotAgainUrl;
+    const emailFromQuery = params.get("email");
     const alertBox = document.getElementById("alertBox");
     const tabLink = document.getElementById("tabLink");
     const tabCode = document.getElementById("tabCode");
@@ -113,7 +133,7 @@
       formCode.hidden = true;
       document.getElementById("resetTabs").hidden = true;
       showAlert(message + " Redirection vers la connexion…", "success");
-      setTimeout(() => { window.location.href = "connexion.html"; }, 2500);
+      setTimeout(() => { window.location.href = portalLoginUrl; }, 2500);
     }
 
     function switchTab(mode) {
@@ -128,7 +148,11 @@
     tabLink.addEventListener("click", () => switchTab("link"));
     tabCode.addEventListener("click", () => switchTab("code"));
 
-    if (!token) {
+    if (emailFromQuery) {
+      const emailField = document.getElementById("email");
+      if (emailField) emailField.value = emailFromQuery;
+      switchTab("code");
+    } else if (!token) {
       switchTab("code");
       showAlert(
         "Pas de lien dans l'URL. Utilisez l'onglet « Via le code e-mail » avec le code reçu par Gmail.",

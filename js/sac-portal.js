@@ -224,6 +224,18 @@ const SAC_PORTAL = (function () {
     return true;
   }
 
+  function loginUrlFromPortalQuery(portalId) {
+    if (portalId === "ministere") return siteUrl("ministere/");
+    if (portalId === "superadmin") return siteUrl("superadmin/");
+    if (portalId === "admin-uni") return siteUrl("admin-uni/");
+    return siteUrl("connexion.html");
+  }
+
+  function forgotPasswordUrl(portalId) {
+    const q = portalId ? "?portal=" + encodeURIComponent(portalId) : "";
+    return siteUrl("mot-de-passe-oublie.html" + q);
+  }
+
   return {
     DEFS,
     current,
@@ -232,6 +244,8 @@ const SAC_PORTAL = (function () {
     asset,
     siteUrl,
     loginUrlForRole,
+    loginUrlFromPortalQuery,
+    forgotPasswordUrl,
     logoutUrl,
     dashboardUrl,
     applyTheme,
