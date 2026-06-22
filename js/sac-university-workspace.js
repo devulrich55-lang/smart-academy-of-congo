@@ -5,7 +5,11 @@ const SAC_UNIVERSITY = (function () {
   const CAMPUS_ROLES = ["etudiant", "professeur", "assistant", "section"];
 
   function campusCode(session) {
-    return session?.universite || session?.codeUni || session?.sigle || "";
+    const raw = session?.universite || session?.universiteLocked || session?.codeUni || session?.sigle || "";
+    if (typeof SAC_UNIVERSITIES !== "undefined" && SAC_UNIVERSITIES.resolveId) {
+      return SAC_UNIVERSITIES.resolveId(raw) || raw;
+    }
+    return raw;
   }
 
   function getCampusUsers(session) {
@@ -22,9 +26,14 @@ const SAC_UNIVERSITY = (function () {
       }
     }
 
-    return SAC_IDENTITY.getLocalUsers().filter(
-      (u) => CAMPUS_ROLES.includes(u.role) && String(u.universite || "") === code
-    );
+    return SAC_IDENTITY.getLocalUsers().filter((u) => {
+      if (!CAMPUS_ROLES.includes(u.role)) return false;
+      if (typeof SAC_UNIVERSITIES !== "undefined" && SAC_UNIVERSITIES.sameCampus) {
+        const keys = [u.universite, u.universiteLocked, u.sigle].filter(Boolean);
+        return keys.some((k) => SAC_UNIVERSITIES.sameCampus(k, code));
+      }
+      return String(u.universite || "") === code;
+    });
   }
 
   function getSections(session) {

@@ -266,9 +266,16 @@ const SAC_TARIFFS = (function () {
     };
   }
 
+  function resolveCampusCode(raw) {
+    if (!raw) return "";
+    if (typeof SAC_UNIVERSITIES !== "undefined" && SAC_UNIVERSITIES.resolveId) {
+      return SAC_UNIVERSITIES.resolveId(raw) || String(raw).trim();
+    }
+    return normUniCode(raw);
+  }
+
   function findLocalUniversity(universiteCode) {
     if (!universiteCode) return null;
-    const code = String(universiteCode).trim().toLowerCase();
     let users = [];
     try {
       users = JSON.parse(localStorage.getItem("sac_users") || "[]");
@@ -277,9 +284,14 @@ const SAC_TARIFFS = (function () {
     }
     return users.find((u) => {
       if (u.role !== "universite") return false;
+      if (typeof SAC_UNIVERSITIES !== "undefined" && SAC_UNIVERSITIES.sameCampus) {
+        const keys = [u.universite, u.universiteLocked, u.sigle, u.codeUni].filter(Boolean);
+        return keys.some((k) => SAC_UNIVERSITIES.sameCampus(k, universiteCode));
+      }
+      const code = normUniCode(universiteCode);
       const keys = [u.universite, u.sigle, u.codeUni]
         .filter(Boolean)
-        .map((k) => String(k).trim().toLowerCase());
+        .map(normUniCode);
       return keys.includes(code);
     });
   }
@@ -459,8 +471,55 @@ const SAC_TARIFFS = (function () {
     return user;
   }
 
+  function persistStudentFeeFields(email, patch) {
+    if (!email || !patch) return false;
+    const key = String(email).trim().toLowerCase();
+    let users = [];
+    try {
+      users = JSON.parse(localStorage.getItem("sac_users") || "[]");
+    } catch {
+      return false;
+    }
+    const idx = users.findIndex(
+      (u) => u.role === "etudiant" && String(u.email || "").trim().toLowerCase() === key
+    );
+    if (idx < 0) return false;
+    users[idx] = {
+      ...users[idx],
+      campusAcademicFees: patch.campusAcademicFees,
+      campusAcademicFeesSyncedAt: patch.campusAcademicFeesSyncedAt,
+      campusAcademicFeesUniversite: patch.campusAcademicFeesUniversite,
+      universityFees: patch.universityFees,
+      inscriptionFee: patch.inscriptionFee || users[idx].inscriptionFee,
+    };
+    localStorage.setItem("sac_users", JSON.stringify(users));
+    return true;
+  }
+
+  function applyLatestCampusFeesToUser(user, options) {
+    if (!user || user.role !== "etudiant") return user;
+    const uni = resolveCampusCode(user.universite || user.universiteLocked);
+    if (!uni) return user;
+    const uniAdmin = findLocalUniversity(uni);
+    if (!uniAdmin?.campusAcademicFees && !uniAdmin?.campusTariffs) return user;
+
+    const acad = normalizeAcademicFees(uniAdmin.campusAcademicFees, uniAdmin.campusTariffs);
+    const current = normalizeAcademicFees(user.campusAcademicFees);
+    const dgAt = uniAdmin.campusAcademicFeesUpdatedAt || "";
+    const userAt = user.campusAcademicFeesSyncedAt || "";
+    const amountsDiffer = current.trimestre.amount !== acad.trimestre.amount;
+    const dgIsNewer = !!dgAt && (!userAt || dgAt > userAt);
+    if (!amountsDiffer && !dgIsNewer) return user;
+
+    const updated = applyAcademicFeesToStudent({ ...user }, acad, uni);
+    if (!options || options.persist !== false) {
+      persistStudentFeeFields(user.email, updated);
+    }
+    return updated;
+  }
+
   function syncCampusAcademicFeesToStudents(universiteCode, academicFees) {
-    const code = universiteCode || "";
+    const code = resolveCampusCode(universiteCode) || "";
     const acad = normalizeAcademicFees(academicFees);
     if (!code) return { updated: 0 };
     let users = [];
@@ -491,6 +550,13 @@ const SAC_TARIFFS = (function () {
       }
     }
     clearCache();
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(
+        new CustomEvent("sac-campus-academic-fees-updated", {
+          detail: { universite: code, academicFees: acad, updated },
+        })
+      );
+    }
     return { updated };
   }
 
@@ -546,7 +612,11 @@ const SAC_TARIFFS = (function () {
       users = [];
     }
     const idx = users.findIndex((u) => u.role === "etudiant" && u.email === session?.identifiant);
-    const uni = (idx >= 0 ? users[idx].universite : null) || session?.universite;
+    const uni = resolveCampusCode(
+      (idx >= 0 ? users[idx].universite || users[idx].universiteLocked : null) ||
+        session?.universite ||
+        session?.universiteLocked
+    );
 
     let acad = null;
     let apiUniversityFees = null;
@@ -603,7 +673,9 @@ const SAC_TARIFFS = (function () {
   }
 
   function saveLocalCampusAcademicFees(session, academicFees) {
-    const code = session.universite || session.codeUni || session.sigle;
+    const code = resolveCampusCode(
+      session.universite || session.universiteLocked || session.sigle || session.codeUni
+    );
     if (!code) throw new Error("Code campus manquant");
     const acad = normalizeAcademicFees(academicFees);
     let users = [];
@@ -727,6 +799,8 @@ const SAC_TARIFFS = (function () {
     buildUniversityFeesForStudent,
     applyAcademicFeesToStudent,
     applyTariffsToMemberProfile,
+    applyLatestCampusFeesToUser,
+    resolveCampusCode,
     userBelongsToUniversity,
     toCdf,
     syncPricingTierLabels,

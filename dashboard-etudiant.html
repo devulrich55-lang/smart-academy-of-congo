@@ -1633,6 +1633,13 @@
         await SAC_TARIFFS.refreshStudentFeesFromCampus(session);
         session = SAC_SESSION.getSession() || session;
         SAC_TARIFFS.startStudentFeesSyncPolling(30000);
+        window.addEventListener("sac-campus-academic-fees-updated", async () => {
+          const sess = SAC_SESSION.getSession();
+          if (!sess || sess.role !== "etudiant") return;
+          await SAC_TARIFFS.refreshStudentFeesFromCampus(sess);
+          const fresh = SAC_SESSION.getSession() || sess;
+          renderFees(getStudentProfile(fresh));
+        });
       }
       await SAC_DATA.ensureReady();
       await SAC_DATA.refreshFromServer();

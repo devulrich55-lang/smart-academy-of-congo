@@ -667,10 +667,17 @@ const SAC_API = (function () {
     return request("/tariffs?" + q.toString());
   }
 
-  async function updateCampusTariffs(tariffs) {
+  async function updateCampusTariffs(payload) {
+    const body =
+      payload && (payload.academicFees || payload.tariffs)
+        ? {
+            academicFees: payload.academicFees,
+            tariffs: payload.tariffs || payload.academicFees,
+          }
+        : { tariffs: payload };
     return request("/tariffs/campus", {
       method: "PATCH",
-      body: JSON.stringify({ tariffs }),
+      body: JSON.stringify(body),
     });
   }
 

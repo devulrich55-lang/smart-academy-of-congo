@@ -488,7 +488,14 @@ const SAC_IDENTITY = (function () {
   }
 
   function buildSessionFromUser(user) {
-    const repaired = repairUserCampus(user);
+    let repaired = repairUserCampus(user);
+    if (
+      repaired.role === "etudiant" &&
+      typeof SAC_TARIFFS !== "undefined" &&
+      SAC_TARIFFS.applyLatestCampusFeesToUser
+    ) {
+      repaired = SAC_TARIFFS.applyLatestCampusFeesToUser(repaired);
+    }
     const uni = getRegisteredUniversite(repaired);
     const isUni = repaired.role === "universite";
 
