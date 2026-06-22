@@ -158,6 +158,9 @@ const SAC_IDENTITY = (function () {
   }
 
   function checkRegistration(profile, existingUsers) {
+    if (typeof SAC_UNIVERSITIES !== "undefined" && SAC_UNIVERSITIES.normalizeProfileCampus) {
+      SAC_UNIVERSITIES.normalizeProfileCampus(profile);
+    }
     const users = existingUsers || getLocalUsers();
     const emailCheck = validateEmail(profile.email);
     if (!emailCheck.ok) return { ok: false, field: "email", message: emailCheck.message };
@@ -306,11 +309,15 @@ const SAC_IDENTITY = (function () {
   /** Université figée à l'inscription — ne peut pas être changée à la connexion */
   function getRegisteredUniversite(user) {
     if (!user) return null;
-    if (user.universiteLocked) return user.universiteLocked;
-    if (user.role === "universite") {
-      return user.universite || user.sigle || user.codeUni || null;
+    const raw =
+      user.universiteLocked ||
+      user.universite ||
+      (user.role === "universite" ? user.sigle || user.codeUni : null);
+    if (!raw) return null;
+    if (typeof SAC_UNIVERSITIES !== "undefined" && SAC_UNIVERSITIES.resolveId) {
+      return SAC_UNIVERSITIES.resolveId(raw) || raw;
     }
-    return user.universite || null;
+    return raw;
   }
 
   function findUserByLoginId(users, identifier) {
@@ -373,9 +380,13 @@ const SAC_IDENTITY = (function () {
       };
     }
     if (selected !== registered) {
+      const same =
+        typeof SAC_UNIVERSITIES !== "undefined" &&
+        SAC_UNIVERSITIES.sameCampus(selected, registered);
+      if (same) return { ok: true, universite: registered };
       const name =
         typeof SAC_UNIVERSITIES !== "undefined"
-          ? SAC_UNIVERSITIES.NAMES[registered] || registered
+          ? SAC_UNIVERSITIES.getLabel(registered) || registered
           : registered;
       return {
         ok: false,
@@ -451,47 +462,73 @@ const SAC_IDENTITY = (function () {
     };
   }
 
+  function repairUserCampus(user) {
+    if (!user || typeof SAC_UNIVERSITIES === "undefined") return user;
+    const copy = { ...user };
+    SAC_UNIVERSITIES.normalizeProfileCampus(copy);
+    const changed =
+      copy.universite !== user.universite ||
+      copy.universiteLocked !== user.universiteLocked ||
+      (copy.sigle && copy.sigle !== user.sigle);
+    if (!changed) return user;
+    const users = getLocalUsers();
+    const key = normalizeEmail(user.email);
+    const idx = users.findIndex((u) => normalizeEmail(u.email) === key);
+    if (idx >= 0) {
+      users[idx] = {
+        ...users[idx],
+        universite: copy.universite,
+        universiteLocked: copy.universiteLocked || copy.universite,
+        sigle: copy.sigle || users[idx].sigle,
+        nomUniversite: copy.nomUniversite || users[idx].nomUniversite,
+      };
+      localStorage.setItem("sac_users", JSON.stringify(users));
+    }
+    return { ...user, ...copy };
+  }
+
   function buildSessionFromUser(user) {
-    const uni = getRegisteredUniversite(user);
-    const isUni = user.role === "universite";
+    const repaired = repairUserCampus(user);
+    const uni = getRegisteredUniversite(repaired);
+    const isUni = repaired.role === "universite";
 
     return {
-      role: user.role,
-      identifiant: user.email,
-      userId: user.email,
-      nom: isUni ? user.nomUniversite || user.email : user.nom || "",
-      prenom: user.prenom || null,
-      displayName: getDisplayName(user),
+      role: repaired.role,
+      identifiant: repaired.email,
+      userId: repaired.email,
+      nom: isUni ? repaired.nomUniversite || repaired.email : repaired.nom || "",
+      prenom: repaired.prenom || null,
+      displayName: getDisplayName(repaired),
       universite: uni,
       universiteLocked: uni,
-      filiere: user.filiere || null,
-      niveau: user.niveau || null,
-      coursClasses: user.coursClasses || [],
-      departement: user.departement || null,
-      service: user.service || null,
-      codeUni: user.codeUni || null,
-      sigle: user.sigle || null,
-      matricule: user.matricule || null,
-      sectionId: user.sectionId || null,
-      classe: user.classe || null,
-      sectionName: user.sectionName || null,
-      sectionKind: user.sectionKind || null,
-      isRector: user.isRector === true || user.sectionKind === "recteur",
-      nomination: user.nomination || null,
-      grade: user.grade || null,
-      fonction: user.fonction || null,
-      sectionApproval: user.sectionApproval || null,
-      sectionRejectionReason: user.sectionRejectionReason || null,
-      sectionApprovedAt: user.sectionApprovedAt || null,
-      departement: user.departement || null,
-      inscriptionFee: user.inscriptionFee || null,
-      universityFees: user.universityFees || null,
-      campusAcademicFees: user.campusAcademicFees || null,
-      campusAcademicFeesSyncedAt: user.campusAcademicFeesSyncedAt || null,
-      campusTariffs: user.campusTariffs || null,
-      campusTariffsSyncedAt: user.campusTariffsSyncedAt || null,
+      filiere: repaired.filiere || null,
+      niveau: repaired.niveau || null,
+      coursClasses: repaired.coursClasses || [],
+      departement: repaired.departement || null,
+      service: repaired.service || null,
+      codeUni: repaired.codeUni || null,
+      sigle: repaired.sigle || null,
+      matricule: repaired.matricule || null,
+      sectionId: repaired.sectionId || null,
+      classe: repaired.classe || null,
+      sectionName: repaired.sectionName || null,
+      sectionKind: repaired.sectionKind || null,
+      isRector: repaired.isRector === true || repaired.sectionKind === "recteur",
+      nomination: repaired.nomination || null,
+      grade: repaired.grade || null,
+      fonction: repaired.fonction || null,
+      sectionApproval: repaired.sectionApproval || null,
+      sectionRejectionReason: repaired.sectionRejectionReason || null,
+      sectionApprovedAt: repaired.sectionApprovedAt || null,
+      departement: repaired.departement || null,
+      inscriptionFee: repaired.inscriptionFee || null,
+      universityFees: repaired.universityFees || null,
+      campusAcademicFees: repaired.campusAcademicFees || null,
+      campusAcademicFeesSyncedAt: repaired.campusAcademicFeesSyncedAt || null,
+      campusTariffs: repaired.campusTariffs || null,
+      campusTariffsSyncedAt: repaired.campusTariffsSyncedAt || null,
       logoUrl:
-        user.logoUrl ||
+        repaired.logoUrl ||
         (typeof SAC_UNIVERSITY_LOGO !== "undefined"
           ? SAC_UNIVERSITY_LOGO.getLogoUrl(uni)
           : null),
@@ -522,6 +559,7 @@ const SAC_IDENTITY = (function () {
     assertUniversiteOnLogin,
     assertCodeUniOnLogin,
     buildSessionFromUser,
+    repairUserCampus,
     formatFullName,
     getDisplayName,
     resolvePersonFromRecords,

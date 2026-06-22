@@ -46,6 +46,9 @@ const SAC_SECTIONS = (function () {
   }
 
   function universiteMatches(a, b) {
+    if (typeof SAC_UNIVERSITIES !== "undefined" && SAC_UNIVERSITIES.sameCampus) {
+      return SAC_UNIVERSITIES.sameCampus(a, b);
+    }
     const na = normalizeUniversite(a);
     const nb = normalizeUniversite(b);
     if (!na || !nb) return false;
@@ -306,13 +309,31 @@ const SAC_SECTIONS = (function () {
     return sec.universityId === uid || sec.universite === code;
   }
 
+  function repairStoredSectionsCampus() {
+    if (typeof SAC_UNIVERSITIES === "undefined" || !SAC_UNIVERSITIES.resolveId) return 0;
+    const sections = getSections();
+    let updated = 0;
+    const next = sections.map((s) => {
+      const id = SAC_UNIVERSITIES.resolveId(s.universite);
+      if (!id || id === s.universite) return s;
+      updated += 1;
+      return { ...s, universite: id };
+    });
+    if (updated) saveSections(next);
+    return updated;
+  }
+
   /** Université : créer une section interne (sans compte séparé) */
   function importSectionsForUniversity(profile) {
     const rows = profile?.facultySections || [];
     if (!rows.length) return [];
     const uniCode =
-      profile.universite ||
-      (profile.sigle || "").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 20);
+      typeof SAC_UNIVERSITIES !== "undefined" && SAC_UNIVERSITIES.resolveId
+        ? SAC_UNIVERSITIES.resolveId(
+            profile.universite || profile.universiteLocked || profile.sigle || profile.codeUni
+          )
+        : profile.universite ||
+          (profile.sigle || "").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 20);
     const universityId = profile.userId || profile.email || profile.identifiant;
     const sections = getSections();
     const created = [];
@@ -371,10 +392,14 @@ const SAC_SECTIONS = (function () {
 
     const email = (data.email || "").trim().toLowerCase();
     const sectionId = uid("sec");
+    const campusCode =
+      typeof SAC_UNIVERSITIES !== "undefined"
+        ? SAC_UNIVERSITIES.resolveId(data.universite || uniSession.universite || uniSession.codeUni)
+        : data.universite || uniSession.universite || uniSession.codeUni;
     const section = {
       id: sectionId,
       universityId: getUniUserId(uniSession),
-      universite: data.universite || uniSession.universite || uniSession.codeUni,
+      universite: campusCode,
       name: data.name.trim(),
       filiere: data.filiere.trim(),
       responsableNom: (data.responsableNom || "").trim(),
@@ -724,6 +749,7 @@ const SAC_SECTIONS = (function () {
   }
 
   initDemoSections();
+  repairStoredSectionsCampus();
 
   return {
     CATEGORIES,
@@ -743,6 +769,7 @@ const SAC_SECTIONS = (function () {
     studentMatchesSection,
     linkStudentToSection,
     repairStudentsForSection,
+    repairStoredSectionsCampus,
     importSectionsForUniversity,
     createSection,
     createSectionAccount,

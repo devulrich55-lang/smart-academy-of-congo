@@ -431,7 +431,33 @@ const SAC_ADMIN_DASHBOARD = (function () {
       if (uniFields) uniFields.hidden = newRole.value !== "universite";
       const logoInput = document.getElementById("newLogoUniversite");
       if (logoInput) logoInput.required = newRole.value === "universite";
+      if (newRole.value === "universite" && typeof SAC_UNIVERSITIES !== "undefined") {
+        SAC_UNIVERSITIES.populateAll("#newCampusCatalog");
+      }
     });
+
+    function fillAdminCampusFromCatalog() {
+      const sel = document.getElementById("newCampusCatalog");
+      if (!sel || typeof SAC_UNIVERSITIES === "undefined") return;
+      const id = sel.value;
+      const u = SAC_UNIVERSITIES.getById(id);
+      if (!u) {
+        document.getElementById("newNomUniversite").value = "";
+        document.getElementById("newSigle").value = "";
+        document.getElementById("newCodeUni").value = "";
+        return;
+      }
+      const year = new Date().getFullYear();
+      document.getElementById("newNomUniversite").value = u.name;
+      document.getElementById("newSigle").value = u.sigle;
+      document.getElementById("newCodeUni").value = "SAC-" + u.sigle + "-" + year;
+    }
+
+    document.getElementById("newCampusCatalog")?.addEventListener("change", fillAdminCampusFromCatalog);
+
+    if (typeof SAC_UNIVERSITIES !== "undefined") {
+      SAC_UNIVERSITIES.populateAll("#newCampusCatalog");
+    }
 
     if (typeof SAC_UNIVERSITY_LOGO !== "undefined") {
       SAC_UNIVERSITY_LOGO.bindPreviewInput(
@@ -453,11 +479,16 @@ const SAC_ADMIN_DASHBOARD = (function () {
         password: document.getElementById("newPassword").value,
       };
       if (role === "universite") {
-        payload.nomUniversite = document.getElementById("newNomUniversite").value.trim();
-        payload.responsable = document.getElementById("newResponsable").value.trim();
-        payload.codeUni = document.getElementById("newCodeUni").value.trim();
-        payload.sigle = document.getElementById("newSigle").value.trim();
-        payload.universite = payload.sigle || payload.codeUni;
+        const catalogId = document.getElementById("newCampusCatalog")?.value;
+        if (!catalogId) {
+          alert("Choisissez l'établissement dans le catalogue SAC.");
+          return;
+        }
+        const campus = SAC_UNIVERSITIES.buildAdminCampusPayload(
+          catalogId,
+          document.getElementById("newResponsable").value.trim()
+        );
+        Object.assign(payload, campus);
         const logoFile = document.getElementById("newLogoUniversite")?.files?.[0];
         if (!logoFile) {
           alert("Importez le logo de l'université.");

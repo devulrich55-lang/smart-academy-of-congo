@@ -93,6 +93,79 @@ const SAC_UNIVERSITIES = (function () {
     });
   }
 
+  function normKey(value) {
+    return String(value || "")
+      .trim()
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/\p{Diacritic}/gu, "");
+  }
+
+  /** Identifiant canonique (unkin, unilu…) depuis id, sigle ou nom */
+  function resolveId(raw) {
+    if (!raw) return null;
+    const key = normKey(raw);
+    if (!key) return null;
+    if (key === "autre") return "autre";
+    const byId = getById(key);
+    if (byId) return byId.id;
+    for (const u of LIST) {
+      if (normKey(u.sigle) === key || normKey(u.name) === key) return u.id;
+    }
+    for (const u of LIST) {
+      const sig = normKey(u.sigle);
+      if (key.includes(sig) || sig.includes(key)) return u.id;
+    }
+    return key;
+  }
+
+  function sameCampus(a, b) {
+    if (!a || !b) return false;
+    return resolveId(a) === resolveId(b);
+  }
+
+  function buildAdminCampusPayload(catalogId, responsable) {
+    const id = resolveId(catalogId);
+    const u = getById(id);
+    if (!u) {
+      throw new Error("Choisissez un établissement inscrit dans le catalogue SAC.");
+    }
+    const year = new Date().getFullYear();
+    return {
+      universite: u.id,
+      universiteLocked: u.id,
+      nomUniversite: u.name,
+      sigle: u.sigle,
+      codeUni: "SAC-" + u.sigle + "-" + year,
+      responsable: (responsable || "").trim(),
+    };
+  }
+
+  function normalizeProfileCampus(profile) {
+    if (!profile) return profile;
+    const raw =
+      profile.universite ||
+      profile.universiteLocked ||
+      profile.sigle ||
+      profile.codeUni;
+    if (!raw || profile.role === "ministere" || profile.role === "superadmin") {
+      return profile;
+    }
+    const id = resolveId(raw);
+    if (!id) return profile;
+    const u = getById(id);
+    profile.universite = id;
+    profile.universiteLocked = id;
+    if (u && profile.role === "universite") {
+      profile.nomUniversite = profile.nomUniversite || u.name;
+      profile.sigle = u.sigle;
+      if (!profile.codeUni) {
+        profile.codeUni = "SAC-" + u.sigle + "-" + new Date().getFullYear();
+      }
+    }
+    return profile;
+  }
+
   const NAMES = Object.fromEntries(LIST.map((u) => [u.id, getLabel(u.id)]));
 
   return {
@@ -105,5 +178,10 @@ const SAC_UNIVERSITIES = (function () {
     getName,
     optionsHtml,
     populateAll,
+    resolveId,
+    sameCampus,
+    buildAdminCampusPayload,
+    normalizeProfileCampus,
+    normKey,
   };
 })();

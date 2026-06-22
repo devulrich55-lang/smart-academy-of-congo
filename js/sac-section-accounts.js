@@ -2,6 +2,13 @@
  * Création de comptes déléguée aux sections — chef de section & inscriptions étudiants
  */
 const SAC_SECTION_ACCOUNTS = (function () {
+  function campusId(raw) {
+    if (typeof SAC_UNIVERSITIES !== "undefined" && SAC_UNIVERSITIES.resolveId) {
+      return SAC_UNIVERSITIES.resolveId(raw) || raw;
+    }
+    return raw;
+  }
+
   function splitResponsableName(fullName) {
     const parts = (fullName || "").trim().split(/\s+/).filter(Boolean);
     if (parts.length >= 2) {
@@ -21,6 +28,7 @@ const SAC_SECTION_ACCOUNTS = (function () {
     if (!phoneCheck.ok) throw new Error(phoneCheck.message);
 
     const names = splitResponsableName(account.responsableNom || section.responsableNom);
+    const campusCode = campusId(section.universite);
     const profile = {
       role: "section",
       email: emailCheck.value,
@@ -28,7 +36,7 @@ const SAC_SECTION_ACCOUNTS = (function () {
       telephone: phoneCheck.value,
       prenom: account.prenom || names.prenom,
       nom: account.nom || names.nom,
-      universite: section.universite,
+      universite: campusCode,
       filiere: section.filiere,
       sectionId: section.id,
       sectionName: section.name,
@@ -55,7 +63,7 @@ const SAC_SECTION_ACCOUNTS = (function () {
     users.push({
       ...profile,
       passwordHash: hashed,
-      universiteLocked: section.universite,
+      universiteLocked: campusCode,
       createdAt: new Date().toISOString(),
     });
     localStorage.setItem("sac_users", JSON.stringify(users));
@@ -71,9 +79,9 @@ const SAC_SECTION_ACCOUNTS = (function () {
   }
 
   async function createRectorAccount(uniProfile, account) {
-    const uniCode =
-      uniProfile.universite ||
-      (uniProfile.sigle || "").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 20);
+    const uniCode = campusId(
+      uniProfile.universite || uniProfile.universiteLocked || uniProfile.sigle || uniProfile.codeUni
+    );
 
     const existing = getRectorForUniversity(uniCode);
     if (existing) {
@@ -184,9 +192,9 @@ const SAC_SECTION_ACCOUNTS = (function () {
   }
 
   async function updateRectorPassword(uniProfile, email, newPassword) {
-    const uniCode =
-      uniProfile.universite ||
-      (uniProfile.sigle || "").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 20);
+    const uniCode = campusId(
+      uniProfile.universite || uniProfile.universiteLocked || uniProfile.sigle || uniProfile.codeUni
+    );
     const existing = getRectorForUniversity(uniCode);
     const key = SAC_IDENTITY.normalizeEmail(email);
     if (!existing || SAC_IDENTITY.normalizeEmail(existing.email) !== key) {
@@ -270,7 +278,7 @@ const SAC_SECTION_ACCOUNTS = (function () {
       niveau: student.niveau || "l1",
       classe: (student.classe || "").trim() || null,
       dateNaissance: student.dateNaissance || null,
-      universite: actor.universite,
+      universite: campusId(actor.universite),
       filiere: actor.filiere,
       sectionId: actor.sectionId,
       payment: {
@@ -303,6 +311,7 @@ const SAC_SECTION_ACCOUNTS = (function () {
     users.push({
       ...profile,
       passwordHash: hashed,
+      universiteLocked: campusId(actor.universite),
       sectionApproval: "approved",
       sectionApprovedAt: new Date().toISOString(),
       sectionApprovedBy: actor.identifiant || actor.userId || null,
@@ -364,13 +373,15 @@ const SAC_SECTION_ACCOUNTS = (function () {
   }
 
   function getRectorForUniversity(universiteCode) {
-    const code = String(universiteCode || "").trim();
+    const code = campusId(universiteCode);
     if (!code || typeof SAC_IDENTITY === "undefined") return null;
     return SAC_IDENTITY.getLocalUsers().find(
       (u) =>
         u.role === "section" &&
         (u.sectionKind === "recteur" || u.isRector === true) &&
-        String(u.universite || "") === code
+        (typeof SAC_UNIVERSITIES !== "undefined" && SAC_UNIVERSITIES.sameCampus
+          ? SAC_UNIVERSITIES.sameCampus(u.universite, code)
+          : String(u.universite || "") === String(code))
     );
   }
 

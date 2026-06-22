@@ -412,14 +412,18 @@ const SAC_API = (function () {
   ];
 
   function buildRegisterPayload(profile) {
+    const src = { ...profile };
+    if (typeof SAC_UNIVERSITIES !== "undefined" && SAC_UNIVERSITIES.normalizeProfileCampus) {
+      SAC_UNIVERSITIES.normalizeProfileCampus(src);
+    }
     const out = {};
     REGISTER_FIELDS.forEach((key) => {
-      const val = profile[key];
+      const val = src[key];
       if (val !== undefined && val !== null && val !== "") out[key] = val;
     });
-    if (profile.password) out.password = profile.password;
-    if (profile.email) out.email = profile.email;
-    if (profile.role) out.role = profile.role;
+    if (src.password) out.password = src.password;
+    if (src.email) out.email = src.email;
+    if (src.role) out.role = src.role;
     return out;
   }
 

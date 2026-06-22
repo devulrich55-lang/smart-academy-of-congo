@@ -118,7 +118,7 @@
       <form id="loginForm" novalidate>
         <div class="auth-form-group field-extra visible" id="fieldUniversite">
           <label for="universite">Université <span class="hint">(celle de votre inscription)</span></label>
-          <select class="form-input" id="universite" name="universite" data-sac-universities data-empty-label="— Choisir votre université —" data-include-autre="true"></select>
+          <select class="form-input" id="universite" name="universite" data-sac-universities data-empty-label="— Choisir votre université —"></select>
           <p id="uniLockHint" class="auth-uni-lock">
             <span aria-hidden="true">✓</span> Université verrouillée sur votre dossier d'inscription
           </p>
@@ -571,9 +571,13 @@
       if (!ROLES[currentRole].showUniversite) return null;
       const found = SAC_IDENTITY.findUserByLoginId(SAC_IDENTITY.getLocalUsers(), idVal);
       if (found && found.role === currentRole) {
-        const reg = SAC_IDENTITY.getRegisteredUniversite(found);
+        const user =
+          typeof SAC_IDENTITY.repairUserCampus === "function"
+            ? SAC_IDENTITY.repairUserCampus(found)
+            : found;
+        const reg = SAC_IDENTITY.getRegisteredUniversite(user);
         if (reg) {
-          ensureUniversiteOption(reg, universiteLabelForUser(found, reg));
+          ensureUniversiteOption(reg, universiteLabelForUser(user, reg));
           universiteSelect.disabled = true;
           const hint = document.getElementById("uniLockHint");
           if (hint) hint.classList.add("visible");
@@ -663,9 +667,12 @@
       const users = SAC_IDENTITY.getLocalUsers();
       const found = SAC_IDENTITY.findUserByLoginId(users, identifiant.value.trim());
       if (found && found.role === currentRole) {
-        const reg = SAC_IDENTITY.getRegisteredUniversite(found);
+        const repaired = SAC_IDENTITY.repairUserCampus
+          ? SAC_IDENTITY.repairUserCampus(found)
+          : found;
+        const reg = SAC_IDENTITY.getRegisteredUniversite(repaired);
         if (reg) {
-          ensureUniversiteOption(reg, universiteLabelForUser(found, reg));
+          ensureUniversiteOption(reg, universiteLabelForUser(repaired, reg));
           universiteSelect.disabled = true;
           if (hint) hint.classList.add("visible");
           return;

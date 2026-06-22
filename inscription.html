@@ -1211,7 +1211,7 @@
             </div>
             <div class="form-group">
               <label for="universiteEtu">Université <span class="hint">*</span></label>
-              <select class="form-input" id="universiteEtu" name="universite" data-sac-universities data-include-autre="true"></select>
+              <select class="form-input" id="universiteEtu" name="universite" data-sac-universities></select>
               <span class="field-error" data-for="universiteEtu">Sélectionnez une université</span>
             </div>
             <div class="form-group full">
@@ -1249,7 +1249,7 @@
           <div class="field-section" data-role="professeur" id="sectionProfesseur">
             <div class="form-group full">
               <label for="universiteProf">Université d'affectation <span class="hint">*</span></label>
-              <select class="form-input" id="universiteProf" name="universiteProf" data-sac-universities data-include-autre="true"></select>
+              <select class="form-input" id="universiteProf" name="universiteProf" data-sac-universities></select>
               <span class="field-error" data-for="universiteProf">Sélectionnez une université</span>
             </div>
             <div class="form-group">
@@ -1283,7 +1283,7 @@
           <div class="field-section" data-role="assistant" id="sectionAssistant">
             <div class="form-group full">
               <label for="universiteAssist">Université d'affectation <span class="hint">*</span></label>
-              <select class="form-input" id="universiteAssist" name="universiteAssist" data-sac-universities data-include-autre="true"></select>
+              <select class="form-input" id="universiteAssist" name="universiteAssist" data-sac-universities></select>
               <span class="field-error" data-for="universiteAssist">Sélectionnez une université</span>
             </div>
             <div class="form-group">
@@ -2453,6 +2453,9 @@
     }
 
     async function completeRegistration(profile, payment) {
+      if (typeof SAC_UNIVERSITIES !== "undefined" && SAC_UNIVERSITIES.normalizeProfileCampus) {
+        SAC_UNIVERSITIES.normalizeProfileCampus(profile);
+      }
       const sec = validateRegistrationProfile({
         ...profile,
         password: pendingProfile?._pwd || profile.password || "",
@@ -2982,6 +2985,10 @@
       }
 
       if (!valid) return;
+
+      if (typeof SAC_UNIVERSITIES !== "undefined" && SAC_UNIVERSITIES.normalizeProfileCampus) {
+        SAC_UNIVERSITIES.normalizeProfileCampus(profile);
+      }
 
       profile.password = pwd;
       const identity = validateRegistrationProfile(profile);

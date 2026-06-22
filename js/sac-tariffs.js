@@ -377,6 +377,10 @@ const SAC_TARIFFS = (function () {
   }
 
   function userBelongsToUniversity(user, universiteCode) {
+    if (typeof SAC_UNIVERSITIES !== "undefined" && SAC_UNIVERSITIES.sameCampus) {
+      const keys = [user?.universite, user?.universiteLocked, user?.sigle].filter(Boolean);
+      return keys.some((k) => SAC_UNIVERSITIES.sameCampus(k, universiteCode));
+    }
     const code = normUniCode(universiteCode);
     if (!code || !user) return false;
     const keys = [user.universite, user.universiteLocked, user.sigle]
