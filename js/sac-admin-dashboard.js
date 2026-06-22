@@ -440,6 +440,50 @@ const SAC_ADMIN_DASHBOARD = (function () {
       return { prenom: parts[0], nom: parts.slice(1).join(" ") };
     }
 
+    function validateInstitutionalCreate(role, payload) {
+      if (!payload.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload.email)) {
+        alert("Indiquez un e-mail valide.");
+        return false;
+      }
+      if (typeof SAC_IDENTITY !== "undefined") {
+        const pwdCheck = SAC_IDENTITY.validatePassword(payload.password);
+        if (!pwdCheck.ok) {
+          alert(pwdCheck.message);
+          return false;
+        }
+      } else if (!payload.password || payload.password.length < 8) {
+        alert("Mot de passe : minimum 8 caractères.");
+        return false;
+      }
+      if (!payload.prenom || !payload.nom) {
+        alert("Indiquez un nom complet (prénom et nom).");
+        return false;
+      }
+      if (payload.telephone && typeof SAC_IDENTITY !== "undefined") {
+        const telCheck = SAC_IDENTITY.validatePhone(payload.telephone);
+        if (!telCheck.ok) {
+          alert(telCheck.message);
+          return false;
+        }
+        payload.telephone = telCheck.value || payload.telephone;
+      }
+      return true;
+    }
+
+    function institutionalCreateErrorMessage(err) {
+      const code = err?.code || "";
+      const map = {
+        INVALID_PHONE: "Numéro de téléphone invalide.",
+        INVALID_PASSWORD: "Mot de passe : 8 caractères minimum, une lettre et un chiffre, sans espace.",
+        INVALID_PROFILE: "Nom invalide — utilisez des lettres (prénom et nom).",
+        EMAIL_EXISTS: "Cet e-mail est déjà utilisé. Connectez-vous ou utilisez « Mot de passe oublié ».",
+        PHONE_EXISTS: "Ce numéro de téléphone est déjà lié à un compte.",
+        IDENTITY_CONFLICT: "Cette identité est déjà enregistrée avec un autre rôle.",
+        FORBIDDEN: "Accès refusé — connectez-vous en tant que Super Admin.",
+      };
+      return map[code] || err?.message || "Création impossible.";
+    }
+
     function setFieldRequired(ids, required) {
       ids.forEach((id) => {
         const el = document.getElementById(id);
@@ -657,6 +701,7 @@ const SAC_ADMIN_DASHBOARD = (function () {
           password: document.getElementById("newPassword").value,
         };
       }
+      if (!validateInstitutionalCreate(role, payload)) return;
       if (role === "universite") {
         const catalogId = document.getElementById("newCampusCatalog")?.value;
         if (!catalogId) {
@@ -725,7 +770,7 @@ const SAC_ADMIN_DASHBOARD = (function () {
         await refresh(session, isSuper);
         await reloadActivities();
       } catch (err) {
-        alert(err.message || "Création impossible.");
+        alert(institutionalCreateErrorMessage(err));
       }
     });
 
