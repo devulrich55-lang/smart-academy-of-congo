@@ -343,9 +343,21 @@
       margin-bottom: 0.5rem;
       align-items: start;
     }
+    .section-row--head {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      margin-bottom: 0.35rem;
+      padding: 0 0.15rem;
+      align-items: end;
+    }
+    .section-row--head span:last-child { width: 2rem; }
     @media (max-width: 700px) {
       .section-row { grid-template-columns: 1fr 1fr; }
       .section-row .btn-remove-cours { grid-column: span 2; }
+      .section-row--head { display: none; }
     }
     .section-row input { font-size: 0.88rem; padding: 0.55rem 0.65rem; }
     .btn-add-cours {
@@ -1214,10 +1226,17 @@
               <select class="form-input" id="universiteEtu" name="universite" data-sac-universities></select>
               <span class="field-error" data-for="universiteEtu">Sélectionnez une université</span>
             </div>
-            <div class="form-group full">
-              <label for="filiere">Faculté / Filière <span class="hint">*</span></label>
-              <input type="text" class="form-input" id="filiere" name="filiere" placeholder="Ex. Sciences économiques — Gestion" />
-              <span class="field-error" data-for="filiere">Indiquez votre filière</span>
+            <div class="form-group full" id="wrapSectionFiliereEtu" hidden>
+              <label for="sectionFiliereEtu">Section / Filière <span class="hint">*</span></label>
+              <select class="form-input" id="sectionFiliereEtu" name="sectionFiliereEtu" disabled>
+                <option value="">— Choisissez d'abord votre université —</option>
+              </select>
+              <input type="hidden" id="filiere" name="filiere" />
+              <input type="hidden" id="sectionIdEtu" name="sectionId" />
+              <p id="sectionFiliereHint" class="form-group full" style="font-size:0.85rem;color:var(--text-muted);margin:0.35rem 0 0;display:none;">
+                Aucune section n'est encore enregistrée pour cette université. Contactez la direction de votre établissement.
+              </p>
+              <span class="field-error" data-for="sectionFiliereEtu">Sélectionnez votre section et filière</span>
             </div>
             <div class="form-group">
               <label for="niveau">Niveau d'études</label>
@@ -1391,8 +1410,14 @@
               <label>Sections / facultés de votre établissement <span class="hint">*</span></label>
               <p style="font-size:0.85rem;color:var(--text-muted);margin:0 0 0.75rem;">
                 Enregistrez toutes les sections organisées au sein de votre université (une ligne par faculté ou service)
-                et <strong>nommez le responsable</strong> de chacune.
+                et <strong>nommez le responsable</strong> de chacune. Ces sections apparaîtront dans la liste proposée aux étudiants lors de leur inscription.
               </p>
+              <div class="section-row section-row--head" aria-hidden="true">
+                <span>Section / faculté</span>
+                <span>Filière couverte</span>
+                <span>Responsable</span>
+                <span></span>
+              </div>
               <div id="facultySectionsList"></div>
               <button type="button" class="btn-add-cours" id="btnAddFacultySection" style="border-color:rgba(13,122,74,0.4);color:#0d7a4a;">
                 + Ajouter une section / faculté
@@ -2050,6 +2075,11 @@
       if (role === "professeur") ensureCoursList("coursClasseListProf");
       if (role === "assistant") ensureCoursList("coursClasseListAssist");
       if (role === "universite") ensureFacultySectionsList();
+      if (role === "etudiant") {
+        populateStudentSections(document.getElementById("universiteEtu")?.value || "");
+      } else {
+        populateStudentSections("");
+      }
     }
 
     function showError(fieldId, show, message) {
@@ -2143,6 +2173,56 @@
     function ensureCoursList(listId) {
       const list = document.getElementById(listId);
       if (list && !list.children.length) list.appendChild(createCoursRow());
+    }
+
+    function populateStudentSections(universiteCode) {
+      const wrap = document.getElementById("wrapSectionFiliereEtu");
+      const select = document.getElementById("sectionFiliereEtu");
+      const filiereInput = document.getElementById("filiere");
+      const sectionIdInput = document.getElementById("sectionIdEtu");
+      const hint = document.getElementById("sectionFiliereHint");
+      if (!wrap || !select) return;
+
+      filiereInput.value = "";
+      sectionIdInput.value = "";
+      showError("sectionFiliereEtu", false);
+
+      if (!universiteCode || currentRole !== "etudiant") {
+        wrap.hidden = true;
+        select.disabled = true;
+        select.innerHTML = '<option value="">— Choisissez d\'abord votre université —</option>';
+        if (hint) hint.style.display = "none";
+        return;
+      }
+
+      wrap.hidden = false;
+      const sections =
+        typeof SAC_SECTIONS !== "undefined" ? SAC_SECTIONS.listCampusSections(universiteCode) : [];
+      select.innerHTML =
+        typeof SAC_SECTIONS !== "undefined"
+          ? SAC_SECTIONS.campusSectionsOptionsHtml(sections)
+          : '<option value="">— Sections indisponibles —</option>';
+
+      if (!sections.length) {
+        select.disabled = true;
+        if (hint) hint.style.display = "block";
+        return;
+      }
+
+      select.disabled = false;
+      if (hint) hint.style.display = "none";
+    }
+
+    function onStudentSectionPick() {
+      const select = document.getElementById("sectionFiliereEtu");
+      const filiereInput = document.getElementById("filiere");
+      const sectionIdInput = document.getElementById("sectionIdEtu");
+      if (!select) return;
+      const opt = select.selectedOptions[0];
+      const id = select.value || "";
+      filiereInput.value = opt?.dataset?.filiere || "";
+      sectionIdInput.value = id.startsWith("fac-") ? "" : id;
+      showError("sectionFiliereEtu", !id || !filiereInput.value);
     }
 
     function createFacultySectionRow() {
@@ -2886,14 +2966,21 @@
 
       if (currentRole === "etudiant") {
         const uni = document.getElementById("universiteEtu").value;
-        const filiere = document.getElementById("filiere").value.trim();
+        const sectionSel = document.getElementById("sectionFiliereEtu");
+        const sectionId = sectionSel?.value || "";
+        const opt = sectionSel?.selectedOptions?.[0];
+        const filiere =
+          document.getElementById("filiere").value.trim() || opt?.dataset?.filiere?.trim() || "";
+        const sectionName = opt?.dataset?.name?.trim() || "";
         const classe = document.getElementById("classe").value.trim();
         valid = showError("universiteEtu", !uni) && valid;
-        valid = showError("filiere", filiere.length < 2) && valid;
+        valid = showError("sectionFiliereEtu", !sectionId || filiere.length < 2) && valid;
         valid = showError("classe", classe.length < 2) && valid;
         Object.assign(profile, {
           universite: uni,
           filiere,
+          sectionId: sectionId.startsWith("fac-") ? null : sectionId,
+          sectionName,
           niveau: document.getElementById("niveau").value,
           classe: document.getElementById("classe").value.trim(),
           dateNaissance: document.getElementById("dateNaissance").value,
@@ -3052,6 +3139,9 @@
       const el = document.getElementById(id);
       if (!el) return;
       el.addEventListener("change", () => {
+        if (id === "universiteEtu" && currentRole === "etudiant") {
+          populateStudentSections(el.value);
+        }
         if (
           (id === "universiteEtu" && currentRole === "etudiant") ||
           (id === "universiteProf" && currentRole === "professeur") ||
@@ -3061,6 +3151,13 @@
         }
       });
     });
+
+    document.getElementById("sectionFiliereEtu")?.addEventListener("change", onStudentSectionPick);
+
+    const bootUniEtu = document.getElementById("universiteEtu")?.value;
+    if (bootUniEtu && currentRole === "etudiant") {
+      populateStudentSections(bootUniEtu);
+    }
   </script>
   <script src="js/sac-mobile.js" defer></script>
 </body>

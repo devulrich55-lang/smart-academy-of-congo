@@ -91,10 +91,19 @@ const SAC_SECTIONS = (function () {
 
   function linkStudentToSection(student) {
     if (!student || student.role !== "etudiant") return student;
+    if (student.sectionId) {
+      const direct = getSectionById(student.sectionId);
+      if (direct && universiteMatches(direct.universite, student.universite)) {
+        student.sectionName = student.sectionName || direct.name;
+        student.filiere = student.filiere || direct.filiere;
+        return student;
+      }
+    }
     const match = findSectionForStudent(student);
     if (match) {
       student.sectionId = match.id;
       student.sectionName = match.name;
+      if (!student.filiere) student.filiere = match.filiere;
     }
     return student;
   }
@@ -266,10 +275,96 @@ const SAC_SECTIONS = (function () {
 
   function getSectionsByUniversity(uniSession) {
     const uid = getUniUserId(uniSession);
-    const code = uniSession?.universite || uniSession?.codeUni || uniSession?.sigle;
-    return getSections().filter(
-      (s) => s.universityId === uid || s.universite === code
-    );
+    const code = uniSession?.universite || uniSession?.universiteLocked || uniSession?.codeUni || uniSession?.sigle;
+    return getSections().filter((s) => {
+      if (uid && s.universityId === uid) return true;
+      if (code && universiteMatches(s.universite, code)) return true;
+      return false;
+    });
+  }
+
+  function getFacultySectionsForCampus(universiteCode) {
+    if (!universiteCode) return [];
+    let users = [];
+    try {
+      users = JSON.parse(localStorage.getItem("sac_users") || "[]");
+    } catch {
+      return [];
+    }
+    const uni = users.find((u) => {
+      if (u.role !== "universite") return false;
+      const keys = [u.universite, u.universiteLocked, u.sigle, u.codeUni].filter(Boolean);
+      return keys.some((k) => universiteMatches(k, universiteCode));
+    });
+    return (uni?.facultySections || []).filter((r) => r.name?.trim() && r.filiere?.trim());
+  }
+
+  /** Sections / filières d'un campus — pour inscription étudiant (liste déroulante) */
+  function listCampusSections(universiteCode) {
+    if (!universiteCode) return [];
+    const code =
+      typeof SAC_UNIVERSITIES !== "undefined" && SAC_UNIVERSITIES.resolveId
+        ? SAC_UNIVERSITIES.resolveId(universiteCode) || universiteCode
+        : universiteCode;
+
+    const fromStore = getSections()
+      .filter((s) => s.active !== false && universiteMatches(s.universite, code))
+      .map((s) => ({
+        id: s.id,
+        name: s.name,
+        filiere: s.filiere,
+        responsableNom: s.responsableNom || "",
+        source: "registered",
+      }));
+
+    if (fromStore.length) {
+      return fromStore.sort((a, b) =>
+        norm(a.name).localeCompare(norm(b.name), "fr", { sensitivity: "base" })
+      );
+    }
+
+    return getFacultySectionsForCampus(code).map((row, i) => ({
+      id: "fac-" + code + "-" + i,
+      name: row.name.trim(),
+      filiere: row.filiere.trim(),
+      responsableNom: (row.responsableNom || row.responsable || "").trim(),
+      source: "catalog",
+    }));
+  }
+
+  function campusSectionsOptionsHtml(sections, selectedId) {
+    const empty =
+      '<option value="">' +
+      (sections.length
+        ? "— Choisir votre section / filière —"
+        : "— Aucune section enregistrée pour cette université —") +
+      "</option>";
+    const opts = (sections || []).map((s) => {
+      const sel = s.id === selectedId ? " selected" : "";
+      const label = s.name + " — " + s.filiere;
+      return (
+        '<option value="' +
+        s.id +
+        '"' +
+        sel +
+        ' data-filiere="' +
+        escapeHtml(s.filiere) +
+        '" data-name="' +
+        escapeHtml(s.name) +
+        '">' +
+        escapeHtml(label) +
+        "</option>"
+      );
+    });
+    return empty + opts.join("");
+  }
+
+  function escapeHtml(str) {
+    return String(str || "")
+      .replace(/&/g, "&amp;")
+      .replace(/"/g, "&quot;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
   }
 
   function getSectionById(id) {
@@ -758,6 +853,9 @@ const SAC_SECTIONS = (function () {
     STATUTS,
     getSections,
     getSectionsByUniversity,
+    listCampusSections,
+    getFacultySectionsForCampus,
+    campusSectionsOptionsHtml,
     getSectionById,
     findSectionForStudent,
     studentInSection,
