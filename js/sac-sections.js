@@ -5,20 +5,37 @@ const SAC_SECTIONS = (function () {
   const SECTIONS_KEY = "sac_sections";
   const RECLAMATIONS_KEY = "sac_reclamations";
 
-  const CATEGORIES = [
-    { id: "scolarite", label: "Scolarité & inscription" },
-    { id: "notes", label: "Notes, cotes & examens" },
-    { id: "frais", label: "Frais universitaires & paiements" },
-    { id: "documents", label: "Documents administratifs (attestation, relevé…)" },
-    { id: "bourse", label: "Bourses & aides financières" },
-    { id: "emploi_du_temps", label: "Emploi du temps & organisation des cours" },
-    { id: "stage_emploi", label: "Stages, concours & opportunités" },
-    { id: "discipline", label: "Discipline, assiduité & conflit" },
-    { id: "bibliotheque", label: "Bibliothèque, laboratoire & équipements" },
-    { id: "infrastructure", label: "Infrastructure & vie du campus" },
-    { id: "enseignement", label: "Qualité de l'enseignement" },
-    { id: "autre", label: "Autres (à préciser)" },
+  /** Grandes catégories Smart Academy (liste simplifiée). */
+  const RECLAMATION_CATEGORIES = [
+    { id: "academique", label: "Académique", icon: "📚" },
+    { id: "inscription", label: "Inscription", icon: "📋" },
+    { id: "finance", label: "Finance", icon: "💳" },
+    { id: "administration", label: "Administration", icon: "🏛️" },
+    { id: "discipline", label: "Discipline", icon: "⚖️" },
+    { id: "stage_memoire", label: "Stage et Mémoire", icon: "🎓" },
+    { id: "technique", label: "Technique", icon: "💻" },
+    { id: "infrastructures_services", label: "Infrastructures et Services", icon: "🏗️" },
+    { id: "autre", label: "Autres", icon: "📩" },
   ];
+
+  const CATEGORIES = RECLAMATION_CATEGORIES.map(({ id, label }) => ({ id, label }));
+  const STUDENT_CATEGORIES = RECLAMATION_CATEGORIES;
+
+  /** Libellés des anciennes catégories (réclamations déjà enregistrées). */
+  const LEGACY_CATEGORY_LABELS = {
+    scolarite: "Inscription",
+    notes: "Académique",
+    frais: "Finance",
+    documents: "Administration",
+    bourse: "Finance",
+    emploi_du_temps: "Académique",
+    stage_emploi: "Stage et Mémoire",
+    discipline: "Discipline",
+    bibliotheque: "Infrastructures et Services",
+    infrastructure: "Infrastructures et Services",
+    enseignement: "Académique",
+    autre: "Autres",
+  };
 
   const STATUTS = [
     { id: "ouverte", label: "Ouverte", color: "#b45309" },
@@ -986,19 +1003,36 @@ const SAC_SECTIONS = (function () {
   }
 
   function categoryLabel(id, detail) {
-    const base = CATEGORIES.find((c) => c.id === id)?.label || id;
+    const base =
+      CATEGORIES.find((c) => c.id === id)?.label ||
+      LEGACY_CATEGORY_LABELS[id] ||
+      id;
     if (id === "autre" && detail) return base + " — " + detail;
     return base;
   }
 
-  function categoriesOptionsHtml(emptyLabel) {
+  function categoriesOptionsHtml(emptyLabel, list) {
+    const items = list || CATEGORIES;
     const first = emptyLabel
       ? `<option value="">${emptyLabel}</option>`
       : "";
     return (
       first +
-      CATEGORIES.map((c) => `<option value="${c.id}">${c.label}</option>`).join("")
+      items.map((c) => `<option value="${c.id}">${c.label}</option>`).join("")
     );
+  }
+
+  function studentCategoriesOptionsHtml(emptyLabel) {
+    return categoriesOptionsHtml(emptyLabel, STUDENT_CATEGORIES);
+  }
+
+  function studentCategoryChipsHtml() {
+    return STUDENT_CATEGORIES.filter((c) => c.id !== "autre")
+      .map(
+        (c) =>
+          `<button type="button" class="rec-cat-chip" data-cat="${c.id}" title="${c.label}">${c.icon || ""} ${c.label}</button>`
+      )
+      .join("");
   }
 
   function isAutreCategory(id) {
@@ -1050,7 +1084,10 @@ const SAC_SECTIONS = (function () {
 
   return {
     CATEGORIES,
+    STUDENT_CATEGORIES,
     categoriesOptionsHtml,
+    studentCategoriesOptionsHtml,
+    studentCategoryChipsHtml,
     isAutreCategory,
     STATUTS,
     getSections,

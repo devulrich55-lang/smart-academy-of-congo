@@ -24,6 +24,40 @@
   color: var(--muted, #5a6d7e);
 }
 
+.rec-category-quick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-bottom: 0.55rem;
+}
+
+.rec-cat-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.42rem 0.72rem;
+  border: 1.5px solid var(--border, #e2e8f0);
+  border-radius: 999px;
+  background: var(--surface, #fff);
+  color: var(--primary, #0c3d6e);
+  font-family: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.rec-cat-chip:hover {
+  border-color: var(--primary, #0c3d6e);
+  background: #f0f6fc;
+}
+
+.rec-cat-chip.is-active {
+  border-color: var(--primary, #0c3d6e);
+  background: var(--primary, #0c3d6e);
+  color: #fff;
+}
+
 .rec-form .fg {
   margin-bottom: 0.85rem;
 }

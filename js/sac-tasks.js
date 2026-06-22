@@ -57,7 +57,11 @@ const SAC_TASKS = (function () {
   /** Demandes d'attestation / documents administratifs */
   function getAttestationRequests(session) {
     return getOpenReclamations(session).filter(
-      (r) => r.categorie === "documents" || r.categorie === "scolarite"
+      (r) =>
+        r.categorie === "administration" ||
+        r.categorie === "inscription" ||
+        r.categorie === "documents" ||
+        r.categorie === "scolarite"
     );
   }
 

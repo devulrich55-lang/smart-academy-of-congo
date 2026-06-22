@@ -551,7 +551,11 @@
         </div>
         <div class="panel__body">
           <form id="formReclamationProfile" class="rec-form">
-           
+            <div class="fg">
+              <label>Catégorie *</label>
+              <div class="rec-category-quick" id="recCategorieQuickProfile" role="group" aria-label="Catégories fréquentes"></div>
+              <select class="fi" id="recCategorieProfile" required></select>
+            </div>
             <div class="fg" id="wrapRecAutreProfile" style="display:none;">
               <label>Précisez (obligatoire si « Autres ») *</label>
               <input type="text" class="fi" id="recAutreDetailProfile" list="recAutreSuggestions" maxlength="120" placeholder="Ex. Problème de carte étudiant, changement de groupe…" />
@@ -805,6 +809,7 @@
           <form id="formReclamation" class="rec-form">
             <div class="fg">
               <label>Catégorie *</label>
+              <div class="rec-category-quick" id="recCategorieQuick" role="group" aria-label="Catégories fréquentes"></div>
               <select class="fi" id="recCategorie" required></select>
             </div>
             <div class="fg" id="wrapRecAutre" style="display:none;">
@@ -1553,14 +1558,27 @@
       const profileSec = document.getElementById("profileRecSection");
       if (profileSec) profileSec.textContent = "Section : " + sectionLabel;
 
-      const catHtml = SAC_SECTIONS.categoriesOptionsHtml("— Choisir une catégorie —");
+      const catHtml = SAC_SECTIONS.studentCategoriesOptionsHtml("— Choisir une catégorie —");
+      const chipsHtml = SAC_SECTIONS.studentCategoryChipsHtml();
       const catPairs = [
-        { sel: "recCategorie", wrap: "wrapRecAutre", detail: "recAutreDetail" },
-        { sel: "recCategorieProfile", wrap: "wrapRecAutreProfile", detail: "recAutreDetailProfile" },
+        { sel: "recCategorie", quick: "recCategorieQuick", wrap: "wrapRecAutre", detail: "recAutreDetail" },
+        { sel: "recCategorieProfile", quick: "recCategorieQuickProfile", wrap: "wrapRecAutreProfile", detail: "recAutreDetailProfile" },
       ];
-      catPairs.forEach(({ sel, wrap, detail }) => {
+      catPairs.forEach(({ sel, quick, wrap, detail }) => {
         const selectEl = document.getElementById(sel);
-        if (selectEl && !selectEl.options.length) selectEl.innerHTML = catHtml;
+        const quickEl = document.getElementById(quick);
+        if (selectEl) selectEl.innerHTML = catHtml;
+        if (quickEl) {
+          quickEl.innerHTML = chipsHtml;
+          quickEl.querySelectorAll(".rec-cat-chip").forEach((btn) => {
+            btn.addEventListener("click", () => {
+              selectEl.value = btn.dataset.cat;
+              selectEl.dispatchEvent(new Event("change"));
+              quickEl.querySelectorAll(".rec-cat-chip").forEach((b) => b.classList.remove("is-active"));
+              btn.classList.add("is-active");
+            });
+          });
+        }
         if (!selectEl) return;
         const toggle = () => {
           const isAutre = SAC_SECTIONS.isAutreCategory(selectEl.value);
@@ -1568,6 +1586,11 @@
           const detailEl = document.getElementById(detail);
           if (wrapEl) wrapEl.style.display = isAutre ? "block" : "none";
           if (detailEl) detailEl.required = isAutre;
+          if (quickEl) {
+            quickEl.querySelectorAll(".rec-cat-chip").forEach((b) => {
+              b.classList.toggle("is-active", b.dataset.cat === selectEl.value);
+            });
+          }
         };
         selectEl.addEventListener("change", toggle);
         toggle();
