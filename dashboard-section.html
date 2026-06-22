@@ -673,52 +673,64 @@
         const empty = document.getElementById("pendingStaffEmpty");
         if (!tbody || typeof SAC_SECTION_APPROVAL === "undefined") return;
 
-        let pending = SAC_SECTION_APPROVAL.getPendingStaffForSection(session);
-        tbody.innerHTML = pending
-          .map((u) => {
-            const name =
-              typeof SAC_IDENTITY !== "undefined"
-                ? SAC_IDENTITY.getDisplayName(u)
-                : [u.prenom, u.nom].filter(Boolean).join(" ") || u.email;
-            const role = SAC_SECTION_APPROVAL.roleLabel(u.role);
-            const filiere = SAC_SECTION_APPROVAL.displayFiliere(u);
-            let details = "—";
-            if (u.role === "professeur") {
-              const grade =
-                SAC_SECTION_APPROVAL.GRADE_LABELS[u.grade] || u.grade || "—";
-              details = grade + " · " + (u.departement || "—");
-            } else if (u.role === "assistant") {
-              const fn =
-                SAC_SECTION_APPROVAL.FONCTION_LABELS[u.fonction] || u.fonction || "—";
-              details = fn + " · " + (u.service || "—");
-            }
-            return (
-              "<tr>" +
-              "<td>" + esc(role) + "</td>" +
-              "<td>" + esc(name) + "</td>" +
-              "<td>" + esc(u.email) + "</td>" +
-              "<td>" + esc(filiere) + "</td>" +
-              "<td>" + esc(details) + "</td>" +
-              delayCell(u) +
-              "<td style=\"white-space:nowrap;\">" +
-              "<button type=\"button\" class=\"btn btn--role btn--sm\" data-approve=\"" + esc(u.email) + "\">Valider</button> " +
-              "<button type=\"button\" class=\"btn btn--ghost btn--sm\" data-reject=\"" + esc(u.email) + "\">Refuser</button>" +
-              "</td>" +
-              "</tr>"
-            );
-          })
-          .join("");
+        const draw = (pending) => {
+          tbody.innerHTML = pending
+            .map((u) => {
+              const name =
+                typeof SAC_IDENTITY !== "undefined"
+                  ? SAC_IDENTITY.getDisplayName(u)
+                  : [u.prenom, u.nom].filter(Boolean).join(" ") || u.email;
+              const role = SAC_SECTION_APPROVAL.roleLabel(u.role);
+              const filiere = SAC_SECTION_APPROVAL.displayFiliere(u);
+              let details = "—";
+              if (u.role === "professeur") {
+                const grade =
+                  SAC_SECTION_APPROVAL.GRADE_LABELS[u.grade] || u.grade || "—";
+                details = grade + " · " + (u.departement || "—");
+              } else if (u.role === "assistant") {
+                const fn =
+                  SAC_SECTION_APPROVAL.FONCTION_LABELS[u.fonction] || u.fonction || "—";
+                details = fn + " · " + (u.service || "—");
+              }
+              return (
+                "<tr>" +
+                "<td>" + esc(role) + "</td>" +
+                "<td>" + esc(name) + "</td>" +
+                "<td>" + esc(u.email) + "</td>" +
+                "<td>" + esc(filiere) + "</td>" +
+                "<td>" + esc(details) + "</td>" +
+                delayCell(u) +
+                "<td style=\"white-space:nowrap;\">" +
+                "<button type=\"button\" class=\"btn btn--role btn--sm\" data-approve=\"" + esc(u.email) + "\">Valider</button> " +
+                "<button type=\"button\" class=\"btn btn--ghost btn--sm\" data-reject=\"" + esc(u.email) + "\">Refuser</button>" +
+                "</td>" +
+                "</tr>"
+              );
+            })
+            .join("");
 
-        empty.style.display = pending.length ? "none" : "block";
-        if (empty) {
-          empty.textContent = isRector
-            ? "Aucun professeur ou assistant en attente pour votre campus."
-            : "Aucun professeur ou assistant en attente pour votre section.";
+          empty.style.display = pending.length ? "none" : "block";
+          if (empty) {
+            empty.textContent = isRector
+              ? "Aucun professeur ou assistant en attente pour votre campus."
+              : "Aucun professeur ou assistant en attente pour votre section.";
+          }
+          bindPendingActions(tbody, "staff", () => {
+            renderPendingStaff();
+            renderStats();
+          });
+        };
+
+        if (SAC_SECTION_APPROVAL.refreshPendingStaffForSection) {
+          tbody.innerHTML =
+            "<tr><td colspan=\"6\" style=\"color:var(--muted);\">Chargement du personnel en attente…</td></tr>";
+          SAC_SECTION_APPROVAL.refreshPendingStaffForSection(session)
+            .then(draw)
+            .catch(() => draw(SAC_SECTION_APPROVAL.getPendingStaffForSection(session)));
+          return;
         }
-        bindPendingActions(tbody, "staff", () => {
-          renderPendingStaff();
-          renderStats();
-        });
+
+        draw(SAC_SECTION_APPROVAL.getPendingStaffForSection(session));
       }
 
       function renderSectionPresenceStats(data) {

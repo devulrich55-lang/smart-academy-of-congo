@@ -79,14 +79,149 @@ const SAC_SECTIONS = (function () {
     return shared.length >= 2;
   }
 
-  function studentFilieres(student) {
+  const DOMAIN_STOP_WORDS = new Set([
+    "faculte",
+    "facultes",
+    "departement",
+    "department",
+    "section",
+    "des",
+    "de",
+    "du",
+    "la",
+    "le",
+    "les",
+    "et",
+    "and",
+    "sciences",
+    "science",
+  ]);
+
+  function domainTokens(value) {
+    return filiereTokens(value).filter((w) => !DOMAIN_STOP_WORDS.has(w));
+  }
+
+  /** Même domaine académique — ex. « Section Informatique » ↔ « Département Informatique » */
+  function domainMatches(a, b) {
+    if (!a || !b) return false;
+    if (filiereMatches(a, b)) return true;
+    const ta = domainTokens(a);
+    const tb = new Set(domainTokens(b));
+    if (!ta.length || !tb.size) return false;
+    const shared = ta.filter((w) => tb.has(w));
+    if (shared.some((w) => w.length >= 5)) return true;
+    if (shared.length >= 1 && (ta.length <= 2 || tb.size <= 2)) return true;
+    return false;
+  }
+
+  function canonicalDomain(value) {
+    const tokens = domainTokens(value);
+    if (tokens.length) {
+      return tokens.sort((a, b) => b.length - a.length)[0];
+    }
+    return normalizeFiliere(value);
+  }
+
+  function campusDomainTaken(universiteCode, filiere, excludeSectionId) {
+    const key = canonicalDomain(filiere);
+    if (!key || !universiteCode) return false;
+    return getSections().some(
+      (s) =>
+        s.active !== false &&
+        s.id !== excludeSectionId &&
+        universiteMatches(s.universite, universiteCode) &&
+        canonicalDomain(s.filiere) === key
+    );
+  }
+
+  function findCampusSectionByDomain(universiteCode, domainLabel) {
+    if (!universiteCode || !domainLabel) return null;
+    const list = listCampusSections(universiteCode);
+    return (
+      list.find(
+        (s) =>
+          domainMatches(s.filiere, domainLabel) ||
+          domainMatches(s.name, domainLabel)
+      ) || null
+    );
+  }
+
+  function dedupeSectionsByDomain(sections) {
+    const seen = new Map();
+    (sections || []).forEach((s) => {
+      const key = canonicalDomain(s.filiere || s.name);
+      if (!key) return;
+      const prev = seen.get(key);
+      if (!prev || (s.source === "registered" && prev.source !== "registered")) {
+        seen.set(key, s);
+      }
+    });
+    return [...seen.values()];
+  }
+
+  /** Une section par domaine académique et par université */
+  function validateUniqueDomains(rows) {
+    const items = (rows || []).filter((r) => String(r.filiere || "").trim());
+    const seen = new Map();
+    for (const row of items) {
+      const key = canonicalDomain(row.filiere);
+      if (!key) continue;
+      if (seen.has(key)) {
+        return {
+          ok: false,
+          message:
+            "Chaque domaine académique ne peut avoir qu'une seule section dans la même université " +
+            "(ex. Informatique, Gestion, Droit…). Doublon pour le domaine « " +
+            row.filiere +
+            " ».",
+        };
+      }
+      seen.set(key, row);
+    }
+    return { ok: true };
+  }
+
+  function memberDomainLabels(user) {
     const out = [];
-    if (student?.filiere) out.push(student.filiere);
-    if (student?.departement) out.push(student.departement);
-    (student?.coursClasses || []).forEach((c) => {
+    if (user?.filiere) out.push(user.filiere);
+    if (user?.departement) out.push(user.departement);
+    if (user?.service) out.push(user.service);
+    if (user?.sectionName) out.push(user.sectionName);
+    (user?.coursClasses || []).forEach((c) => {
       if (c?.filiere) out.push(c.filiere);
     });
     return [...new Set(out.filter(Boolean))];
+  }
+
+  function sectionDomainLabels(sectionSession) {
+    const out = [];
+    if (sectionSession?.filiere) out.push(sectionSession.filiere);
+    if (sectionSession?.sectionName) out.push(sectionSession.sectionName);
+    if (sectionSession?.departement) out.push(sectionSession.departement);
+    const sectionId = sectionSession?.sectionId;
+    if (sectionId) {
+      const meta = getSectionById(sectionId);
+      if (meta?.filiere) out.push(meta.filiere);
+      if (meta?.name) out.push(meta.name);
+    }
+    return [...new Set(out.filter(Boolean))];
+  }
+
+  function memberMatchesSectionDomain(member, sectionSession) {
+    const sectionDomains = sectionDomainLabels(sectionSession);
+    const memberDomains = memberDomainLabels(member);
+    if (!sectionDomains.length) {
+      if (member?.role === "etudiant") return !!findSectionForStudent(member);
+      return !memberDomains.length;
+    }
+    if (!memberDomains.length) return false;
+    return sectionDomains.some((sd) =>
+      memberDomains.some((md) => domainMatches(md, sd))
+    );
+  }
+
+  function studentFilieres(student) {
+    return memberDomainLabels(student);
   }
 
   function linkStudentToSection(student) {
@@ -131,13 +266,37 @@ const SAC_SECTIONS = (function () {
     const resolved = findSectionForStudent(student);
     if (sectionId && resolved?.id === sectionId) return true;
 
-    const sectionFiliere =
-      sectionSession.filiere || (sectionId ? getSectionById(sectionId)?.filiere : null);
-    if (!sectionFiliere) return !!resolved;
+    return memberMatchesSectionDomain(student, sectionSession);
+  }
 
-    const filieres = studentFilieres(student);
-    if (!filieres.length) return false;
-    return filieres.some((uf) => filiereMatches(uf, sectionFiliere));
+  function staffMatchesSection(staff, sectionSession) {
+    if (!staff || !sectionSession) return false;
+    if (staff.role !== "professeur" && staff.role !== "assistant") return false;
+
+    const staffUni = staff.universite || staff.universiteLocked || staff.sigle;
+    const sectionUni =
+      sectionSession.universite ||
+      sectionSession.universiteLocked ||
+      sectionSession.sigle ||
+      sectionSession.codeUni;
+    if (
+      sectionSession.isRector ||
+      sectionSession.sectionKind === "recteur"
+    ) {
+      return universiteMatches(staffUni, sectionUni);
+    }
+    if (!universiteMatches(staffUni, sectionUni)) return false;
+
+    const sectionId = sectionSession.sectionId;
+    if (sectionId && staff.sectionId === sectionId) return true;
+
+    if (staff.role === "assistant") {
+      const sectionDomains = sectionDomainLabels(sectionSession);
+      const memberDomains = memberDomainLabels(staff);
+      if (!sectionDomains.length || !memberDomains.length) return true;
+    }
+
+    return memberMatchesSectionDomain(staff, sectionSession);
   }
 
   function repairStudentsForSection(sectionSession) {
@@ -340,18 +499,22 @@ const SAC_SECTIONS = (function () {
       }));
 
     if (fromStore.length) {
-      return fromStore.sort((a, b) =>
-        norm(a.name).localeCompare(norm(b.name), "fr", { sensitivity: "base" })
+      return dedupeSectionsByDomain(fromStore).sort((a, b) =>
+        norm(a.filiere || a.name).localeCompare(norm(b.filiere || b.name), "fr", {
+          sensitivity: "base",
+        })
       );
     }
 
-    return getFacultySectionsForCampus(code).map((row, i) => ({
-      id: "fac-" + code + "-" + i,
-      name: row.name.trim(),
-      filiere: row.filiere.trim(),
-      responsableNom: (row.responsableNom || row.responsable || "").trim(),
-      source: "catalog",
-    }));
+    return dedupeSectionsByDomain(
+      getFacultySectionsForCampus(code).map((row, i) => ({
+        id: "fac-" + code + "-" + i,
+        name: row.name.trim(),
+        filiere: row.filiere.trim(),
+        responsableNom: (row.responsableNom || row.responsable || "").trim(),
+        source: "catalog",
+      }))
+    );
   }
 
   function campusSectionsOptionsHtml(sections, selectedId) {
@@ -363,7 +526,8 @@ const SAC_SECTIONS = (function () {
       "</option>";
     const opts = (sections || []).map((s) => {
       const sel = s.id === selectedId ? " selected" : "";
-      const label = s.name + " — " + s.filiere;
+      const domain = s.filiere || s.name;
+      const label = "Domaine : " + domain + (s.name && s.filiere ? " — " + s.name : "");
       return (
         '<option value="' +
         s.id +
@@ -406,7 +570,7 @@ const SAC_SECTIONS = (function () {
 
     const filieres = studentFilieres(student);
     let match = uniSections.find((s) =>
-      filieres.some((uf) => filiereMatches(uf, s.filiere))
+      filieres.some((uf) => domainMatches(uf, s.filiere) || domainMatches(uf, s.name))
     );
 
     if (!match) {
@@ -457,6 +621,15 @@ const SAC_SECTIONS = (function () {
 
     for (const row of rows) {
       if (!row.name?.trim() || !row.filiere?.trim()) continue;
+      const domainDup = sections.find(
+        (s) =>
+          universiteMatches(s.universite, uniCode) &&
+          domainMatches(s.filiere, row.filiere)
+      );
+      if (domainDup) {
+        created.push(domainDup);
+        continue;
+      }
       const dup = sections.find(
         (s) =>
           s.universite === uniCode &&
@@ -513,6 +686,11 @@ const SAC_SECTIONS = (function () {
       typeof SAC_UNIVERSITIES !== "undefined"
         ? SAC_UNIVERSITIES.resolveId(data.universite || uniSession.universite || uniSession.codeUni)
         : data.universite || uniSession.universite || uniSession.codeUni;
+    if (campusDomainTaken(campusCode, data.filiere)) {
+      throw new Error(
+        "Ce domaine dispose déjà d'une section dans votre université. Règle SAC : un domaine = une section (ex. Informatique, Gestion…)."
+      );
+    }
     const section = {
       id: sectionId,
       universityId: getUniUserId(uniSession),
@@ -537,7 +715,9 @@ const SAC_SECTIONS = (function () {
     const section = createSection(uniSession, data);
     await pushSectionToApi(uniSession, section);
     if (!accountOptions?.createAccount) {
-      return { section, credentials: null };
+      throw new Error(
+        "Un compte chef de section est requis. Créez-le depuis le portail DG — le responsable n'a pas besoin d'être enseignant."
+      );
     }
     return SAC_SECTION_ACCOUNTS.createHeadAccount(uniSession, section, {
       email: accountOptions.email || data.email,
@@ -885,8 +1065,17 @@ const SAC_SECTIONS = (function () {
     universiteMatches,
     normalizeFiliere,
     filiereMatches,
+    domainMatches,
+    canonicalDomain,
+    campusDomainTaken,
+    findCampusSectionByDomain,
+    validateUniqueDomains,
+    memberDomainLabels,
+    sectionDomainLabels,
+    memberMatchesSectionDomain,
     studentFilieres,
     studentMatchesSection,
+    staffMatchesSection,
     linkStudentToSection,
     repairStudentsForSection,
     repairStoredSectionsCampus,

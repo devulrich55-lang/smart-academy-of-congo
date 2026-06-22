@@ -404,9 +404,13 @@ const SAC_API = (function () {
     "grade",
     "fonction",
     "sectionApproval",
+    "sectionApprovalRequestedAt",
     "sectionKind",
     "sectionName",
     "sectionId",
+    "dateNaissance",
+    "paymentStatus",
+    "registrationSource",
     "nomination",
     "logoUrl",
   ];
@@ -424,7 +428,63 @@ const SAC_API = (function () {
     if (src.password) out.password = src.password;
     if (src.email) out.email = src.email;
     if (src.role) out.role = src.role;
+    if (src.payment && !out.paymentStatus) {
+      out.paymentStatus = src.payment.status || "pending_verification";
+    }
+    if (src.role === "etudiant" && !out.registrationSource) {
+      out.registrationSource = "public_inscription";
+    }
     return out;
+  }
+
+  /** Même structure que l'inscription professeur — rattachement section pour validation. */
+  function buildSectionStudentPayload(profile, password) {
+    const src = { ...profile };
+    if (typeof SAC_UNIVERSITIES !== "undefined" && SAC_UNIVERSITIES.normalizeProfileCampus) {
+      SAC_UNIVERSITIES.normalizeProfileCampus(src);
+    }
+    if (
+      src.role === "etudiant" &&
+      (!src.coursClasses || !src.coursClasses.length) &&
+      src.filiere
+    ) {
+      src.coursClasses = [
+        {
+          courseCode: "INSCRIPTION",
+          courseName: "Parcours " + src.filiere,
+          filiere: src.filiere,
+          niveau: src.niveau || "l1",
+          classe: src.classe || "",
+          universite: src.universite || "",
+        },
+      ];
+    }
+    const payload = {
+      email: src.email,
+      telephone: src.telephone,
+      prenom: src.prenom,
+      nom: src.nom,
+      role: "etudiant",
+      matricule: src.matricule || null,
+      niveau: src.niveau || "l1",
+      classe: src.classe || null,
+      dateNaissance: src.dateNaissance || null,
+      universite: src.universite,
+      universiteLocked: src.universiteLocked || src.universite,
+      filiere: src.filiere,
+      sectionId: src.sectionId || null,
+      sectionName: src.sectionName || null,
+      coursClasses: src.coursClasses || [],
+      sectionApproval: src.sectionApproval || "pending",
+      sectionApprovalRequestedAt:
+        src.sectionApprovalRequestedAt || src.createdAt || new Date().toISOString(),
+      registrationSource: src.registrationSource || "public_inscription",
+      paymentStatus:
+        src.paymentStatus || (src.payment && src.payment.status) || "pending_verification",
+    };
+    const pwd = password || src.password;
+    if (pwd) payload.password = pwd;
+    return payload;
   }
 
   function isDuplicateRegistrationError(err) {
@@ -1021,6 +1081,7 @@ const SAC_API = (function () {
     register,
     registerOrLogin,
     buildRegisterPayload,
+    buildSectionStudentPayload,
     refresh,
     logout,
     me,

@@ -90,12 +90,25 @@ const SAC_SECTION_APPROVAL = (function () {
   }
 
   function userFilieres(user) {
+    if (typeof SAC_SECTIONS !== "undefined" && SAC_SECTIONS.memberDomainLabels) {
+      return SAC_SECTIONS.memberDomainLabels(user);
+    }
     const out = [];
     if (user?.filiere) out.push(String(user.filiere).trim().toLowerCase());
+    if (user?.departement) out.push(String(user.departement).trim().toLowerCase());
+    if (user?.service) out.push(String(user.service).trim().toLowerCase());
+    if (user?.sectionName) out.push(String(user.sectionName).trim().toLowerCase());
     (user?.coursClasses || []).forEach((c) => {
       if (c?.filiere) out.push(String(c.filiere).trim().toLowerCase());
     });
     return [...new Set(out.filter(Boolean))];
+  }
+
+  function domainMatches(a, b) {
+    if (typeof SAC_SECTIONS !== "undefined" && SAC_SECTIONS.domainMatches) {
+      return SAC_SECTIONS.domainMatches(a, b);
+    }
+    return filiereMatches(a, b);
   }
 
   function filiereMatches(a, b) {
@@ -263,8 +276,67 @@ const SAC_SECTION_APPROVAL = (function () {
     }
   }
 
-  async function syncPendingStaffFromApi() {
-    /* réservé — pas d'endpoint staff dédié pour l'instant */
+  async function syncPendingStaffFromApi(sectionSession) {
+    if (typeof SAC_API === "undefined") return;
+    let online = false;
+    try {
+      online = await SAC_API.ensureOnline();
+    } catch {
+      return;
+    }
+    if (!online || typeof SAC_API.listCampusProfessors !== "function") return;
+    try {
+      const apiStaff = await SAC_API.listCampusProfessors();
+      const actor = resolveSectionActor(sectionSession);
+      const campusWide = isRector(sectionSession);
+      (apiStaff || []).forEach((raw) => {
+        const u = { ...raw, role: raw.role || "professeur" };
+        if (!STAFF_ROLES.includes(u.role)) return;
+        const inScope = campusWide
+          ? matchesCampusUser(u, actor)
+          : matchesStaffSection(u, actor);
+        if (!inScope) return;
+        if (isExplicitlyClosed(u)) return;
+        mirrorLocalUser({
+          ...u,
+          sectionApproval: STATUS.pending,
+          sectionApprovalRequestedAt:
+            u.sectionApprovalRequestedAt || u.createdAt || new Date().toISOString(),
+        });
+      });
+    } catch (err) {
+      console.warn("[SAC_SECTION_APPROVAL] sync API personnel:", err.message || err);
+    }
+  }
+
+  function isEnrollmentDuplicateError(err) {
+    if (!err) return false;
+    if (err.status === 409) return true;
+    return /déjà|existe|already|duplicate/i.test(String(err.message || ""));
+  }
+
+  /**
+   * Après /auth/register — enregistre l'étudiant dans le registre section (/sections/students)
+   * comme pour les comptes créés par le chef de section, afin d'être visible à la validation.
+   */
+  async function enrollPendingRegistrationOnApi(profile, password) {
+    if (!profile || profile.role !== "etudiant") return false;
+    if (typeof SAC_API === "undefined" || typeof SAC_API.buildSectionStudentPayload !== "function") {
+      return false;
+    }
+    try {
+      if (!(await SAC_API.ensureOnline())) return false;
+      const payload = SAC_API.buildSectionStudentPayload(profile, password);
+      await SAC_API.createSectionStudent(payload);
+      return true;
+    } catch (err) {
+      if (isEnrollmentDuplicateError(err)) return true;
+      console.warn(
+        "[SAC_SECTION_APPROVAL] rattachement section après inscription:",
+        err.message || err
+      );
+      return false;
+    }
   }
 
   function matchesStudentSection(user, sectionSession) {
@@ -275,31 +347,36 @@ const SAC_SECTION_APPROVAL = (function () {
     if (!universiteMatches(user.universite, sectionSession.universite)) return false;
     const sectionId = sectionSession.sectionId;
     if (sectionId && user.sectionId === sectionId) return true;
-    const sf = String(sectionSession.filiere || "")
+    const sf = String(sectionSession.filiere || sectionSession.sectionName || "")
       .trim()
       .toLowerCase();
     if (!sf) return false;
-    return userFilieres(user).some((uf) => filiereMatches(uf, sf));
+    return userFilieres(user).some((uf) => domainMatches(uf, sf));
   }
 
   function matchesStaffSection(user, sectionSession) {
+    if (typeof SAC_SECTIONS !== "undefined" && SAC_SECTIONS.staffMatchesSection) {
+      return SAC_SECTIONS.staffMatchesSection(user, sectionSession);
+    }
     if (!user || !STAFF_ROLES.includes(user.role) || !sectionSession) return false;
     if (!universiteMatches(user.universite, sectionSession.universite)) return false;
     if (user.role === "assistant") {
-      const sf = String(sectionSession.filiere || "")
-        .trim()
-        .toLowerCase();
-      const ufs = userFilieres(user);
-      if (!sf || !ufs.length) return true;
-      return ufs.some((uf) => filiereMatches(uf, sf));
+      const sectionDomains =
+        typeof SAC_SECTIONS !== "undefined" && SAC_SECTIONS.sectionDomainLabels
+          ? SAC_SECTIONS.sectionDomainLabels(sectionSession)
+          : [sectionSession.filiere, sectionSession.sectionName].filter(Boolean);
+      const memberDomains = userFilieres(user);
+      if (!sectionDomains.length || !memberDomains.length) return true;
     }
-    const sectionId = sectionSession.sectionId;
-    if (sectionId && user.sectionId === sectionId) return true;
-    const sf = String(sectionSession.filiere || "")
-      .trim()
-      .toLowerCase();
-    if (!sf) return false;
-    return userFilieres(user).some((uf) => filiereMatches(uf, sf));
+    const sectionDomains =
+      typeof SAC_SECTIONS !== "undefined" && SAC_SECTIONS.sectionDomainLabels
+        ? SAC_SECTIONS.sectionDomainLabels(sectionSession)
+        : [sectionSession.filiere, sectionSession.sectionName].filter(Boolean);
+    const memberDomains = userFilieres(user);
+    if (!sectionDomains.length || !memberDomains.length) return false;
+    return sectionDomains.some((sd) =>
+      memberDomains.some((md) => domainMatches(md, sd))
+    );
   }
 
   function matchesSection(user, sectionSession) {
@@ -581,6 +658,11 @@ const SAC_SECTION_APPROVAL = (function () {
     return getPendingStudentsForSection(sectionSession);
   }
 
+  async function refreshPendingStaffForSection(sectionSession) {
+    await syncPendingStaffFromApi(sectionSession);
+    return getPendingStaffForSection(sectionSession);
+  }
+
   function getPendingStudentsForSection(sectionSession) {
     return filterPending(sectionSession, "student");
   }
@@ -733,7 +815,10 @@ const SAC_SECTION_APPROVAL = (function () {
     getPendingStudentsForSection,
     getPendingStaffForSection,
     refreshPendingStudentsForSection,
+    refreshPendingStaffForSection,
     syncPendingStudentsFromApi,
+    syncPendingStaffFromApi,
+    enrollPendingRegistrationOnApi,
     resolveSectionActor,
     getApprovedForSection,
     approve,

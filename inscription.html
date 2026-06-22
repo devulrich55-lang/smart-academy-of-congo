@@ -1227,7 +1227,7 @@
               <span class="field-error" data-for="universiteEtu">Sélectionnez une université</span>
             </div>
             <div class="form-group full" id="wrapSectionFiliereEtu" hidden>
-              <label for="sectionFiliereEtu">Section / Filière <span class="hint">*</span></label>
+              <label for="sectionFiliereEtu">Domaine / section <span class="hint">*</span></label>
               <select class="form-input" id="sectionFiliereEtu" name="sectionFiliereEtu" disabled>
                 <option value="">— Choisissez d'abord votre université —</option>
               </select>
@@ -1236,7 +1236,7 @@
               <p id="sectionFiliereHint" class="form-group full" style="font-size:0.85rem;color:var(--text-muted);margin:0.35rem 0 0;display:none;">
                 Aucune section n'est encore enregistrée pour cette université. Contactez la direction de votre établissement.
               </p>
-              <span class="field-error" data-for="sectionFiliereEtu">Sélectionnez votre section et filière</span>
+              <span class="field-error" data-for="sectionFiliereEtu">Sélectionnez le domaine de votre section (ex. Informatique)</span>
             </div>
             <div class="form-group">
               <label for="niveau">Niveau d'études</label>
@@ -1260,7 +1260,8 @@
               <span class="field-error" data-for="classe">Indiquez le nom exact de votre classe (comme chez votre professeur)</span>
             </div>
             <p class="form-group full" style="font-size:0.88rem;color:var(--text-muted);grid-column:1/-1;">
-              Vous verrez uniquement les contenus publiés pour votre <strong>niveau</strong>, votre <strong>filière</strong>, votre <strong>section</strong> et votre <strong>classe</strong> à la même université.
+              Choisissez le <strong>domaine</strong> de votre section dans cette université (ex. Informatique).
+              Vous serez rattaché à la section de ce domaine ; vos enseignants du même domaine valideront votre inscription.
             </p>
           </div>
 
@@ -1271,10 +1272,15 @@
               <select class="form-input" id="universiteProf" name="universiteProf" data-sac-universities></select>
               <span class="field-error" data-for="universiteProf">Sélectionnez une université</span>
             </div>
-            <div class="form-group">
-              <label for="departement">Département / Faculté <span class="hint">*</span></label>
-              <input type="text" class="form-input" id="departement" name="departement" placeholder="Ex. Faculté des Sciences" />
-              <span class="field-error" data-for="departement">Département requis</span>
+            <div class="form-group full" id="wrapDepartementProf" hidden>
+              <label for="departement">Domaine / section <span class="hint">*</span></label>
+              <select class="form-input" id="departement" name="departement" disabled>
+                <option value="">— Choisissez d'abord votre université —</option>
+              </select>
+              <p id="departementProfHint" style="font-size:0.85rem;color:var(--text-muted);margin:0.35rem 0 0;display:none;">
+                Aucun domaine n'est encore enregistré pour cette université. L'université doit d'abord créer ses sections (une par domaine).
+              </p>
+              <span class="field-error" data-for="departement">Sélectionnez le domaine de votre section (ex. Informatique)</span>
             </div>
             <div class="form-group">
               <label for="grade">Grade <span class="hint">*</span></label>
@@ -1291,7 +1297,7 @@
             </div>
             <div class="cours-classe-panel">
               <h3>Cours et classes que vous enseignez</h3>
-              <p class="cours-hint">Chaque ligne = un cours et le groupe d'étudiants. Vos publications (documents, images, audio) ne seront visibles que par les étudiants inscrits au même niveau et filière.</p>
+              <p class="cours-hint">Chaque ligne = un cours et le groupe d'étudiants. La <strong>filière</strong> doit correspondre à votre <strong>département / section</strong> (ex. Informatique). Vos publications ne seront visibles que par les étudiants du même domaine.</p>
               <div id="coursClasseListProf"></div>
               <button type="button" class="btn-add-cours" id="btnAddCoursProf">+ Ajouter un cours / classe</button>
               <span class="field-error" data-for="coursClassesProf">Ajoutez au moins un cours avec code, filière, niveau et nom de classe</span>
@@ -1407,14 +1413,15 @@
               </p>
             </div>
             <div class="form-group full">
-              <label>Sections / facultés de votre établissement <span class="hint">*</span></label>
+              <label>Sections par domaine académique <span class="hint">*</span></label>
               <p style="font-size:0.85rem;color:var(--text-muted);margin:0 0 0.75rem;">
-                Enregistrez toutes les sections organisées au sein de votre université (une ligne par faculté ou service)
-                et <strong>nommez le responsable</strong> de chacune. Ces sections apparaîtront dans la liste proposée aux étudiants lors de leur inscription.
+                Dans votre université, <strong>chaque domaine a sa propre section</strong> (ex. Informatique, Gestion, Droit).
+                Ajoutez <strong>une ligne par domaine</strong> — pas deux sections pour le même domaine.
+                Les étudiants et enseignants choisiront ce domaine à l'inscription ; le chef de section validera les inscriptions de son domaine.
               </p>
               <div class="section-row section-row--head" aria-hidden="true">
-                <span>Section / faculté</span>
-                <span>Filière couverte</span>
+                <span>Section (nom interne)</span>
+                <span>Domaine académique</span>
                 <span>Responsable</span>
                 <span></span>
               </div>
@@ -2080,6 +2087,11 @@
       } else {
         populateStudentSections("");
       }
+      if (role === "professeur") {
+        populateProfessorDepartments(document.getElementById("universiteProf")?.value || "");
+      } else {
+        populateProfessorDepartments("");
+      }
     }
 
     function showError(fieldId, show, message) {
@@ -2175,6 +2187,72 @@
       if (list && !list.children.length) list.appendChild(createCoursRow());
     }
 
+    function populateProfessorDepartments(universiteCode) {
+      const wrap = document.getElementById("wrapDepartementProf");
+      const select = document.getElementById("departement");
+      const hint = document.getElementById("departementProfHint");
+      if (!select) return;
+
+      showError("departement", false);
+
+      if (!universiteCode || currentRole !== "professeur") {
+        if (wrap) wrap.hidden = true;
+        select.disabled = true;
+        select.innerHTML = '<option value="">— Choisissez d\'abord votre université —</option>';
+        if (hint) hint.style.display = "none";
+        return;
+      }
+
+      if (wrap) wrap.hidden = false;
+      const sections =
+        typeof SAC_SECTIONS !== "undefined" ? SAC_SECTIONS.listCampusSections(universiteCode) : [];
+
+      if (!sections.length) {
+        select.disabled = true;
+        select.innerHTML = '<option value="">— Aucune section disponible —</option>';
+        if (hint) hint.style.display = "block";
+        return;
+      }
+
+      select.disabled = false;
+      if (hint) hint.style.display = "none";
+      select.innerHTML =
+        '<option value="">— Choisissez votre département / section —</option>' +
+        sections
+          .map((s) => {
+            const filiere = s.filiere || s.name || "";
+            const label = s.name + (s.filiere ? " — " + s.filiere : "");
+            return (
+              '<option value="' +
+              filiere.replace(/"/g, "&quot;") +
+              '" data-name="' +
+              String(s.name || "").replace(/"/g, "&quot;") +
+              '" data-filiere="' +
+              String(s.filiere || "").replace(/"/g, "&quot;") +
+              '" data-section-id="' +
+              String(s.id || "").replace(/"/g, "&quot;") +
+              '">' +
+              label.replace(/</g, "&lt;") +
+              "</option>"
+            );
+          })
+          .join("");
+    }
+
+    function onProfessorDepartementPick() {
+      const select = document.getElementById("departement");
+      if (!select) return;
+      const opt = select.selectedOptions[0];
+      const filiere = opt?.dataset?.filiere || select.value || "";
+      document.querySelectorAll('#coursClasseListProf [data-cc="filiere"]').forEach((inp) => {
+        if (filiere && (!inp.value || inp.dataset.auto === "1")) {
+          inp.value = filiere;
+          inp.dataset.auto = "1";
+        }
+      });
+      showError("departement", !select.value);
+    }
+
     function populateStudentSections(universiteCode) {
       const wrap = document.getElementById("wrapSectionFiliereEtu");
       const select = document.getElementById("sectionFiliereEtu");
@@ -2229,8 +2307,8 @@
       const row = document.createElement("div");
       row.className = "section-row";
       row.innerHTML = `
-        <input type="text" class="form-input" data-sec="name" placeholder="Nom section / faculté *" required />
-        <input type="text" class="form-input" data-sec="filiere" placeholder="Filière couverte *" required />
+        <input type="text" class="form-input" data-sec="name" placeholder="Nom de la section (ex. Section Informatique) *" required />
+        <input type="text" class="form-input" data-sec="filiere" placeholder="Domaine académique unique * (ex. Informatique)" required />
         <input type="text" class="form-input" data-sec="responsable" placeholder="Responsable *" required />
         <button type="button" class="btn-remove-cours" title="Supprimer">✕</button>`;
       row.querySelector(".btn-remove-cours").addEventListener("click", () => row.remove());
@@ -2256,14 +2334,24 @@
 
     function validateFacultySections() {
       const sections = collectFacultySections();
-      const ok =
+      let ok =
         sections.length > 0 &&
         sections.every((s) => s.responsableNom && s.responsableNom.length >= 2);
+      let message = ok
+        ? ""
+        : sections.length
+          ? "Chaque section doit avoir un nom, un domaine et un responsable nommé."
+          : "Au moins une section est requise (un domaine = une section).";
+      if (ok && typeof SAC_SECTIONS !== "undefined" && SAC_SECTIONS.validateUniqueDomains) {
+        const domainCheck = SAC_SECTIONS.validateUniqueDomains(sections);
+        if (!domainCheck.ok) {
+          ok = false;
+          message = domainCheck.message;
+        }
+      }
       const err = document.querySelector('.field-error[data-for="facultySections"]');
       if (err) {
-        err.textContent = ok
-          ? err.dataset.defaultText || "Au moins une section est requise (nom + filière)"
-          : "Chaque section doit avoir un nom, une filière et un responsable nommé.";
+        err.textContent = message || err.dataset.defaultText || "Au moins une section est requise";
         err.classList.toggle("visible", !ok);
       }
       return ok;
@@ -2284,11 +2372,22 @@
         .filter((c) => c.courseCode && c.courseName && c.filiere && c.niveau && c.classe);
     }
 
-    function validateCoursClasses(listId, errorKey) {
+    function validateCoursClasses(listId, errorKey, domainRef) {
       const rows = collectCoursClasses(listId, "");
-      const ok = rows.length > 0;
+      let ok = rows.length > 0;
+      if (ok && domainRef && typeof SAC_SECTIONS !== "undefined" && SAC_SECTIONS.domainMatches) {
+        ok = rows.every((c) => SAC_SECTIONS.domainMatches(c.filiere, domainRef));
+      }
       const err = document.querySelector(`.field-error[data-for="${errorKey}"]`);
-      if (err) err.classList.toggle("visible", !ok);
+      if (err) {
+        if (!rows.length) {
+          err.textContent = err.dataset.defaultText || "Ajoutez au moins un cours avec code, filière, niveau et nom de classe";
+        } else if (!ok) {
+          err.textContent =
+            "La filière de chaque cours doit correspondre à votre département / section (même domaine, ex. Informatique).";
+        }
+        err.classList.toggle("visible", !ok);
+      }
       return ok;
     }
 
@@ -2665,6 +2764,16 @@
                 });
               }
               if (needsSectionWait) {
+                if (
+                  profile.role === "etudiant" &&
+                  typeof SAC_SECTION_APPROVAL !== "undefined" &&
+                  SAC_SECTION_APPROVAL.enrollPendingRegistrationOnApi
+                ) {
+                  await SAC_SECTION_APPROVAL.enrollPendingRegistrationOnApi(
+                    { ...profile, payment },
+                    pwd
+                  );
+                }
                 finishPendingRegistration({ ...profile, payment }, null);
                 return;
               }
@@ -2973,6 +3082,7 @@
           document.getElementById("filiere").value.trim() || opt?.dataset?.filiere?.trim() || "";
         const sectionName = opt?.dataset?.name?.trim() || "";
         const classe = document.getElementById("classe").value.trim();
+        const niveau = document.getElementById("niveau").value;
         valid = showError("universiteEtu", !uni) && valid;
         valid = showError("sectionFiliereEtu", !sectionId || filiere.length < 2) && valid;
         valid = showError("classe", classe.length < 2) && valid;
@@ -2981,27 +3091,46 @@
           filiere,
           sectionId: sectionId.startsWith("fac-") ? null : sectionId,
           sectionName,
-          niveau: document.getElementById("niveau").value,
-          classe: document.getElementById("classe").value.trim(),
+          niveau,
+          classe,
           dateNaissance: document.getElementById("dateNaissance").value,
           matricule: document.getElementById("matricule").value.trim() || null,
+          registrationSource: "public_inscription",
+          coursClasses: [
+            {
+              courseCode: "INSCRIPTION",
+              courseName: "Parcours " + filiere,
+              filiere,
+              niveau,
+              classe,
+              universite: uni,
+            },
+          ],
         });
       }
 
       if (currentRole === "professeur") {
         const uni = document.getElementById("universiteProf").value;
-        const dept = document.getElementById("departement").value.trim();
+        const deptSelect = document.getElementById("departement");
+        const deptOpt = deptSelect?.selectedOptions?.[0];
+        const deptFiliere = deptSelect?.value?.trim() || "";
+        const deptName = deptOpt?.dataset?.name?.trim() || "";
         const grade = document.getElementById("grade").value;
         valid = showError("universiteProf", !uni) && valid;
-        valid = showError("departement", dept.length < 2) && valid;
+        valid = showError("departement", !deptFiliere) && valid;
         valid = showError("grade", !grade, "Sélectionnez votre grade") && valid;
-        valid = validateCoursClasses("coursClasseListProf", "coursClassesProf") && valid;
+        valid =
+          validateCoursClasses("coursClasseListProf", "coursClassesProf", deptFiliere) && valid;
         Object.assign(profile, {
           universite: uni,
-          departement: dept,
+          departement: deptName && deptFiliere ? deptName + " — " + deptFiliere : deptFiliere || deptName,
+          filiere: deptFiliere || null,
+          sectionId: deptOpt?.dataset?.sectionId || null,
+          sectionName: deptName || null,
           grade,
           numEmploye: document.getElementById("numEmploye").value.trim() || null,
           coursClasses: collectCoursClasses("coursClasseListProf", uni),
+          registrationSource: "public_inscription",
         });
       }
 
@@ -3019,6 +3148,7 @@
           fonction,
           numAssist: document.getElementById("numAssist").value.trim() || null,
           coursClasses: collectCoursClasses("coursClasseListAssist", uni),
+          registrationSource: "public_inscription",
         });
       }
 
@@ -3142,6 +3272,9 @@
         if (id === "universiteEtu" && currentRole === "etudiant") {
           populateStudentSections(el.value);
         }
+        if (id === "universiteProf" && currentRole === "professeur") {
+          populateProfessorDepartments(el.value);
+        }
         if (
           (id === "universiteEtu" && currentRole === "etudiant") ||
           (id === "universiteProf" && currentRole === "professeur") ||
@@ -3153,10 +3286,15 @@
     });
 
     document.getElementById("sectionFiliereEtu")?.addEventListener("change", onStudentSectionPick);
+    document.getElementById("departement")?.addEventListener("change", onProfessorDepartementPick);
 
     const bootUniEtu = document.getElementById("universiteEtu")?.value;
     if (bootUniEtu && currentRole === "etudiant") {
       populateStudentSections(bootUniEtu);
+    }
+    const bootUniProf = document.getElementById("universiteProf")?.value;
+    if (bootUniProf && currentRole === "professeur") {
+      populateProfessorDepartments(bootUniProf);
     }
   </script>
   <script src="js/sac-mobile.js" defer></script>

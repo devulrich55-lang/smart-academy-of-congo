@@ -471,17 +471,25 @@ const SAC_ADMIN_DASHBOARD = (function () {
 
     function validateAdminFacultySections() {
       const sections = collectAdminFacultySections();
-      const ok =
+      let ok =
         sections.length > 0 &&
         sections.every((s) => s.responsableNom && s.responsableNom.length >= 2);
+      let message = ok
+        ? ""
+        : sections.length
+          ? "Chaque section doit avoir un nom, un domaine et un responsable nommé."
+          : "Au moins une section est requise (un domaine = une section).";
+      if (ok && typeof SAC_SECTIONS !== "undefined" && SAC_SECTIONS.validateUniqueDomains) {
+        const domainCheck = SAC_SECTIONS.validateUniqueDomains(sections);
+        if (!domainCheck.ok) {
+          ok = false;
+          message = domainCheck.message;
+        }
+      }
       const err = document.getElementById("adminFacultySectionsError");
       if (err) {
         err.hidden = ok;
-        err.textContent = ok
-          ? ""
-          : sections.length
-            ? "Chaque section doit avoir un nom, une filière et un responsable nommé."
-            : "Au moins une section est requise (nom + filière + responsable).";
+        err.textContent = message;
       }
       return ok;
     }

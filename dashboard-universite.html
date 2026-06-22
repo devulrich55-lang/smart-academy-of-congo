@@ -133,6 +133,147 @@
     .prof-card__actions { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.5rem; }
     .section-head-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin-top: 0.35rem; }
     .section-head-row small { color: var(--muted); font-size: 0.78rem; }
+
+    /* Espace sécurisé DG — compte chef de section */
+    .section-head-vault {
+      margin-top: 1rem;
+      border-radius: 14px;
+      overflow: hidden;
+      border: 1px solid rgba(13, 122, 74, 0.22);
+      background: linear-gradient(145deg, rgba(13, 122, 74, 0.07) 0%, rgba(26, 43, 60, 0.05) 55%, rgba(13, 122, 74, 0.04) 100%);
+      box-shadow: 0 2px 16px rgba(13, 122, 74, 0.08);
+    }
+    .section-head-vault__trigger {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 0.9rem;
+      padding: 1rem 1.2rem;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      text-align: left;
+      font-family: inherit;
+      transition: background 0.2s;
+    }
+    .section-head-vault__trigger:hover {
+      background: rgba(13, 122, 74, 0.06);
+    }
+    .section-head-vault__icon {
+      flex-shrink: 0;
+      width: 46px;
+      height: 46px;
+      border-radius: 12px;
+      background: linear-gradient(145deg, #0d7a4a 0%, #0a5c38 100%);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+      box-shadow: 0 4px 14px rgba(13, 122, 74, 0.4);
+    }
+    .section-head-vault__text {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.15rem;
+    }
+    .section-head-vault__text strong {
+      font-size: 0.95rem;
+      color: var(--primary);
+      font-weight: 700;
+    }
+    .section-head-vault__text small {
+      font-size: 0.78rem;
+      color: var(--muted);
+      line-height: 1.35;
+    }
+    .section-head-vault__badge {
+      flex-shrink: 0;
+      font-size: 0.68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      padding: 0.2rem 0.55rem;
+      border-radius: 100px;
+      background: rgba(26, 43, 60, 0.08);
+      color: var(--primary);
+      border: 1px solid rgba(26, 43, 60, 0.12);
+    }
+    .section-head-vault__chevron {
+      flex-shrink: 0;
+      font-size: 0.75rem;
+      color: var(--uni);
+      transition: transform 0.3s ease;
+    }
+    .section-head-vault.is-open .section-head-vault__chevron {
+      transform: rotate(180deg);
+    }
+    .section-head-vault__panel {
+      max-height: 0;
+      overflow: hidden;
+      opacity: 0;
+      transition: max-height 0.4s ease, opacity 0.3s ease, padding 0.3s ease;
+      padding: 0 1.2rem;
+    }
+    .section-head-vault.is-open .section-head-vault__panel {
+      max-height: 420px;
+      opacity: 1;
+      padding: 0 1.2rem 1.2rem;
+    }
+    .section-head-vault__inner {
+      padding: 1.1rem 1.15rem;
+      background: rgba(255, 255, 255, 0.92);
+      border-radius: 12px;
+      border: 1px dashed rgba(13, 122, 74, 0.35);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    }
+    .section-head-vault__inner > p {
+      margin: 0 0 0.85rem;
+      font-size: 0.8rem;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+    .section-head-vault__inner > p strong {
+      color: var(--uni);
+    }
+    .section-head-vault__hint {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.5rem;
+      margin-top: 0.75rem;
+      padding: 0.65rem 0.75rem;
+      border-radius: 8px;
+      background: rgba(13, 122, 74, 0.08);
+      font-size: 0.76rem;
+      color: var(--primary);
+      line-height: 1.45;
+    }
+    .section-head-vault__hint span:first-child {
+      font-size: 1rem;
+      line-height: 1;
+    }
+    .section-head-vault.is-complete .section-head-vault__icon::after {
+      content: "✓";
+      position: absolute;
+      bottom: -2px;
+      right: -2px;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #16a34a;
+      color: #fff;
+      font-size: 0.65rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 2px solid #fff;
+    }
+    .section-head-vault__icon {
+      position: relative;
+    }
+
     .comm-panel { display: none; }
     .comm-panel.active { display: block; }
 
@@ -374,51 +515,66 @@
                 <input type="text" class="fi" id="secName" required placeholder="Ex. Faculté des Sciences économiques" />
               </div>
               <div class="fg">
-                <label>Filière(s) couverte(s) *</label>
-                <input type="text" class="fi" id="secFiliere" required placeholder="Ex. Sciences économiques — Gestion" />
+                <label>Domaine académique *</label>
+                <input type="text" class="fi" id="secFiliere" required placeholder="Ex. Informatique" />
               </div>
             </div>
             <div class="form-row-2">
               <div class="fg">
-                <label>Nom du responsable *</label>
-                <input type="text" class="fi" id="secResp" required placeholder="Ex. Dr. Mukendi — Chef de section" />
+                <label>Nom du responsable (chef de section) *</label>
+                <input type="text" class="fi" id="secResp" required placeholder="Ex. Mme Kabila — Chef de section Informatique" />
               </div>
               <div class="fg">
-                <label>Ou nommer un professeur inscrit</label>
+                <label>(Optionnel) Nommer aussi un professeur inscrit</label>
                 <select class="fi" id="secNominate">
-                  <option value="">— Saisie manuelle —</option>
+                  <option value="">— Aucun — le chef n'est pas enseignant —</option>
                 </select>
               </div>
             </div>
-            <div class="form-row-2">
+            <p style="font-size:0.82rem;color:var(--muted);margin:0 0 0.5rem;">
+              Le chef de section est nommé par le <strong>DG</strong> — il <strong>n'a pas besoin d'être enseignant</strong>.
+            </p>
+            <div class="section-head-vault" id="secHeadVault">
+              <button type="button" class="section-head-vault__trigger" aria-expanded="false" aria-controls="secAccountFields">
+                <span class="section-head-vault__icon" aria-hidden="true">🔐</span>
+                <span class="section-head-vault__text">
+                  <strong>Espace sécurisé — Compte chef de section</strong>
+                  <small>Ouvrir pour définir l'e-mail et le mot de passe de connexion (onglet Section)</small>
+                </span>
+                <span class="section-head-vault__badge">DG seul</span>
+                <span class="section-head-vault__chevron" aria-hidden="true">▼</span>
+              </button>
+              <div class="section-head-vault__panel" id="secAccountFields">
+                <div class="section-head-vault__inner">
+                  <p>
+                    Création réservée au <strong>portail DG</strong>. Communiquez ces identifiants au responsable —
+                    il se connecte via <strong>Connexion → Section</strong>, sans passer par l'inscription publique.
+                  </p>
+                  <div class="form-row-2">
+                    <div class="fg">
+                      <label for="secHeadEmail">E-mail de connexion *</label>
+                      <input type="email" class="fi" id="secHeadEmail" required placeholder="chef.informatique@universite.cd" autocomplete="off" />
+                    </div>
+                    <div class="fg">
+                      <label for="secHeadPassword">Mot de passe initial *</label>
+                      <input type="password" class="fi" id="secHeadPassword" required placeholder="Min. 8 caractères, lettre + chiffre" minlength="8" autocomplete="new-password" />
+                    </div>
+                  </div>
+                  <div class="section-head-vault__hint">
+                    <span>💡</span>
+                    <span>8 caractères minimum avec lettres et chiffres. Le chef valide les inscriptions de son domaine uniquement.</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="form-row-2" style="margin-top:0.75rem;">
               <div class="fg">
-                <label>E-mail section</label>
+                <label for="secTel">Téléphone du chef de section *</label>
+                <input type="tel" class="fi" id="secTel" required placeholder="Ex. 085 184 8859" />
+              </div>
+              <div class="fg">
+                <label for="secEmail">E-mail de contact (facultatif)</label>
                 <input type="email" class="fi" id="secEmail" placeholder="section@universite.cd" />
-              </div>
-              <div class="fg">
-                <label>Téléphone</label>
-                <input type="tel" class="fi" id="secTel" placeholder="+243 …" />
-              </div>
-            </div>
-            <div class="fg" style="margin-top:0.5rem;">
-              <label class="chk" style="display:flex;align-items:center;gap:0.5rem;font-weight:600;">
-                <input type="checkbox" id="secCreateAccount" />
-                Créer un compte de connexion pour le chef de section
-              </label>
-              <p style="font-size:0.82rem;color:var(--muted);margin-top:0.35rem;">
-                La section pourra se connecter et inscrire les étudiants de sa filière.
-              </p>
-            </div>
-            <div id="secAccountFields" style="display:none;margin-top:0.75rem;padding:1rem;background:var(--bg);border-radius:8px;border:1px dashed var(--border);">
-              <div class="form-row-2">
-                <div class="fg">
-                  <label>E-mail de connexion *</label>
-                  <input type="email" class="fi" id="secHeadEmail" placeholder="chef.section@universite.cd" />
-                </div>
-                <div class="fg">
-                  <label>Mot de passe initial *</label>
-                  <input type="password" class="fi" id="secHeadPassword" placeholder="Min. 8 caractères" minlength="8" autocomplete="new-password" />
-                </div>
               </div>
             </div>
             <button type="submit" class="btn btn--role">Ajouter la section</button>
@@ -583,57 +739,72 @@
         </div>
         <div class="panel__body">
           <p class="page-desc" style="margin:0 0 1rem;font-size:0.88rem;">
-            Ajoutez les sections de votre université (faculté, institut, service…) et désignez le <strong>responsable</strong> de chacune.
-            Ce responsable pourra recevoir un compte de connexion pour inscrire les étudiants de sa filière.
+            Chaque <strong>domaine</strong> a sa section. Le <strong>DG crée obligatoirement le compte chef de section</strong>
+            (connexion onglet Section) — le responsable <strong>n'a pas besoin d'être enseignant</strong>.
           </p>
           <form id="formCreateSectionProfile" class="rec-form" style="margin-bottom:1.25rem;padding-bottom:1.25rem;border-bottom:1px solid var(--border);">
             <div class="form-row-2">
               <div class="fg">
-                <label>Nom de la section / faculté *</label>
-                <input type="text" class="fi" id="secProfName" required placeholder="Ex. Faculté des Sciences économiques" />
+                <label>Nom de la section *</label>
+                <input type="text" class="fi" id="secProfName" required placeholder="Ex. Section Informatique" />
               </div>
               <div class="fg">
-                <label>Filière(s) couverte(s) *</label>
-                <input type="text" class="fi" id="secProfFiliere" required placeholder="Ex. Sciences économiques — Gestion" />
+                <label>Domaine académique *</label>
+                <input type="text" class="fi" id="secProfFiliere" required placeholder="Ex. Informatique" />
               </div>
             </div>
             <div class="form-row-2">
               <div class="fg">
-                <label>Nom du responsable *</label>
-                <input type="text" class="fi" id="secProfResp" required placeholder="Ex. Dr. Mukendi — Chef de section" />
+                <label>Nom du responsable (chef de section) *</label>
+                <input type="text" class="fi" id="secProfResp" required placeholder="Ex. Mme Kabila" />
               </div>
               <div class="fg">
-                <label>Ou nommer un professeur inscrit</label>
+                <label>(Optionnel) Nommer aussi un professeur inscrit</label>
                 <select class="fi" id="secProfNominate">
-                  <option value="">— Saisie manuelle du responsable —</option>
+                  <option value="">— Aucun — le chef n'est pas enseignant —</option>
                 </select>
               </div>
             </div>
             <div class="form-row-2">
               <div class="fg">
-                <label>E-mail de contact section</label>
-                <input type="email" class="fi" id="secProfEmail" placeholder="section@universite.cd" />
+                <label for="secProfTel">Téléphone du chef de section *</label>
+                <input type="tel" class="fi" id="secProfTel" required placeholder="Ex. 085 184 8859" />
               </div>
               <div class="fg">
-                <label>Téléphone du responsable</label>
-                <input type="tel" class="fi" id="secProfTel" placeholder="+243 …" />
+                <label for="secProfEmail">E-mail de contact (facultatif)</label>
+                <input type="email" class="fi" id="secProfEmail" placeholder="section@universite.cd" />
               </div>
             </div>
-            <div class="fg" style="margin-top:0.5rem;">
-              <label class="chk" style="display:flex;align-items:center;gap:0.5rem;font-weight:600;">
-                <input type="checkbox" id="secProfCreateAccount" />
-                Créer un compte de connexion pour ce responsable
-              </label>
-            </div>
-            <div id="secProfAccountFields" style="display:none;margin-top:0.75rem;padding:1rem;background:var(--bg);border-radius:8px;border:1px dashed var(--border);">
-              <div class="form-row-2">
-                <div class="fg">
-                  <label>E-mail de connexion *</label>
-                  <input type="email" class="fi" id="secProfHeadEmail" placeholder="chef.section@universite.cd" />
-                </div>
-                <div class="fg">
-                  <label>Mot de passe initial *</label>
-                  <input type="password" class="fi" id="secProfHeadPassword" placeholder="Min. 8 caractères" minlength="8" autocomplete="new-password" />
+            <div class="section-head-vault" id="secProfHeadVault">
+              <button type="button" class="section-head-vault__trigger" aria-expanded="false" aria-controls="secProfAccountPanel">
+                <span class="section-head-vault__icon" aria-hidden="true">🔐</span>
+                <span class="section-head-vault__text">
+                  <strong>Espace sécurisé — Compte chef de section</strong>
+                  <small>Ouvrir pour définir l'e-mail et le mot de passe de connexion (onglet Section)</small>
+                </span>
+                <span class="section-head-vault__badge">DG seul</span>
+                <span class="section-head-vault__chevron" aria-hidden="true">▼</span>
+              </button>
+              <div class="section-head-vault__panel" id="secProfAccountPanel">
+                <div class="section-head-vault__inner">
+                  <p>
+                    Création réservée au <strong>portail DG</strong>. Communiquez ces identifiants au responsable —
+                    il se connecte via <strong>Connexion → Section</strong>, sans passer par l'inscription publique.
+                  </p>
+                  <div class="form-row-2">
+                    <div class="fg">
+                      <label for="secProfHeadEmail">E-mail de connexion *</label>
+                      <input type="email" class="fi" id="secProfHeadEmail" required placeholder="chef.informatique@universite.cd" autocomplete="off" />
+                    </div>
+                    <div class="fg">
+                      <label for="secProfHeadPassword">Mot de passe initial *</label>
+                      <input type="password" class="fi" id="secProfHeadPassword" required placeholder="Min. 8 caractères, lettre + chiffre" minlength="8" autocomplete="new-password" />
+                    </div>
+                  </div>
+                  <div class="section-head-vault__hint">
+                    <span>💡</span>
+                    <span>8 caractères minimum avec lettres et chiffres. Le chef valide les inscriptions de son domaine uniquement.</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1083,12 +1254,12 @@
           .map((s) => {
             const head = SAC_NOMINATIONS.findHeadForSection(session, s.id);
             const headLabel = head
-              ? `<span class="prof-tag prof-tag--head">${esc(SAC_UNIVERSITY.displayName(head))}</span>`
-              : `<small style="color:var(--muted);">Aucun prof nommé</small>`;
+              ? `<span class="prof-tag prof-tag--head">Prof. nommé : ${esc(SAC_UNIVERSITY.displayName(head))}</span>`
+              : "";
             return `<tr>
               <td><strong>${esc(s.name)}</strong></td>
               <td>${esc(s.filiere)}</td>
-              <td>${esc(s.responsableNom || "—")}<div class="section-head-row">${headLabel}</div></td>
+              <td>${esc(s.responsableNom || "—")}${sectionHeadLoginLabel(s)}${headLabel ? `<div class="section-head-row">${headLabel}</div>` : ""}</td>
               <td>${esc(s.email || s.telephone || "—")}</td>
               <td style="white-space:nowrap;">
                 <button type="button" class="btn btn--ghost btn--xs" data-edit-section="${esc(s.id)}">Modifier</button>
@@ -1127,40 +1298,73 @@
         document.getElementById("sectionEditDialog").showModal();
       }
 
+      function sectionHeadLoginLabel(section) {
+        const login =
+          typeof SAC_SECTION_ACCOUNTS !== "undefined" &&
+          SAC_SECTION_ACCOUNTS.findHeadLoginForSection
+            ? SAC_SECTION_ACCOUNTS.findHeadLoginForSection(section.id)
+            : null;
+        if (login?.email) {
+          return (
+            '<small style="color:var(--uni);display:block;margin-top:0.2rem;">Compte section : ' +
+            esc(login.email) +
+            "</small>"
+          );
+        }
+        if (section.headAccountEmail) {
+          return (
+            '<small style="color:var(--uni);display:block;margin-top:0.2rem;">Compte section : ' +
+            esc(section.headAccountEmail) +
+            "</small>"
+          );
+        }
+        return '<small style="color:#b45309;display:block;margin-top:0.2rem;">Compte section manquant — recréez depuis le DG</small>';
+      }
+
       async function submitNewSection(fields) {
         const responsableNom = fields.responsable.trim();
         if (!responsableNom || responsableNom.length < 2) {
           throw new Error("Nom du responsable requis (minimum 2 caractères).");
         }
-        const createAccount = fields.createAccount;
-        if (createAccount) {
-          const headEmail = fields.headEmail.trim();
-          const headPwd = fields.headPassword;
-          if (!headEmail || !headPwd) {
-            throw new Error("E-mail et mot de passe requis pour le compte du responsable.");
-          }
+        const headEmail = (fields.headEmail || "").trim();
+        const headPwd = fields.headPassword || "";
+        if (!headEmail || !headPwd) {
+          throw new Error("E-mail et mot de passe du chef de section sont obligatoires.");
+        }
+        const em = SAC_IDENTITY.validateEmail(headEmail);
+        if (!em.ok) throw new Error(em.message);
+        const pw = SAC_IDENTITY.validatePassword(headPwd);
+        if (!pw.ok) throw new Error(pw.message);
+        const ph = SAC_IDENTITY.validatePhone(fields.telephone || "");
+        if (!ph.ok) {
+          throw new Error(ph.message || "Téléphone mobile du chef de section requis.");
+        }
+        const campus = SAC_UNIVERSITY.campusCode(session) || "unkin";
+        if (
+          typeof SAC_SECTIONS !== "undefined" &&
+          SAC_SECTIONS.campusDomainTaken &&
+          SAC_SECTIONS.campusDomainTaken(campus, fields.filiere)
+        ) {
+          throw new Error(
+            "Ce domaine a déjà une section dans votre université. Un domaine = une section."
+          );
         }
         const sectionData = {
           name: fields.name,
           filiere: fields.filiere,
           responsableNom,
-          telephone: fields.telephone,
+          telephone: ph.value || fields.telephone,
           email: fields.email,
-          universite: SAC_UNIVERSITY.campusCode(session) || "unkin",
+          universite: campus,
         };
-        const result = await SAC_SECTIONS.createSectionAccount(
-          session,
-          sectionData,
-          createAccount
-            ? {
-                createAccount: true,
-                email: fields.headEmail.trim() || sectionData.email,
-                password: fields.headPassword,
-                telephone: sectionData.telephone,
-              }
-            : { createAccount: false }
-        );
-        if (fields.nominateProfessorEmail && !createAccount) {
+        const result = await SAC_SECTIONS.createSectionAccount(session, sectionData, {
+          createAccount: true,
+          email: em.value || headEmail,
+          password: headPwd,
+          telephone: ph.value || fields.telephone,
+          responsableNom,
+        });
+        if (fields.nominateProfessorEmail) {
           await SAC_NOMINATIONS.nominateSectionHead(
             session,
             fields.nominateProfessorEmail,
@@ -1561,7 +1765,7 @@
             const open = countOpenForSection(s.id);
             return `<tr class="section-row-clickable ${selectedSectionId === s.id ? "active" : ""}" data-id="${s.id}">
               <td><strong>${esc(s.name)}</strong></td><td>${esc(s.filiere)}</td>
-              <td>${esc(s.responsableNom || "—")}</td><td>${esc(s.email || "—")}</td>
+              <td>${esc(s.responsableNom || "—")}${sectionHeadLoginLabel(s)}</td><td>${esc(s.email || s.telephone || "—")}</td>
               <td>${open ? `<strong style="color:#b45309">${open}</strong>` : "0"}</td>
             </tr>`;
           })
@@ -1885,13 +2089,6 @@
         btn.addEventListener("click", () => setCommFilter(btn.dataset.comm));
       });
 
-      document.getElementById("secCreateAccount").addEventListener("change", (e) => {
-        document.getElementById("secAccountFields").style.display = e.target.checked ? "block" : "none";
-      });
-      document.getElementById("secProfCreateAccount").addEventListener("change", (e) => {
-        document.getElementById("secProfAccountFields").style.display = e.target.checked ? "block" : "none";
-      });
-
       document.getElementById("formResetRectorPassword")?.addEventListener("submit", async (e) => {
         e.preventDefault();
         const existing = SAC_SECTION_ACCOUNTS.getRectorForUniversity(session.universite);
@@ -1992,29 +2189,21 @@
             responsable: document.getElementById("secResp").value,
             telephone: document.getElementById("secTel").value,
             email: document.getElementById("secEmail").value,
-            nominateProfessorEmail: document.getElementById("secNominate").value,
-            createAccount: document.getElementById("secCreateAccount").checked,
+            nominateProfessorEmail: nominated,
             headEmail: document.getElementById("secHeadEmail").value,
             headPassword: document.getElementById("secHeadPassword").value,
           });
           e.target.reset();
-          document.getElementById("secAccountFields").style.display = "none";
-          document.getElementById("secCreateAccount").checked = false;
-          if (result.credentials) {
-            showToast(
-              "Section ajoutée — compte responsable : " +
-                result.credentials.email
-            );
-          } else {
-            showToast(
-              nominated
-                ? "Section créée et professeur nommé chef de section."
-                : "Section ajoutée avec responsable nommé."
-            );
-          }
+          showToast(
+            "Section et compte chef de section créés — connexion : " +
+              (result.credentials?.email || "onglet Section")
+          );
           await refreshAllAsync();
           selectSection(result.section.id);
         } catch (err) {
+          if (/e-mail|mot de passe|chef de section|téléphone/i.test(String(err.message || ""))) {
+            secHeadVaultUi?.open();
+          }
           alert(err.message);
         }
       });
@@ -2022,7 +2211,6 @@
       document.getElementById("formCreateSectionProfile").addEventListener("submit", async (e) => {
         e.preventDefault();
         try {
-          const nominatedProf = document.getElementById("secProfNominate").value;
           const result = await submitNewSection({
             name: document.getElementById("secProfName").value,
             filiere: document.getElementById("secProfFiliere").value,
@@ -2030,24 +2218,19 @@
             telephone: document.getElementById("secProfTel").value,
             email: document.getElementById("secProfEmail").value,
             nominateProfessorEmail: document.getElementById("secProfNominate").value,
-            createAccount: document.getElementById("secProfCreateAccount").checked,
             headEmail: document.getElementById("secProfHeadEmail").value,
             headPassword: document.getElementById("secProfHeadPassword").value,
           });
           e.target.reset();
-          document.getElementById("secProfAccountFields").style.display = "none";
-          document.getElementById("secProfCreateAccount").checked = false;
-          if (result.credentials) {
-            showToast("Section et compte responsable créés.");
-          } else {
-            showToast(
-              nominatedProf
-                ? "Section créée et professeur nommé chef de section."
-                : "Section ajoutée — responsable enregistré."
-            );
-          }
+          showToast(
+            "Section et compte chef de section créés — " +
+              (result.credentials?.email || "connexion onglet Section")
+          );
           await refreshAllAsync();
         } catch (err) {
+          if (/e-mail|mot de passe|chef de section|téléphone/i.test(String(err.message || ""))) {
+            secProfHeadVaultUi?.open();
+          }
           alert(err.message);
         }
       });
@@ -2119,6 +2302,43 @@
             : "admin-uni/";
         SAC_SESSION.logout(target);
       });
+
+      function initSectionHeadVault(vaultEl, emailId, passwordId) {
+        if (!vaultEl) return null;
+        const trigger = vaultEl.querySelector(".section-head-vault__trigger");
+        const emailEl = document.getElementById(emailId);
+        const pwdEl = document.getElementById(passwordId);
+
+        function setOpen(open) {
+          vaultEl.classList.toggle("is-open", open);
+          if (trigger) trigger.setAttribute("aria-expanded", open ? "true" : "false");
+        }
+
+        function refreshComplete() {
+          const ok = !!(emailEl?.value.trim() && pwdEl?.value && pwdEl.value.length >= 8);
+          vaultEl.classList.toggle("is-complete", ok);
+        }
+
+        trigger?.addEventListener("click", () => {
+          setOpen(!vaultEl.classList.contains("is-open"));
+        });
+        [emailEl, pwdEl].forEach((el) => {
+          el?.addEventListener("input", refreshComplete);
+        });
+        refreshComplete();
+        return { open: () => setOpen(true), refreshComplete };
+      }
+
+      const secHeadVaultUi = initSectionHeadVault(
+        document.getElementById("secHeadVault"),
+        "secHeadEmail",
+        "secHeadPassword"
+      );
+      const secProfHeadVaultUi = initSectionHeadVault(
+        document.getElementById("secProfHeadVault"),
+        "secProfHeadEmail",
+        "secProfHeadPassword"
+      );
 
       applyProfessorPick("secNominate", "secResp");
       applyProfessorPick("secProfNominate", "secProfResp");
