@@ -110,7 +110,11 @@ const SAC_SECTIONS = (function () {
 
   function studentMatchesSection(student, sectionSession) {
     if (!student || student.role !== "etudiant" || !sectionSession) return false;
-    if (!universiteMatches(student.universite, sectionSession.universite)) return false;
+    const studentUni =
+      student.universite || student.universiteLocked || student.sigle;
+    const sectionUni =
+      sectionSession.universite || sectionSession.universiteLocked || sectionSession.sigle;
+    if (!universiteMatches(studentUni, sectionUni)) return false;
 
     const sectionId = sectionSession.sectionId;
     if (sectionId && student.sectionId === sectionId) return true;

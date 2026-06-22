@@ -513,23 +513,27 @@
       }
 
       function renderStats() {
-        const pendingStudents =
-          typeof SAC_SECTION_APPROVAL !== "undefined"
-            ? SAC_SECTION_APPROVAL.getPendingStudentsForSection(session)
+        const loadPendingStudents = () => {
+          if (typeof SAC_SECTION_APPROVAL.refreshPendingStudentsForSection === "function") {
+            return SAC_SECTION_APPROVAL.refreshPendingStudentsForSection(session);
+          }
+          return Promise.resolve(SAC_SECTION_APPROVAL.getPendingStudentsForSection(session));
+        };
+        loadPendingStudents().then((pendingStudents) => {
+          const pendingStaff =
+            typeof SAC_SECTION_APPROVAL !== "undefined"
+              ? SAC_SECTION_APPROVAL.getPendingStaffForSection(session)
+              : [];
+          const students = SAC_SECTION_ACCOUNTS.getStudentsForSection(session);
+          const recs = session.sectionId
+            ? SAC_SECTIONS.getReclamationsForSection(session.sectionId)
             : [];
-        const pendingStaff =
-          typeof SAC_SECTION_APPROVAL !== "undefined"
-            ? SAC_SECTION_APPROVAL.getPendingStaffForSection(session)
-            : [];
-        const students = SAC_SECTION_ACCOUNTS.getStudentsForSection(session);
-        const recs = session.sectionId
-          ? SAC_SECTIONS.getReclamationsForSection(session.sectionId)
-          : [];
-        document.getElementById("statPendingStudents").textContent = pendingStudents.length;
-        document.getElementById("statPendingStaff").textContent = pendingStaff.length;
-        document.getElementById("statStudents").textContent = students.length;
-        document.getElementById("statRecOpen").textContent = recs.filter((r) => r.statut === "ouverte").length;
-        document.getElementById("statRecTotal").textContent = recs.length;
+          document.getElementById("statPendingStudents").textContent = pendingStudents.length;
+          document.getElementById("statPendingStaff").textContent = pendingStaff.length;
+          document.getElementById("statStudents").textContent = students.length;
+          document.getElementById("statRecOpen").textContent = recs.filter((r) => r.statut === "ouverte").length;
+          document.getElementById("statRecTotal").textContent = recs.length;
+        });
       }
 
       function delayCell(u) {
@@ -578,37 +582,49 @@
         const empty = document.getElementById("pendingStudentsEmpty");
         if (!tbody || typeof SAC_SECTION_APPROVAL === "undefined") return;
 
-        const pending = SAC_SECTION_APPROVAL.getPendingStudentsForSection(session);
-        tbody.innerHTML = pending
-          .map((u) => {
-            const name =
-              typeof SAC_IDENTITY !== "undefined"
-                ? SAC_IDENTITY.getDisplayName(u)
-                : [u.prenom, u.nom].filter(Boolean).join(" ") || u.email;
-            const filiere = SAC_SECTION_APPROVAL.displayFiliere(u);
-            const details =
-              (u.niveau || "—").toUpperCase() + " · " + (u.classe || "—");
-            return (
-              "<tr>" +
-              "<td>" + esc(name) + "</td>" +
-              "<td>" + esc(u.email) + "</td>" +
-              "<td>" + esc(filiere) + "</td>" +
-              "<td>" + esc(details) + "</td>" +
-              delayCell(u) +
-              "<td style=\"white-space:nowrap;\">" +
-              "<button type=\"button\" class=\"btn btn--role btn--sm\" data-approve=\"" + esc(u.email) + "\">Valider</button> " +
-              "<button type=\"button\" class=\"btn btn--ghost btn--sm\" data-reject=\"" + esc(u.email) + "\">Refuser</button>" +
-              "</td>" +
-              "</tr>"
-            );
-          })
-          .join("");
+        const draw = (pending) => {
+          tbody.innerHTML = pending
+            .map((u) => {
+              const name =
+                typeof SAC_IDENTITY !== "undefined"
+                  ? SAC_IDENTITY.getDisplayName(u)
+                  : [u.prenom, u.nom].filter(Boolean).join(" ") || u.email;
+              const filiere = SAC_SECTION_APPROVAL.displayFiliere(u);
+              const details =
+                (u.niveau || "—").toUpperCase() + " · " + (u.classe || "—");
+              return (
+                "<tr>" +
+                "<td>" + esc(name) + "</td>" +
+                "<td>" + esc(u.email) + "</td>" +
+                "<td>" + esc(filiere) + "</td>" +
+                "<td>" + esc(details) + "</td>" +
+                delayCell(u) +
+                "<td style=\"white-space:nowrap;\">" +
+                "<button type=\"button\" class=\"btn btn--role btn--sm\" data-approve=\"" + esc(u.email) + "\">Valider</button> " +
+                "<button type=\"button\" class=\"btn btn--ghost btn--sm\" data-reject=\"" + esc(u.email) + "\">Refuser</button>" +
+                "</td>" +
+                "</tr>"
+              );
+            })
+            .join("");
 
-        empty.style.display = pending.length ? "none" : "block";
-        bindPendingActions(tbody, "student", () => {
-          renderPendingStudents();
-          renderStats();
-        });
+          empty.style.display = pending.length ? "none" : "block";
+          bindPendingActions(tbody, "student", () => {
+            renderPendingStudents();
+            renderStats();
+          });
+        };
+
+        if (SAC_SECTION_APPROVAL.refreshPendingStudentsForSection) {
+          tbody.innerHTML =
+            "<tr><td colspan=\"6\" style=\"color:var(--muted);\">Chargement des inscriptions en attente…</td></tr>";
+          SAC_SECTION_APPROVAL.refreshPendingStudentsForSection(session)
+            .then(draw)
+            .catch(() => draw(SAC_SECTION_APPROVAL.getPendingStudentsForSection(session)));
+          return;
+        }
+
+        draw(SAC_SECTION_APPROVAL.getPendingStudentsForSection(session));
       }
 
       function renderPendingStaff() {

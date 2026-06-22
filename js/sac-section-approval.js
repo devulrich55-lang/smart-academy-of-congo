@@ -32,7 +32,13 @@ const SAC_SECTION_APPROVAL = (function () {
   function getStatus(userOrSession) {
     if (!userOrSession) return STATUS.approved;
     if (!requiresApproval(userOrSession.role)) return STATUS.approved;
-    return userOrSession.sectionApproval || STATUS.approved;
+    const raw = userOrSession.sectionApproval;
+    if (raw === STATUS.approved || raw === STATUS.rejected || raw === STATUS.pending) {
+      return raw;
+    }
+    if (userOrSession.sectionApprovalRequestedAt) return STATUS.pending;
+    if (userOrSession.payment) return STATUS.pending;
+    return STATUS.approved;
   }
 
   function isApproved(userOrSession) {
@@ -107,6 +113,78 @@ const SAC_SECTION_APPROVAL = (function () {
       session?.role === "section" &&
       (session.sectionKind === "recteur" || session.isRector === true)
     );
+  }
+
+  function resolveSectionActor(sectionSession) {
+    if (!sectionSession) return sectionSession;
+    const actor = { ...sectionSession };
+    if (typeof SAC_NOMINATIONS !== "undefined" && SAC_NOMINATIONS.buildSectionHeadActor) {
+      const built = SAC_NOMINATIONS.buildSectionHeadActor(sectionSession);
+      if (built) return built;
+    }
+    if (typeof SAC_SECTIONS === "undefined") return actor;
+    let meta = actor.sectionId ? SAC_SECTIONS.getSectionById(actor.sectionId) : null;
+    if (!meta && SAC_SECTIONS.getSectionsByUniversity) {
+      const list = SAC_SECTIONS.getSectionsByUniversity(actor).filter((s) => s.active !== false);
+      meta =
+        list.find((s) => s.filiere && actor.filiere && filiereMatches(s.filiere, actor.filiere)) ||
+        list[0] ||
+        null;
+      if (meta && !actor.sectionId) {
+        actor.sectionId = meta.id;
+        actor.sectionName = meta.name;
+      }
+    }
+    if (meta) {
+      actor.filiere = actor.filiere || meta.filiere;
+      actor.sectionName = actor.sectionName || meta.name;
+      actor.universite = actor.universite || meta.universite;
+    }
+    return actor;
+  }
+
+  function repairStudentCampus(user) {
+    if (
+      user?.role === "etudiant" &&
+      typeof SAC_IDENTITY !== "undefined" &&
+      SAC_IDENTITY.repairUserCampus
+    ) {
+      return SAC_IDENTITY.repairUserCampus(user);
+    }
+    return user;
+  }
+
+  async function syncPendingStudentsFromApi(sectionSession) {
+    if (typeof SAC_API === "undefined" || typeof SAC_SECTION_ACCOUNTS === "undefined") return;
+    let online = false;
+    try {
+      online = await SAC_API.ensureOnline();
+    } catch {
+      return;
+    }
+    if (!online) return;
+    try {
+      const apiStudents = await SAC_API.listSectionStudents();
+      const actor = resolveSectionActor(sectionSession);
+      (apiStudents || []).forEach((raw) => {
+        let u = repairStudentCampus({ ...raw });
+        if (u.role !== "etudiant") return;
+        if (!matchesStudentSection(u, actor)) return;
+        if (getStatus(u) !== STATUS.pending) return;
+        mirrorLocalUser({
+          ...u,
+          sectionApproval: STATUS.pending,
+          sectionApprovalRequestedAt:
+            u.sectionApprovalRequestedAt || u.createdAt || new Date().toISOString(),
+        });
+      });
+    } catch (err) {
+      console.warn("[SAC_SECTION_APPROVAL] sync API étudiants:", err.message || err);
+    }
+  }
+
+  async function syncPendingStaffFromApi() {
+    /* réservé — pas d'endpoint staff dédié pour l'instant */
   }
 
   function matchesStudentSection(user, sectionSession) {
@@ -387,24 +465,35 @@ const SAC_SECTION_APPROVAL = (function () {
 
   function filterPending(sectionSession, roleFilter) {
     if (typeof SAC_IDENTITY === "undefined") return [];
-    return SAC_IDENTITY.getLocalUsers().filter((u) => {
+    const actor = resolveSectionActor(sectionSession);
+    return SAC_IDENTITY.getLocalUsers().filter((raw) => {
+      const u =
+        raw.role === "etudiant" ? repairStudentCampus({ ...raw }) : { ...raw };
       if (!isPending(u)) return false;
       if (roleFilter === "student") {
         if (isRector(sectionSession)) return false;
-        return u.role === "etudiant" && matchesStudentSection(u, sectionSession);
+        return u.role === "etudiant" && matchesStudentSection(u, actor);
       }
       if (roleFilter === "staff") {
         if (!STAFF_ROLES.includes(u.role)) return false;
         if (isRector(sectionSession)) {
           return (
             u.role === "professeur" &&
-            universiteMatches(u.universite, sectionSession.universite)
+            universiteMatches(u.universite, actor.universite)
           );
         }
-        return matchesStaffSection(u, sectionSession);
+        return matchesStaffSection(u, actor);
       }
-      return ROLES.includes(u.role) && matchesSection(u, sectionSession);
+      return ROLES.includes(u.role) && matchesSection(u, actor);
     });
+  }
+
+  async function refreshPendingStudentsForSection(sectionSession) {
+    await syncPendingStudentsFromApi(sectionSession);
+    if (typeof SAC_SECTIONS !== "undefined" && SAC_SECTIONS.repairStudentsForSection) {
+      SAC_SECTIONS.repairStudentsForSection(resolveSectionActor(sectionSession));
+    }
+    return getPendingStudentsForSection(sectionSession);
   }
 
   function getPendingStudentsForSection(sectionSession) {
@@ -546,6 +635,9 @@ const SAC_SECTION_APPROVAL = (function () {
     getPendingForSection,
     getPendingStudentsForSection,
     getPendingStaffForSection,
+    refreshPendingStudentsForSection,
+    syncPendingStudentsFromApi,
+    resolveSectionActor,
     getApprovedForSection,
     approve,
     reject,
