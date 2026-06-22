@@ -445,6 +445,50 @@ body[data-ws-role="universite"] {
   line-height: 1.4;
 }
 
+.ws-faculty-sections-block { margin-top: 0.25rem; }
+.ws-section-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr auto;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  align-items: start;
+}
+.ws-section-row--head {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-bottom: 0.35rem;
+  align-items: end;
+}
+.ws-section-row--head span:last-child { width: 2rem; }
+.ws-section-row .btn-remove-row {
+  border: 1px solid rgba(220, 38, 38, 0.35);
+  background: transparent;
+  color: #dc2626;
+  border-radius: 8px;
+  width: 2rem;
+  height: 2.35rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+  line-height: 1;
+}
+.ws-section-row .btn-remove-row:hover { background: rgba(220, 38, 38, 0.08); }
+.ws-field-error {
+  display: block;
+  margin-top: 0.45rem;
+  font-size: 0.82rem;
+  color: #dc2626;
+}
+.ws-field-error[hidden] { display: none !important; }
+.btn--sm { font-size: 0.82rem; padding: 0.4rem 0.75rem; margin-top: 0.35rem; }
+@media (max-width: 700px) {
+  .ws-section-row { grid-template-columns: 1fr 1fr; }
+  .ws-section-row .btn-remove-row { grid-column: span 2; justify-self: end; }
+  .ws-section-row--head { display: none; }
+}
+
 .fi--file {
   padding: 0.45rem 0.65rem;
 }

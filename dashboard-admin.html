@@ -309,6 +309,25 @@
                 <label for="newSigle">Identifiant campus</label>
                 <input type="text" class="fi" id="newSigle" readonly tabindex="-1" />
               </div>
+              <div class="fg ws-faculty-sections-block" style="grid-column:1/-1;">
+                <label>Sections / facultés de l'établissement <span class="hint">*</span></label>
+                <p class="ws-field-hint">
+                  Organisez les sections de ce campus. Elles apparaîtront dans la liste proposée aux étudiants à l'inscription.
+                </p>
+                <div class="ws-section-row ws-section-row--head" aria-hidden="true">
+                  <span>Section / faculté</span>
+                  <span>Filière couverte</span>
+                  <span>Responsable</span>
+                  <span></span>
+                </div>
+                <div id="adminFacultySectionsList"></div>
+                <button type="button" class="btn btn--ghost btn--sm" id="btnAddAdminFacultySection">
+                  + Ajouter une section / faculté
+                </button>
+                <span class="ws-field-error" id="adminFacultySectionsError" hidden>
+                  Au moins une section est requise (nom + filière + responsable).
+                </span>
+              </div>
               <div class="fg ws-logo-upload">
                 <label for="newLogoUniversite">Logo de l'université *</label>
                 <input type="file" class="fi fi--file" id="newLogoUniversite" accept="image/png,image/jpeg,image/webp,image/svg+xml" />
@@ -444,6 +463,7 @@
 
   <script src="js/sac-universities.js"></script>
   <script src="js/sac-identity.js"></script>
+  <script src="js/sac-sections.js"></script>
   <script src="js/sac-session.js"></script>
   <script src="js/sac-api.js"></script>
   <script src="js/sac-university-logo.js"></script>

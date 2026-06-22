@@ -427,12 +427,88 @@ const SAC_ADMIN_DASHBOARD = (function () {
 
     const newRole = document.getElementById("newRole");
     const uniFields = document.getElementById("uniFields");
+
+    function createAdminFacultySectionRow() {
+      const row = document.createElement("div");
+      row.className = "ws-section-row";
+      row.innerHTML = `
+        <input type="text" class="fi" data-sec="name" placeholder="Nom section / faculté *" required />
+        <input type="text" class="fi" data-sec="filiere" placeholder="Filière couverte *" required />
+        <input type="text" class="fi" data-sec="responsable" placeholder="Responsable *" required />
+        <button type="button" class="btn-remove-row" title="Supprimer">✕</button>`;
+      row.querySelector(".btn-remove-row").addEventListener("click", () => {
+        const list = document.getElementById("adminFacultySectionsList");
+        if (list && list.children.length > 1) row.remove();
+        else {
+          row.querySelectorAll("input").forEach((inp) => {
+            inp.value = "";
+          });
+        }
+        validateAdminFacultySections();
+      });
+      row.querySelectorAll("input").forEach((inp) => {
+        inp.addEventListener("input", validateAdminFacultySections);
+      });
+      return row;
+    }
+
+    function ensureAdminFacultySectionsList() {
+      const list = document.getElementById("adminFacultySectionsList");
+      if (list && !list.children.length) list.appendChild(createAdminFacultySectionRow());
+    }
+
+    function collectAdminFacultySections() {
+      const list = document.getElementById("adminFacultySectionsList");
+      if (!list) return [];
+      return Array.from(list.querySelectorAll(".ws-section-row"))
+        .map((row) => ({
+          name: row.querySelector('[data-sec="name"]')?.value.trim() || "",
+          filiere: row.querySelector('[data-sec="filiere"]')?.value.trim() || "",
+          responsableNom: row.querySelector('[data-sec="responsable"]')?.value.trim() || "",
+        }))
+        .filter((s) => s.name && s.filiere && s.responsableNom);
+    }
+
+    function validateAdminFacultySections() {
+      const sections = collectAdminFacultySections();
+      const ok =
+        sections.length > 0 &&
+        sections.every((s) => s.responsableNom && s.responsableNom.length >= 2);
+      const err = document.getElementById("adminFacultySectionsError");
+      if (err) {
+        err.hidden = ok;
+        err.textContent = ok
+          ? ""
+          : sections.length
+            ? "Chaque section doit avoir un nom, une filière et un responsable nommé."
+            : "Au moins une section est requise (nom + filière + responsable).";
+      }
+      return ok;
+    }
+
+    function resetAdminFacultySectionsList() {
+      const list = document.getElementById("adminFacultySectionsList");
+      if (!list) return;
+      list.innerHTML = "";
+      ensureAdminFacultySectionsList();
+      validateAdminFacultySections();
+    }
+
+    document.getElementById("btnAddAdminFacultySection")?.addEventListener("click", () => {
+      document.getElementById("adminFacultySectionsList")?.appendChild(createAdminFacultySectionRow());
+    });
+
     newRole?.addEventListener("change", () => {
       if (uniFields) uniFields.hidden = newRole.value !== "universite";
       const logoInput = document.getElementById("newLogoUniversite");
       if (logoInput) logoInput.required = newRole.value === "universite";
-      if (newRole.value === "universite" && typeof SAC_UNIVERSITIES !== "undefined") {
-        SAC_UNIVERSITIES.populateAll("#newCampusCatalog");
+      if (newRole.value === "universite") {
+        if (typeof SAC_UNIVERSITIES !== "undefined") {
+          SAC_UNIVERSITIES.populateAll("#newCampusCatalog");
+        }
+        ensureAdminFacultySectionsList();
+      } else {
+        resetAdminFacultySectionsList();
       }
     });
 
@@ -484,11 +560,16 @@ const SAC_ADMIN_DASHBOARD = (function () {
           alert("Choisissez l'établissement dans le catalogue SAC.");
           return;
         }
+        if (!validateAdminFacultySections()) {
+          document.getElementById("adminFacultySectionsError")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+          return;
+        }
+        const facultySections = collectAdminFacultySections();
         const campus = SAC_UNIVERSITIES.buildAdminCampusPayload(
           catalogId,
           document.getElementById("newResponsable").value.trim()
         );
-        Object.assign(payload, campus);
+        Object.assign(payload, campus, { facultySections });
         const logoFile = document.getElementById("newLogoUniversite")?.files?.[0];
         if (!logoFile) {
           alert("Importez le logo de l'université.");
@@ -502,10 +583,36 @@ const SAC_ADMIN_DASHBOARD = (function () {
         }
       }
       try {
-        await SAC_INSTITUTIONAL.create(session, payload);
+        const created = await SAC_INSTITUTIONAL.create(session, payload);
+        if (
+          role === "universite" &&
+          payload.facultySections?.length &&
+          typeof SAC_SECTIONS !== "undefined"
+        ) {
+          const uniCtx = {
+            ...payload,
+            ...created,
+            email: payload.email,
+            identifiant: payload.email,
+            userId: created?.id || created?.email || payload.email,
+          };
+          SAC_SECTIONS.importSectionsForUniversity(uniCtx);
+          if (typeof SAC_IDENTITY !== "undefined") {
+            const users = SAC_IDENTITY.getLocalUsers();
+            const key = SAC_IDENTITY.normalizeEmail(payload.email);
+            const idx = users.findIndex(
+              (u) => SAC_IDENTITY.normalizeEmail(u.email) === key && u.role === "universite"
+            );
+            if (idx >= 0) {
+              users[idx].facultySections = payload.facultySections;
+              localStorage.setItem("sac_users", JSON.stringify(users));
+            }
+          }
+        }
         toast("Compte créé avec succès.");
         e.target.reset();
         if (uniFields) uniFields.hidden = true;
+        resetAdminFacultySectionsList();
         const logoPreview = document.getElementById("newLogoPreview");
         if (logoPreview) {
           logoPreview.innerHTML = "";
