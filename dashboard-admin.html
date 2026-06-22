@@ -297,12 +297,13 @@
                 Compte de gestion centrale SAC — accès réservé à l'équipe technique habilitée.
               </p>
               <p class="ws-role-tip" id="superadminFirstHint">
-                <strong>Première connexion ?</strong> Un compte Super Admin existe déjà au démarrage de l'API
-                (<code>admin@superadmin.cd</code>). Connectez-vous avec celui-ci, puis utilisez
-                <a href="../mot-de-passe-oublie.html?portal=superadmin">Mot de passe oublié</a>
-                pour définir <em>votre</em> mot de passe — inutile de créer un second compte.
+                Maximum <strong>2 comptes Super Admin</strong> sur la plateforme (compte initial
+                <code>admin@superadmin.cd</code> + 1 compte supplémentaire). Pour changer votre mot de passe
+                sans en créer un nouveau, utilisez
+                <a href="../mot-de-passe-oublie.html?portal=superadmin">Mot de passe oublié</a>.
               </p>
-              <div class="ws-form-grid ws-form-grid--compact">
+              <p class="ws-role-tip ws-role-tip--warn" id="superadminLimitMsg" hidden></p>
+              <div class="ws-form-grid ws-form-grid--compact" id="superadminFormFields">
                 <div class="fg" style="grid-column:1/-1;">
                   <label for="saEmail">E-mail Super Admin *</label>
                   <input type="email" class="fi" id="saEmail" placeholder="admin@superadmin.cd" autocomplete="off" />

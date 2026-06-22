@@ -355,6 +355,13 @@ body[data-ws-role="universite"] {
   font-weight: 600;
 }
 
+.ws-role-tip--warn {
+  background: rgba(180, 83, 9, 0.1);
+  border-color: rgba(180, 83, 9, 0.35);
+  color: #92400e;
+  font-weight: 600;
+}
+
 .ws-guide { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.55rem; }
 .ws-guide li {
   padding: 0.7rem 0.85rem;

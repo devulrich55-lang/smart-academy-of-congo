@@ -17,6 +17,8 @@ const SAC_ADMIN_DASHBOARD = (function () {
     ministere: { label: "Ministère", icon: "🏛️" },
     universite: { label: "Admin université", icon: "🎓" },
   };
+  const MAX_SUPERADMIN_ACCOUNTS = 2;
+  let institutionalSummaryCache = null;
 
   function initials(name, email) {
     const src = (name || email || "?").trim();
@@ -258,6 +260,14 @@ const SAC_ADMIN_DASHBOARD = (function () {
       const el = document.getElementById(id);
       if (el) el.textContent = map[id];
     });
+    const statSuperEl = document.getElementById("statSuper");
+    if (statSuperEl && summary.superadminLimit != null) {
+      statSuperEl.title =
+        (summary.superadminCount ?? br.superadmin ?? 0) +
+        " / " +
+        summary.superadminLimit +
+        " comptes Super Admin autorisés";
+    }
   }
 
   function renderPreviewCards(admins, limit) {
@@ -334,6 +344,7 @@ const SAC_ADMIN_DASHBOARD = (function () {
 
   async function refresh(session, isSuper) {
     const { summary, admins } = await SAC_INSTITUTIONAL.load(session);
+    institutionalSummaryCache = summary;
     renderKpis(summary);
     const q = document.getElementById("searchAdmins")?.value.trim().toLowerCase() || "";
     const roleFilter = document.getElementById("filterRole")?.value || "";
@@ -342,6 +353,7 @@ const SAC_ADMIN_DASHBOARD = (function () {
     renderPreviewCards(admins, 5);
     const countEl = document.getElementById("tableCount");
     if (countEl) countEl.textContent = filtered.length + " compte(s)";
+    applySuperadminCreateLimit();
   }
 
   async function init() {
@@ -480,8 +492,76 @@ const SAC_ADMIN_DASHBOARD = (function () {
         PHONE_EXISTS: "Ce numéro de téléphone est déjà lié à un compte.",
         IDENTITY_CONFLICT: "Cette identité est déjà enregistrée avec un autre rôle.",
         FORBIDDEN: "Accès refusé — connectez-vous en tant que Super Admin.",
+        SUPERADMIN_LIMIT:
+          "Limite atteinte : maximum 2 comptes Super Admin autorisés. Supprimez un compte existant pour en créer un autre.",
       };
       return map[code] || err?.message || "Création impossible.";
+    }
+
+    function getSuperadminCount() {
+      if (institutionalSummaryCache?.superadminCount != null) {
+        return institutionalSummaryCache.superadminCount;
+      }
+      return institutionalSummaryCache?.byRole?.superadmin || 0;
+    }
+
+    function applySuperadminCreateLimit() {
+      if (!newRole) return;
+      const count = getSuperadminCount();
+      const remaining = Math.max(0, MAX_SUPERADMIN_ACCOUNTS - count);
+      const limitReached = remaining <= 0;
+      const limitMsg = document.getElementById("superadminLimitMsg");
+      const superHint = document.getElementById("superadminFirstHint");
+      const formFields = document.getElementById("superadminFormFields");
+      const superOption = newRole.querySelector('option[value="superadmin"]');
+      const submitBtn = document.getElementById("btnCreateAdminSubmit");
+
+      if (superOption) {
+        superOption.disabled = limitReached;
+        if (limitReached && newRole.value === "superadmin") {
+          newRole.value = "ministere";
+          updateCreateFormForRole();
+          return;
+        }
+      }
+
+      if (limitMsg) {
+        limitMsg.hidden = !limitReached;
+        if (limitReached) {
+          limitMsg.textContent =
+            "Limite atteinte : " +
+            MAX_SUPERADMIN_ACCOUNTS +
+            " comptes Super Admin maximum (" +
+            count +
+            "/" +
+            MAX_SUPERADMIN_ACCOUNTS +
+            "). Supprimez un compte existant pour en créer un autre.";
+        }
+      }
+
+      if (superHint && !limitReached) {
+        superHint.hidden = false;
+        superHint.innerHTML =
+          "Maximum <strong>" +
+          MAX_SUPERADMIN_ACCOUNTS +
+          " comptes Super Admin</strong> — <strong>" +
+          count +
+          "</strong> existant(s), <strong>" +
+          remaining +
+          "</strong> place(s) restante(s). Compte initial : <code>admin@superadmin.cd</code>. " +
+          'Pour changer le mot de passe : <a href="../mot-de-passe-oublie.html?portal=superadmin">Mot de passe oublié</a>.';
+      } else if (superHint) {
+        superHint.hidden = limitReached;
+      }
+
+      const blockSuperForm = limitReached && newRole.value === "superadmin";
+      if (formFields) {
+        formFields.style.opacity = blockSuperForm ? "0.55" : "";
+        formFields.style.pointerEvents = blockSuperForm ? "none" : "";
+      }
+      if (submitBtn) {
+        submitBtn.disabled = blockSuperForm;
+      }
     }
 
     function setFieldRequired(ids, required) {
@@ -540,6 +620,7 @@ const SAC_ADMIN_DASHBOARD = (function () {
       } else {
         resetAdminFacultySectionsList();
       }
+      applySuperadminCreateLimit();
     }
 
     function createAdminFacultySectionRow() {
@@ -677,6 +758,14 @@ const SAC_ADMIN_DASHBOARD = (function () {
           fonction: document.getElementById("minFonction")?.value.trim() || "",
         };
       } else if (role === "superadmin") {
+        if (getSuperadminCount() >= MAX_SUPERADMIN_ACCOUNTS) {
+          alert(
+            "Limite atteinte : maximum " +
+              MAX_SUPERADMIN_ACCOUNTS +
+              " comptes Super Admin autorisés."
+          );
+          return;
+        }
         const full = document.getElementById("saNomComplet")?.value.trim() || "";
         const { prenom, nom } = splitFullName(full);
         if (!full || full.length < 3) {
