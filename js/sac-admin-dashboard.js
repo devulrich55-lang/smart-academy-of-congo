@@ -548,7 +548,7 @@ const SAC_ADMIN_DASHBOARD = (function () {
           count +
           "</strong> existant(s), <strong>" +
           remaining +
-          "</strong> place(s) restante(s). Compte initial : <code>admin@superadmin.cd</code>. " +
+          "</strong> place(s) restante(s). Compte principal : <code>djemcibamba@gmail.com</code>. " +
           'Pour changer le mot de passe : <a href="../mot-de-passe-oublie.html?portal=superadmin">Mot de passe oublié</a>.';
       } else if (superHint) {
         superHint.hidden = limitReached;

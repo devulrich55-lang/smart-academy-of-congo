@@ -37,7 +37,7 @@ const SAC_PORTAL = (function () {
       accentDark: "#4c1d95",
       themeColor: "#5b21b6",
       icon: "🛡️",
-      emailPlaceholder: "admin@superadmin.cd",
+      emailPlaceholder: "djemcibamba@gmail.com",
       btnLabel: "Accéder au Super Admin",
       lead:
         "Gestion centrale de la plateforme : création des comptes Ministère, Admin université et Super Admin.",
