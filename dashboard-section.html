@@ -410,8 +410,27 @@
         const accueilMission = document.querySelector("#section-accueil .page-desc");
         if (accueilMission) {
           accueilMission.innerHTML =
-            "En tant que <strong>recteur</strong>, vous disposez des <strong>mêmes pouvoirs qu'un chef de section</strong> " +
-            "sur <strong>tout le campus</strong> : valider étudiants et personnel, créer des comptes, réclamations, publications et live.";
+            "En tant que <strong>recteur</strong>, validez les <strong>étudiants</strong> et le <strong>personnel</strong> " +
+            "de <strong>tout le campus</strong>, créez des comptes, gérez réclamations, publications et live.";
+        }
+        const etuTitle = document.querySelector("#section-validations-etudiants .page-title");
+        const etuDesc = document.querySelector("#section-validations-etudiants .page-desc");
+        const etuPanel = document.querySelector("#section-validations-etudiants .panel strong");
+        const etuPanelP = document.querySelector("#section-validations-etudiants .panel p");
+        if (etuTitle) etuTitle.textContent = "Valider les inscriptions étudiant — tout le campus";
+        if (etuDesc) {
+          etuDesc.innerHTML =
+            "Validation de <strong>tous les étudiants</strong> de votre université. " +
+            "L'étudiant doit se présenter avec son <strong>dossier complet</strong> sous <strong>24 heures</strong>.";
+        }
+        if (etuPanel) etuPanel.textContent = "Validation étudiant — recteur (campus entier)";
+        if (etuPanelP) {
+          etuPanelP.textContent =
+            "Vérifiez le dossier sur place (identité, bulletins, preuve de paiement), puis validez pour ouvrir l'accès au tableau de bord étudiant.";
+        }
+        const pendingEmpty = document.getElementById("pendingStudentsEmpty");
+        if (pendingEmpty) {
+          pendingEmpty.textContent = "Aucun étudiant en attente pour votre campus.";
         }
       }
 
@@ -622,6 +641,11 @@
             .join("");
 
           empty.style.display = pending.length ? "none" : "block";
+          if (empty) {
+            empty.textContent = isRector
+              ? "Aucun étudiant en attente pour votre campus."
+              : "Aucun étudiant en attente pour votre section.";
+          }
           bindPendingActions(tbody, "student", () => {
             renderPendingStudents();
             renderStats();

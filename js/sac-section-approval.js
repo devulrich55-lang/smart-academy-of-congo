@@ -192,7 +192,10 @@ const SAC_SECTION_APPROVAL = (function () {
       (apiStudents || []).forEach((raw) => {
         let u = repairStudentCampus({ ...raw });
         if (u.role !== "etudiant") return;
-        if (!matchesStudentSection(u, actor)) return;
+        const inScope = isRector(sectionSession)
+          ? matchesCampusUser(u, actor)
+          : matchesStudentSection(u, actor);
+        if (!inScope) return;
         if (getStatus(u) !== STATUS.pending) return;
         mirrorLocalUser({
           ...u,
@@ -599,7 +602,7 @@ const SAC_SECTION_APPROVAL = (function () {
     user.sectionApprovedBy =
       sectionSession.identifiant || sectionSession.userId || null;
     if (status === STATUS.approved) {
-      markApproved(user, sectionSession);
+      markApproved(user, resolveSectionActor(sectionSession));
     }
     if (status === STATUS.rejected) {
       user.sectionRejectionReason = (extra?.reason || "").trim() || null;
