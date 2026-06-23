@@ -536,7 +536,11 @@ const SAC_ADMIN_DASHBOARD = (function () {
         return false;
       }
       if (!payload.prenom || !payload.nom) {
-        alert("Indiquez un nom complet (prénom et nom).");
+        alert("Indiquez un nom complet (au moins 2 caractères).");
+        return false;
+      }
+      if (payload.prenom.length < 2 || payload.nom.length < 2) {
+        alert("Le nom du responsable doit contenir au moins 2 caractères.");
         return false;
       }
       if (payload.telephone && typeof SAC_IDENTITY !== "undefined") {
@@ -559,6 +563,7 @@ const SAC_ADMIN_DASHBOARD = (function () {
         EMAIL_EXISTS: "Cet e-mail est déjà utilisé. Connectez-vous ou utilisez « Mot de passe oublié ».",
         PHONE_EXISTS: "Ce numéro de téléphone est déjà lié à un compte.",
         IDENTITY_CONFLICT: "Cette identité est déjà enregistrée avec un autre rôle.",
+        MULTI_ROLE: "Cette identité est déjà liée à un autre type de compte (étudiant, professeur…).",
         FORBIDDEN: "Accès refusé — connectez-vous en tant que Super Admin.",
         SUPERADMIN_LIMIT:
           "Limite atteinte : maximum 2 comptes Super Admin autorisés. Supprimez un compte existant pour en créer un autre.",
@@ -738,9 +743,17 @@ const SAC_ADMIN_DASHBOARD = (function () {
 
     updateCreateFormForRole();
 
+    const adminCatLegend = document.getElementById("adminSectionCategoriesLegend");
+    if (adminCatLegend && typeof SAC_SECTIONS !== "undefined" && SAC_SECTIONS.sectionCategoriesLegendHtml) {
+      adminCatLegend.innerHTML = SAC_SECTIONS.sectionCategoriesLegendHtml();
+    }
+
     document.getElementById("formCreateAdmin")?.addEventListener("submit", async (e) => {
       e.preventDefault();
-      if (!isSuper) return;
+      if (!isSuper) {
+        alert("Seul le Super Admin peut créer des comptes institutionnels.");
+        return;
+      }
       const role = newRole.value;
       let payload = { role };
 

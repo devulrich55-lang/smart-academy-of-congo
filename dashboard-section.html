@@ -345,18 +345,24 @@
 
     <section class="page-section" id="section-reclamations">
       <h1 class="page-title">Réclamations de la section</h1>
-      <p class="page-desc">Demandes des étudiants de votre filière — académique, inscription, finance, administration…</p>
+      <p class="page-desc">Demandes des étudiants de votre filière — académique, finance, administration, stage, horaires, documents…</p>
+      <div class="rec-category-quick rec-category-quick--legend" id="secCategoriesLegend" style="margin-bottom:1rem;" aria-label="Catégories de réclamation"></div>
       <div class="rec-stats" id="secRecStats"></div>
       <div class="panel">
         <div class="panel__head">
           <h2>File de traitement</h2>
-          <select id="filterStatut" class="fi" style="width:auto;padding:0.4rem 0.6rem;font-size:0.85rem;">
+          <div style="display:flex;flex-wrap:wrap;gap:0.5rem;align-items:center;">
+            <select id="filterCategorie" class="fi" style="width:auto;padding:0.4rem 0.6rem;font-size:0.85rem;">
+              <option value="all">Toutes catégories</option>
+            </select>
+            <select id="filterStatut" class="fi" style="width:auto;padding:0.4rem 0.6rem;font-size:0.85rem;">
             <option value="all">Tous</option>
             <option value="ouverte">Ouvertes</option>
             <option value="en_cours">En cours</option>
             <option value="resolue">Résolues</option>
             <option value="fermee">Fermées</option>
           </select>
+          </div>
         </div>
         <div class="panel__body">
           <div class="rec-list" id="secRecList"></div>
@@ -808,6 +814,7 @@
 
       function renderReclamations() {
         const filter = document.getElementById("filterStatut").value;
+        const catFilter = document.getElementById("filterCategorie")?.value || "all";
         const allRecs = isRector
           ? SAC_SECTIONS.getReclamationsForUniversity(session)
           : session.sectionId
@@ -815,6 +822,7 @@
             : [];
         let recs = allRecs;
         if (filter !== "all") recs = recs.filter((r) => r.statut === filter);
+        if (catFilter !== "all") recs = recs.filter((r) => r.categorie === catFilter);
 
         const statsEl = document.getElementById("secRecStats");
         const counts = SAC_SECTIONS.countByStatut(allRecs);
@@ -916,6 +924,20 @@
         b.addEventListener("click", () => showSection(b.dataset.goto));
       });
       document.getElementById("filterStatut").addEventListener("change", renderReclamations);
+      document.getElementById("filterCategorie")?.addEventListener("change", renderReclamations);
+
+      const secCatLegend = document.getElementById("secCategoriesLegend");
+      if (secCatLegend && SAC_SECTIONS.sectionCategoriesLegendHtml) {
+        secCatLegend.innerHTML = SAC_SECTIONS.sectionCategoriesLegendHtml();
+      }
+      const filterCat = document.getElementById("filterCategorie");
+      if (filterCat && SAC_SECTIONS.STUDENT_CATEGORIES) {
+        filterCat.innerHTML =
+          '<option value="all">Toutes catégories</option>' +
+          SAC_SECTIONS.STUDENT_CATEGORIES.map(
+            (c) => `<option value="${c.id}">${c.label}</option>`
+          ).join("");
+      }
       document.querySelectorAll("#secCommFilter [data-sec-comm]").forEach((btn) => {
         btn.addEventListener("click", () => setSecCommFilter(btn.dataset.secComm));
       });

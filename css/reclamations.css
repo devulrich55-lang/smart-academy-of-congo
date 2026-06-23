@@ -58,6 +58,21 @@
   color: #fff;
 }
 
+.rec-category-quick--legend {
+  margin-bottom: 0;
+}
+
+.rec-cat-chip--legend {
+  cursor: default;
+  pointer-events: none;
+  font-weight: 500;
+}
+
+.rec-cat-chip--legend:hover {
+  border-color: var(--border, #e2e8f0);
+  background: var(--surface, #fff);
+}
+
 .rec-form .fg {
   margin-bottom: 0.85rem;
 }

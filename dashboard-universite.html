@@ -17,6 +17,7 @@
   <link rel="stylesheet" href="css/live.css" />
   <link rel="stylesheet" href="css/webrtc-room.css" />
   <link rel="stylesheet" href="css/presence.css" />
+  <link rel="stylesheet" href="css/payments.css" />
   <style>
     .badge-role { background: rgba(13,122,74,0.12); color: var(--uni); }
     .btn--role { background: var(--uni); }
@@ -500,6 +501,15 @@
       <h1 class="page-title">Sections & réclamations</h1>
       <p class="page-desc">Organisez vos facultés, nommez un responsable par section, traitez les réclamations et publiez par filière.</p>
 
+      <div class="panel panel--workspace" style="margin-bottom:1rem;">
+        <div class="panel__body" style="padding:1rem 1.15rem;">
+          <p style="font-size:0.88rem;color:var(--muted);margin:0 0 0.5rem;">
+            <strong>Catégories de réclamation</strong> disponibles pour les étudiants de vos sections :
+          </p>
+          <div class="rec-category-quick rec-category-quick--legend" id="uniSectionCategoriesLegend" aria-label="Catégories de réclamation"></div>
+        </div>
+      </div>
+
       <div class="rec-stats" id="uniRecStats"></div>
 
       <div class="panel panel--workspace" style="margin-bottom:1.25rem;">
@@ -891,6 +901,45 @@
         </div>
       </div>
 
+      <div class="panel">
+        <div class="panel__head"><h2>🏦 Compte bancaire partenaire</h2></div>
+        <div class="panel__body">
+          <p class="page-desc" style="margin:0 0 1rem;font-size:0.88rem;">
+            Chaque université reçoit les paiements des frais académiques sur <strong>son propre compte bancaire</strong>.
+            Les étudiants voient ces coordonnées dans leur onglet « Frais ».
+          </p>
+          <form id="formPartnerBank" class="ws-form-grid ws-form-grid--compact">
+            <div class="fg" style="grid-column:1/-1;">
+              <label for="bankName">Banque partenaire *</label>
+              <input type="text" class="fi" id="bankName" required placeholder="Ex. Equity BCDC, Rawbank, UBA…" />
+            </div>
+            <div class="fg">
+              <label for="bankAccountName">Titulaire du compte *</label>
+              <input type="text" class="fi" id="bankAccountName" required placeholder="Ex. ISTA — Compte académique" />
+            </div>
+            <div class="fg">
+              <label for="bankAccountNumber">N° de compte *</label>
+              <input type="text" class="fi" id="bankAccountNumber" required placeholder="Ex. 0123 4567 8901" />
+            </div>
+            <div class="fg">
+              <label for="bankCurrency">Devise principale</label>
+              <select class="fi" id="bankCurrency">
+                <option value="USD">USD</option>
+                <option value="CDF">CDF</option>
+              </select>
+            </div>
+            <div class="fg" style="grid-column:1/-1;">
+              <label for="bankNote">Instructions pour les étudiants</label>
+              <input type="text" class="fi" id="bankNote" placeholder="Ex. Indiquez votre matricule en référence de virement" />
+            </div>
+            <div class="fg" style="grid-column:1/-1;">
+              <button type="submit" class="btn btn--role">Enregistrer le compte bancaire</button>
+              <p id="bankSaveMsg" style="display:none;margin:0.5rem 0 0;font-size:0.88rem;color:var(--uni);"></p>
+            </div>
+          </form>
+        </div>
+      </div>
+
       <div class="panel" id="panelPayments">
         <div class="panel__head"><h2>💳 Paiements à valider</h2><span id="countPayments" style="font-size:0.82rem;color:var(--muted);"></span></div>
         <div class="panel__body" id="listPayments"></div>
@@ -1019,6 +1068,7 @@
   <script src="js/sac-session.js"></script>
   <script src="js/sac-api.js"></script>
   <script src="js/sac-tariffs.js?v=20260623"></script>
+  <script src="js/sac-payments.js"></script>
   <script src="js/sac-university-logo.js"></script>
   <script src="js/sac-universities.js"></script>
   <script src="js/sac-data.js"></script>
@@ -1053,6 +1103,11 @@
       session = SAC_SESSION.syncSessionWithAccount("universite") || session;
       await SAC_DATA.ensureReady();
       await SAC_SECTIONS.ensureReady(session);
+
+      const uniCatLegend = document.getElementById("uniSectionCategoriesLegend");
+      if (uniCatLegend && SAC_SECTIONS.sectionCategoriesLegendHtml) {
+        uniCatLegend.innerHTML = SAC_SECTIONS.sectionCategoriesLegendHtml();
+      }
 
       const UNI_NAMES = { ...SAC_UNIVERSITIES.NAMES };
       let selectedSectionId = null;
@@ -1375,60 +1430,93 @@
       }
 
       function renderPayments() {
-        if (typeof SAC_TASKS === "undefined") {
-          document.getElementById("listPayments").innerHTML =
-            '<p class="empty-tasks">Module tâches indisponible.</p>';
-          return;
-        }
-        const list = SAC_TASKS.getPendingPayments(session);
         const el = document.getElementById("listPayments");
-        document.getElementById("countPayments").textContent = list.length + " en attente";
-        if (!list.length) {
-          el.innerHTML = '<p class="empty-tasks">Aucun paiement en attente de validation.</p>';
+        if (!el) return;
+        if (typeof SAC_PAYMENTS === "undefined") {
+          el.innerHTML = '<p class="empty-tasks">Module paiements indisponible.</p>';
           return;
         }
-        el.innerHTML = list
-          .map(
-            (u) => `<div class="task-row">
-            <div>
-              <strong>${esc(SAC_TASKS.displayName(u))}</strong>
-              <span style="font-size:0.78rem;color:var(--muted);margin-left:0.35rem;">${esc(SAC_TASKS.ROLE_LABELS[u.role])}</span>
-              <div class="task-row__meta">${esc(u.email)} · ${formatMoney(u.payment)}</div>
-            </div>
-            <div style="display:flex;gap:0.4rem;flex-wrap:wrap;">
-              <button type="button" class="btn--ok" data-verify="${esc(u.email)}">Valider</button>
-              <button type="button" class="btn--reject" data-reject="${esc(u.email)}">Refuser</button>
-            </div>
-          </div>`
-          )
-          .join("");
+        SAC_PAYMENTS.listCampusPayments(session).then((list) => {
+          const pending = (list || []).filter((p) => p.status === "pending");
+          document.getElementById("countPayments").textContent = pending.length + " en attente";
+          if (!pending.length) {
+            el.innerHTML = '<p class="empty-tasks">Aucun paiement académique en attente de validation.</p>';
+            return;
+          }
+          el.innerHTML = pending
+            .map(
+              (p) => `<div class="task-row">
+              <div>
+                <strong>${esc(p.studentNom || p.studentEmail)}</strong>
+                <span style="font-size:0.78rem;color:var(--muted);margin-left:0.35rem;">${esc(p.feeLabel || "Frais")}</span>
+                <div class="task-row__meta">${esc(p.id)} · ${p.amount} ${esc(p.currency || "USD")} · ${esc(SAC_PAYMENTS.methodLabel(p.method))} · Réf. ${esc(p.reference)}</div>
+              </div>
+              <div style="display:flex;gap:0.4rem;flex-wrap:wrap;">
+                <button type="button" class="btn--ok" data-confirm-pay="${esc(p.id)}">Confirmer</button>
+                <button type="button" class="btn--reject" data-reject-pay="${esc(p.id)}">Rejeter</button>
+              </div>
+            </div>`
+            )
+            .join("");
 
-        el.querySelectorAll("[data-verify]").forEach((btn) => {
-          btn.addEventListener("click", () => {
-            if (!confirm("Confirmer la validation du paiement ?")) return;
-            try {
-              SAC_TASKS.verifyPayment(session, btn.dataset.verify);
-              showToast("Paiement validé.");
-              refreshAll();
-            } catch (e) {
-              alert(e.message);
-            }
+          el.querySelectorAll("[data-confirm-pay]").forEach((btn) => {
+            btn.addEventListener("click", async () => {
+              if (!confirm("Confirmer ce paiement académique ?")) return;
+              try {
+                await SAC_PAYMENTS.confirmPayment(session, btn.dataset.confirmPay, "confirmed");
+                showToast("Paiement confirmé — solde étudiant mis à jour.");
+                refreshAllAsync();
+              } catch (e) {
+                alert(e.message || "Validation impossible.");
+              }
+            });
           });
-        });
-        el.querySelectorAll("[data-reject]").forEach((btn) => {
-          btn.addEventListener("click", () => {
-            const reason = prompt("Motif du refus (optionnel) :");
-            if (reason === null) return;
-            try {
-              SAC_TASKS.rejectPayment(session, btn.dataset.reject, reason);
-              showToast("Paiement refusé.");
-              refreshAll();
-            } catch (e) {
-              alert(e.message);
-            }
+          el.querySelectorAll("[data-reject-pay]").forEach((btn) => {
+            btn.addEventListener("click", async () => {
+              if (!confirm("Rejeter ce paiement ?")) return;
+              try {
+                await SAC_PAYMENTS.confirmPayment(session, btn.dataset.rejectPay, "rejected");
+                showToast("Paiement rejeté.");
+                refreshAllAsync();
+              } catch (e) {
+                alert(e.message || "Rejet impossible.");
+              }
+            });
           });
         });
       }
+
+      async function loadPartnerBankForm() {
+        if (typeof SAC_PAYMENTS === "undefined") return;
+        const bank = await SAC_PAYMENTS.fetchPartnerBank(session.universite);
+        if (!bank) return;
+        document.getElementById("bankName").value = bank.bankName || "";
+        document.getElementById("bankAccountName").value = bank.accountName || "";
+        document.getElementById("bankAccountNumber").value = bank.accountNumber || "";
+        document.getElementById("bankCurrency").value = bank.currency || "USD";
+        document.getElementById("bankNote").value = bank.note || "";
+      }
+
+      document.getElementById("formPartnerBank")?.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const msg = document.getElementById("bankSaveMsg");
+        try {
+          await SAC_PAYMENTS.savePartnerBank(session, {
+            bankName: document.getElementById("bankName").value.trim(),
+            accountName: document.getElementById("bankAccountName").value.trim(),
+            accountNumber: document.getElementById("bankAccountNumber").value.trim(),
+            currency: document.getElementById("bankCurrency").value,
+            note: document.getElementById("bankNote").value.trim(),
+          });
+          if (msg) {
+            msg.style.display = "block";
+            msg.textContent = "Compte bancaire partenaire enregistré — visible par vos étudiants.";
+          }
+          showToast("Compte bancaire enregistré.");
+        } catch (err) {
+          alert(err.message || "Enregistrement impossible.");
+        }
+      });
 
       function renderProfessors() {
         const list = campusProfessorsCache;
@@ -2039,6 +2127,7 @@
           await SAC_ADMIN_ACCOUNTS.load(session);
         }
         await loadCampusProfessors();
+        await loadPartnerBankForm();
         await refreshAll();
       }
 

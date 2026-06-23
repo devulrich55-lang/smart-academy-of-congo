@@ -5,16 +5,15 @@ const SAC_SECTIONS = (function () {
   const SECTIONS_KEY = "sac_sections";
   const RECLAMATIONS_KEY = "sac_reclamations";
 
-  /** Grandes catégories Smart Academy (liste simplifiée). */
+  /** Grandes catégories Smart Academy — réclamations étudiant / section. */
   const RECLAMATION_CATEGORIES = [
-    { id: "academique", label: "Académique", icon: "📚" },
-    { id: "inscription", label: "Inscription", icon: "📋" },
+    { id: "academique", label: "Réclamation académique", icon: "📚" },
     { id: "finance", label: "Finance", icon: "💳" },
     { id: "administration", label: "Administration", icon: "🏛️" },
-    { id: "discipline", label: "Discipline", icon: "⚖️" },
-    { id: "stage_memoire", label: "Stage et Mémoire", icon: "🎓" },
-    { id: "technique", label: "Technique", icon: "💻" },
-    { id: "infrastructures_services", label: "Infrastructures et Services", icon: "🏗️" },
+    { id: "stage", label: "Réclamation liée au stage", icon: "💼" },
+    { id: "horaire", label: "Relative aux horaires", icon: "🕐" },
+    { id: "document", label: "Réclamation sur le document", icon: "📄" },
+    { id: "stage_memoire", label: "Stage et mémoire", icon: "🎓" },
     { id: "autre", label: "Autres", icon: "📩" },
   ];
 
@@ -23,17 +22,20 @@ const SAC_SECTIONS = (function () {
 
   /** Libellés des anciennes catégories (réclamations déjà enregistrées). */
   const LEGACY_CATEGORY_LABELS = {
-    scolarite: "Inscription",
-    notes: "Académique",
+    scolarite: "Administration",
+    notes: "Réclamation académique",
     frais: "Finance",
-    documents: "Administration",
+    documents: "Réclamation sur le document",
     bourse: "Finance",
-    emploi_du_temps: "Académique",
-    stage_emploi: "Stage et Mémoire",
-    discipline: "Discipline",
-    bibliotheque: "Infrastructures et Services",
-    infrastructure: "Infrastructures et Services",
-    enseignement: "Académique",
+    emploi_du_temps: "Relative aux horaires",
+    stage_emploi: "Réclamation liée au stage",
+    discipline: "Administration",
+    bibliotheque: "Administration",
+    infrastructure: "Administration",
+    enseignement: "Réclamation académique",
+    inscription: "Administration",
+    technique: "Administration",
+    infrastructures_services: "Administration",
     autre: "Autres",
   };
 
@@ -1063,6 +1065,16 @@ const SAC_SECTIONS = (function () {
       .join("");
   }
 
+  /** Légende des catégories affichée dans les formulaires section (DG / chef de section). */
+  function sectionCategoriesLegendHtml() {
+    return STUDENT_CATEGORIES.filter((c) => c.id !== "autre")
+      .map(
+        (c) =>
+          `<span class="rec-cat-chip rec-cat-chip--legend" title="${escapeHtml(c.label)}">${c.icon || ""} ${escapeHtml(c.label)}</span>`
+      )
+      .join("");
+  }
+
   function isAutreCategory(id) {
     return id === "autre";
   }
@@ -1116,6 +1128,7 @@ const SAC_SECTIONS = (function () {
     categoriesOptionsHtml,
     studentCategoriesOptionsHtml,
     studentCategoryChipsHtml,
+    sectionCategoriesLegendHtml,
     isAutreCategory,
     STATUTS,
     getSections,
