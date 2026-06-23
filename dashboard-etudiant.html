@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="css/meetings.css" />
   <link rel="stylesheet" href="css/live.css" />
   <link rel="stylesheet" href="css/webrtc-room.css" />
-  <link rel="stylesheet" href="css/presence.css" />
+  <link rel="stylesheet" href="css/payments.css" />
   <script src="js/sac-config.js"></script>
   <script src="js/sac-theme.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -491,7 +491,7 @@
           <span class="theme-toggle__icon theme-toggle__icon--light" aria-hidden="true">🌙</span>
           <span class="theme-toggle__icon theme-toggle__icon--dark" aria-hidden="true">☀️</span>
         </button>
-        <a href="plateforme.html" class="btn btn--ghost btn--sm" style="text-decoration:none">Écosystème SAC</a>
+        <button type="button" class="btn btn--ghost btn--sm" data-goto="frais">💳 Payer mes frais</button>
         <span class="badge-role">🎓 Profil étudiant</span>
         <span id="userName" style="font-size:0.9rem;color:var(--text-muted);"></span>
         <span id="selfPresence" class="online-dot">hors ligne</span>
@@ -866,28 +866,38 @@
       </div>
     </section>
 
-    <!-- FRAIS -->
+    <!-- FRAIS & PAIEMENTS -->
     <section class="page-section" id="section-frais">
-      <h1 class="page-title">Frais universitaires</h1>
-      <p class="page-desc">Suivi des paiements validés par l'administration et factures en attente.</p>
+      <h1 class="page-title">Frais académiques & paiement</h1>
+      <p class="page-desc">
+        Consultez vos frais, payez via le <strong>compte bancaire partenaire de votre université</strong>
+        (Mobile Money ou virement). La plateforme ne conserve pas les fonds — l'université confirme chaque paiement.
+      </p>
+
+      <div class="pay-bank-card payment-panel" id="partnerBankCard">
+        <strong>Compte bancaire partenaire de votre établissement</strong>
+        <p id="partnerBankInfo" style="font-size:0.88rem;color:var(--text-muted);margin:0.5rem 0 0;">
+          Chargement…
+        </p>
+      </div>
 
       <div class="stats-grid" style="grid-template-columns:repeat(3,1fr);">
         <div class="stat-card">
-          <div class="stat-card__label">Total annuel</div>
-          <div class="stat-card__value">600 $</div>
+          <div class="stat-card__label">Total frais</div>
+          <div class="stat-card__value" id="feesTotal">—</div>
         </div>
         <div class="stat-card">
           <div class="stat-card__label">Payé</div>
-          <div class="stat-card__value stat-card__value--success" id="feesPaid">450 $</div>
+          <div class="stat-card__value stat-card__value--success" id="feesPaid">—</div>
         </div>
         <div class="stat-card">
           <div class="stat-card__label">Reste à payer</div>
-          <div class="stat-card__value" style="color:var(--warning);" id="feesDue">150 $</div>
+          <div class="stat-card__value" style="color:var(--warning);" id="feesDue">—</div>
         </div>
       </div>
 
       <div class="panel">
-        <div class="panel__head"><h2>Détail des factures</h2></div>
+        <div class="panel__head"><h2>Détail des frais</h2></div>
         <div class="panel__body table-wrap">
           <table>
             <thead>
@@ -897,14 +907,60 @@
                 <th>Montant</th>
                 <th>Statut</th>
                 <th>Date</th>
+                <th></th>
               </tr>
             </thead>
             <tbody id="feesTable"></tbody>
           </table>
         </div>
       </div>
+
+      <div class="panel">
+        <div class="panel__head"><h2>Historique des paiements</h2></div>
+        <div class="panel__body table-wrap">
+          <table class="pay-history-table">
+            <thead>
+              <tr>
+                <th>Référence</th>
+                <th>Montant</th>
+                <th>Mode</th>
+                <th>Date</th>
+                <th>Statut</th>
+              </tr>
+            </thead>
+            <tbody id="payHistoryTable"></tbody>
+          </table>
+          <p class="empty-state" id="payHistoryEmpty" style="display:none;">Aucun paiement enregistré.</p>
+        </div>
+      </div>
     </section>
   </main>
+
+  <div class="pay-modal-overlay" id="payModal" aria-hidden="true">
+    <div class="pay-modal" role="dialog" aria-labelledby="payModalTitle">
+      <h3 id="payModalTitle">Payer mes frais académiques</h3>
+      <p id="payModalFeeLabel" style="font-size:0.88rem;color:var(--text-muted);margin:0;"></p>
+      <div class="pay-modal__amount" id="payModalAmount">—</div>
+      <p style="font-size:0.84rem;color:var(--text-muted);">
+        Versement vers le compte de <strong>votre université</strong>. Indiquez la référence après paiement.
+      </p>
+      <div class="pay-methods" id="payMethods">
+        <button type="button" class="pay-method is-active" data-method="bank_usd">🏦 Banque (USD)</button>
+        <button type="button" class="pay-method" data-method="bank_cdf">🏦 Banque (CDF)</button>
+        <button type="button" class="pay-method" data-method="orange">🟠 Orange Money</button>
+        <button type="button" class="pay-method" data-method="mpesa">📱 M-Pesa</button>
+      </div>
+      <div id="payDestInfo" class="pay-bank-card" style="margin-top:0.75rem;"></div>
+      <div class="fg" style="margin-top:0.75rem;">
+        <label for="payReference">Référence bancaire / n° transaction *</label>
+        <input type="text" class="fi" id="payReference" placeholder="Ex. VIR-2026-001245" />
+      </div>
+      <div style="display:flex;gap:0.5rem;margin-top:1rem;flex-wrap:wrap;">
+        <button type="button" class="btn btn--primary" id="btnSubmitPay">Confirmer mon paiement</button>
+        <button type="button" class="btn btn--ghost" id="btnClosePay">Annuler</button>
+      </div>
+    </div>
+  </div>
 
   <script src="js/sac-universities.js"></script>
   <script src="js/sac-identity.js"></script>
@@ -912,6 +968,7 @@
   <script src="js/sac-session.js?v=20260617d"></script>
   <script src="js/sac-api.js?v=20260617d"></script>
   <script src="js/sac-tariffs.js?v=20260623c"></script>
+  <script src="js/sac-payments.js"></script>
   <script src="js/sac-university-logo.js"></script>
   <script src="js/sac-courses.js"></script>
   <script src="js/sac-sections.js"></script>
@@ -1473,28 +1530,196 @@
       ).join("");
     }
 
-    function renderFees(profile) {
-      const fees = getStudentFeesList(profile);
-      document.getElementById("feesTable").innerHTML = fees
+    let payModalFee = null;
+    let payModalMethod = "bank_usd";
+    let partnerBankCache = null;
+
+    function feeStatusHtml(status) {
+      if (status === "Payé") return '<span class="status-ok">Payé ✓</span>';
+      if (status === "En attente de confirmation") {
+        return '<span class="status-pending">⏳ En attente de confirmation</span>';
+      }
+      return '<span class="status-pending">En attente</span>';
+    }
+
+    async function renderPartnerBank(session) {
+      const el = document.getElementById("partnerBankInfo");
+      if (!el || typeof SAC_PAYMENTS === "undefined") return;
+      partnerBankCache = await SAC_PAYMENTS.fetchPartnerBank(session?.universite);
+      if (!partnerBankCache) {
+        el.innerHTML =
+          "Votre université n'a pas encore enregistré son compte bancaire partenaire. " +
+          "Contactez la direction financière de votre établissement.";
+        return;
+      }
+      el.innerHTML =
+        "<strong>" +
+        (partnerBankCache.bankName || "Banque partenaire") +
+        "</strong><br/>" +
+        "Titulaire : " +
+        (partnerBankCache.accountName || "—") +
+        "<br/>N° compte : <code>" +
+        (partnerBankCache.accountNumber || "—") +
+        "</code>" +
+        (partnerBankCache.note ? "<br/><em>" + partnerBankCache.note + "</em>" : "");
+    }
+
+    function renderPayHistory(payments) {
+      const tbody = document.getElementById("payHistoryTable");
+      const empty = document.getElementById("payHistoryEmpty");
+      if (!tbody) return;
+      if (!payments?.length) {
+        tbody.innerHTML = "";
+        if (empty) empty.style.display = "block";
+        return;
+      }
+      if (empty) empty.style.display = "none";
+      tbody.innerHTML = payments
         .map(
-          (f) => `<tr>
+          (p) =>
+            `<tr>
+              <td><code>${p.id}</code><br/><small>${p.reference || "—"}</small></td>
+              <td>${p.amount} ${p.currency || "USD"}</td>
+              <td>${SAC_PAYMENTS.methodLabel(p.method)}</td>
+              <td>${(p.createdAt || "").slice(0, 10)}</td>
+              <td><span class="${SAC_PAYMENTS.statusClass(p.status)}">${SAC_PAYMENTS.statusLabel(p.status)}</span></td>
+            </tr>`
+        )
+        .join("");
+    }
+
+    async function renderFees(profile, session) {
+      session = session || SAC_SESSION.getSession();
+      let fees = getStudentFeesList(profile);
+      let payments = [];
+      if (typeof SAC_PAYMENTS !== "undefined" && session) {
+        payments = await SAC_PAYMENTS.syncStudentPayments(session);
+        fees = SAC_PAYMENTS.applyPaymentsToFees(fees, payments);
+        await renderPartnerBank(session);
+        renderPayHistory(payments);
+      }
+      document.getElementById("feesTable").innerHTML = fees
+        .map((f) => {
+          const canPay =
+            f.status !== "Payé" && f.status !== "En attente de confirmation";
+          const payBtn = canPay
+            ? `<button type="button" class="btn-pay-now" data-pay-fee="${SAC_PAYMENTS.feeKey(f)}">Payer</button>`
+            : "";
+          return `<tr>
           <td>${f.label}</td>
           <td>${f.term}</td>
           <td>${f.amount} $</td>
-          <td>${f.status === "Payé" ? '<span class="status-ok">Payé</span>' : '<span class="status-pending">En attente</span>'}</td>
+          <td>${feeStatusHtml(f.status)}</td>
           <td>${f.date}</td>
-        </tr>`
-        )
+          <td>${payBtn}</td>
+        </tr>`;
+        })
         .join("");
-      const paid = fees.filter((f) => f.status === "Payé").reduce((s, f) => s + f.amount, 0);
-      const due = fees.filter((f) => f.status !== "Payé").reduce((s, f) => s + f.amount, 0);
-      const total = paid + due;
-      document.getElementById("feesPaid").textContent = paid + " $";
-      document.getElementById("feesDue").textContent = due + " $";
-      document.getElementById("statFrais").textContent = paid + " / " + total + " $";
-      const totalEl = document.querySelector("#section-frais .stat-card__value");
-      if (totalEl && !totalEl.id) totalEl.textContent = total + " $";
+      document.querySelectorAll("[data-pay-fee]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const key = btn.dataset.payFee;
+          const fee = fees.find((f) => SAC_PAYMENTS.feeKey(f) === key);
+          if (fee) openPayModal(fee, session);
+        });
+      });
+      const summary = SAC_PAYMENTS ? SAC_PAYMENTS.summarizeFees(fees) : { paid: 0, due: 0, total: 0 };
+      document.getElementById("feesPaid").textContent = summary.paid + " $";
+      document.getElementById("feesDue").textContent = summary.due + " $";
+      const totalEl = document.getElementById("feesTotal");
+      if (totalEl) totalEl.textContent = summary.total + " $";
+      const statFrais = document.getElementById("statFrais");
+      if (statFrais) statFrais.textContent = summary.paid + " / " + summary.total + " $";
     }
+
+    function updatePayDestInfo() {
+      const box = document.getElementById("payDestInfo");
+      if (!box || typeof SAC_PAYMENTS === "undefined") return;
+      const dest = SAC_PAYMENTS.buildBankDisplay(partnerBankCache, payModalMethod);
+      if (payModalMethod === "orange" || payModalMethod === "mpesa") {
+        box.innerHTML =
+          "<strong>" +
+          dest.name +
+          "</strong><br/>Numéro : <code>" +
+          dest.phone +
+          "</code>";
+      } else {
+        box.innerHTML =
+          "<strong>" +
+          (dest.bank || "Banque partenaire") +
+          "</strong> (" +
+          (dest.currency || "USD") +
+          ")<br/>Titulaire : " +
+          (dest.beneficiary || dest.accountName || "—") +
+          "<br/>Compte : <code>" +
+          (dest.accountDisplay || dest.accountNumber || "—") +
+          "</code>";
+      }
+    }
+
+    function openPayModal(fee, session) {
+      payModalFee = fee;
+      payModalMethod = "bank_usd";
+      document.getElementById("payModalFeeLabel").textContent = fee.label + " — " + fee.term;
+      document.getElementById("payModalAmount").textContent = fee.amount + " USD";
+      document.getElementById("payReference").value = "";
+      document.querySelectorAll("#payMethods .pay-method").forEach((b) => {
+        b.classList.toggle("is-active", b.dataset.method === payModalMethod);
+      });
+      updatePayDestInfo();
+      document.getElementById("payModal").classList.add("open");
+      document.getElementById("payModal").setAttribute("aria-hidden", "false");
+    }
+
+    function closePayModal() {
+      document.getElementById("payModal").classList.remove("open");
+      document.getElementById("payModal").setAttribute("aria-hidden", "true");
+      payModalFee = null;
+    }
+
+    document.getElementById("payMethods")?.addEventListener("click", (e) => {
+      const btn = e.target.closest("[data-method]");
+      if (!btn) return;
+      payModalMethod = btn.dataset.method;
+      document.querySelectorAll("#payMethods .pay-method").forEach((b) => {
+        b.classList.toggle("is-active", b.dataset.method === payModalMethod);
+      });
+      updatePayDestInfo();
+    });
+
+    document.getElementById("btnClosePay")?.addEventListener("click", closePayModal);
+    document.getElementById("payModal")?.addEventListener("click", (e) => {
+      if (e.target.id === "payModal") closePayModal();
+    });
+
+    document.getElementById("btnSubmitPay")?.addEventListener("click", async () => {
+      if (!payModalFee) return;
+      const session = SAC_SESSION.getSession();
+      const profile = getStudentProfile(session);
+      try {
+        await SAC_PAYMENTS.submitAcademicPayment(session, {
+          feeKey: SAC_PAYMENTS.feeKey(payModalFee),
+          feeLabel: payModalFee.label,
+          amount: payModalFee.amount,
+          currency: "USD",
+          method: payModalMethod,
+          reference: document.getElementById("payReference").value.trim(),
+          studentNom: profile.prenom + " " + profile.nom,
+          matricule: profile.matricule,
+        });
+        closePayModal();
+        alert(
+          "Paiement enregistré — statut : en attente de confirmation par votre université."
+        );
+        await renderFees(profile, session);
+      } catch (err) {
+        alert(err.message || "Paiement impossible.");
+      }
+    });
+
+    window.addEventListener("sac-payments-updated", () => {
+      const sess = SAC_SESSION.getSession();
+      if (sess) renderFees(getStudentProfile(sess), sess);
+    });
 
     function showSection(id) {
       document.querySelectorAll(".page-section").forEach((s) => s.classList.remove("active"));
@@ -1507,7 +1732,7 @@
           if (sess) {
             await SAC_TARIFFS.refreshStudentFeesFromCampus(sess);
             sess = SAC_SESSION.getSession() || sess;
-            renderFees(getStudentProfile(sess));
+            renderFees(getStudentProfile(sess), sess);
           }
         });
       }
@@ -1624,7 +1849,7 @@
     window.addEventListener("sac-student-fees-updated", () => {
       const sess = SAC_SESSION.getSession();
       if (!sess || sess.role !== "etudiant") return;
-      renderFees(getStudentProfile(sess));
+      renderFees(getStudentProfile(sess), sess);
     });
 
     (async function initDashboard() {
@@ -1661,7 +1886,7 @@
           if (!sess || sess.role !== "etudiant") return;
           await SAC_TARIFFS.refreshStudentFeesFromCampus(sess);
           const fresh = SAC_SESSION.getSession() || sess;
-          renderFees(getStudentProfile(fresh));
+          renderFees(getStudentProfile(fresh), fresh);
         });
       }
       await SAC_DATA.ensureReady();
@@ -1682,7 +1907,7 @@
       renderGrades();
       renderDocuments();
       renderReclamations(session);
-      renderFees(p);
+      renderFees(p, session);
       if (typeof SAC_PRESENCE !== "undefined") {
         SAC_PRESENCE.start(session, {
           onSelfOnline: SAC_PRESENCE.bindSelfPresence("selfPresence", "profilePresence"),

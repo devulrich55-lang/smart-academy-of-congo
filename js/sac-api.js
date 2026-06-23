@@ -775,6 +775,40 @@ const SAC_API = (function () {
     });
   }
 
+  async function getCampusPartnerBank(universite) {
+    const code = encodeURIComponent(String(universite || "").trim());
+    return request("/payments/campus-bank?universite=" + code);
+  }
+
+  async function updateCampusPartnerBank(payload) {
+    return request("/payments/campus-bank", {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async function listMyPayments() {
+    return request("/payments/me");
+  }
+
+  async function createAcademicPayment(payload) {
+    return request("/payments/academic", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async function listCampusPayments() {
+    return request("/payments/campus");
+  }
+
+  async function updatePaymentStatus(paymentId, payload) {
+    return request("/payments/" + encodeURIComponent(paymentId), {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    });
+  }
+
   async function listSections() {
     return request("/sections");
   }
@@ -1119,6 +1153,12 @@ const SAC_API = (function () {
     updateCampusTariffs,
     getPlatformTariffs,
     updatePlatformTariffs,
+    getCampusPartnerBank,
+    updateCampusPartnerBank,
+    listMyPayments,
+    createAcademicPayment,
+    listCampusPayments,
+    updatePaymentStatus,
     listSections,
     upsertSection,
     patchSection,
