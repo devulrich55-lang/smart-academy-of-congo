@@ -419,6 +419,7 @@ const SAC_GRADE_SHEET = (function () {
     istap: "KINSHASA",
     isck: "KINSHASA",
     istmed: "KINSHASA",
+    istmmayi: "MBUJI-MAYI",
     inarts: "KINSHASA",
     aba: "KINSHASA",
     unilu: "LUBUMBASHI",

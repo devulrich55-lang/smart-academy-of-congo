@@ -28,6 +28,7 @@ const SAC_UNIVERSITIES = (function () {
     { id: "aba", name: "Académie des Beaux-Arts", sigle: "ABA", type: "institut" },
     { id: "inarts", name: "Institut National des Arts", sigle: "INA", type: "institut" },
     { id: "istmed", name: "Institut Supérieur des Techniques Médicales de Kinshasa", sigle: "ISTM-Kin", type: "institut" },
+    { id: "istmmayi", name: "Institut Supérieur des Techniques Médicales de Mbuji-Mayi", sigle: "ISTM MBUJIMAYI", type: "institut" },
     { id: "isstat", name: "Institut Supérieur des Statistiques", sigle: "ISS", type: "institut" },
     { id: "isau", name: "Institut Supérieur d'Architecture et d'Urbanisme", sigle: "ISAU", type: "institut" },
     { id: "isam", name: "Institut Supérieur des Arts et Métiers", sigle: "ISAM", type: "institut" },
