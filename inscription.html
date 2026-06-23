@@ -2188,6 +2188,10 @@
     }
 
     function populateProfessorDepartments(universiteCode) {
+      return populateProfessorDepartmentsAsync(universiteCode);
+    }
+
+    async function populateProfessorDepartmentsAsync(universiteCode) {
       const wrap = document.getElementById("wrapDepartementProf");
       const select = document.getElementById("departement");
       const hint = document.getElementById("departementProfHint");
@@ -2205,7 +2209,11 @@
 
       if (wrap) wrap.hidden = false;
       const sections =
-        typeof SAC_SECTIONS !== "undefined" ? SAC_SECTIONS.listCampusSections(universiteCode) : [];
+        typeof SAC_SECTIONS !== "undefined" && SAC_SECTIONS.fetchCampusSectionsForInscription
+          ? await SAC_SECTIONS.fetchCampusSectionsForInscription(universiteCode)
+          : typeof SAC_SECTIONS !== "undefined"
+            ? SAC_SECTIONS.listCampusSections(universiteCode)
+            : [];
 
       if (!sections.length) {
         select.disabled = true;
@@ -2254,6 +2262,10 @@
     }
 
     function populateStudentSections(universiteCode) {
+      return populateStudentSectionsAsync(universiteCode);
+    }
+
+    async function populateStudentSectionsAsync(universiteCode) {
       const wrap = document.getElementById("wrapSectionFiliereEtu");
       const select = document.getElementById("sectionFiliereEtu");
       const filiereInput = document.getElementById("filiere");
@@ -2274,8 +2286,15 @@
       }
 
       wrap.hidden = false;
+      select.disabled = true;
+      select.innerHTML = '<option value="">Chargement des sections…</option>';
+
       const sections =
-        typeof SAC_SECTIONS !== "undefined" ? SAC_SECTIONS.listCampusSections(universiteCode) : [];
+        typeof SAC_SECTIONS !== "undefined" && SAC_SECTIONS.fetchCampusSectionsForInscription
+          ? await SAC_SECTIONS.fetchCampusSectionsForInscription(universiteCode)
+          : typeof SAC_SECTIONS !== "undefined"
+            ? SAC_SECTIONS.listCampusSections(universiteCode)
+            : [];
       select.innerHTML =
         typeof SAC_SECTIONS !== "undefined"
           ? SAC_SECTIONS.campusSectionsOptionsHtml(sections)

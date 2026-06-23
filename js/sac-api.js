@@ -868,6 +868,14 @@ const SAC_API = (function () {
     return data.admin || data;
   }
 
+  async function seedInstitutionalFacultySections(payload) {
+    const data = await request("/admin/institutional/faculty-sections", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+    return data.sections || [];
+  }
+
   async function deleteInstitutionalAdmin(email) {
     return request("/admin/institutional/" + encodeURIComponent(email), { method: "DELETE" });
   }
@@ -902,6 +910,12 @@ const SAC_API = (function () {
     const code = encodeURIComponent(String(universite || "").trim());
     if (!code) return { logoUrl: null };
     return platformRequest("/platform/campus-branding?universite=" + code, { auth: false });
+  }
+
+  async function listCampusSectionsPublic(universite) {
+    const code = encodeURIComponent(String(universite || "").trim());
+    if (!code) return { sections: [] };
+    return platformRequest("/platform/campus-sections?universite=" + code, { auth: false });
   }
 
   async function createHomeNews(payload) {
@@ -1116,6 +1130,7 @@ const SAC_API = (function () {
     getProfessorPresence,
     listHomeNews,
     getCampusBranding,
+    listCampusSectionsPublic,
     createHomeNews,
     updateHomeNews,
     deleteHomeNews,
@@ -1130,6 +1145,7 @@ const SAC_API = (function () {
     getInstitutionalSummary,
     listInstitutionalAdmins,
     createInstitutionalAdmin,
+    seedInstitutionalFacultySections,
     deleteInstitutionalAdmin,
     getAdminActivitiesSummary,
     listAdminActivities,

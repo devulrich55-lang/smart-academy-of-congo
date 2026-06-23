@@ -432,7 +432,7 @@ const SAC_SECTIONS = (function () {
     const campus = session.universite || session.codeUni || session.sigle;
     if (!campus) return;
     for (const s of getSections()) {
-      if (s.universite !== campus || s.active === false) continue;
+      if (!universiteMatches(s.universite, campus) || s.active === false) continue;
       try {
         const data = await SAC_API.upsertSection(s);
         if (data?.section) mergeSectionsIntoCache([data.section]);
@@ -532,6 +532,34 @@ const SAC_SECTIONS = (function () {
         source: "catalog",
       }))
     );
+  }
+
+  /** Sections d'un campus pour inscription (API publique + cache local) */
+  async function fetchCampusSectionsForInscription(universiteCode) {
+    if (!universiteCode) return [];
+    const code =
+      typeof SAC_UNIVERSITIES !== "undefined" && SAC_UNIVERSITIES.resolveId
+        ? SAC_UNIVERSITIES.resolveId(universiteCode) || universiteCode
+        : universiteCode;
+
+    if (typeof SAC_API !== "undefined" && SAC_API.listCampusSectionsPublic) {
+      try {
+        const data = await SAC_API.listCampusSectionsPublic(code);
+        if (Array.isArray(data?.sections) && data.sections.length) {
+          mergeSectionsIntoCache(
+            data.sections.map((s) => ({
+              ...s,
+              universite: s.universite || code,
+              active: s.active !== false,
+            }))
+          );
+        }
+      } catch (err) {
+        console.warn("[SAC_SECTIONS] fetchCampusSections:", err.message || err);
+      }
+    }
+
+    return listCampusSections(code);
   }
 
   function campusSectionsOptionsHtml(sections, selectedId) {
@@ -1093,6 +1121,7 @@ const SAC_SECTIONS = (function () {
     getSections,
     getSectionsByUniversity,
     listCampusSections,
+    fetchCampusSectionsForInscription,
     getFacultySectionsForCampus,
     campusSectionsOptionsHtml,
     getSectionById,

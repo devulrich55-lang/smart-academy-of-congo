@@ -19,6 +19,74 @@ const SAC_ADMIN_DASHBOARD = (function () {
   };
   const MAX_SUPERADMIN_ACCOUNTS = 2;
   let institutionalSummaryCache = null;
+  let onCreateFormRoleChange = null;
+
+  function getSuperadminCount() {
+    if (institutionalSummaryCache?.superadminCount != null) {
+      return institutionalSummaryCache.superadminCount;
+    }
+    return institutionalSummaryCache?.byRole?.superadmin || 0;
+  }
+
+  function applySuperadminCreateLimit() {
+    const newRole = document.getElementById("newRole");
+    if (!newRole) return;
+    const count = getSuperadminCount();
+    const remaining = Math.max(0, MAX_SUPERADMIN_ACCOUNTS - count);
+    const limitReached = remaining <= 0;
+    const limitMsg = document.getElementById("superadminLimitMsg");
+    const superHint = document.getElementById("superadminFirstHint");
+    const formFields = document.getElementById("superadminFormFields");
+    const superOption = newRole.querySelector('option[value="superadmin"]');
+    const submitBtn = document.getElementById("btnCreateAdminSubmit");
+
+    if (superOption) {
+      superOption.disabled = limitReached;
+      if (limitReached && newRole.value === "superadmin") {
+        newRole.value = "ministere";
+        if (onCreateFormRoleChange) onCreateFormRoleChange();
+        return;
+      }
+    }
+
+    if (limitMsg) {
+      limitMsg.hidden = !limitReached;
+      if (limitReached) {
+        limitMsg.textContent =
+          "Limite atteinte : " +
+          MAX_SUPERADMIN_ACCOUNTS +
+          " comptes Super Admin maximum (" +
+          count +
+          "/" +
+          MAX_SUPERADMIN_ACCOUNTS +
+          "). Supprimez un compte existant pour en créer un autre.";
+      }
+    }
+
+    if (superHint && !limitReached) {
+      superHint.hidden = false;
+      superHint.innerHTML =
+        "Maximum <strong>" +
+        MAX_SUPERADMIN_ACCOUNTS +
+        " comptes Super Admin</strong> — <strong>" +
+        count +
+        "</strong> existant(s), <strong>" +
+        remaining +
+        "</strong> place(s) restante(s). Compte principal : <code>djemcibamba@gmail.com</code>. " +
+        'Pour changer le mot de passe : <a href="../mot-de-passe-oublie.html?portal=superadmin">Mot de passe oublié</a>.';
+    } else if (superHint) {
+      superHint.hidden = limitReached;
+    }
+
+    const blockSuperForm = limitReached && newRole.value === "superadmin";
+    if (formFields) {
+      formFields.style.opacity = blockSuperForm ? "0.55" : "";
+      formFields.style.pointerEvents = blockSuperForm ? "none" : "";
+    }
+    if (submitBtn) {
+      submitBtn.disabled = blockSuperForm;
+    }
+  }
 
   function initials(name, email) {
     const src = (name || email || "?").trim();
@@ -498,72 +566,6 @@ const SAC_ADMIN_DASHBOARD = (function () {
       return map[code] || err?.message || "Création impossible.";
     }
 
-    function getSuperadminCount() {
-      if (institutionalSummaryCache?.superadminCount != null) {
-        return institutionalSummaryCache.superadminCount;
-      }
-      return institutionalSummaryCache?.byRole?.superadmin || 0;
-    }
-
-    function applySuperadminCreateLimit() {
-      if (!newRole) return;
-      const count = getSuperadminCount();
-      const remaining = Math.max(0, MAX_SUPERADMIN_ACCOUNTS - count);
-      const limitReached = remaining <= 0;
-      const limitMsg = document.getElementById("superadminLimitMsg");
-      const superHint = document.getElementById("superadminFirstHint");
-      const formFields = document.getElementById("superadminFormFields");
-      const superOption = newRole.querySelector('option[value="superadmin"]');
-      const submitBtn = document.getElementById("btnCreateAdminSubmit");
-
-      if (superOption) {
-        superOption.disabled = limitReached;
-        if (limitReached && newRole.value === "superadmin") {
-          newRole.value = "ministere";
-          updateCreateFormForRole();
-          return;
-        }
-      }
-
-      if (limitMsg) {
-        limitMsg.hidden = !limitReached;
-        if (limitReached) {
-          limitMsg.textContent =
-            "Limite atteinte : " +
-            MAX_SUPERADMIN_ACCOUNTS +
-            " comptes Super Admin maximum (" +
-            count +
-            "/" +
-            MAX_SUPERADMIN_ACCOUNTS +
-            "). Supprimez un compte existant pour en créer un autre.";
-        }
-      }
-
-      if (superHint && !limitReached) {
-        superHint.hidden = false;
-        superHint.innerHTML =
-          "Maximum <strong>" +
-          MAX_SUPERADMIN_ACCOUNTS +
-          " comptes Super Admin</strong> — <strong>" +
-          count +
-          "</strong> existant(s), <strong>" +
-          remaining +
-          "</strong> place(s) restante(s). Compte principal : <code>djemcibamba@gmail.com</code>. " +
-          'Pour changer le mot de passe : <a href="../mot-de-passe-oublie.html?portal=superadmin">Mot de passe oublié</a>.';
-      } else if (superHint) {
-        superHint.hidden = limitReached;
-      }
-
-      const blockSuperForm = limitReached && newRole.value === "superadmin";
-      if (formFields) {
-        formFields.style.opacity = blockSuperForm ? "0.55" : "";
-        formFields.style.pointerEvents = blockSuperForm ? "none" : "";
-      }
-      if (submitBtn) {
-        submitBtn.disabled = blockSuperForm;
-      }
-    }
-
     function setFieldRequired(ids, required) {
       ids.forEach((id) => {
         const el = document.getElementById(id);
@@ -622,6 +624,7 @@ const SAC_ADMIN_DASHBOARD = (function () {
       }
       applySuperadminCreateLimit();
     }
+    onCreateFormRoleChange = updateCreateFormForRole;
 
     function createAdminFacultySectionRow() {
       const row = document.createElement("div");
@@ -834,6 +837,16 @@ const SAC_ADMIN_DASHBOARD = (function () {
             userId: created?.id || created?.email || payload.email,
           };
           SAC_SECTIONS.importSectionsForUniversity(uniCtx);
+          if (typeof SAC_API !== "undefined" && SAC_API.seedInstitutionalFacultySections) {
+            try {
+              await SAC_API.seedInstitutionalFacultySections({
+                universite: payload.universite || campus.universite,
+                facultySections: payload.facultySections,
+              });
+            } catch (seedErr) {
+              console.warn("[SAC_ADMIN] seedFacultySections:", seedErr.message || seedErr);
+            }
+          }
           if (typeof SAC_IDENTITY !== "undefined") {
             const users = SAC_IDENTITY.getLocalUsers();
             const key = SAC_IDENTITY.normalizeEmail(payload.email);
