@@ -788,6 +788,19 @@ const SAC_PAYMENTS = (function () {
 
 
 
+  function mergeApiPaymentsIntoLocal(apiPayments, campus) {
+    if (!Array.isArray(apiPayments) || !apiPayments.length) return;
+    const list = getLocalPayments();
+    const byId = new Map(list.map((p, i) => [p.id, i]));
+    apiPayments.forEach((p) => {
+      if (campus && resolveCampus(p.universite) !== campus) return;
+      const idx = byId.get(p.id);
+      if (idx != null) list[idx] = { ...list[idx], ...p };
+      else list.push(p);
+    });
+    saveLocalPayments(list);
+  }
+
   async function listCampusPayments(session) {
 
     const campus = resolveCampus(session?.universite);
@@ -804,7 +817,12 @@ const SAC_PAYMENTS = (function () {
 
           const data = await SAC_API.listCampusPayments();
 
-          return data?.payments || local;
+          const apiList = data?.payments || [];
+
+          if (apiList.length) {
+            mergeApiPaymentsIntoLocal(apiList, campus);
+            return apiList;
+          }
 
         }
 
@@ -824,13 +842,71 @@ const SAC_PAYMENTS = (function () {
 
   async function confirmPayment(session, paymentId, status) {
 
+    const next = status === "confirmed" ? "confirmed" : "rejected";
+
+    if (typeof SAC_API !== "undefined" && SAC_API.updatePaymentStatus) {
+
+      try {
+
+        const online = await SAC_API.ensureOnline();
+
+        if (online) {
+
+          const data = await SAC_API.updatePaymentStatus(paymentId, { status: next });
+
+          const payment = data?.payment || data;
+
+          const list = getLocalPayments();
+
+          const idx = list.findIndex((p) => p.id === paymentId);
+
+          const updated = {
+
+            ...(idx >= 0 ? list[idx] : {}),
+
+            ...payment,
+
+            id: paymentId,
+
+            status: next,
+
+            confirmedAt: payment?.confirmedAt || new Date().toISOString(),
+
+            confirmedBy: payment?.confirmedBy || session?.identifiant || session?.email || "",
+
+          };
+
+          if (idx >= 0) list[idx] = updated;
+
+          else list.unshift(updated);
+
+          saveLocalPayments(list);
+
+          window.dispatchEvent(new CustomEvent("sac-payments-updated"));
+
+          return updated;
+
+        }
+
+      } catch (err) {
+
+        if (err.code === "NOT_FOUND" || /introuvable/i.test(err.message || "")) {
+
+          throw new Error("Paiement introuvable sur le serveur.");
+
+        }
+
+        throw err;
+
+      }
+
+    }
+
     const list = getLocalPayments();
 
     const idx = list.findIndex((p) => p.id === paymentId);
 
     if (idx < 0) throw new Error("Paiement introuvable.");
-
-    const next = status === "confirmed" ? "confirmed" : "rejected";
 
     list[idx] = {
 
@@ -845,22 +921,6 @@ const SAC_PAYMENTS = (function () {
     };
 
     saveLocalPayments(list);
-
-
-
-    if (typeof SAC_API !== "undefined" && SAC_API.updatePaymentStatus) {
-
-      try {
-
-        await SAC_API.updatePaymentStatus(paymentId, { status: next });
-
-      } catch (err) {
-
-        console.warn("[SAC_PAYMENTS] confirm:", err.message || err);
-
-      }
-
-    }
 
     window.dispatchEvent(new CustomEvent("sac-payments-updated"));
 
