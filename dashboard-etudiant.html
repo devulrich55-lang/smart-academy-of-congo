@@ -1245,6 +1245,7 @@
           </div>
           <div class="doc-item__meta">
             ${escapeHtml(doc.author)} · ${doc.date} · ${doc.type}${classTag}
+            ${typeof SAC_DATA !== "undefined" && SAC_DATA.formatViewStats ? SAC_DATA.formatViewStats(doc) : ""}
           </div>
           ${doc.description ? `<p class="doc-item__desc">${escapeHtml(doc.description)}</p>` : ""}
           ${mediaPreview(doc)}
@@ -1267,10 +1268,12 @@
       container.querySelectorAll(".btn-dl").forEach((btn) => {
         btn.addEventListener("click", () => {
           const doc = SAC_DATA.getById(btn.dataset.id);
+          if (SAC_DATA.trackDocumentView) SAC_DATA.trackDocumentView(btn.dataset.id);
           if (doc?.mediaUrl) window.open(doc.mediaUrl, "_blank");
           else alert("Contenu : " + btn.dataset.title);
         });
       });
+      if (SAC_DATA.bindDocumentViewTracking) SAC_DATA.bindDocumentViewTracking(container);
     }
 
     function renderDocuments() {
@@ -1289,6 +1292,7 @@
         list.innerHTML = filtered.map(renderDocItem).join("");
         empty.style.display = "none";
         bindDocReactions(list);
+        if (SAC_DATA.bindDocumentViewTracking) SAC_DATA.bindDocumentViewTracking(list);
       }
       const teaching = SAC_DATA.getTeachingForStudent(student);
       const campus = SAC_DATA.getCampusPublicationsForStudent(student);
@@ -1362,6 +1366,7 @@
       if (list) {
         list.innerHTML = teaching.map(renderDocItem).join("");
         bindDocReactions(list);
+        if (SAC_DATA.bindDocumentViewTracking) SAC_DATA.bindDocumentViewTracking(list);
       }
       };
       run();

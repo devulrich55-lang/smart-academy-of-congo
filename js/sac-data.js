@@ -3,6 +3,8 @@
  */
 const SAC_DATA = (function () {
   const STORAGE_KEY = "sac_documents";
+  const DOC_VIEWED_SESSION_KEY = "sac_doc_viewed_session";
+  const ANON_VIEWER_KEY = "sac_anon_viewer";
   const PUBLISH_ROLES = ["professeur", "assistant", "universite", "section"];
   const SOURCE_BY_ROLE = {
     professeur: "professeur",
@@ -245,6 +247,8 @@ const SAC_DATA = (function () {
           source === "assistant"),
       reactions: doc.reactions || { useful: [], question: [], thanks: [] },
       attachments: Array.isArray(doc.attachments) ? doc.attachments : [],
+      viewCount: Number(doc.viewCount || 0),
+      uniqueViewCount: Number(doc.uniqueViewCount || doc.viewCount || 0),
     };
     return normalized;
   }
@@ -440,6 +444,125 @@ const SAC_DATA = (function () {
     };
   }
 
+  function getViewerKey() {
+    try {
+      const session =
+        typeof SAC_SESSION !== "undefined" && SAC_SESSION.getSession
+          ? SAC_SESSION.getSession()
+          : JSON.parse(localStorage.getItem("sac_session") || "null");
+      if (session?.identifiant) return "u:" + String(session.identifiant).trim().toLowerCase();
+      let key = localStorage.getItem(ANON_VIEWER_KEY);
+      if (!key) {
+        key =
+          "a:" +
+          (typeof crypto !== "undefined" && crypto.randomUUID
+            ? crypto.randomUUID()
+            : "v" + Date.now().toString(36));
+        localStorage.setItem(ANON_VIEWER_KEY, key);
+      }
+      return key;
+    } catch {
+      return "a:anon";
+    }
+  }
+
+  function formatViewStats(doc) {
+    const people = Number(doc.uniqueViewCount || doc.viewCount || 0);
+    const total = Number(doc.viewCount || 0);
+    if (!people && !total) return "";
+    const label = people === 1 ? "personne" : "personnes";
+    const title = total > people ? total + " consultation(s) au total" : "Lecteurs uniques";
+    return `<span class="doc-views" title="${title.replace(/"/g, "&quot;")}">👁️ ${people} ${label}</span>`;
+  }
+
+  function _patchDocViews(docId, result) {
+    if (!docId || !result) return;
+    const docs = getAll();
+    const idx = docs.findIndex((d) => d.id === docId);
+    if (idx >= 0) {
+      docs[idx] = {
+        ...docs[idx],
+        viewCount: result.viewCount ?? docs[idx].viewCount,
+        uniqueViewCount: result.uniqueViewCount ?? docs[idx].uniqueViewCount,
+      };
+      if (useApi) cache = docs;
+      else saveLocal(docs);
+    }
+    document.querySelectorAll(`[data-doc-id="${docId}"] .doc-views`).forEach((el) => {
+      const people = result.uniqueViewCount || result.viewCount || 0;
+      const label = people === 1 ? "personne" : "personnes";
+      el.textContent = `👁️ ${people} ${label}`;
+    });
+  }
+
+  async function trackDocumentView(docId) {
+    if (!docId) return;
+    let viewed = [];
+    try {
+      viewed = JSON.parse(sessionStorage.getItem(DOC_VIEWED_SESSION_KEY) || "[]");
+    } catch {
+      viewed = [];
+    }
+    if (viewed.includes(docId)) return;
+
+    if (useApi && typeof SAC_API !== "undefined" && SAC_API.recordDocumentView) {
+      try {
+        const online = await SAC_API.ensureOnline();
+        if (!online) return;
+        const result = await SAC_API.recordDocumentView(docId, getViewerKey());
+        _patchDocViews(docId, result);
+        viewed.push(docId);
+        sessionStorage.setItem(DOC_VIEWED_SESSION_KEY, JSON.stringify(viewed));
+      } catch (err) {
+        console.warn("[SAC_DATA] view", err.message || err);
+      }
+      return;
+    }
+
+    const docs = getAll();
+    const idx = docs.findIndex((d) => d.id === docId);
+    if (idx < 0) return;
+    docs[idx] = {
+      ...docs[idx],
+      viewCount: (docs[idx].viewCount || 0) + 1,
+      uniqueViewCount: (docs[idx].uniqueViewCount || 0) + 1,
+    };
+    saveLocal(docs);
+    viewed.push(docId);
+    sessionStorage.setItem(DOC_VIEWED_SESSION_KEY, JSON.stringify(viewed));
+  }
+
+  function bindDocumentViewTracking(root) {
+    if (!root || typeof IntersectionObserver === "undefined") return;
+    const items = root.querySelectorAll("[data-doc-id]");
+    if (!items.length) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting && entry.intersectionRatio >= 0.5) {
+            const id = entry.target.getAttribute("data-doc-id");
+            trackDocumentView(id);
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: [0.5, 0.7] }
+    );
+    items.forEach((el) => observer.observe(el));
+  }
+
+  function sumPublicationViews(filterFn) {
+    return getAll()
+      .filter(filterFn || (() => true))
+      .reduce(
+        (acc, d) => ({
+          people: acc.people + Number(d.uniqueViewCount || d.viewCount || 0),
+          views: acc.views + Number(d.viewCount || 0),
+        }),
+        { people: 0, views: 0 }
+      );
+  }
+
   function init() {
     if (!cache) cache = initLocal();
   }
@@ -467,6 +590,10 @@ const SAC_DATA = (function () {
     addReaction,
     getUserReaction,
     reactionCounts,
+    formatViewStats,
+    trackDocumentView,
+    bindDocumentViewTracking,
+    sumPublicationViews,
     SOURCE_BY_ROLE,
     PUBLISH_ROLES,
     isUsingApi: () => useApi,

@@ -758,6 +758,13 @@ const SAC_API = (function () {
     return data.document;
   }
 
+  async function recordDocumentView(docId, viewerKey) {
+    return request("/documents/" + encodeURIComponent(String(docId || "").trim()) + "/view", {
+      method: "POST",
+      body: JSON.stringify({ viewerKey: viewerKey || "" }),
+    });
+  }
+
   async function getTariff(universite, role) {
     const q = new URLSearchParams({ universite, role });
     return request("/tariffs?" + q.toString());
@@ -1205,6 +1212,7 @@ const SAC_API = (function () {
     updateDocument,
     deleteDocument,
     addReaction,
+    recordDocumentView,
     getTariff,
     getCampusTariffs,
     updateCampusTariffs,

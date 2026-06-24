@@ -453,7 +453,7 @@
           <div class="doc-item__icon">${icons[doc.mediaCategory] || "📄"}</div>
           <div class="doc-item__content">
             <div class="doc-item__title">${escapeHtml(doc.title)}</div>
-            <div class="doc-item__meta">${escapeHtml(doc.date)} · ${escapeHtml(doc.classe || doc.courseCode || "")}</div>
+            <div class="doc-item__meta">${escapeHtml(doc.date)} · ${escapeHtml(doc.classe || doc.courseCode || "")} ${typeof SAC_DATA !== "undefined" && SAC_DATA.formatViewStats ? SAC_DATA.formatViewStats(doc) : ""}</div>
             ${doc.description ? `<p class="doc-item__desc">${escapeHtml(doc.description)}</p>` : ""}
             ${reactHtml || ""}
           </div>

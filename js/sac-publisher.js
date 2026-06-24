@@ -298,6 +298,9 @@ function SAC_initPublisherPage(config) {
           d.allowReactions && !isCampus
             ? `<span class="react-sum">👍 ${c.useful} · ❓ ${c.question} · 🙏 ${c.thanks}</span>`
             : "";
+        const viewInfo = SAC_DATA.formatViewStats
+          ? SAC_DATA.formatViewStats(d)
+          : "";
         const cls = d.audienceType === "section"
           ? `<span class="pub-class-tag">Section · ${escapeHtml(d.sectionName || d.filiere || "")}</span>`
           : d.classe
@@ -308,7 +311,7 @@ function SAC_initPublisherPage(config) {
         return `<div class="pub-item">
           <div>
             <strong>${mediaBadge(d)} ${escapeHtml(d.title)}</strong> ${cls}${attachmentsLabel(d)}
-            <div class="pub-meta">${d.type} · ${d.date} · ${escapeHtml(d.author)} ${reactInfo}</div>
+            <div class="pub-meta">${d.type} · ${d.date} · ${escapeHtml(d.author)} ${viewInfo} ${reactInfo}</div>
             ${d.description ? `<p class="pub-desc">${escapeHtml(d.description)}</p>` : ""}
           </div>
           <div class="pub-actions">

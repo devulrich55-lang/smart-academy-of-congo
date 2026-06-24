@@ -411,6 +411,22 @@
         <div class="task-stat task-stat--ok"><strong id="statOnline">0</strong><span>Utilisateurs en ligne</span></div>
       </div>
 
+      <div class="panel" style="margin-bottom:1.25rem;border-color:var(--uni);">
+        <div class="panel__head"><h2>📢 Publier &amp; audience</h2></div>
+        <div class="panel__body">
+          <p class="page-desc" style="margin:0 0 1rem;font-size:0.88rem;">
+            En tant qu'<strong>Admin université (DG)</strong>, publiez des annonces, documents et médias pour vos étudiants.
+            Le nombre de <strong>lecteurs uniques</strong> est comptabilisé automatiquement (professeurs, DG, annonces campus).
+          </p>
+          <div style="display:flex;flex-wrap:wrap;gap:0.5rem;margin-bottom:0.75rem;">
+            <button type="button" class="btn btn--role" data-goto="communiquer">Publier un communiqué</button>
+            <button type="button" class="btn btn--ghost" data-goto="communiquer" data-comm-focus="portail">Portail campus</button>
+            <button type="button" class="btn btn--ghost" data-goto="communiquer" data-comm-focus="national">Espace national</button>
+          </div>
+          <p id="pubAudienceHint" style="font-size:0.85rem;color:var(--muted);margin:0;">Chargement des statistiques d'audience…</p>
+        </div>
+      </div>
+
       <div class="profile-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1.25rem;margin-bottom:1.25rem;">
         <div class="panel panel--workspace">
           <div class="panel__head"><h2>Priorités du jour</h2></div>
@@ -1280,7 +1296,18 @@
           <div class="task-stat"><strong>${s.studentsCount}</strong><span>Étudiants</span></div>
           <div class="task-stat"><strong>${s.professorsCount}</strong><span>Professeurs</span></div>
           <div class="task-stat"><strong>${s.campusAnnouncements}</strong><span>Annonces campus</span></div>
-          <div class="task-stat"><strong>${s.nationalAnnouncements}</strong><span>National</span></div>`;
+          <div class="task-stat"><strong>${s.nationalAnnouncements}</strong><span>National</span></div>
+          <div class="task-stat task-stat--ok"><strong>${s.publicationViews?.people || 0}</strong><span>Lecteurs publications</span></div>`;
+
+        const pubHint = document.getElementById("pubAudienceHint");
+        if (pubHint) {
+          const pv = s.publicationViews || { people: 0, views: 0 };
+          pubHint.textContent =
+            pv.people +
+            " personne(s) ont consulté les publications de votre campus (DG, professeurs, documents) — " +
+            pv.views +
+            " vue(s) au total.";
+        }
 
         const priorities = [];
         if (s.openReclamations)
@@ -2413,6 +2440,12 @@
       }
 
       async function refreshAllAsync() {
+        if (typeof SAC_DATA !== "undefined" && SAC_DATA.ensureReady) {
+          await SAC_DATA.ensureReady();
+        }
+        if (typeof SAC_HOME_NEWS !== "undefined" && SAC_HOME_NEWS.ensureSynced) {
+          await SAC_HOME_NEWS.ensureSynced();
+        }
         if (typeof SAC_ADMIN_ACCOUNTS !== "undefined") {
           await SAC_ADMIN_ACCOUNTS.load(session);
         }
@@ -2427,6 +2460,7 @@
       document.querySelectorAll("[data-goto]").forEach((b) => {
         b.addEventListener("click", () => {
           showSection(b.dataset.goto);
+          if (b.dataset.commFocus) setCommFilter(b.dataset.commFocus);
           if (b.dataset.focus === "payments") {
             document.getElementById("panelPayments")?.scrollIntoView({ behavior: "smooth" });
           }
@@ -2739,6 +2773,7 @@
       await loadCampusTariffForm();
       await loadCampusProfessors();
       await refreshAllAsync();
+      initPublishers();
       renderSectionPickList();
       renderSectionsTable();
       initSectionPublisher();

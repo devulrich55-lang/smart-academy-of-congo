@@ -63,6 +63,34 @@ const SAC_UNIVERSITY = (function () {
       (d) => d.source === "administration" && d.universite === code && d.audienceType !== "section"
     ).length;
 
+    const docViews = SAC_DATA.sumPublicationViews
+      ? SAC_DATA.sumPublicationViews((d) => {
+          if (d.universite && code && d.universite !== code) return false;
+          return (
+            d.source === "administration" ||
+            d.source === "professeur" ||
+            d.source === "assistant"
+          );
+        })
+      : { people: 0, views: 0 };
+    let hnViews = { people: 0, views: 0 };
+    if (typeof SAC_HOME_NEWS !== "undefined" && SAC_HOME_NEWS.getAll) {
+      const authorId = String(session?.identifiant || "").toLowerCase();
+      hnViews = SAC_HOME_NEWS.getAll()
+        .filter(
+          (n) =>
+            (n.scope === "university" && String(n.universite || "").toLowerCase() === String(code).toLowerCase()) ||
+            (n.scope === "national" && String(n.authorId || "").toLowerCase() === authorId)
+        )
+        .reduce(
+          (acc, n) => ({
+            people: acc.people + Number(n.uniqueViewCount || n.viewCount || 0),
+            views: acc.views + Number(n.viewCount || 0),
+          }),
+          { people: 0, views: 0 }
+        );
+    }
+
     const apiSummary =
       typeof SAC_ADMIN_ACCOUNTS !== "undefined" ? SAC_ADMIN_ACCOUNTS.getSummary() : null;
 
@@ -86,6 +114,10 @@ const SAC_UNIVERSITY = (function () {
       campusAnnouncements: campusNews,
       nationalAnnouncements: nationalNews,
       campusDocuments: campusDocs,
+      publicationViews: {
+        people: (docViews.people || 0) + (hnViews.people || 0),
+        views: (docViews.views || 0) + (hnViews.views || 0),
+      },
       totalPriority: c.ouverte + pendingPayments,
     };
   }

@@ -152,6 +152,14 @@
   white-space: nowrap;
 }
 
+.doc-views {
+  display: inline-block;
+  font-weight: 600;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  margin-left: 0.35rem;
+}
+
 .hn-card__deadline {
   font-size: 0.8rem;
   color: var(--warning, #b45309);
