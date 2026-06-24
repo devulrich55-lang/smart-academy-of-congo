@@ -917,6 +917,22 @@ const SAC_API = (function () {
     });
   }
 
+  async function listPlatformPendingStudents(opts = {}) {
+    const params = new URLSearchParams();
+    if (opts.status) params.set("status", opts.status);
+    if (opts.universite) params.set("universite", opts.universite);
+    const q = params.toString() ? "?" + params.toString() : "";
+    const data = await request("/admin/students/pending" + q);
+    return data.students || [];
+  }
+
+  async function approvePlatformStudent(email, payload) {
+    return request("/admin/students/" + encodeURIComponent(String(email || "").trim()) + "/approval", {
+      method: "PATCH",
+      body: JSON.stringify(payload || { status: "approved" }),
+    });
+  }
+
   async function getInstitutionalSummary() {
     return request("/admin/institutional/summary");
   }
@@ -1217,6 +1233,8 @@ const SAC_API = (function () {
     getPlatformAccountsSummary,
     listPlatformAccounts,
     deletePlatformAccount,
+    listPlatformPendingStudents,
+    approvePlatformStudent,
     getInstitutionalSummary,
     listInstitutionalAdmins,
     createInstitutionalAdmin,

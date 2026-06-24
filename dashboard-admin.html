@@ -14,6 +14,7 @@
   <link rel="stylesheet" href="css/dashboard.css" />
   <link rel="stylesheet" href="css/theme.css" />
   <link rel="stylesheet" href="css/admin-workspace.css" />
+  <link rel="stylesheet" href="css/payments.css?v=20260624f" />
   <link rel="stylesheet" href="css/presence.css" />
   <link rel="stylesheet" href="css/home-news.css" />
   <link rel="stylesheet" href="css/mobile.css" />
@@ -36,6 +37,7 @@
     <nav class="nav-tabs" aria-label="Navigation institutionnelle">
       <button type="button" class="nav-tab active" data-section="accueil">Tableau de bord</button>
       <button type="button" class="nav-tab nav-tab--priority" data-section="administrateurs">👥 Administrateurs</button>
+      <button type="button" class="nav-tab nav-tab--priority ws-only-super-hidden" data-section="validations" id="tabValidations" hidden>✅ Validations étudiants</button>
       <button type="button" class="nav-tab nav-tab--priority" data-section="activites">📋 Activités</button>
       <button type="button" class="nav-tab nav-tab--priority ws-only-ministere-hidden" data-section="publier" id="tabPublier">📢 Publier</button>
       <button type="button" class="nav-tab nav-tab--priority ws-only-ministere-hidden" data-section="live" id="tabLive">🎥 Espace live</button>
@@ -157,6 +159,7 @@
           <button type="button" class="btn btn--role ws-only-ministere-hidden" data-goto="publier" id="btnQuickPublier">📢 Publier sur le panneau public</button>
           <button type="button" class="btn btn--role ws-only-ministere-hidden" data-goto="live" id="btnQuickLive">🎥 Live avec les universités</button>
           <button type="button" class="btn btn--role ws-only-super-hidden" data-goto="create" id="btnQuickCreate">➕ Créer un compte</button>
+          <button type="button" class="btn btn--role ws-only-super-hidden" data-goto="validations" id="btnQuickValidations" hidden>✅ Valider inscriptions étudiants</button>
           <button type="button" class="btn btn--role ws-only-super-hidden" data-goto="tarifs" id="btnQuickTarifs" hidden>💰 Tarifs inscription</button>
           <button type="button" class="btn btn--ghost" data-goto="securite">🔒 Politique de sécurité</button>
         </div>
@@ -199,6 +202,52 @@
               </tbody>
             </table>
           </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- VALIDATIONS ÉTUDIANTS (Super Admin) -->
+    <section class="page-section ws-only-super-hidden" id="section-validations">
+      <h1 class="page-title">Validations inscriptions étudiants</h1>
+      <p class="page-desc">
+        En tant que <strong>Super Admin</strong>, vous pouvez valider ou refuser l'inscription de
+        <strong>tout étudiant</strong>, toutes universités confondues. La validation est enregistrée sur le serveur
+        et active le compte sur tous les appareils.
+      </p>
+
+      <div class="panel panel--ws">
+        <div class="panel__head" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.5rem;">
+          <h2>Étudiants en attente</h2>
+          <span id="platformValidCount" style="font-size:0.82rem;color:var(--muted);">—</span>
+        </div>
+        <div class="panel__body">
+          <div class="prof-toolbar" style="margin-bottom:1rem;flex-wrap:wrap;">
+            <select class="fi" id="validStatusFilter" style="min-width:160px;border-radius:100px;padding:0.55rem 0.85rem;">
+              <option value="pending">En attente</option>
+              <option value="approved">Déjà validés</option>
+              <option value="rejected">Refusés</option>
+              <option value="all">Tous</option>
+            </select>
+            <select class="fi" id="validCampusFilter" data-sac-universities data-empty-label="Toutes les universités" style="min-width:220px;border-radius:100px;padding:0.55rem 0.85rem;"></select>
+            <button type="button" class="btn btn--ghost btn--sm" id="btnRefreshValidations">Actualiser</button>
+          </div>
+          <div style="overflow-x:auto;">
+            <table class="section-table">
+              <thead>
+                <tr>
+                  <th>Étudiant</th>
+                  <th>E-mail</th>
+                  <th>Matricule</th>
+                  <th>Université</th>
+                  <th>Filière</th>
+                  <th>Statut</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="platformValidTable"></tbody>
+            </table>
+          </div>
+          <p class="empty-tasks" id="platformValidEmpty" style="display:none;">Aucun étudiant dans cette catégorie.</p>
         </div>
       </div>
     </section>
@@ -530,7 +579,7 @@
   <script src="js/sac-identity.js"></script>
   <script src="js/sac-sections.js"></script>
   <script src="js/sac-session.js"></script>
-  <script src="js/sac-api.js"></script>
+  <script src="js/sac-api.js?v=20260624f"></script>
   <script src="js/sac-university-logo.js"></script>
   <script src="js/sac-institutional-admin.js"></script>
   <link rel="stylesheet" href="css/webrtc-room.css" />
@@ -541,7 +590,7 @@
   <script src="js/sac-platform-registry.js"></script>
   <script src="js/sac-tariffs.js?v=20260623b"></script>
   <script src="js/sac-admin-activities.js"></script>
-  <script src="js/sac-admin-dashboard.js?v=20260624d"></script>
+  <script src="js/sac-admin-dashboard.js?v=20260624f"></script>
   <script>
     SAC_ADMIN_DASHBOARD.init();
   </script>

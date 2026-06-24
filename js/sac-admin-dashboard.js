@@ -142,6 +142,111 @@ const SAC_ADMIN_DASHBOARD = (function () {
       const session = SAC_SESSION.getSession();
       if (session?.role === "superadmin") loadPlatformTariffForm(session);
     }
+    if (id === "validations") {
+      renderPlatformValidations();
+    }
+  }
+
+  function escHtml(v) {
+    return String(v ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  function uniLabel(code) {
+    if (typeof SAC_UNIVERSITIES !== "undefined" && SAC_UNIVERSITIES.getName) {
+      return SAC_UNIVERSITIES.getName(code) || code || "—";
+    }
+    return code || "—";
+  }
+
+  async function renderPlatformValidations() {
+    const tbody = document.getElementById("platformValidTable");
+    const empty = document.getElementById("platformValidEmpty");
+    const countEl = document.getElementById("platformValidCount");
+    if (!tbody || typeof SAC_API === "undefined" || !SAC_API.listPlatformPendingStudents) return;
+
+    const status = document.getElementById("validStatusFilter")?.value || "pending";
+    const campus = document.getElementById("validCampusFilter")?.value || "";
+    tbody.innerHTML =
+      '<tr><td colspan="7" style="color:var(--muted);padding:1.5rem;text-align:center;">Chargement…</td></tr>';
+
+    try {
+      const online = await SAC_API.ensureOnline();
+      if (!online) throw new Error("Serveur hors ligne");
+      const students = await SAC_API.listPlatformPendingStudents({
+        status,
+        universite: campus || undefined,
+      });
+      if (countEl) countEl.textContent = students.length + " étudiant(s)";
+      if (!students.length) {
+        tbody.innerHTML = "";
+        if (empty) empty.style.display = "block";
+        return;
+      }
+      if (empty) empty.style.display = "none";
+      tbody.innerHTML = students
+        .map((u) => {
+          const name = [u.prenom, u.nom].filter(Boolean).join(" ") || u.displayName || u.identifiant;
+          const st = u.sectionApproval || "pending";
+          const stCls =
+            st === "approved" ? "pay-status--ok" : st === "rejected" ? "pay-status--bad" : "pay-status--wait";
+          const stLabel =
+            st === "approved" ? "Validé" : st === "rejected" ? "Refusé" : "En attente";
+          const actions =
+            st === "pending"
+              ? `<button type="button" class="btn btn--role btn--sm" data-sa-approve="${escHtml(u.identifiant || u.email)}">Valider</button> ` +
+                `<button type="button" class="btn btn--ghost btn--sm" data-sa-reject="${escHtml(u.identifiant || u.email)}">Refuser</button>`
+              : st === "approved"
+                ? '<span style="color:var(--muted);font-size:0.8rem;">—</span>'
+                : `<button type="button" class="btn btn--ghost btn--sm" data-sa-approve="${escHtml(u.identifiant || u.email)}">Réactiver</button>`;
+          return `<tr>
+            <td><strong>${escHtml(name)}</strong></td>
+            <td>${escHtml(u.identifiant || u.email)}</td>
+            <td><code>${escHtml(u.matricule || "—")}</code></td>
+            <td>${escHtml(uniLabel(u.universite))}</td>
+            <td>${escHtml(u.filiere || "—")}</td>
+            <td><span class="${stCls}">${stLabel}</span></td>
+            <td style="white-space:nowrap;">${actions}</td>
+          </tr>`;
+        })
+        .join("");
+
+      tbody.querySelectorAll("[data-sa-approve]").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const email = btn.getAttribute("data-sa-approve");
+          if (!confirm("Valider l'inscription de " + email + " ?")) return;
+          try {
+            await SAC_API.approvePlatformStudent(email, { status: "approved" });
+            toast("Étudiant validé — accès actif sur tous les appareils.");
+            await renderPlatformValidations();
+          } catch (err) {
+            alert(err.message || "Validation impossible.");
+          }
+        });
+      });
+      tbody.querySelectorAll("[data-sa-reject]").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const email = btn.getAttribute("data-sa-reject");
+          const reason = window.prompt("Motif du refus (optionnel) :") || "";
+          if (!confirm("Refuser l'inscription de " + email + " ?")) return;
+          try {
+            await SAC_API.approvePlatformStudent(email, { status: "rejected", reason });
+            toast("Inscription refusée.");
+            await renderPlatformValidations();
+          } catch (err) {
+            alert(err.message || "Refus impossible.");
+          }
+        });
+      });
+    } catch (err) {
+      tbody.innerHTML =
+        '<tr><td colspan="7" style="color:#b45309;padding:1rem;">' +
+        escHtml(err.message || "Chargement impossible.") +
+        "</td></tr>";
+    }
   }
 
   function updatePlatformTariffHints() {
@@ -464,9 +569,12 @@ const SAC_ADMIN_DASHBOARD = (function () {
     if (isSuper) {
       document.getElementById("tabCreate")?.removeAttribute("hidden");
       document.getElementById("tabTarifs")?.removeAttribute("hidden");
+      document.getElementById("tabValidations")?.removeAttribute("hidden");
       document.getElementById("btnQuickTarifs")?.removeAttribute("hidden");
+      document.getElementById("btnQuickValidations")?.removeAttribute("hidden");
       document.getElementById("section-create")?.classList.remove("ws-only-super-hidden");
       document.getElementById("section-tarifs")?.classList.remove("ws-only-super-hidden");
+      document.getElementById("section-validations")?.classList.remove("ws-only-super-hidden");
       document.querySelectorAll(".ws-only-super-hidden").forEach((el) => el.classList.remove("ws-only-super-hidden"));
       document.querySelectorAll(".col-actions").forEach((c) => (c.style.display = ""));
       const hint = document.getElementById("listHint");
@@ -967,6 +1075,12 @@ const SAC_ADMIN_DASHBOARD = (function () {
     if (isSuper) {
       startPresencePolling();
       loadPlatformTariffForm(session);
+      if (typeof SAC_UNIVERSITIES !== "undefined") {
+        SAC_UNIVERSITIES.populateAll("#validCampusFilter");
+      }
+      document.getElementById("validStatusFilter")?.addEventListener("change", renderPlatformValidations);
+      document.getElementById("validCampusFilter")?.addEventListener("change", renderPlatformValidations);
+      document.getElementById("btnRefreshValidations")?.addEventListener("click", renderPlatformValidations);
       document.addEventListener("visibilitychange", () => {
         if (document.hidden) stopPresencePolling();
         else startPresencePolling();

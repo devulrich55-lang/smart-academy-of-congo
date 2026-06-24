@@ -467,18 +467,18 @@ const SAC_SECTION_APPROVAL = (function () {
         "</ul>";
       if (source === "login") {
         return {
-          icon: "📋",
-          title: "Compte non activé — action requise",
+          icon: "⏳",
+          title: "Compte en attente de validation",
           lead:
-            "Votre compte étudiant est enregistré mais vous ne pouvez pas encore accéder à votre espace.",
+            "Votre compte étudiant est enregistré sur la plateforme mais n'est pas encore activé par votre section.",
           detailHtml:
-            "Vous devez vous <strong>présenter physiquement à la section de votre filière</strong> avec votre " +
-            "<strong>dossier complet</strong> pour la validation de votre inscription, " +
-            "<strong>dans un délai de 24 heures</strong> à compter de votre demande." +
+            "Le <strong>chef de section de votre filière</strong> doit valider votre inscription " +
+            "<strong>directement sur Smart Academy</strong> (onglet Validation). " +
+            "Aucun déplacement n'est requis — la validation se fait en ligne, en principe sous <strong>24 heures</strong>." +
             dossierHtml,
           hint:
-            "Le chef de section vérifiera votre dossier puis activera votre compte. Reconnectez-vous ensuite avec votre e-mail et mot de passe.",
-          showDossier: true,
+            "Une fois validé, reconnectez-vous avec votre <strong>matricule</strong> ou votre e-mail et votre mot de passe sur n'importe quel appareil.",
+          showDossier: false,
         };
       }
       return {
@@ -559,13 +559,27 @@ const SAC_SECTION_APPROVAL = (function () {
   function enrichSession(session) {
     if (!session?.identifiant) return session;
     const local = findLocalUser(session.identifiant);
-    if (!local?.sectionApproval) return session;
-    return {
-      ...session,
-      sectionApproval: local.sectionApproval,
-      sectionRejectionReason: local.sectionRejectionReason || null,
-      sectionApprovedAt: local.sectionApprovedAt || session.sectionApprovedAt || null,
-    };
+    const serverApproved = isApproved(session);
+    const localApproved = local ? isApproved(local) : false;
+    if (serverApproved || localApproved) {
+      return {
+        ...session,
+        sectionApproval: STATUS.approved,
+        sectionApprovedAt:
+          session.sectionApprovedAt || local?.sectionApprovedAt || null,
+        sectionApprovedBy:
+          session.sectionApprovedBy || local?.sectionApprovedBy || null,
+      };
+    }
+    if (local?.sectionApproval) {
+      return {
+        ...session,
+        sectionApproval: local.sectionApproval,
+        sectionRejectionReason: local.sectionRejectionReason || null,
+        sectionApprovedAt: local.sectionApprovedAt || session.sectionApprovedAt || null,
+      };
+    }
+    return session;
   }
 
   function shouldBlockDashboard(session) {
@@ -770,31 +784,41 @@ const SAC_SECTION_APPROVAL = (function () {
   }
 
   async function approveStudent(email, sectionSession) {
+    let apiSynced = false;
     if (typeof SAC_API !== "undefined" && SAC_API.approveSectionStudent) {
+      const online = await SAC_API.ensureOnline();
+      if (!online) {
+        throw new Error(
+          "Connexion au serveur impossible. La validation doit être enregistrée en ligne pour activer le compte sur tous les appareils."
+        );
+      }
       try {
-        const online = await SAC_API.ensureOnline();
-        if (online) {
-          await SAC_API.approveSectionStudent(email, { status: "approved" });
-        }
+        await SAC_API.approveSectionStudent(email, { status: "approved" });
+        apiSynced = true;
       } catch (err) {
-        console.warn("[SAC_SECTION_APPROVAL] API validation:", err.message || err);
+        throw new Error(
+          (err.message || "Validation serveur refusée.") +
+            " Le compte restera bloqué sur les autres téléphones tant que la validation n'est pas enregistrée sur le serveur."
+        );
       }
     }
-    return approve(email, sectionSession, { scope: "student" });
+    const user = await approve(email, sectionSession, { scope: "student" });
+    if (apiSynced) user._apiSynced = true;
+    return user;
   }
 
   async function rejectStudent(email, sectionSession, reason) {
     if (typeof SAC_API !== "undefined" && SAC_API.approveSectionStudent) {
-      try {
-        const online = await SAC_API.ensureOnline();
-        if (online) {
+      const online = await SAC_API.ensureOnline();
+      if (online) {
+        try {
           await SAC_API.approveSectionStudent(email, {
             status: "rejected",
             reason: reason || "",
           });
+        } catch (err) {
+          throw new Error(err.message || "Rejet serveur impossible.");
         }
-      } catch (err) {
-        console.warn("[SAC_SECTION_APPROVAL] API rejet:", err.message || err);
       }
     }
     return reject(email, sectionSession, reason, { scope: "student" });
