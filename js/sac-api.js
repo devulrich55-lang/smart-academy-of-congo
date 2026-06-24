@@ -91,8 +91,12 @@ const SAC_API = (function () {
   };
 
   function apiErrorMessage(data) {
-    const code = data && data.error;
-    return (data && data.message) || ERROR_MESSAGES[code] || code || "Erreur serveur";
+    const payload =
+      data && data.detail && typeof data.detail === "object" && !Array.isArray(data.detail)
+        ? data.detail
+        : data;
+    const code = payload && payload.error;
+    return (payload && payload.message) || ERROR_MESSAGES[code] || code || "Erreur serveur";
   }
 
   function isCrossOriginApi() {
@@ -272,10 +276,14 @@ const SAC_API = (function () {
     }
 
     if (!res.ok) {
+      const payload =
+        data && data.detail && typeof data.detail === "object" && !Array.isArray(data.detail)
+          ? data.detail
+          : data;
       const err = new Error(apiErrorMessage(data));
-      err.code = data.error;
+      err.code = payload.error || data.error;
       err.status = res.status;
-      if (data.error === "USER_NOT_FOUND" || data.error === "TOKEN_EXPIRED") {
+      if (payload.error === "USER_NOT_FOUND" || payload.error === "TOKEN_EXPIRED") {
         err.sessionInvalid = true;
         if (!options.softAuth) {
           clearClientSession();

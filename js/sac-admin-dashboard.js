@@ -578,21 +578,43 @@ const SAC_ADMIN_DASHBOARD = (function () {
       });
     }
 
-    function updateCreateFormForRole() {
-      const role = newRole?.value || "ministere";
-      if (ministereFields) ministereFields.hidden = role !== "ministere";
-      if (superadminFields) superadminFields.hidden = role !== "superadmin";
-      if (uniFields) uniFields.hidden = role !== "universite";
-
+    function syncRolePanelFields(role) {
+      const panels = [
+        { el: ministereFields, active: role === "ministere" },
+        { el: superadminFields, active: role === "superadmin" },
+        { el: uniFields, active: role === "universite" },
+      ];
+      panels.forEach(({ el, active }) => {
+        if (!el) return;
+        el.querySelectorAll("input, select, textarea").forEach((field) => {
+          if (!active) {
+            field.removeAttribute("required");
+            field.disabled = true;
+          } else {
+            field.disabled = false;
+          }
+        });
+      });
       setFieldRequired(["minEmail", "minPassword", "minNomComplet"], role === "ministere");
       setFieldRequired(["saEmail", "saPassword", "saNomComplet"], role === "superadmin");
       setFieldRequired(
         ["newEmail", "newPassword", "newPrenom", "newNom", "newTel", "newResponsable", "newCampusCatalog"],
         role === "universite"
       );
+      const logoInput = document.getElementById("newLogoUniversite");
+      if (logoInput) {
+        logoInput.required = role === "universite";
+        logoInput.disabled = role !== "universite";
+      }
+    }
+
+    function updateCreateFormForRole() {
+      const role = newRole?.value || "ministere";
+      if (ministereFields) ministereFields.hidden = role !== "ministere";
+      if (superadminFields) superadminFields.hidden = role !== "superadmin";
+      if (uniFields) uniFields.hidden = role !== "universite";
 
       const logoInput = document.getElementById("newLogoUniversite");
-      if (logoInput) logoInput.required = role === "universite";
 
       const pageDesc = document.getElementById("createPageDesc");
       const panelTitle = document.getElementById("createPanelTitle");
@@ -625,8 +647,10 @@ const SAC_ADMIN_DASHBOARD = (function () {
         }
         ensureAdminFacultySectionsList();
       } else {
-        resetAdminFacultySectionsList();
+        const list = document.getElementById("adminFacultySectionsList");
+        if (list) list.innerHTML = "";
       }
+      syncRolePanelFields(role);
       applySuperadminCreateLimit();
     }
     onCreateFormRoleChange = updateCreateFormForRole;
@@ -635,9 +659,9 @@ const SAC_ADMIN_DASHBOARD = (function () {
       const row = document.createElement("div");
       row.className = "ws-section-row";
       row.innerHTML = `
-        <input type="text" class="fi" data-sec="name" placeholder="Nom section / faculté *" required />
-        <input type="text" class="fi" data-sec="filiere" placeholder="Filière couverte *" required />
-        <input type="text" class="fi" data-sec="responsable" placeholder="Responsable *" required />
+        <input type="text" class="fi" data-sec="name" placeholder="Nom section / faculté *" />
+        <input type="text" class="fi" data-sec="filiere" placeholder="Filière couverte *" />
+        <input type="text" class="fi" data-sec="responsable" placeholder="Responsable *" />
         <button type="button" class="btn-remove-row" title="Supprimer">✕</button>`;
       row.querySelector(".btn-remove-row").addEventListener("click", () => {
         const list = document.getElementById("adminFacultySectionsList");
