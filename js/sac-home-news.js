@@ -5,6 +5,8 @@
  */
 const SAC_HOME_NEWS = (function () {
   const STORAGE_KEY = "sac_home_news";
+  const VIEWED_SESSION_KEY = "sac_hn_viewed_session";
+  const ANON_VIEWER_KEY = "sac_anon_viewer";
   const NATIONAL_CODE = "national";
   const MINISTRY_CODE = "ministere";
   const MINISTRY_NAME = "Ministère de l'Enseignement Supérieur et Universitaire (MESU)";
@@ -281,6 +283,8 @@ const SAC_HOME_NEWS = (function () {
     if (item.mediaUrl === undefined) item.mediaUrl = "";
     if (item.mediaType === undefined) item.mediaType = "";
     if (item.mediaName === undefined) item.mediaName = "";
+    if (item.viewCount === undefined) item.viewCount = 0;
+    if (item.uniqueViewCount === undefined) item.uniqueViewCount = 0;
     return item;
   }
 
@@ -582,6 +586,109 @@ const SAC_HOME_NEWS = (function () {
     saveAll(list.filter((n) => n.id !== id));
   }
 
+  function formatViewStats(item) {
+    const people = Number(item.uniqueViewCount || item.viewCount || 0);
+    const total = Number(item.viewCount || 0);
+    if (!people && !total) return "";
+    const label = people === 1 ? "personne" : "personnes";
+    const title = total > people ? `${total} consultation(s) au total` : "Nombre de lecteurs uniques";
+    return `<span class="hn-card__views" title="${escHtml(title)}">👁️ ${people} ${label}</span>`;
+  }
+
+  function getViewerKey() {
+    try {
+      const session =
+        typeof SAC_IDENTITY !== "undefined" && SAC_IDENTITY.getSession
+          ? SAC_IDENTITY.getSession()
+          : null;
+      if (session?.identifiant) return "u:" + String(session.identifiant).trim().toLowerCase();
+      let key = localStorage.getItem(ANON_VIEWER_KEY);
+      if (!key) {
+        key =
+          "a:" +
+          (typeof crypto !== "undefined" && crypto.randomUUID
+            ? crypto.randomUUID()
+            : uid());
+        localStorage.setItem(ANON_VIEWER_KEY, key);
+      }
+      return key;
+    } catch {
+      return "a:anon";
+    }
+  }
+
+  async function trackPublicationView(itemId) {
+    if (!itemId) return;
+    let viewed = [];
+    try {
+      viewed = JSON.parse(sessionStorage.getItem(VIEWED_SESSION_KEY) || "[]");
+    } catch {
+      viewed = [];
+    }
+    if (viewed.includes(itemId)) return;
+
+    if (useApi() && typeof SAC_API !== "undefined" && SAC_API.recordHomeNewsView) {
+      try {
+        const online = await SAC_API.ensureOnline();
+        if (!online) return;
+        const result = await SAC_API.recordHomeNewsView(itemId, getViewerKey());
+        if (memoryList && result) {
+          memoryList = memoryList.map((n) =>
+            n.id === itemId
+              ? {
+                  ...n,
+                  viewCount: result.viewCount ?? n.viewCount,
+                  uniqueViewCount: result.uniqueViewCount ?? n.uniqueViewCount,
+                }
+              : n
+          );
+          saveAll(memoryList);
+          document.querySelectorAll(`[data-hn-id="${itemId}"] .hn-card__views`).forEach((el) => {
+            const people = result.uniqueViewCount || result.viewCount || 0;
+            const label = people === 1 ? "personne" : "personnes";
+            el.textContent = `👁️ ${people} ${label}`;
+          });
+        }
+        viewed.push(itemId);
+        sessionStorage.setItem(VIEWED_SESSION_KEY, JSON.stringify(viewed));
+      } catch (err) {
+        console.warn("[SAC_HOME_NEWS] view", err.message || err);
+      }
+      return;
+    }
+
+    const list = getAll();
+    const idx = list.findIndex((n) => n.id === itemId);
+    if (idx < 0) return;
+    list[idx] = {
+      ...list[idx],
+      viewCount: (list[idx].viewCount || 0) + 1,
+      uniqueViewCount: (list[idx].uniqueViewCount || 0) + 1,
+    };
+    saveAll(list);
+    viewed.push(itemId);
+    sessionStorage.setItem(VIEWED_SESSION_KEY, JSON.stringify(viewed));
+  }
+
+  function afterRenderFeed(root) {
+    if (!root || typeof IntersectionObserver === "undefined") return;
+    const cards = root.querySelectorAll("article.hn-card[data-hn-id]");
+    if (!cards.length) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting && entry.intersectionRatio >= 0.55) {
+            const id = entry.target.getAttribute("data-hn-id");
+            trackPublicationView(id);
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: [0.55, 0.75] }
+    );
+    cards.forEach((card) => observer.observe(card));
+  }
+
   function escHtml(s) {
     const d = document.createElement("div");
     d.textContent = s || "";
@@ -616,7 +723,7 @@ const SAC_HOME_NEWS = (function () {
           : '<span class="hn-card__pin" style="background:#1e40af;color:#fff;">🇨🇩 Espace national</span>'
         : "";
     return `
-      <article class="hn-card ${item.pinned ? "hn-card--pinned" : ""}" data-category="${item.category}" data-uni="${item.universite}" data-scope="${item.scope || SCOPES.university}">
+      <article class="hn-card ${item.pinned ? "hn-card--pinned" : ""}" data-hn-id="${escHtml(item.id)}" data-category="${item.category}" data-uni="${item.universite}" data-scope="${item.scope || SCOPES.university}">
         <div class="hn-card__top">
           <span class="hn-card__badge" style="background:${cat.color}">${cat.icon} ${escHtml(cat.label)}</span>
           ${nationalBadge}
@@ -630,6 +737,7 @@ const SAC_HOME_NEWS = (function () {
         <div class="hn-card__foot">
           <span class="hn-card__uni">${escHtml(item.universityName || item.universite)}</span>
           <span class="hn-card__date">${formatDate(item.createdAt)}</span>
+          ${formatViewStats(item)}
         </div>
         ${deadline}
         ${link}
@@ -703,6 +811,7 @@ const SAC_HOME_NEWS = (function () {
       } else {
         feed.innerHTML = items.map(renderCard).join("");
       }
+      afterRenderFeed(feed);
     }
 
     async function boot() {
@@ -992,6 +1101,10 @@ const SAC_HOME_NEWS = (function () {
               ${item.mediaUrl ? `<small style="display:block;color:var(--muted);">📎 ${escHtml(item.mediaName || "Fichier joint")}</small>` : ""}
               <p style="font-size:0.88rem;color:var(--muted);margin:0.35rem 0;">${escHtml(item.excerpt)}</p>
               <small style="color:var(--muted);">${formatDate(item.createdAt)}</small>
+              <small style="display:block;color:var(--primary);margin-top:0.25rem;font-weight:600;">
+                👁️ ${Number(item.uniqueViewCount || item.viewCount || 0)} personne(s)
+                ${item.viewCount ? ` · ${Number(item.viewCount)} vue(s)` : ""}
+              </small>
               <div class="hn-admin-item__actions">
                 <button type="button" class="btn btn--ghost btn--sm" data-edit="${item.id}">Modifier</button>
                 <button type="button" class="btn btn--ghost btn--sm" data-del="${item.id}" style="color:#b91c1c;">Supprimer</button>
@@ -1118,6 +1231,7 @@ const SAC_HOME_NEWS = (function () {
             <div class="hn-readonly-feed">${catItems.slice(0, 3).map(renderCard).join("")}</div>
           </div>`;
       }).join("");
+    afterRenderFeed(root);
   }
 
   async function renderNationalFeedReadonly(rootId) {
@@ -1135,6 +1249,7 @@ const SAC_HOME_NEWS = (function () {
       '<div class="hn-readonly-feed">' +
       items.map(renderCard).join("") +
       "</div>";
+    afterRenderFeed(root);
   }
 
   function initProfilePublishers(session) {
@@ -1184,6 +1299,7 @@ const SAC_HOME_NEWS = (function () {
     refreshFromServer,
     renderHomepage,
     renderCard,
+    afterRenderFeed,
     initPublisher,
     initUniversityPublisher,
     initMinistryPublisher,

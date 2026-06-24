@@ -988,6 +988,14 @@ const SAC_API = (function () {
     return data.items || [];
   }
 
+  async function recordHomeNewsView(itemId, viewerKey) {
+    return platformRequest("/platform/home-news/" + encodeURIComponent(String(itemId || "").trim()) + "/view", {
+      method: "POST",
+      auth: false,
+      body: JSON.stringify({ viewerKey: viewerKey || "" }),
+    });
+  }
+
   async function getCampusBranding(universite) {
     const code = encodeURIComponent(String(universite || "").trim());
     if (!code) return { logoUrl: null };
@@ -1220,6 +1228,7 @@ const SAC_API = (function () {
     getSectionPresence,
     getProfessorPresence,
     listHomeNews,
+    recordHomeNewsView,
     getCampusBranding,
     listCampusSectionsPublic,
     createHomeNews,

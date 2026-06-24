@@ -628,6 +628,7 @@ async function SAC_mountSectionPublicationsPage(session, opts) {
     } else {
       newsRoot.innerHTML =
         '<div class="hn-readonly-feed">' + news.map((n) => SAC_HOME_NEWS.renderCard(n)).join("") + "</div>";
+      if (SAC_HOME_NEWS.afterRenderFeed) SAC_HOME_NEWS.afterRenderFeed(newsRoot);
     }
   }
 

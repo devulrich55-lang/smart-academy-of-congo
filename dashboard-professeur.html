@@ -475,6 +475,7 @@
         if (!items.length) { el.innerHTML = ""; if (empty) empty.style.display = "block"; return; }
         if (empty) empty.style.display = "none";
         el.innerHTML = items.map((n) => SAC_HOME_NEWS.renderCard(n)).join("");
+        if (SAC_HOME_NEWS.afterRenderFeed) SAC_HOME_NEWS.afterRenderFeed(el);
       }
 
       function renderActivityStats() {
