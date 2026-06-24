@@ -419,8 +419,8 @@
             Le nombre de <strong>lecteurs uniques</strong> est comptabilisé automatiquement (professeurs, DG, annonces campus).
           </p>
           <div style="display:flex;flex-wrap:wrap;gap:0.5rem;margin-bottom:0.75rem;">
-            <button type="button" class="btn btn--role" data-goto="communiquer">Publier un communiqué</button>
-            <button type="button" class="btn btn--ghost" data-goto="communiquer" data-comm-focus="portail">Portail campus</button>
+            <button type="button" class="btn btn--role" data-goto="communiquer" data-comm-focus="campus-tous">👥 Publier pour tout le campus</button>
+            <button type="button" class="btn btn--ghost" data-goto="communiquer" data-comm-focus="etu">Annonce courte</button>
             <button type="button" class="btn btn--ghost" data-goto="communiquer" data-comm-focus="national">Espace national</button>
           </div>
           <p id="pubAudienceHint" style="font-size:0.85rem;color:var(--muted);margin:0;">Chargement des statistiques d'audience…</p>
@@ -472,13 +472,25 @@
       </p>
 
       <div class="comm-filter" id="commFilter">
-        <button type="button" class="active" data-comm="etu">📋 Annonces étudiants</button>
+        <button type="button" class="active" data-comm="campus-tous">👥 Tous les étudiants</button>
+        <button type="button" data-comm="etu">📋 Annonces courtes</button>
         <button type="button" data-comm="portail">📁 Portail campus</button>
         <button type="button" data-comm="national">🇨🇩 Espace national</button>
         <button type="button" data-comm="docs">📄 Documents officiels</button>
       </div>
 
-      <div class="comm-panel active panel--comm" id="commEtu" data-comm-panel="etu">
+      <div class="comm-panel active panel--comm" id="commCampusTous" data-comm-panel="campus-tous">
+        <div class="panel__head"><h2>Publication campus — tous les étudiants</h2></div>
+        <div class="panel__body">
+          <p class="page-desc" style="margin:0 0 1rem;font-size:0.88rem;">
+            Réservé au <strong>Directeur général (DG)</strong> : diffusez un communiqué, un PDF, une image, une audio ou une vidéo
+            visible par <strong>chaque étudiant inscrit à votre université</strong>, toutes filières et tous niveaux confondus.
+          </p>
+          <div id="campusWidePublisherRoot"></div>
+        </div>
+      </div>
+
+      <div class="comm-panel panel--comm" id="commEtu" data-comm-panel="etu">
         <div class="panel__head"><h2>Annonces — profil étudiants (mon université)</h2></div>
         <div class="panel__body">
           <p class="page-desc" style="margin:0 0 1rem;font-size:0.88rem;">Texte court visible <strong>uniquement</strong> sur le profil des étudiants de votre établissement.</p>
@@ -1969,6 +1981,9 @@
         if (publishersReady) return;
         SAC_HOME_NEWS.initProfilePublishers(session);
         SAC_HOME_NEWS.renderNationalFeedReadonly("nationalFeedReadonly");
+        if (typeof SAC_initCampusWidePublisher === "function") {
+          SAC_initCampusWidePublisher(session, "campusWidePublisherRoot");
+        }
         SAC_initPublisherPage({
           session,
           rootId: "publisherRoot",

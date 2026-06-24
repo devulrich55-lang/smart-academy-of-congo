@@ -145,13 +145,16 @@ const SAC_DATA = (function () {
   }
 
   /** Publications administration université (campus) — profil étudiants de l'établissement */
+  function isCampusWideAdminDoc(doc, studentUni) {
+    if (!doc || doc.source !== "administration") return false;
+    if (doc.audienceType === "section") return false;
+    if (!doc.universite) return true;
+    return universiteMatchDoc(doc.universite, studentUni);
+  }
+
   function getCampusPublicationsForStudent(student) {
-    return getForStudent(student).filter(
-      (d) =>
-        d.source === "administration" &&
-        d.audienceType !== "section" &&
-        (!d.universite || d.universite === student.universite)
-    );
+    const uni = student?.universite || "";
+    return getForStudent(student).filter((d) => isCampusWideAdminDoc(d, uni));
   }
 
   /** Annonces campus université — personnel (professeur / assistant) */
@@ -576,6 +579,7 @@ const SAC_DATA = (function () {
     getById,
     getForStudent,
     getTeachingForStudent,
+    isCampusWideAdminDoc,
     getCampusPublicationsForStudent,
     getCampusPublicationsForStaff,
     getSectionPublicationsForHead,

@@ -212,7 +212,15 @@ function SAC_initPublisherPage(config) {
     if (isCampus) {
       return {
         universite:
-          session.universite || session.codeUni || session.sigle || "",
+          (typeof SAC_UNIVERSITIES !== "undefined" && SAC_UNIVERSITIES.resolveId
+            ? SAC_UNIVERSITIES.resolveId(
+                session.universite || session.codeUni || session.sigle || ""
+              )
+            : null) ||
+          session.universite ||
+          session.codeUni ||
+          session.sigle ||
+          "",
         audienceType: "campus",
       };
     }
@@ -271,7 +279,9 @@ function SAC_initPublisherPage(config) {
         if (d.source !== source) return false;
         return (
           d.audienceType !== "section" &&
-          (!d.universite || d.universite === code)
+          SAC_DATA.isCampusWideAdminDoc
+            ? SAC_DATA.isCampusWideAdminDoc(d, code)
+            : !d.universite || d.universite === code
         );
       });
     }
@@ -666,6 +676,22 @@ async function SAC_mountSectionPublicationsPage(session, opts) {
     pubRoot.innerHTML =
       '<p class="page-desc" style="margin:0;padding:1rem;background:var(--bg);border-radius:8px;border:1px dashed var(--border);">Section non identifiée — impossible de publier. Contactez l\'administration université.</p>';
   }
+}
+
+/** Publication DG — visible par tous les étudiants du campus */
+function SAC_initCampusWidePublisher(session, rootId) {
+  if (!session || session.role !== "universite") return null;
+  return SAC_initPublisherPage({
+    session,
+    rootId: rootId || "campusWidePublisherRoot",
+    accentColor: "#0c3d6e",
+    pageTitle: "Publication — tous les étudiants de l'université",
+    pageDesc:
+      "<strong>Portée : campus entier.</strong> Ce message sera visible par <strong>tous les étudiants inscrits à votre établissement</strong> " +
+      "(profil « Mon université », documents officiels). Aucune restriction de filière, niveau ou classe.",
+    multiFile: true,
+    maxFiles: 10,
+  });
 }
 
 /** Espace publication sur l'onglet « Mon campus » (profil université) */

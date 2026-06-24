@@ -776,7 +776,7 @@
     <!-- DOCUMENTS -->
     <section class="page-section" id="section-documents">
       <h1 class="page-title">Documents & ressources</h1>
-      <p class="page-desc">Contenus de <strong>votre classe uniquement</strong> (même université, filière, niveau et groupe) : informations, PDF, images et audio. Réagissez aux publications de vos professeurs et assistants.</p>
+      <p class="page-desc">Contenus pour votre classe (professeurs, assistants) et publications officielles de votre université (DG — visibles par tout le campus).</p>
 
       <div class="panel">
         <div class="panel__head">
@@ -1337,6 +1337,7 @@
           ? campusDocs.map(renderDocItem).join("")
           : "";
         if (campusDocs.length) bindDocReactions(campusDocsEl);
+        if (SAC_DATA.bindDocumentViewTracking) SAC_DATA.bindDocumentViewTracking(campusDocsEl);
       }
       renderHomeNewsFeed("profileUniversityNews", uniNews, null);
 

@@ -367,13 +367,20 @@ const SAC_HOME_NEWS = (function () {
   }
 
   /** Annonces « mon université » — visibles sur le profil des étudiants de cet établissement uniquement */
+  function sameCampusCode(a, b) {
+    if (typeof SAC_UNIVERSITIES !== "undefined" && SAC_UNIVERSITIES.sameCampus) {
+      return SAC_UNIVERSITIES.sameCampus(a, b);
+    }
+    return String(a || "").trim().toLowerCase() === String(b || "").trim().toLowerCase();
+  }
+
   function getUniversityNewsForStudent(universiteCode) {
-    const code = String(universiteCode || "").trim().toLowerCase();
+    const code = universiteCode || "";
     if (!code) return [];
     return getAll().filter(
       (n) =>
         n.scope === SCOPES.university &&
-        String(n.universite || "").toLowerCase() === code &&
+        sameCampusCode(n.universite, code) &&
         n.published !== false &&
         !isExpired(n)
     );
