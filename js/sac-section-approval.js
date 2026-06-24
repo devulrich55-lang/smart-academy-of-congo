@@ -45,7 +45,14 @@ const SAC_SECTION_APPROVAL = (function () {
 
   function isExplicitlyClosed(user) {
     const raw = user?.sectionApproval;
-    return raw === STATUS.approved || raw === STATUS.rejected;
+    if (raw === STATUS.approved || raw === STATUS.rejected) return true;
+    const pay = user?.payment;
+    if (pay && typeof pay === "object") {
+      if (pay.sectionApproval === STATUS.approved || pay.sectionApproval === STATUS.rejected) {
+        return true;
+      }
+    }
+    return false;
   }
 
   function isApproved(userOrSession) {
@@ -256,9 +263,10 @@ const SAC_SECTION_APPROVAL = (function () {
           : matchesStudentSection(u, actor);
         if (!inScope) return;
         if (isExplicitlyClosed(u)) return;
+        if (!isPending(u)) return;
         mirrorLocalUser({
           ...u,
-          sectionApproval: STATUS.pending,
+          sectionApproval: u.sectionApproval || STATUS.pending,
           sectionApprovalRequestedAt:
             u.sectionApprovalRequestedAt || u.createdAt || new Date().toISOString(),
         });
@@ -762,10 +770,33 @@ const SAC_SECTION_APPROVAL = (function () {
   }
 
   async function approveStudent(email, sectionSession) {
+    if (typeof SAC_API !== "undefined" && SAC_API.approveSectionStudent) {
+      try {
+        const online = await SAC_API.ensureOnline();
+        if (online) {
+          await SAC_API.approveSectionStudent(email, { status: "approved" });
+        }
+      } catch (err) {
+        console.warn("[SAC_SECTION_APPROVAL] API validation:", err.message || err);
+      }
+    }
     return approve(email, sectionSession, { scope: "student" });
   }
 
   async function rejectStudent(email, sectionSession, reason) {
+    if (typeof SAC_API !== "undefined" && SAC_API.approveSectionStudent) {
+      try {
+        const online = await SAC_API.ensureOnline();
+        if (online) {
+          await SAC_API.approveSectionStudent(email, {
+            status: "rejected",
+            reason: reason || "",
+          });
+        }
+      } catch (err) {
+        console.warn("[SAC_SECTION_APPROVAL] API rejet:", err.message || err);
+      }
+    }
     return reject(email, sectionSession, reason, { scope: "student" });
   }
 

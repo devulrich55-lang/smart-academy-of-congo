@@ -650,6 +650,16 @@ const SAC_API = (function () {
     return data.students || [];
   }
 
+  async function approveSectionStudent(email, payload) {
+    return request(
+      "/sections/students/" + encodeURIComponent(String(email || "").trim()) + "/approval",
+      {
+        method: "PATCH",
+        body: JSON.stringify(payload || { status: "approved" }),
+      }
+    );
+  }
+
   /** Recteur : tente plusieurs routes pour lister tous les étudiants du campus. */
   async function listCampusSectionStudents(universite) {
     const uni = universite ? String(universite).trim() : "";
@@ -1139,6 +1149,7 @@ const SAC_API = (function () {
     createSectionStudent,
     createSectionHeadAccount,
     listSectionStudents,
+    approveSectionStudent,
     listCampusSectionStudents,
     listCampusProfessors,
     nominateProfessor,
