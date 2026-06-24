@@ -809,6 +809,7 @@ const SAC_SECTIONS = (function () {
       filiere: studentProfile.filiere,
       niveau: studentProfile.niveau,
       matricule: studentProfile.matricule,
+      sectionId: studentProfile.sectionId || studentSession.sectionId,
       nom:
         typeof SAC_IDENTITY !== "undefined"
           ? SAC_IDENTITY.formatFullName(studentProfile.prenom, studentProfile.nom)

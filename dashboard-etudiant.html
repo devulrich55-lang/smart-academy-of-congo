@@ -554,7 +554,17 @@
             <div class="fg">
               <label>Catégorie *</label>
               <div class="rec-category-quick" id="recCategorieQuickProfile" role="group" aria-label="Catégories fréquentes"></div>
-              <select class="fi" id="recCategorieProfile" required></select>
+              <select class="fi" id="recCategorieProfile" required>
+                <option value="">— Choisir une catégorie —</option>
+                <option value="academique">Réclamation académique</option>
+                <option value="finance">Finance</option>
+                <option value="administration">Administration</option>
+                <option value="stage">Réclamation liée au stage</option>
+                <option value="horaire">Relative aux horaires</option>
+                <option value="document">Réclamation sur le document</option>
+                <option value="stage_memoire">Stage et mémoire</option>
+                <option value="autre">Autres</option>
+              </select>
             </div>
             <div class="fg" id="wrapRecAutreProfile" style="display:none;">
               <label>Précisez (obligatoire si « Autres ») *</label>
@@ -810,7 +820,17 @@
             <div class="fg">
               <label>Catégorie *</label>
               <div class="rec-category-quick" id="recCategorieQuick" role="group" aria-label="Catégories fréquentes"></div>
-              <select class="fi" id="recCategorie" required></select>
+              <select class="fi" id="recCategorie" required>
+                <option value="">— Choisir une catégorie —</option>
+                <option value="academique">Réclamation académique</option>
+                <option value="finance">Finance</option>
+                <option value="administration">Administration</option>
+                <option value="stage">Réclamation liée au stage</option>
+                <option value="horaire">Relative aux horaires</option>
+                <option value="document">Réclamation sur le document</option>
+                <option value="stage_memoire">Stage et mémoire</option>
+                <option value="autre">Autres</option>
+              </select>
             </div>
             <div class="fg" id="wrapRecAutre" style="display:none;">
               <label>Précisez (obligatoire si « Autres ») *</label>
@@ -870,30 +890,42 @@
     <section class="page-section" id="section-frais">
       <h1 class="page-title">Frais académiques & paiement</h1>
       <p class="page-desc">
-        Consultez vos frais, payez via le <strong>compte bancaire partenaire de votre université</strong>
-        (Mobile Money ou virement). La plateforme ne conserve pas les fonds — l'université confirme chaque paiement.
+        Consultez vos frais, payez via le <strong>compte bancaire partenaire de votre université</strong>.
+        La plateforme ne conserve pas les fonds — l'université confirme chaque paiement.
       </p>
 
+      <div class="pay-hero" id="payHero">
+        <div class="pay-hero__ring" id="payProgressRing" style="--pct:0">
+          <div class="pay-hero__ring-inner"><span id="payProgressPct">0%</span></div>
+        </div>
+        <div>
+          <h2 class="pay-hero__title" id="payHeroTitle">Mon solde académique</h2>
+          <p class="pay-hero__sub" id="payHeroSub">Chargement de vos frais…</p>
+          <div id="paySettledBadge" style="display:none;" class="pay-settled-badge">✓ Soldé — tous vos frais sont payés</div>
+        </div>
+        <button type="button" class="btn-pay-main" id="btnPayMain" disabled>PAYER MAINTENANT</button>
+      </div>
+
+      <div class="pay-stats">
+        <div class="pay-stat">
+          <div class="pay-stat__label">Total frais</div>
+          <div class="pay-stat__value" id="feesTotal">—</div>
+        </div>
+        <div class="pay-stat">
+          <div class="pay-stat__label">Payé</div>
+          <div class="pay-stat__value pay-stat__value--ok" id="feesPaid">—</div>
+        </div>
+        <div class="pay-stat">
+          <div class="pay-stat__label">Reste à payer</div>
+          <div class="pay-stat__value pay-stat__value--warn" id="feesDue">—</div>
+        </div>
+      </div>
+
       <div class="pay-bank-card payment-panel" id="partnerBankCard">
-        <strong>Compte bancaire partenaire de votre établissement</strong>
+        <strong>🏦 Compte bancaire partenaire de votre établissement</strong>
         <p id="partnerBankInfo" style="font-size:0.88rem;color:var(--text-muted);margin:0.5rem 0 0;">
           Chargement…
         </p>
-      </div>
-
-      <div class="stats-grid" style="grid-template-columns:repeat(3,1fr);">
-        <div class="stat-card">
-          <div class="stat-card__label">Total frais</div>
-          <div class="stat-card__value" id="feesTotal">—</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-card__label">Payé</div>
-          <div class="stat-card__value stat-card__value--success" id="feesPaid">—</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-card__label">Reste à payer</div>
-          <div class="stat-card__value" style="color:var(--warning);" id="feesDue">—</div>
-        </div>
       </div>
 
       <div class="panel">
@@ -902,8 +934,8 @@
           <table>
             <thead>
               <tr>
-                <th>Libellé</th>
-                <th>Trimestre</th>
+                <th>Frais</th>
+                <th>Période</th>
                 <th>Montant</th>
                 <th>Statut</th>
                 <th>Date</th>
@@ -926,6 +958,7 @@
                 <th>Mode</th>
                 <th>Date</th>
                 <th>Statut</th>
+                <th></th>
               </tr>
             </thead>
             <tbody id="payHistoryTable"></tbody>
@@ -969,9 +1002,10 @@
   <script src="js/sac-api.js?v=20260617d"></script>
   <script src="js/sac-tariffs.js?v=20260623c"></script>
   <script src="js/sac-payments.js"></script>
+  <script src="js/sac-payment-receipt.js"></script>
   <script src="js/sac-university-logo.js"></script>
   <script src="js/sac-courses.js"></script>
-  <script src="js/sac-sections.js"></script>
+  <script src="js/sac-sections.js?v=20260624a"></script>
   <script src="js/sac-data.js"></script>
   <script src="js/sac-home-news.js"></script>
   <script src="js/sac-grades.js"></script>
@@ -1564,7 +1598,7 @@
         (partnerBankCache.note ? "<br/><em>" + partnerBankCache.note + "</em>" : "");
     }
 
-    function renderPayHistory(payments) {
+    function renderPayHistory(payments, profile) {
       const tbody = document.getElementById("payHistoryTable");
       const empty = document.getElementById("payHistoryEmpty");
       if (!tbody) return;
@@ -1576,17 +1610,33 @@
       if (empty) empty.style.display = "none";
       tbody.innerHTML = payments
         .map(
-          (p) =>
-            `<tr>
+          (p) => {
+            const receiptBtn =
+              p.status === "confirmed" && typeof SAC_PAYMENT_RECEIPT !== "undefined"
+                ? `<button type="button" class="btn-receipt" data-receipt="${p.id}">📄 Reçu</button>`
+                : "";
+            return `<tr>
               <td><code>${p.id}</code><br/><small>${p.reference || "—"}</small></td>
               <td>${p.amount} ${p.currency || "USD"}</td>
               <td>${SAC_PAYMENTS.methodLabel(p.method)}</td>
               <td>${(p.createdAt || "").slice(0, 10)}</td>
               <td><span class="${SAC_PAYMENTS.statusClass(p.status)}">${SAC_PAYMENTS.statusLabel(p.status)}</span></td>
-            </tr>`
+              <td>${receiptBtn}</td>
+            </tr>`;
+          }
         )
         .join("");
+      tbody.querySelectorAll("[data-receipt]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const pay = payments.find((p) => p.id === btn.dataset.receipt);
+          if (pay && typeof SAC_PAYMENT_RECEIPT !== "undefined") {
+            SAC_PAYMENT_RECEIPT.openReceipt(pay, profile, profile?.nomUniversite || profile?.universite);
+          }
+        });
+      });
     }
+
+    let lastFeesForPay = [];
 
     async function renderFees(profile, session) {
       session = session || SAC_SESSION.getSession();
@@ -1596,8 +1646,9 @@
         payments = await SAC_PAYMENTS.syncStudentPayments(session);
         fees = SAC_PAYMENTS.applyPaymentsToFees(fees, payments);
         await renderPartnerBank(session);
-        renderPayHistory(payments);
+        renderPayHistory(payments, profile);
       }
+      lastFeesForPay = fees;
       document.getElementById("feesTable").innerHTML = fees
         .map((f) => {
           const canPay =
@@ -1623,10 +1674,34 @@
         });
       });
       const summary = SAC_PAYMENTS ? SAC_PAYMENTS.summarizeFees(fees) : { paid: 0, due: 0, total: 0 };
+      const pct = SAC_PAYMENTS ? SAC_PAYMENTS.percentPaid(fees) : 0;
       document.getElementById("feesPaid").textContent = summary.paid + " $";
       document.getElementById("feesDue").textContent = summary.due + " $";
       const totalEl = document.getElementById("feesTotal");
       if (totalEl) totalEl.textContent = summary.total + " $";
+      const ring = document.getElementById("payProgressRing");
+      const pctEl = document.getElementById("payProgressPct");
+      if (ring) ring.style.setProperty("--pct", String(pct));
+      if (pctEl) pctEl.textContent = pct + "%";
+      const heroSub = document.getElementById("payHeroSub");
+      if (heroSub) {
+        heroSub.textContent =
+          summary.due > 0
+            ? "Reste à payer : " + summary.due + " USD sur " + summary.total + " USD"
+            : "Tous vos frais académiques sont réglés.";
+      }
+      const settledBadge = document.getElementById("paySettledBadge");
+      if (settledBadge) settledBadge.style.display = summary.due <= 0 && summary.total > 0 ? "inline-flex" : "none";
+      const btnMain = document.getElementById("btnPayMain");
+      const nextFee = fees.find(
+        (f) => f.status !== "Payé" && f.status !== "En attente de confirmation"
+      );
+      if (btnMain) {
+        btnMain.disabled = !nextFee;
+        btnMain.onclick = () => {
+          if (nextFee) openPayModal(nextFee, session);
+        };
+      }
       const statFrais = document.getElementById("statFrais");
       if (statFrais) statFrais.textContent = summary.paid + " / " + summary.total + " $";
     }
@@ -1770,11 +1845,50 @@
       }
     }
 
+    function initRecCategorySelect(selectEl, quickEl, wrapId, detailId) {
+      if (!selectEl) return;
+      if (typeof SAC_SECTIONS !== "undefined" && SAC_SECTIONS.studentCategoriesOptionsHtml) {
+        selectEl.innerHTML = SAC_SECTIONS.studentCategoriesOptionsHtml("— Choisir une catégorie —");
+      }
+      if (quickEl && typeof SAC_SECTIONS !== "undefined" && SAC_SECTIONS.studentCategoryChipsHtml) {
+        quickEl.innerHTML = SAC_SECTIONS.studentCategoryChipsHtml();
+        quickEl.querySelectorAll(".rec-cat-chip").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            selectEl.value = btn.dataset.cat;
+            selectEl.dispatchEvent(new Event("change"));
+            quickEl.querySelectorAll(".rec-cat-chip").forEach((b) => b.classList.remove("is-active"));
+            btn.classList.add("is-active");
+          });
+        });
+      }
+      const toggle = () => {
+        const isAutre =
+          typeof SAC_SECTIONS !== "undefined" && SAC_SECTIONS.isAutreCategory
+            ? SAC_SECTIONS.isAutreCategory(selectEl.value)
+            : selectEl.value === "autre";
+        const wrapEl = document.getElementById(wrapId);
+        const detailEl = document.getElementById(detailId);
+        if (wrapEl) wrapEl.style.display = isAutre ? "block" : "none";
+        if (detailEl) detailEl.required = isAutre;
+        if (quickEl) {
+          quickEl.querySelectorAll(".rec-cat-chip").forEach((b) => {
+            b.classList.toggle("is-active", b.dataset.cat === selectEl.value);
+          });
+        }
+      };
+      if (!selectEl.dataset.recBound) {
+        selectEl.addEventListener("change", toggle);
+        selectEl.dataset.recBound = "1";
+      }
+      toggle();
+    }
+
     function renderReclamations(session) {
       const p = getStudentProfile(session);
       const sec = SAC_SECTIONS.findSectionForStudent({
         universite: p.universite,
         filiere: p.filiere,
+        sectionId: p.sectionId || session.sectionId,
       });
       const sectionLabel = sec
         ? sec.name
@@ -1783,43 +1897,18 @@
       const profileSec = document.getElementById("profileRecSection");
       if (profileSec) profileSec.textContent = "Section : " + sectionLabel;
 
-      const catHtml = SAC_SECTIONS.studentCategoriesOptionsHtml("— Choisir une catégorie —");
-      const chipsHtml = SAC_SECTIONS.studentCategoryChipsHtml();
-      const catPairs = [
-        { sel: "recCategorie", quick: "recCategorieQuick", wrap: "wrapRecAutre", detail: "recAutreDetail" },
-        { sel: "recCategorieProfile", quick: "recCategorieQuickProfile", wrap: "wrapRecAutreProfile", detail: "recAutreDetailProfile" },
-      ];
-      catPairs.forEach(({ sel, quick, wrap, detail }) => {
-        const selectEl = document.getElementById(sel);
-        const quickEl = document.getElementById(quick);
-        if (selectEl) selectEl.innerHTML = catHtml;
-        if (quickEl) {
-          quickEl.innerHTML = chipsHtml;
-          quickEl.querySelectorAll(".rec-cat-chip").forEach((btn) => {
-            btn.addEventListener("click", () => {
-              selectEl.value = btn.dataset.cat;
-              selectEl.dispatchEvent(new Event("change"));
-              quickEl.querySelectorAll(".rec-cat-chip").forEach((b) => b.classList.remove("is-active"));
-              btn.classList.add("is-active");
-            });
-          });
-        }
-        if (!selectEl) return;
-        const toggle = () => {
-          const isAutre = SAC_SECTIONS.isAutreCategory(selectEl.value);
-          const wrapEl = document.getElementById(wrap);
-          const detailEl = document.getElementById(detail);
-          if (wrapEl) wrapEl.style.display = isAutre ? "block" : "none";
-          if (detailEl) detailEl.required = isAutre;
-          if (quickEl) {
-            quickEl.querySelectorAll(".rec-cat-chip").forEach((b) => {
-              b.classList.toggle("is-active", b.dataset.cat === selectEl.value);
-            });
-          }
-        };
-        selectEl.addEventListener("change", toggle);
-        toggle();
-      });
+      initRecCategorySelect(
+        document.getElementById("recCategorie"),
+        document.getElementById("recCategorieQuick"),
+        "wrapRecAutre",
+        "recAutreDetail"
+      );
+      initRecCategorySelect(
+        document.getElementById("recCategorieProfile"),
+        document.getElementById("recCategorieQuickProfile"),
+        "wrapRecAutreProfile",
+        "recAutreDetailProfile"
+      );
 
       const recs = SAC_SECTIONS.getReclamationsForStudent(session.identifiant);
       const el = document.getElementById("studentRecList");
