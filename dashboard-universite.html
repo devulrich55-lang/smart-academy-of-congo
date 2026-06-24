@@ -17,7 +17,7 @@
   <link rel="stylesheet" href="css/live.css" />
   <link rel="stylesheet" href="css/webrtc-room.css" />
   <link rel="stylesheet" href="css/presence.css" />
-  <link rel="stylesheet" href="css/payments.css" />
+  <link rel="stylesheet" href="css/payments.css?v=20260624c" />
   <style>
     .badge-role { background: rgba(13,122,74,0.12); color: var(--uni); }
     .btn--role { background: var(--uni); }
@@ -870,29 +870,16 @@
         </div>
         <div class="panel__body">
           <p class="page-desc" style="margin:0 0 1.25rem;">
-            Fixez les frais académiques de votre établissement (par trimestre). Les montants apparaissent dans l'onglet
-            <strong>Frais</strong> de chaque étudiant inscrit sur votre campus. Les frais d'inscription Smart Academy restent définis par le Super Administrateur.
+            Définissez les frais par catégorie (minerval, inscription, bibliothèque, laboratoire).
+            Les montants apparaissent dans l'onglet <strong>Frais</strong> de chaque étudiant.
           </p>
 
           <form id="formCampusTariffs">
-            <div class="tariff-form-card">
-              <div class="tariff-row">
-                <span class="tariff-row__icon" aria-hidden="true">📚</span>
-                <span class="tariff-row__label">Frais académiques / trimestre</span>
-                <div class="tariff-row__controls">
-                  <select class="tariff-currency" disabled aria-label="Devise"><option>USD</option></select>
-                  <input type="number" class="tariff-amount" id="tarifAcademicTrim" min="1" max="50000" step="0.01" required />
-                </div>
-                <span class="tariff-row__cdf" id="tarifAcademicTrimCdf">≈ — CDF</span>
-              </div>
-
-              <p class="tariff-info">
-                <strong>ℹ️ Application</strong><br />
-                Ce montant s'applique aux trois trimestres (T1, T2, T3) affichés sur le profil étudiant.
-                Conversion CDF : 1 USD = <span id="tarifCdfRateHint">2 300</span> FC (taux Super Administrateur).
-              </p>
-            </div>
-
+            <div class="tariff-form-card" id="tariffCategoriesForm"></div>
+            <p class="tariff-info" style="margin-top:0.75rem;">
+              <strong>Total annuel estimé :</strong> <span id="tarifCategoriesTotal">—</span> USD
+              · Conversion CDF : 1 USD = <span id="tarifCdfRateHint">2 300</span> FC
+            </p>
             <div class="tariffs-save-row">
               <button type="submit" class="btn btn--role">Enregistrer les frais académiques</button>
               <p id="tarifSaveMsg" style="display:none;margin:0;font-size:0.88rem;color:var(--uni);"></p>
@@ -901,12 +888,53 @@
         </div>
       </div>
 
-      <div class="panel">
+      <div class="panel panel--workspace" id="panelFinancial">
+        <div class="panel__head">
+          <h2>📊 Tableau de bord financier</h2>
+          <span style="font-size:0.82rem;color:var(--muted);">Suivi des paiements campus</span>
+        </div>
+        <div class="panel__body">
+          <div class="fin-stats" id="finStatsBar">
+            <div class="fin-stat"><strong id="finToday">0 $</strong><span>Paiements confirmés aujourd'hui</span></div>
+            <div class="fin-stat fin-stat--ok"><strong id="finConfirmed">0</strong><span>Paiements confirmés</span></div>
+            <div class="fin-stat fin-stat--warn"><strong id="finPending">0 $</strong><span>En attente de validation</span></div>
+            <div class="fin-stat"><strong id="finStudents">0</strong><span>Étudiants inscrits</span></div>
+          </div>
+          <div class="fin-tabs">
+            <button type="button" class="active" data-fin-tab="debtors">Étudiants débiteurs</button>
+            <button type="button" data-fin-tab="settled">Étudiants soldés</button>
+          </div>
+          <div style="overflow-x:auto;">
+            <table class="section-table">
+              <thead>
+                <tr>
+                  <th>Étudiant</th>
+                  <th>Matricule</th>
+                  <th>Total</th>
+                  <th>Payé</th>
+                  <th>Reste</th>
+                  <th>Statut</th>
+                </tr>
+              </thead>
+              <tbody id="finStudentsTable"></tbody>
+            </table>
+          </div>
+          <p class="empty-tasks" id="finStudentsEmpty" style="display:none;">Aucun étudiant dans cette catégorie.</p>
+        </div>
+      </div>
+
+      <div class="panel" id="panelPartnerBank">
         <div class="panel__head"><h2>🏦 Compte bancaire partenaire</h2></div>
         <div class="panel__body">
+          <div class="pay-security-banner pay-security-banner--uni" id="bankLockBanner">
+            <span class="pay-security-banner__icon" aria-hidden="true">🔒</span>
+            <div>
+              <strong>Sécurité du compte</strong>
+              <p id="bankLockText">Le compte est enregistré une seule fois puis verrouillé. Toute modification nécessite l'accord de toute l'administration (Recteur, DAF, Scolarité).</p>
+            </div>
+          </div>
           <p class="page-desc" style="margin:0 0 1rem;font-size:0.88rem;">
-            Chaque université reçoit les paiements des frais académiques sur <strong>son propre compte bancaire</strong>.
-            Les étudiants voient ces coordonnées dans leur onglet « Frais ».
+            Les étudiants paient <strong>100 % en ligne</strong> vers ce compte. Le numéro affiché aux étudiants est masqué (ex. <code>25XXXXXXXX89897</code>).
           </p>
           <form id="formPartnerBank" class="ws-form-grid ws-form-grid--compact">
             <div class="fg" style="grid-column:1/-1;">
@@ -920,6 +948,7 @@
             <div class="fg">
               <label for="bankAccountNumber">N° de compte *</label>
               <input type="text" class="fi" id="bankAccountNumber" required placeholder="Ex. 0123 4567 8901" />
+              <small class="field-hint" id="bankMaskedPreview"></small>
             </div>
             <div class="fg">
               <label for="bankCurrency">Devise principale</label>
@@ -928,15 +957,42 @@
                 <option value="CDF">CDF</option>
               </select>
             </div>
+            <div class="fg">
+              <label for="bankMobileOrange">Orange Money (campus)</label>
+              <input type="text" class="fi" id="bankMobileOrange" placeholder="+243 …" />
+            </div>
+            <div class="fg">
+              <label for="bankMobileMpesa">M-Pesa (campus)</label>
+              <input type="text" class="fi" id="bankMobileMpesa" placeholder="+243 …" />
+            </div>
             <div class="fg" style="grid-column:1/-1;">
               <label for="bankNote">Instructions pour les étudiants</label>
               <input type="text" class="fi" id="bankNote" placeholder="Ex. Indiquez votre matricule en référence de virement" />
             </div>
             <div class="fg" style="grid-column:1/-1;">
-              <button type="submit" class="btn btn--role">Enregistrer le compte bancaire</button>
+              <button type="submit" class="btn btn--role" id="btnSavePartnerBank">Enregistrer le compte bancaire</button>
               <p id="bankSaveMsg" style="display:none;margin:0.5rem 0 0;font-size:0.88rem;color:var(--uni);"></p>
             </div>
           </form>
+
+          <div id="bankChangeSection" style="display:none;margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid var(--border);">
+            <h3 style="margin:0 0 0.75rem;font-size:1rem;">Demander une modification (1 seule fois)</h3>
+            <form id="formBankChange" class="ws-form-grid ws-form-grid--compact">
+              <div class="fg" style="grid-column:1/-1;">
+                <label for="bankChangeReason">Motif de la modification *</label>
+                <textarea class="fi" id="bankChangeReason" rows="2" required placeholder="Ex. Changement de banque partenaire officiel…"></textarea>
+              </div>
+              <div class="fg" style="grid-column:1/-1;">
+                <button type="submit" class="btn btn--ghost">Soumettre à l'administration</button>
+              </div>
+            </form>
+          </div>
+
+          <div id="bankApprovalPanel" style="display:none;margin-top:1.25rem;padding:1rem;background:rgba(13,122,74,0.06);border-radius:10px;border:1px solid rgba(13,122,74,0.2);">
+            <h3 style="margin:0 0 0.5rem;font-size:1rem;">Approbations en cours</h3>
+            <p id="bankPendingReason" style="font-size:0.84rem;color:var(--muted);margin:0 0 0.75rem;"></p>
+            <div id="bankApprovalSlots" class="bank-approval-slots"></div>
+          </div>
         </div>
       </div>
 
@@ -1068,7 +1124,7 @@
   <script src="js/sac-session.js"></script>
   <script src="js/sac-api.js"></script>
   <script src="js/sac-tariffs.js?v=20260623"></script>
-  <script src="js/sac-payments.js"></script>
+  <script src="js/sac-payments.js?v=20260624c"></script>
   <script src="js/sac-university-logo.js"></script>
   <script src="js/sac-universities.js"></script>
   <script src="js/sac-data.js"></script>
@@ -1486,35 +1542,160 @@
         });
       }
 
+      let partnerBankCacheUni = null;
+
+      function readBankFormPayload() {
+        return {
+          bankName: document.getElementById("bankName").value.trim(),
+          accountName: document.getElementById("bankAccountName").value.trim(),
+          accountNumber: document.getElementById("bankAccountNumber").value.trim(),
+          currency: document.getElementById("bankCurrency").value,
+          note: document.getElementById("bankNote").value.trim(),
+          mobileOrange: document.getElementById("bankMobileOrange")?.value.trim() || "",
+          mobileMpesa: document.getElementById("bankMobileMpesa")?.value.trim() || "",
+        };
+      }
+
+      function updateBankMaskedPreview() {
+        const el = document.getElementById("bankMaskedPreview");
+        const num = document.getElementById("bankAccountNumber")?.value || "";
+        if (!el || typeof SAC_PAYMENTS === "undefined") return;
+        if (!num.trim()) {
+          el.textContent = "";
+          return;
+        }
+        el.textContent = "Aperçu étudiant : " + SAC_PAYMENTS.maskAccountNumber(num);
+      }
+
+      function renderBankLockUi(bank) {
+        const status = SAC_PAYMENTS.bankChangeStatus(bank);
+        const lockText = document.getElementById("bankLockText");
+        const changeSection = document.getElementById("bankChangeSection");
+        const approvalPanel = document.getElementById("bankApprovalPanel");
+        const form = document.getElementById("formPartnerBank");
+        const saveBtn = document.getElementById("btnSavePartnerBank");
+        const inputs = form?.querySelectorAll("input, select, textarea") || [];
+
+        if (status.configured && status.locked) {
+          if (status.pending) {
+            inputs.forEach((inp) => { inp.disabled = true; });
+            if (saveBtn) saveBtn.style.display = "none";
+          } else if (status.canChange) {
+            inputs.forEach((inp) => {
+              if (inp.id !== "bankChangeReason") inp.disabled = false;
+            });
+            if (saveBtn) saveBtn.style.display = "none";
+          } else {
+            inputs.forEach((inp) => {
+              if (inp.id !== "bankChangeReason") inp.disabled = true;
+            });
+            if (saveBtn) saveBtn.style.display = "none";
+          }
+          if (lockText) {
+            lockText.textContent = status.canChange
+              ? "Compte verrouillé. Modifiez les champs ci-dessus puis soumettez — approbation Recteur, DAF et Scolarité requise."
+              : "Compte définitivement verrouillé — aucune modification supplémentaire autorisée.";
+          }
+          if (changeSection) changeSection.style.display = status.canChange && !status.pending ? "block" : "none";
+        } else {
+          inputs.forEach((inp) => { inp.disabled = false; });
+          if (saveBtn) saveBtn.style.display = "";
+        }
+
+        if (status.pending) {
+          if (approvalPanel) approvalPanel.style.display = "block";
+          const reasonEl = document.getElementById("bankPendingReason");
+          if (reasonEl) {
+            reasonEl.textContent =
+              "Motif : " +
+              (status.pending.reason || "—") +
+              " · Demandé par " +
+              (status.pending.requestedBy || "—");
+          }
+          const slotsEl = document.getElementById("bankApprovalSlots");
+          if (slotsEl) {
+            const approvals = status.pending.approvals || {};
+            slotsEl.innerHTML = SAC_PAYMENTS.APPROVAL_SLOTS.map((slot) => {
+              const done = approvals[slot.key];
+              const cls = done ? "bank-approval-slot--done" : "";
+              const btn =
+                done
+                  ? `<span class="bank-approval-done">✓ ${done.email || "Approuvé"}</span>`
+                  : `<button type="button" class="btn btn--sm btn--role" data-approve-slot="${slot.key}">Approuver (${slot.label})</button>`;
+              return `<div class="bank-approval-slot ${cls}"><strong>${slot.label}</strong>${btn}</div>`;
+            }).join("");
+            slotsEl.querySelectorAll("[data-approve-slot]").forEach((btn) => {
+              btn.addEventListener("click", async () => {
+                try {
+                  const res = await SAC_PAYMENTS.approveBankChange(session, btn.dataset.approveSlot);
+                  showToast(res?.applied ? "Modification appliquée." : "Approbation enregistrée.");
+                  await loadPartnerBankForm();
+                } catch (e) {
+                  alert(e.message || "Approbation impossible.");
+                }
+              });
+            });
+          }
+          if (changeSection) changeSection.style.display = "none";
+        } else if (approvalPanel) {
+          approvalPanel.style.display = "none";
+        }
+      }
+
       async function loadPartnerBankForm() {
         if (typeof SAC_PAYMENTS === "undefined") return;
-        const bank = await SAC_PAYMENTS.fetchPartnerBank(session.universite);
-        if (!bank) return;
-        document.getElementById("bankName").value = bank.bankName || "";
-        document.getElementById("bankAccountName").value = bank.accountName || "";
-        document.getElementById("bankAccountNumber").value = bank.accountNumber || "";
-        document.getElementById("bankCurrency").value = bank.currency || "USD";
-        document.getElementById("bankNote").value = bank.note || "";
+        partnerBankCacheUni = await SAC_PAYMENTS.fetchPartnerBank(session.universite);
+        if (!partnerBankCacheUni) {
+          renderBankLockUi(null);
+          return;
+        }
+        document.getElementById("bankName").value = partnerBankCacheUni.bankName || "";
+        document.getElementById("bankAccountName").value = partnerBankCacheUni.accountName || "";
+        document.getElementById("bankAccountNumber").value = partnerBankCacheUni.accountNumber || "";
+        document.getElementById("bankCurrency").value = partnerBankCacheUni.currency || "USD";
+        document.getElementById("bankNote").value = partnerBankCacheUni.note || "";
+        const om = document.getElementById("bankMobileOrange");
+        const mp = document.getElementById("bankMobileMpesa");
+        if (om) om.value = partnerBankCacheUni.mobileOrange || "";
+        if (mp) mp.value = partnerBankCacheUni.mobileMpesa || "";
+        updateBankMaskedPreview();
+        renderBankLockUi(partnerBankCacheUni);
       }
+
+      document.getElementById("bankAccountNumber")?.addEventListener("input", updateBankMaskedPreview);
 
       document.getElementById("formPartnerBank")?.addEventListener("submit", async (e) => {
         e.preventDefault();
         const msg = document.getElementById("bankSaveMsg");
         try {
-          await SAC_PAYMENTS.savePartnerBank(session, {
-            bankName: document.getElementById("bankName").value.trim(),
-            accountName: document.getElementById("bankAccountName").value.trim(),
-            accountNumber: document.getElementById("bankAccountNumber").value.trim(),
-            currency: document.getElementById("bankCurrency").value,
-            note: document.getElementById("bankNote").value.trim(),
-          });
+          const saved = await SAC_PAYMENTS.savePartnerBank(session, readBankFormPayload());
+          partnerBankCacheUni = saved;
           if (msg) {
             msg.style.display = "block";
-            msg.textContent = "Compte bancaire partenaire enregistré — visible par vos étudiants.";
+            msg.textContent = "Compte enregistré et verrouillé — les étudiants voient un numéro masqué.";
           }
-          showToast("Compte bancaire enregistré.");
+          showToast("Compte bancaire enregistré et sécurisé.");
+          await loadPartnerBankForm();
         } catch (err) {
           alert(err.message || "Enregistrement impossible.");
+        }
+      });
+
+      document.getElementById("formBankChange")?.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const reason = document.getElementById("bankChangeReason")?.value.trim() || "";
+        if (reason.length < 10) {
+          alert("Indiquez un motif détaillé (10 caractères minimum).");
+          return;
+        }
+        if (!confirm("Soumettre cette modification à l'approbation de toute l'administration ?")) return;
+        try {
+          await SAC_PAYMENTS.requestBankChange(session, readBankFormPayload(), reason);
+          showToast("Demande envoyée — en attente des 3 approbations.");
+          document.getElementById("bankChangeReason").value = "";
+          await loadPartnerBankForm();
+        } catch (err) {
+          alert(err.message || "Demande impossible.");
         }
       });
 
@@ -1936,14 +2117,54 @@
       }
 
       /* Frais académiques campus */
-      function updateCdfHints() {
-        const v = parseFloat(document.getElementById("tarifAcademicTrim")?.value);
-        const el = document.getElementById("tarifAcademicTrimCdf");
-        if (!el) return;
-        el.textContent =
-          Number.isFinite(v) && v > 0
-            ? "≈ " + SAC_TARIFFS.toCdf(v).toLocaleString("fr-FR") + " CDF"
-            : "";
+      let finTabActive = "debtors";
+      let finSummaryCache = null;
+
+      function buildTariffCategoriesForm(acad) {
+        const box = document.getElementById("tariffCategoriesForm");
+        if (!box || typeof SAC_TARIFFS === "undefined") return;
+        const cats = acad?.categories || {};
+        box.innerHTML = SAC_TARIFFS.FEE_CATEGORY_DEFS.map((def) => {
+          const val = cats[def.key]?.amount ?? def.defaultAmount;
+          return `<div class="tariff-cat-row">
+            <span aria-hidden="true">${def.icon}</span>
+            <span><strong>${def.label}</strong><br/><small style="color:var(--muted);">${def.term}</small></span>
+            <input type="number" class="tariff-amount fi" data-cat-key="${def.key}" min="0" max="50000" step="0.01" value="${val}" required />
+            <span class="tariff-row__cdf" data-cat-cdf="${def.key}">≈ — CDF</span>
+          </div>`;
+        }).join("");
+        box.querySelectorAll("[data-cat-key]").forEach((inp) => {
+          inp.addEventListener("input", updateCategoryCdfHints);
+        });
+        updateCategoryCdfHints();
+      }
+
+      function readTariffCategoriesFromForm() {
+        const categories = {};
+        document.querySelectorAll("[data-cat-key]").forEach((inp) => {
+          categories[inp.dataset.catKey] = {
+            amount: parseFloat(inp.value) || 0,
+            currency: "USD",
+          };
+        });
+        return categories;
+      }
+
+      function updateCategoryCdfHints() {
+        let total = 0;
+        document.querySelectorAll("[data-cat-key]").forEach((inp) => {
+          const v = parseFloat(inp.value);
+          const cdfEl = document.querySelector(`[data-cat-cdf="${inp.dataset.catKey}"]`);
+          if (Number.isFinite(v) && v >= 0) total += v;
+          if (cdfEl && typeof SAC_TARIFFS !== "undefined") {
+            cdfEl.textContent =
+              Number.isFinite(v) && v > 0
+                ? "≈ " + SAC_TARIFFS.toCdf(v).toLocaleString("fr-FR") + " CDF"
+                : "—";
+          }
+        });
+        const totalEl = document.getElementById("tarifCategoriesTotal");
+        if (totalEl) totalEl.textContent = total.toLocaleString("fr-FR");
       }
 
       async function loadCampusTariffForm() {
@@ -1965,25 +2186,26 @@
         } else {
           acad = SAC_TARIFFS.normalizeAcademicFees(acad);
         }
-        document.getElementById("tarifAcademicTrim").value = acad.trimestre.amount;
-        updateCdfHints();
+        buildTariffCategoriesForm(acad);
       }
-
-      document.getElementById("tarifAcademicTrim")?.addEventListener("input", updateCdfHints);
 
       document.getElementById("formCampusTariffs").addEventListener("submit", async (e) => {
         e.preventDefault();
         const msg = document.getElementById("tarifSaveMsg");
-        const amount = parseFloat(document.getElementById("tarifAcademicTrim").value);
-        if (!Number.isFinite(amount) || amount <= 0) {
-          alert("Montant invalide.");
+        const categories = readTariffCategoriesFromForm();
+        const total = Object.values(categories).reduce((s, c) => s + (Number(c.amount) || 0), 0);
+        if (total <= 0) {
+          alert("Indiquez au moins un montant de frais.");
           return;
         }
+        const perTrim = Math.round((total / 3) * 100) / 100;
         const academicFees = {
-          trimestre: { amount, currency: "USD" },
-          t1: { amount, currency: "USD" },
-          t2: { amount, currency: "USD" },
-          t3: { amount, currency: "USD" },
+          categories,
+          useCategories: true,
+          trimestre: { amount: perTrim, currency: "USD" },
+          t1: { amount: perTrim, currency: "USD" },
+          t2: { amount: perTrim, currency: "USD" },
+          t3: { amount: perTrim, currency: "USD" },
         };
         try {
           const code = SAC_UNIVERSITY.campusCode(session);
@@ -2015,9 +2237,76 @@
           msg.style.display = "block";
           showToast("Frais académiques enregistrés.");
           setTimeout(() => { msg.style.display = "none"; }, 5000);
+          renderFinancialDashboard();
         } catch (err) {
           alert(err.message || "Impossible d'enregistrer les frais académiques.");
         }
+      });
+
+      function renderFinancialStudentsTable() {
+        const tbody = document.getElementById("finStudentsTable");
+        const empty = document.getElementById("finStudentsEmpty");
+        if (!tbody || !finSummaryCache) return;
+        const list = finTabActive === "settled" ? finSummaryCache.settled : finSummaryCache.debtors;
+        if (!list.length) {
+          tbody.innerHTML = "";
+          if (empty) empty.style.display = "block";
+          return;
+        }
+        if (empty) empty.style.display = "none";
+        tbody.innerHTML = list
+          .map(
+            (s) => `<tr>
+            <td><strong>${esc(s.name)}</strong><br/><small>${esc(s.email)}</small></td>
+            <td>${esc(s.matricule)}</td>
+            <td>${s.total} $</td>
+            <td>${s.paid} $</td>
+            <td>${s.due} $</td>
+            <td><span class="${s.due > 0 ? "fin-badge-debt" : "fin-badge-ok"}">${s.due > 0 ? "Débiteur" : "Soldé"}</span></td>
+          </tr>`
+          )
+          .join("");
+      }
+
+      async function renderFinancialDashboard() {
+        if (typeof SAC_PAYMENTS === "undefined") return;
+        if (typeof SAC_ADMIN_ACCOUNTS !== "undefined") {
+          await SAC_ADMIN_ACCOUNTS.load(session);
+        }
+        let students = [];
+        if (typeof SAC_UNIVERSITY !== "undefined" && SAC_UNIVERSITY.getCampusUsers) {
+          students = SAC_UNIVERSITY.getCampusUsers(session).filter((u) => u.role === "etudiant");
+        } else if (typeof SAC_ADMIN_ACCOUNTS !== "undefined") {
+          students = SAC_ADMIN_ACCOUNTS.getAccounts().filter((u) => u.role === "etudiant");
+        }
+        if (!students.length) {
+          try {
+            students = JSON.parse(localStorage.getItem("sac_users") || "[]").filter(
+              (u) =>
+                u.role === "etudiant" &&
+                (typeof SAC_UNIVERSITIES !== "undefined"
+                  ? SAC_UNIVERSITIES.sameCampus(u.universite, session.universite)
+                  : true)
+            );
+          } catch { /* ignore */ }
+        }
+        const payments = await SAC_PAYMENTS.listCampusPayments(session);
+        finSummaryCache = SAC_PAYMENTS.computeCampusFinancialSummary(students, payments);
+        document.getElementById("finToday").textContent = finSummaryCache.todayTotal.toLocaleString("fr-FR") + " $";
+        document.getElementById("finConfirmed").textContent = String(finSummaryCache.confirmedCount);
+        document.getElementById("finPending").textContent = finSummaryCache.pendingAmount.toLocaleString("fr-FR") + " $";
+        document.getElementById("finStudents").textContent = String(finSummaryCache.studentCount);
+        renderFinancialStudentsTable();
+      }
+
+      document.querySelectorAll("[data-fin-tab]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          finTabActive = btn.dataset.finTab;
+          document.querySelectorAll("[data-fin-tab]").forEach((b) => {
+            b.classList.toggle("active", b.dataset.finTab === finTabActive);
+          });
+          renderFinancialStudentsTable();
+        });
       });
 
       function setCommFilter(id) {
@@ -2113,6 +2402,7 @@
         renderRectorPanel();
         renderDashboard();
         renderPayments();
+        await renderFinancialDashboard();
         await renderMembers();
         renderProfileSectionsList();
         renderSectionsProfileTable();

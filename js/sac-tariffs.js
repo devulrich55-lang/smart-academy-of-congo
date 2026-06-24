@@ -17,6 +17,15 @@ const SAC_TARIFFS = (function () {
 
   const CAMPUS_ROLES = ["etudiant", "professeur", "assistant"];
   const FALLBACK_ACADEMIC_TRIMESTRE = 150;
+  const FEE_CATEGORY_DEFS = [
+    { key: "frais_academiques", label: "Frais académiques", term: "Année académique", icon: "🎓", defaultAmount: 150 },
+    { key: "enrolement", label: "Frais d'enrôlement", term: "Année académique", icon: "📋", defaultAmount: 80 },
+    { key: "reinscription", label: "Frais de réinscription", term: "Année académique", icon: "🔄", defaultAmount: 60 },
+    { key: "minerval", label: "Minerval", term: "Année académique", icon: "📚", defaultAmount: 500 },
+    { key: "inscription_univ", label: "Inscription universitaire", term: "Année académique", icon: "📝", defaultAmount: 50 },
+    { key: "bibliotheque", label: "Bibliothèque", term: "Année académique", icon: "📖", defaultAmount: 30 },
+    { key: "laboratoire", label: "Laboratoire", term: "Année académique", icon: "🔬", defaultAmount: 20 },
+  ];
   const cache = new Map();
   let platformCache = null;
   let platformLoadPromise = null;
@@ -296,6 +305,14 @@ const SAC_TARIFFS = (function () {
     });
   }
 
+  function normalizeCategoryAmount(val, fallback) {
+    if (val === "" || val == null) return 0;
+    const n = Number(val);
+    if (n === 0) return 0;
+    if (Number.isFinite(n) && n >= 1 && n <= 50000) return Math.round(n * 100) / 100;
+    return fallback;
+  }
+
   function normalizeAcademicFees(raw, legacyCampusTariffs) {
     const src = raw || {};
     let legacyAmount = legacyCampusTariffs?.etudiant?.amount;
@@ -308,11 +325,25 @@ const SAC_TARIFFS = (function () {
     const t1 = Number(src.t1?.amount);
     const t2 = Number(src.t2?.amount);
     const t3 = Number(src.t3?.amount);
+    const srcCats = src.categories && typeof src.categories === "object" ? src.categories : {};
+    const categories = {};
+    FEE_CATEGORY_DEFS.forEach((def) => {
+      const entry = srcCats[def.key] || {};
+      let amount = normalizeCategoryAmount(entry.amount, def.defaultAmount);
+      if (!srcCats[def.key] && def.key === "frais_academiques" && trim > 0 && !src.categories) {
+        amount = trim;
+      } else if (!srcCats[def.key] && def.key === "minerval" && trim > 0 && !src.categories) {
+        amount = trim;
+      }
+      categories[def.key] = { amount, currency: entry.currency || "USD", label: def.label };
+    });
     return {
       trimestre: { amount: trim, currency: "USD" },
       t1: { amount: Number.isFinite(t1) && t1 > 0 ? t1 : trim, currency: "USD" },
       t2: { amount: Number.isFinite(t2) && t2 > 0 ? t2 : trim, currency: "USD" },
       t3: { amount: Number.isFinite(t3) && t3 > 0 ? t3 : trim, currency: "USD" },
+      categories,
+      useCategories: !!src.categories || !src.t1,
     };
   }
 
@@ -410,17 +441,6 @@ const SAC_TARIFFS = (function () {
       user?.payment?.status === "pending_verification" ||
       !!user?.payment?.paidAt;
     const year = new Date().getFullYear();
-    const trimesters = [
-      { key: "t1", label: "Frais académiques T1", term: "Trimestre 1", status: "Payé", date: `${year}-10-12` },
-      {
-        key: "t2",
-        label: "Frais académiques T2",
-        term: "Trimestre 2",
-        status: "Payé",
-        date: `${year + 1}-01-20`,
-      },
-      { key: "t3", label: "Frais académiques T3", term: "Trimestre 3", status: "En attente", date: "—" },
-    ];
     const rows = [
       {
         label: "Frais d'inscription (Smart Academy)",
@@ -431,7 +451,33 @@ const SAC_TARIFFS = (function () {
         status: paidInscription ? "Payé" : "En attente",
         date: paidInscription ? (user?.payment?.paidAt || "").slice(0, 10) || "—" : "—",
         source: "platform_inscription",
+        feeKey: "inscription",
       },
+    ];
+    if (acad.categories && (acad.useCategories !== false)) {
+      FEE_CATEGORY_DEFS.forEach((def) => {
+        const cat = acad.categories[def.key] || {};
+        const amt = Number(cat.amount);
+        if (!Number.isFinite(amt) || amt <= 0) return;
+        rows.push({
+          label: cat.label || def.label,
+          term: def.term,
+          amount: amt,
+          amountCdf: toCdf(amt),
+          currency: cat.currency || "USD",
+          status: "En attente",
+          date: "—",
+          source: "campus_academic",
+          feeKey: def.key,
+          categoryKey: def.key,
+        });
+      });
+      return rows;
+    }
+    const trimesters = [
+      { key: "t1", label: "Frais académiques T1", term: "Trimestre 1" },
+      { key: "t2", label: "Frais académiques T2", term: "Trimestre 2" },
+      { key: "t3", label: "Frais académiques T3", term: "Trimestre 3" },
     ];
     for (const t of trimesters) {
       const amt = Number(acad[t.key]?.amount) || acad.trimestre.amount;
@@ -441,9 +487,10 @@ const SAC_TARIFFS = (function () {
         amount: amt,
         amountCdf: toCdf(amt),
         currency: "USD",
-        status: t.status,
-        date: t.date,
+        status: "En attente",
+        date: "—",
         source: "campus_academic",
+        feeKey: t.key,
       });
     }
     return rows;
@@ -794,6 +841,7 @@ const SAC_TARIFFS = (function () {
     fetchCampusTariffPack,
     fetchCampusAcademicFees,
     normalizeAcademicFees,
+    FEE_CATEGORY_DEFS,
     applyCampusTariffsOnRegister,
     refreshStudentFeesFromCampus,
     buildUniversityFeesForStudent,

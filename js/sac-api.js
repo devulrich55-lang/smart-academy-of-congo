@@ -797,6 +797,20 @@ const SAC_API = (function () {
     });
   }
 
+  async function requestCampusBankChange(payload) {
+    return request("/payments/campus-bank/change-request", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async function approveCampusBankChange(payload) {
+    return request("/payments/campus-bank/approve", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  }
+
   async function listMyPayments() {
     return request("/payments/me");
   }
@@ -1166,6 +1180,8 @@ const SAC_API = (function () {
     updatePlatformTariffs,
     getCampusPartnerBank,
     updateCampusPartnerBank,
+    requestCampusBankChange,
+    approveCampusBankChange,
     listMyPayments,
     createAcademicPayment,
     listCampusPayments,

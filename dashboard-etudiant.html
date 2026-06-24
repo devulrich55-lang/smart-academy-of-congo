@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="css/meetings.css" />
   <link rel="stylesheet" href="css/live.css" />
   <link rel="stylesheet" href="css/webrtc-room.css" />
-  <link rel="stylesheet" href="css/payments.css" />
+  <link rel="stylesheet" href="css/payments.css?v=20260624c" />
   <script src="js/sac-config.js"></script>
   <script src="js/sac-theme.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -890,9 +890,17 @@
     <section class="page-section" id="section-frais">
       <h1 class="page-title">Frais académiques & paiement</h1>
       <p class="page-desc">
-        Consultez vos frais, payez via le <strong>compte bancaire partenaire de votre université</strong>.
-        La plateforme ne conserve pas les fonds — l'université confirme chaque paiement.
+        Payez <strong>100 % en ligne</strong> via le compte sécurisé de votre université — sans déplacement physique.
+        Le numéro de compte est partiellement masqué ; confirmez les derniers chiffres avant chaque paiement.
       </p>
+
+      <div class="pay-security-banner" id="paySecurityBanner">
+        <span class="pay-security-banner__icon" aria-hidden="true">🔒</span>
+        <div>
+          <strong>Paiement sécurisé SAC</strong>
+          <p>Vos fonds vont directement au compte officiel de votre établissement. SAC ne détient jamais l'argent.</p>
+        </div>
+      </div>
 
       <div class="pay-hero" id="payHero">
         <div class="pay-hero__ring" id="payProgressRing" style="--pct:0">
@@ -921,29 +929,35 @@
         </div>
       </div>
 
-      <div class="pay-bank-card payment-panel" id="partnerBankCard">
-        <strong>🏦 Compte bancaire partenaire de votre établissement</strong>
-        <p id="partnerBankInfo" style="font-size:0.88rem;color:var(--text-muted);margin:0.5rem 0 0;">
+      <div class="pay-bank-card payment-panel pay-bank-card--secure" id="partnerBankCard">
+        <div class="pay-bank-card__head">
+          <strong>🏦 Compte bancaire partenaire (sécurisé)</strong>
+          <span class="pay-shield-badge">Compte vérifié</span>
+        </div>
+        <p id="partnerBankInfo" class="pay-bank-card__body">
           Chargement…
         </p>
       </div>
 
       <div class="panel">
-        <div class="panel__head"><h2>Détail des frais</h2></div>
-        <div class="panel__body table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Frais</th>
-                <th>Période</th>
-                <th>Montant</th>
-                <th>Statut</th>
-                <th>Date</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody id="feesTable"></tbody>
-          </table>
+        <div class="panel__head"><h2>Mes frais à payer</h2></div>
+        <div class="panel__body">
+          <div class="fee-cards" id="feesCards"></div>
+          <div class="table-wrap" style="margin-top:1rem;">
+            <table class="fee-table-compact">
+              <thead>
+                <tr>
+                  <th>Frais</th>
+                  <th>Période</th>
+                  <th>Montant</th>
+                  <th>Statut</th>
+                  <th>Date</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="feesTable"></tbody>
+            </table>
+          </div>
         </div>
       </div>
 
@@ -975,7 +989,7 @@
       <p id="payModalFeeLabel" style="font-size:0.88rem;color:var(--text-muted);margin:0;"></p>
       <div class="pay-modal__amount" id="payModalAmount">—</div>
       <p style="font-size:0.84rem;color:var(--text-muted);">
-        Versement vers le compte de <strong>votre université</strong>. Indiquez la référence après paiement.
+        Versement 100 % en ligne vers le compte officiel de <strong>votre université</strong>.
       </p>
       <div class="pay-methods" id="payMethods">
         <button type="button" class="pay-method is-active" data-method="bank_usd">🏦 Banque (USD)</button>
@@ -983,7 +997,14 @@
         <button type="button" class="pay-method" data-method="orange">🟠 Orange Money</button>
         <button type="button" class="pay-method" data-method="mpesa">📱 M-Pesa</button>
       </div>
-      <div id="payDestInfo" class="pay-bank-card" style="margin-top:0.75rem;"></div>
+      <div id="payDestInfo" class="pay-bank-card pay-bank-card--dest" style="margin-top:0.75rem;"></div>
+      <div class="pay-confirm-box">
+        <label for="payAccountSuffix">
+          Confirmez les <strong>5 derniers chiffres</strong> du compte destinataire *
+        </label>
+        <input type="text" class="fi pay-suffix-input" id="payAccountSuffix" inputmode="numeric" maxlength="8" placeholder="Ex. 98967" autocomplete="off" />
+        <p class="pay-confirm-hint">Sécurité anti-fraude : vérifiez que le compte masqué correspond à celui de votre université.</p>
+      </div>
       <div class="fg" style="margin-top:0.75rem;">
         <label for="payReference">Référence bancaire / n° transaction *</label>
         <input type="text" class="fi" id="payReference" placeholder="Ex. VIR-2026-001245" />
@@ -1000,8 +1021,8 @@
   <script src="js/sac-section-approval.js"></script>
   <script src="js/sac-session.js?v=20260617d"></script>
   <script src="js/sac-api.js?v=20260617d"></script>
-  <script src="js/sac-tariffs.js?v=20260623c"></script>
-  <script src="js/sac-payments.js"></script>
+  <script src="js/sac-tariffs.js?v=20260624c"></script>
+  <script src="js/sac-payments.js?v=20260624c"></script>
   <script src="js/sac-payment-receipt.js"></script>
   <script src="js/sac-university-logo.js"></script>
   <script src="js/sac-courses.js"></script>
@@ -1579,23 +1600,26 @@
     async function renderPartnerBank(session) {
       const el = document.getElementById("partnerBankInfo");
       if (!el || typeof SAC_PAYMENTS === "undefined") return;
-      partnerBankCache = await SAC_PAYMENTS.fetchPartnerBank(session?.universite);
+      partnerBankCache = await SAC_PAYMENTS.fetchPartnerBank(session?.universite, { forStudent: true });
       if (!partnerBankCache) {
         el.innerHTML =
-          "Votre université n'a pas encore enregistré son compte bancaire partenaire. " +
-          "Contactez la direction financière de votre établissement.";
+          "<p class='pay-bank-empty'>Votre université n'a pas encore enregistré son compte bancaire partenaire. " +
+          "Contactez la direction financière — aucun paiement n'est possible tant que le compte n'est pas configuré.</p>";
         return;
       }
+      const masked = SAC_PAYMENTS.accountDisplay(partnerBankCache);
       el.innerHTML =
-        "<strong>" +
+        "<div class='pay-bank-row'><span>Banque</span><strong>" +
         (partnerBankCache.bankName || "Banque partenaire") +
-        "</strong><br/>" +
-        "Titulaire : " +
+        "</strong></div>" +
+        "<div class='pay-bank-row'><span>Titulaire</span><strong>" +
         (partnerBankCache.accountName || "—") +
-        "<br/>N° compte : <code>" +
-        (partnerBankCache.accountNumber || "—") +
-        "</code>" +
-        (partnerBankCache.note ? "<br/><em>" + partnerBankCache.note + "</em>" : "");
+        "</strong></div>" +
+        "<div class='pay-bank-row'><span>N° compte (masqué)</span><code class='pay-account-masked'>" +
+        masked +
+        "</code></div>" +
+        "<p class='pay-bank-note'>Seuls les 2 premiers et 5 derniers chiffres sont visibles pour votre sécurité.</p>" +
+        (partnerBankCache.note ? "<p class='pay-bank-instructions'><em>" + partnerBankCache.note + "</em></p>" : "");
     }
 
     function renderPayHistory(payments, profile) {
@@ -1649,6 +1673,29 @@
         renderPayHistory(payments, profile);
       }
       lastFeesForPay = fees;
+      const cardsEl = document.getElementById("feesCards");
+      if (cardsEl) {
+        cardsEl.innerHTML = fees
+          .map((f) => {
+            const canPay =
+              f.status !== "Payé" && f.status !== "En attente de confirmation";
+            const icon = SAC_PAYMENTS.feeIcon(f);
+            const statusCls = SAC_PAYMENTS.feeStatusClass(f.status);
+            const payBtn = canPay
+              ? `<button type="button" class="fee-card__btn" data-pay-fee="${SAC_PAYMENTS.feeKey(f)}">Payer</button>`
+              : `<span class="fee-card__status ${statusCls}">${f.status}</span>`;
+            return `<article class="fee-card ${canPay ? "fee-card--due" : ""}">
+              <div class="fee-card__icon" aria-hidden="true">${icon}</div>
+              <div class="fee-card__body">
+                <h3 class="fee-card__title">${f.label}</h3>
+                <p class="fee-card__term">${f.term}</p>
+                <div class="fee-card__amount">${f.amount} USD</div>
+              </div>
+              <div class="fee-card__action">${payBtn}</div>
+            </article>`;
+          })
+          .join("");
+      }
       document.getElementById("feesTable").innerHTML = fees
         .map((f) => {
           const canPay =
@@ -1710,24 +1757,32 @@
       const box = document.getElementById("payDestInfo");
       if (!box || typeof SAC_PAYMENTS === "undefined") return;
       const dest = SAC_PAYMENTS.buildBankDisplay(partnerBankCache, payModalMethod);
+      if (!dest) {
+        box.innerHTML =
+          "<p class='pay-bank-empty'>Mode indisponible — votre université n'a pas configuré ce moyen de paiement.</p>";
+        return;
+      }
       if (payModalMethod === "orange" || payModalMethod === "mpesa") {
         box.innerHTML =
+          "<div class='pay-dest-secure'><span class='pay-shield-badge'>Sécurisé</span></div>" +
           "<strong>" +
           dest.name +
-          "</strong><br/>Numéro : <code>" +
-          dest.phone +
+          "</strong><br/>Numéro (masqué) : <code class='pay-account-masked'>" +
+          (dest.phoneMasked || dest.phone) +
           "</code>";
       } else {
         box.innerHTML =
+          "<div class='pay-dest-secure'><span class='pay-shield-badge'>Compte université</span></div>" +
           "<strong>" +
           (dest.bank || "Banque partenaire") +
           "</strong> (" +
           (dest.currency || "USD") +
-          ")<br/>Titulaire : " +
+          ")<br/>Titulaire : <strong>" +
           (dest.beneficiary || dest.accountName || "—") +
-          "<br/>Compte : <code>" +
-          (dest.accountDisplay || dest.accountNumber || "—") +
-          "</code>";
+          "</strong><br/>Compte : <code class='pay-account-masked'>" +
+          (dest.accountDisplay || "—") +
+          "</code>" +
+          (dest.note ? "<br/><small>" + dest.note + "</small>" : "");
       }
     }
 
@@ -1737,6 +1792,8 @@
       document.getElementById("payModalFeeLabel").textContent = fee.label + " — " + fee.term;
       document.getElementById("payModalAmount").textContent = fee.amount + " USD";
       document.getElementById("payReference").value = "";
+      const suffixEl = document.getElementById("payAccountSuffix");
+      if (suffixEl) suffixEl.value = "";
       document.querySelectorAll("#payMethods .pay-method").forEach((b) => {
         b.classList.toggle("is-active", b.dataset.method === payModalMethod);
       });
@@ -1778,6 +1835,7 @@
           currency: "USD",
           method: payModalMethod,
           reference: document.getElementById("payReference").value.trim(),
+          accountSuffix: document.getElementById("payAccountSuffix")?.value.trim() || "",
           studentNom: profile.prenom + " " + profile.nom,
           matricule: profile.matricule,
         });
