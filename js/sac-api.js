@@ -999,11 +999,17 @@ const SAC_API = (function () {
     return platformRequest("/platform/library", { auth: false });
   }
 
+  async function lookupDictionary(word, lang) {
+    const params = new URLSearchParams();
+    params.set("q", String(word || "").trim());
+    params.set("lang", lang || "fr");
+    return platformRequest("/platform/dictionary/lookup?" + params.toString(), { auth: false });
+  }
+
   async function translateDictionary(word, opts = {}) {
     const params = new URLSearchParams();
     params.set("q", String(word || "").trim());
-    if (opts.sourceLang) params.set("source", opts.sourceLang);
-    if (opts.targetLang) params.set("target", opts.targetLang);
+    params.set("source", opts.sourceLang && opts.sourceLang !== "auto" ? opts.sourceLang : opts.lang || "fr");
     return platformRequest("/platform/dictionary/translate?" + params.toString(), { auth: false });
   }
 
@@ -1284,6 +1290,7 @@ const SAC_API = (function () {
     getProfessorPresence,
     listHomeNews,
     listDigitalLibrary,
+    lookupDictionary,
     translateDictionary,
     listDictionaryLanguages,
     listDigitalLibraryManage,

@@ -1,7 +1,10 @@
 /**
- * Dictionnaire multilingue — FR, EN, ES, Lingala, Tshiluba
+ * Dictionnaire — définitions par langue (style Larousse)
+ * La langue choisie = langue de recherche et de définition de l'utilisateur.
  */
 const SAC_DICTIONARY = (function () {
+  const LANG_KEY = "sac_dictionary_lang";
+
   const LANGUAGES = [
     { id: "fr", label: "Français", native: "Français" },
     { id: "en", label: "Anglais", native: "English" },
@@ -10,51 +13,10 @@ const SAC_DICTIONARY = (function () {
     { id: "lua", label: "Tshiluba", native: "Tshiluba" },
   ];
 
-  const LOCAL_ENTRIES = [
-    ["livre", "fr", "en", "book"],
-    ["book", "en", "fr", "livre"],
-    ["école", "fr", "en", "school"],
-    ["school", "en", "fr", "école"],
-    ["bonjour", "fr", "en", "hello"],
-    ["hello", "en", "fr", "bonjour"],
-    ["libro", "es", "fr", "livre"],
-    ["livre", "fr", "es", "libro"],
-    ["escuela", "es", "fr", "école"],
-    ["école", "fr", "es", "escuela"],
-    ["hola", "es", "fr", "bonjour"],
-    ["bonjour", "fr", "es", "hola"],
-    ["mbote", "ln", "fr", "bonjour"],
-    ["bonjour", "fr", "ln", "mbote"],
-    ["malamu", "ln", "fr", "bien"],
-    ["bien", "fr", "ln", "malamu"],
-    ["eteyi", "ln", "fr", "école"],
-    ["école", "fr", "ln", "eteyi"],
-    ["ndako", "ln", "fr", "maison"],
-    ["maison", "fr", "ln", "ndako"],
-    ["moninga", "ln", "fr", "ami"],
-    ["ami", "fr", "ln", "moninga"],
-    ["moyo", "lua", "fr", "vie"],
-    ["vie", "fr", "lua", "moyo"],
-    ["diaku", "lua", "fr", "ami"],
-    ["ami", "fr", "lua", "diaku"],
-    ["dibuku", "lua", "fr", "livre"],
-    ["livre", "fr", "lua", "dibuku"],
-    ["tshikondo", "lua", "fr", "école"],
-    ["école", "fr", "lua", "tshikondo"],
-  ];
-
   function esc(s) {
     const el = document.createElement("div");
     el.textContent = String(s || "");
     return el.innerHTML;
-  }
-
-  function normalizeKey(word) {
-    return String(word || "")
-      .trim()
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "");
   }
 
   function langLabel(code) {
@@ -62,152 +24,118 @@ const SAC_DICTIONARY = (function () {
     return hit ? hit.label : String(code || "");
   }
 
-  function langOptions(selected) {
-    return (
-      '<option value="auto"' +
-      (selected === "auto" ? " selected" : "") +
-      ">Détection auto</option>" +
-      LANGUAGES.map(
-        (l) =>
-          '<option value="' +
-          l.id +
-          '"' +
-          (selected === l.id ? " selected" : "") +
-          ">" +
-          esc(l.label) +
-          " (" +
-          esc(l.native) +
-          ")</option>"
-      ).join("")
-    );
+  function getUserLang() {
+    try {
+      const saved = localStorage.getItem(LANG_KEY);
+      if (saved && LANGUAGES.some((l) => l.id === saved)) return saved;
+    } catch {
+      /* ignore */
+    }
+    return "fr";
   }
 
-  function lookupLocal(word, sourceLang, targetLang) {
-    const key = normalizeKey(word);
-    const source = sourceLang === "auto" ? null : sourceLang;
-    const target = targetLang === "auto" ? null : targetLang;
-
-    for (const [entry, src, tgt, translation] of LOCAL_ENTRIES) {
-      if (normalizeKey(entry) !== key) continue;
-      if (source && src !== source) continue;
-      if (target && tgt !== target) continue;
-      return {
-        ok: true,
-        query: word,
-        sourceLang: src,
-        targetLang: tgt,
-        translation,
-        phonetic: "",
-        meanings: [],
-        alternatives: [],
-        offline: true,
-      };
+  function saveUserLang(code) {
+    try {
+      localStorage.setItem(LANG_KEY, code);
+    } catch {
+      /* ignore */
     }
+  }
 
-    if (!source && !target) {
-      for (const [entry, src, tgt, translation] of LOCAL_ENTRIES) {
-        if (normalizeKey(entry) === key) {
-          return {
-            ok: true,
-            query: word,
-            sourceLang: src,
-            targetLang: tgt,
-            translation,
-            phonetic: "",
-            meanings: [],
-            alternatives: [],
-            offline: true,
-          };
-        }
-      }
-    }
-    return null;
+  function langOptions(selected) {
+    return LANGUAGES.map(
+      (l) =>
+        '<option value="' +
+        l.id +
+        '"' +
+        (selected === l.id ? " selected" : "") +
+        ">" +
+        esc(l.label) +
+        " (" +
+        esc(l.native) +
+        ")</option>"
+    ).join("");
   }
 
   async function lookup(word, opts = {}) {
     const clean = String(word || "").trim();
     if (!clean) throw new Error("INVALID_INPUT");
 
-    const sourceLang = opts.sourceLang || "auto";
-    const targetLang = opts.targetLang || "auto";
+    const lang = opts.lang || getUserLang();
 
-    if (typeof SAC_API !== "undefined" && SAC_API.translateDictionary) {
-      try {
-        const online = await SAC_API.translateDictionary(clean, { sourceLang, targetLang });
-        if (online && online.translation) return online;
-      } catch {
-        /* repli local */
-      }
+    if (typeof SAC_API !== "undefined" && SAC_API.lookupDictionary) {
+      const online = await SAC_API.lookupDictionary(clean, lang);
+      if (online && Array.isArray(online.meanings) && online.meanings.length) return online;
     }
 
-    const local = lookupLocal(clean, sourceLang, targetLang);
-    if (local) return local;
     throw new Error("NOT_FOUND");
   }
 
   function renderResult(data) {
-    if (!data || !data.translation) {
-      return '<p style="margin:0;color:var(--muted);">Aucune traduction trouvée.</p>';
+    if (!data || !Array.isArray(data.meanings) || !data.meanings.length) {
+      return '<p style="margin:0;color:var(--muted);">Aucune définition trouvée.</p>';
     }
 
-    const from = data.sourceLabel || langLabel(data.sourceLang);
-    const to = data.targetLabel || langLabel(data.targetLang);
+    const word = data.word || data.query || "";
     let html =
-      '<div class="dict-result">' +
-      '<div class="dict-result__main"><strong>' +
-      esc(data.query) +
-      "</strong> → <strong>" +
-      esc(data.translation) +
-      "</strong></div>" +
-      '<div class="dict-result__meta">' +
-      esc(from) +
-      " → " +
-      esc(to) +
-      (data.phonetic ? " · " + esc(data.phonetic) : "") +
-      (data.offline ? " · mode hors ligne" : "") +
-      "</div>";
+      '<article class="dict-entry">' +
+      '<header class="dict-entry__head">' +
+      '<h4 class="dict-entry__word">' +
+      esc(word) +
+      "</h4>";
 
-    if (Array.isArray(data.meanings) && data.meanings.length) {
-      html +=
-        '<div class="dict-result__meanings">' +
-        data.meanings
-          .map((m) => {
-            const defs = (m.definitions || [])
-              .map((d) => "<li>" + esc(d) + "</li>")
-              .join("");
-            return (
-              '<div class="dict-meaning"><em>' +
-              esc(m.partOfSpeech || "définition") +
-              "</em><ul>" +
-              defs +
-              "</ul></div>"
-            );
-          })
-          .join("") +
-        "</div>";
+    if (data.phonetic) {
+      html += '<span class="dict-entry__phon">' + esc(data.phonetic) + "</span>";
     }
 
-    if (Array.isArray(data.alternatives) && data.alternatives.length) {
+    html +=
+      '<span class="dict-entry__lang">' +
+      esc(data.langLabel || langLabel(data.lang)) +
+      "</span>" +
+      "</header>";
+
+    data.meanings.forEach((meaning) => {
+      const pos = meaning.partOfSpeech || "définition";
+      const defs = meaning.definitions || [];
+      if (!defs.length) return;
+
+      html += '<section class="dict-entry__sense">';
+      html += '<div class="dict-entry__pos">' + esc(pos) + "</div><ol>";
+      defs.forEach((def) => {
+        const text = typeof def === "string" ? def : def.text;
+        const example = typeof def === "object" ? def.example : "";
+        html += "<li><span>" + esc(text) + "</span>";
+        if (example) {
+          html += ' <em class="dict-entry__ex">« ' + esc(example) + " »</em>";
+        }
+        html += "</li>";
+      });
+      html += "</ol></section>";
+    });
+
+    if (Array.isArray(data.synonyms) && data.synonyms.length) {
       html +=
-        '<div class="dict-result__alt"><span>Autres traductions :</span> ' +
-        data.alternatives.map((a) => "<span>" + esc(a) + "</span>").join(" · ") +
-        "</div>";
+        '<footer class="dict-entry__syn">' +
+        "<strong>Synonymes :</strong> " +
+        data.synonyms.map((s) => esc(s)).join(", ") +
+        "</footer>";
     }
 
-    html += "</div>";
+    if (data.offline || data.provider === "local") {
+      html += '<p class="dict-entry__note">Définition locale intégrée.</p>';
+    }
+
+    html += "</article>";
     return html;
   }
 
-  function bindForm(form, input, output, sourceSelect, targetSelect, swapBtn) {
+  function bindForm(form, input, output, langSelect) {
     if (!form || !input || !output) return;
 
-    if (swapBtn && sourceSelect && targetSelect) {
-      swapBtn.addEventListener("click", () => {
-        const from = sourceSelect.value;
-        const to = targetSelect.value;
-        if (from === "auto" || to === "auto") return;
-        sourceSelect.value = to;
-        targetSelect.value = from;
+    if (langSelect) {
+      langSelect.innerHTML = langOptions(getUserLang());
+      langSelect.addEventListener("change", () => {
+        saveUserLang(langSelect.value);
       });
     }
 
@@ -216,36 +144,35 @@ const SAC_DICTIONARY = (function () {
       const raw = String(input.value || "").trim();
       if (!raw) return;
 
-      const sourceLang = sourceSelect ? sourceSelect.value : "auto";
-      const targetLang = targetSelect ? targetSelect.value : "auto";
-      if (sourceLang !== "auto" && targetLang !== "auto" && sourceLang === targetLang) {
-        output.style.color = "var(--muted)";
-        output.textContent = "Choisissez deux langues différentes.";
-        return;
-      }
+      const lang = langSelect ? langSelect.value : getUserLang();
+      saveUserLang(lang);
 
       output.style.color = "var(--muted)";
-      output.innerHTML = "Recherche en cours…";
+      output.innerHTML = "Recherche dans le dictionnaire…";
 
       try {
-        const result = await lookup(raw, { sourceLang, targetLang });
+        const result = await lookup(raw, { lang });
         output.style.color = "var(--text)";
         output.innerHTML = renderResult(result);
       } catch {
         output.style.color = "var(--muted)";
-        output.textContent =
-          "Mot non trouvé. Essayez un mot simple (ex. book, livre, hola, mbote, moyo) ou changez les langues.";
+        output.innerHTML =
+          '<p style="margin:0;">Mot introuvable dans le dictionnaire <strong>' +
+          esc(langLabel(lang)) +
+          "</strong>. Essayez un autre mot ou vérifiez l'orthographe.</p>";
       }
     });
   }
 
   return {
     LANGUAGES,
+    LANG_KEY,
     lookup,
-    lookupLocal,
     renderResult,
     bindForm,
     langLabel,
     langOptions,
+    getUserLang,
+    saveUserLang,
   };
 })();
