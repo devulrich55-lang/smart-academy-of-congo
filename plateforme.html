@@ -3,437 +3,374 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>Écosystème unifié — Smart Academy of Congo</title>
+  <title>Bibliothèque numérique</title>
   <script src="js/sac-config.js"></script>
   <script src="js/sac-theme.js"></script>
   <link rel="icon" href="logos.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="css/logo.css" />
   <link rel="stylesheet" href="css/platform.css" />
-  <link rel="stylesheet" href="css/live.css" />
-  <link rel="stylesheet" href="css/webrtc-room.css" />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />
   <style>
     :root {
-      --primary: #0c3d6e;
-      --accent: #c9a227;
-      --bg: #f4f7fb;
-      --surface: #fff;
-      --text: #1a2b3c;
-      --text-muted: #5a6d7e;
-      --border: #e2e8f0;
-      --success: #0d7a4a;
+      --bg: #070f25;
+      --bg-soft: #0d1734;
+      --panel: #101d40;
+      --panel-2: #0f1a36;
+      --line: rgba(121, 147, 211, 0.25);
+      --text: #eff4ff;
+      --muted: #a9b9df;
+      --primary: #6b7dff;
+      --accent: #38d7b1;
     }
-    body { font-family: "DM Sans", system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; min-height: 100vh; }
-    .plat-header {
-      background: var(--surface);
-      border-bottom: 1px solid var(--border);
-      padding: 0.85rem 1.5rem;
+    body {
+      font-family: "DM Sans", system-ui, sans-serif;
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      background:
+        radial-gradient(800px 400px at 15% 0%, rgba(107, 125, 255, 0.18), transparent 50%),
+        radial-gradient(700px 420px at 90% 5%, rgba(56, 215, 177, 0.12), transparent 55%),
+        var(--bg);
+    }
+    .app-shell { display: grid; grid-template-columns: 250px minmax(0, 1fr); min-height: 100vh; }
+    .side {
+      background: linear-gradient(180deg, rgba(14, 27, 61, 0.95), rgba(8, 17, 40, 0.95));
+      border-right: 1px solid var(--line);
+      padding: 1rem 0.8rem;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      padding: 0.35rem 0.45rem 0.9rem;
+      margin-bottom: 0.8rem;
+      border-bottom: 1px solid var(--line);
+      color: var(--text);
+      text-decoration: none;
+      font-weight: 700;
+    }
+    .brand small { display: block; color: var(--muted); font-weight: 500; font-size: 0.76rem; }
+    .side-nav { display: grid; gap: 0.4rem; }
+    .side-btn {
+      text-align: left;
+      border: 1px solid transparent;
+      background: transparent;
+      color: #dce6ff;
+      border-radius: 10px;
+      padding: 0.58rem 0.72rem;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .side-btn.active { background: linear-gradient(135deg, #6b7dff, #8c4dff); color: #fff; }
+    .side-note {
+      margin-top: 1rem;
+      background: rgba(10, 20, 45, 0.85);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 0.75rem;
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+    .main { padding: 1rem 1.2rem 1.5rem; }
+    .topbar {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      flex-wrap: wrap;
       gap: 0.75rem;
-      position: sticky;
-      top: 0;
-      z-index: 40;
+      padding: 0.75rem 0.9rem;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: rgba(16, 29, 64, 0.78);
+      backdrop-filter: blur(8px);
+      margin-bottom: 1rem;
     }
-    .plat-header a.logo { display: flex; align-items: center; gap: 0.5rem; font-weight: 700; color: var(--primary); text-decoration: none; }
-    .btn { padding: 0.5rem 1rem; border-radius: 8px; font-weight: 600; font-size: 0.88rem; cursor: pointer; border: none; font-family: inherit; text-decoration: none; display: inline-block; }
-    .btn--primary { background: var(--primary); color: #fff; }
-    .btn--ghost { background: transparent; border: 1.5px solid var(--border); color: var(--text-muted); }
-    .hero-plat { max-width: 1280px; margin: 0 auto; padding: 1.5rem 1.5rem 0; }
-    .hero-plat h1 { font-family: "Playfair Display", serif; font-size: 1.6rem; color: var(--primary); }
-    .hero-plat p { color: var(--text-muted); font-size: 0.95rem; max-width: 720px; }
+    .search {
+      flex: 1;
+      border: 1px solid var(--line);
+      background: rgba(9, 19, 45, 0.85);
+      color: var(--text);
+      border-radius: 999px;
+      padding: 0.62rem 0.9rem;
+      font: inherit;
+      max-width: 640px;
+    }
+    .btn { padding: 0.5rem 0.92rem; border-radius: 10px; border: none; cursor: pointer; font: inherit; font-weight: 700; text-decoration: none; display: inline-block; }
+    .btn--primary { color: #fff; background: linear-gradient(135deg, #6b7dff, #8c4dff); }
+    .btn--ghost { color: var(--muted); background: rgba(13, 23, 52, 0.85); border: 1px solid var(--line); }
+    .session-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      border-radius: 999px;
+      font-size: 0.76rem;
+      font-weight: 700;
+      color: #61f2bf;
+      background: rgba(16, 76, 54, 0.35);
+      border: 1px solid rgba(97, 242, 191, 0.35);
+      padding: 0.28rem 0.52rem;
+    }
+    .hero {
+      border: 1px solid var(--line);
+      border-radius: 15px;
+      background: linear-gradient(160deg, rgba(15, 26, 54, 0.95), rgba(11, 22, 48, 0.95));
+      padding: 1rem 1rem 0.95rem;
+      margin-bottom: 0.95rem;
+    }
+    .hero h1 { margin: 0; font-size: 1.62rem; font-family: "Playfair Display", serif; }
+    .hero p { margin: 0.42rem 0 0; color: var(--muted); }
+    .kpis { display: grid; grid-template-columns: repeat(4, minmax(120px, 1fr)); gap: 0.7rem; margin-top: 0.85rem; }
+    .kpi {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: rgba(13, 26, 56, 0.85);
+      padding: 0.68rem 0.8rem;
+    }
+    .kpi b { font-size: 1.15rem; }
+    .kpi span { display: block; color: var(--muted); font-size: 0.82rem; margin-top: 0.15rem; }
+    .panel-card {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: rgba(14, 27, 61, 0.9);
+      padding: 0.95rem;
+    }
+    .lib-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 0.65rem; margin-top: 0.8rem; }
+    .lib-item {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: rgba(9, 19, 45, 0.85);
+      overflow: hidden;
+    }
+    .cover {
+      height: 120px;
+      background: linear-gradient(135deg, rgba(107, 125, 255, 0.34), rgba(56, 215, 177, 0.2));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: rgba(255, 255, 255, 0.8);
+      font-size: 1.25rem;
+    }
+    .lib-meta { padding: 0.62rem; }
+    .lib-meta p { margin: 0.25rem 0 0; color: var(--muted); font-size: 0.82rem; }
+    .dict-form { display: grid; grid-template-columns: 1fr auto; gap: 0.5rem; margin: 0.65rem 0; }
+    .dict-input {
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      padding: 0.58rem 0.7rem;
+      font: inherit;
+      color: var(--text);
+      background: rgba(9, 19, 45, 0.85);
+    }
+    .dict-out {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 0.8rem;
+      min-height: 68px;
+      color: var(--muted);
+      background: rgba(9, 19, 45, 0.85);
+    }
+    @media (max-width: 980px) {
+      .app-shell { grid-template-columns: 1fr; }
+      .side { border-right: none; border-bottom: 1px solid var(--line); }
+      .kpis { grid-template-columns: repeat(2, minmax(120px, 1fr)); }
+    }
   </style>
   <link rel="stylesheet" href="css/theme.css" />
   <link rel="stylesheet" href="css/mobile.css" />
   <meta name="theme-color" content="#0c3d6e" />
 </head>
 <body>
-  <header class="plat-header">
-    <a href="index.html" class="logo">
-      <img src="logos.svg" alt="" width="40" height="40" style="border-radius:50%" />
-      Smart Academy of Congo
-    </a>
-    <div id="headerActions">
-      <a href="connexion.html" class="btn btn--primary">Connexion</a>
-    </div>
-  </header>
-
-  <div class="hero-plat">
-    <h1>Écosystème académique unifié</h1>
-    <p>Un seul portail national pour l'inscription, les résultats, les frais, la bibliothèque, l'orientation IA, les stages, le réseau étudiant, les cours en ligne et la vérification officielle des diplômes — avec contrôle d'accès par rôle et par campus.</p>
-  </div>
-
-  <div class="platform-layout" id="platformApp" style="display:none">
-    <aside class="platform-sidebar">
-      <h2>Modules</h2>
-      <nav id="platformNav"></nav>
-      <p class="platform-security-note" style="margin-top:1rem;font-size:0.75rem">
-        🔒 Données filtrées par université · journal d'audit · API sécurisée JWT
-      </p>
+  <div class="app-shell">
+    <aside class="side">
+      <a href="index.html" class="brand">
+        <img src="logos.svg" alt="" width="38" height="38" style="border-radius:50%" />
+        <span>Bibliothèque numérique<small>Smart Academy</small></span>
+      </a>
+      <nav class="side-nav">
+        <button class="side-btn active" data-tab="library">📚 Bibliothèque</button>
+        <button class="side-btn" data-tab="dictionary">🗣️ Dictionnaire FR / EN</button>
+      </nav>
+      <div class="side-note">
+        Interface inspirée du design premium demandé.
+        Accès direct si la session est déjà active.
+      </div>
     </aside>
-    <main id="platformPanels"></main>
-  </div>
+    <main class="main">
+      <div class="topbar">
+        <input id="globalSearch" class="search" type="search" placeholder="Rechercher un livre, un auteur, une catégorie…" />
+        <div id="headerActions">
+          <a href="index.html" class="btn btn--ghost">Accueil</a>
+        </div>
+      </div>
 
-  <div id="loginPrompt" style="max-width:480px;margin:3rem auto;text-align:center;padding:2rem;background:#fff;border-radius:12px;border:1px solid var(--border)">
-    <p>Connectez-vous pour accéder à l'écosystème complet.</p>
-    <a href="connexion.html" class="btn btn--primary" style="margin-top:1rem">Se connecter</a>
-    <p style="margin-top:1rem;font-size:0.85rem"><a href="verifier-diplome.html">Vérifier un diplôme</a> (public, sans compte)</p>
+      <section class="hero">
+        <h1>Bienvenue dans la Bibliothèque numérique</h1>
+        <p>Découvrez des ressources académiques et utilisez le dictionnaire bilingue intégré.</p>
+        <div class="kpis">
+          <div class="kpi"><b id="kpiBooks">0</b><span>Livres disponibles</span></div>
+          <div class="kpi"><b>FR ⇄ EN</b><span>Dictionnaire intégré</span></div>
+          <div class="kpi"><b>100%</b><span>Accès sans double login</span></div>
+          <div class="kpi"><b>24/7</b><span>Consultation en ligne</span></div>
+        </div>
+      </section>
+
+      <section id="panel-library" class="panel-card">
+        <h3 style="margin:0 0 0.45rem;">Recommandé pour vous</h3>
+        <p style="margin:0;color:var(--muted);font-size:0.9rem">Livres, guides et documents académiques.</p>
+        <div id="libraryList" class="lib-grid"></div>
+      </section>
+
+      <section id="panel-dictionary" class="panel-card" style="display:none">
+        <h3 style="margin:0 0 0.45rem;">Dictionnaire bilingue intégré</h3>
+        <p style="margin:0;color:var(--muted);font-size:0.9rem">Recherchez un mot en français ou en anglais.</p>
+        <form id="dictionaryForm" class="dict-form">
+          <input id="dictInput" class="dict-input" type="text" placeholder="Ex: livre / book / école / school" required />
+          <button type="submit" class="btn btn--primary">Traduire</button>
+        </form>
+        <div id="dictOutput" class="dict-out">Entrez un mot pour voir la traduction.</div>
+      </section>
+    </main>
   </div>
 
   <script src="js/sac-session.js"></script>
   <script src="js/sac-identity.js"></script>
   <script src="js/sac-api.js"></script>
-  <script src="js/sac-grades.js"></script>
   <script src="js/sac-platform.js"></script>
-  <script src="js/sac-live-call.js"></script>
-  <script src="js/sac-webrtc-room.js"></script>
-  <script src="js/sac-live.js"></script>
   <script>
     (async function () {
-      if (typeof SAC_API !== "undefined" && SAC_API.wakeServer) {
-        SAC_API.wakeServer({ attempts: 3, timeoutMs: 35000, delayMs: 4000 }).catch(() => {});
-      }
-
-      let session = null;
-      if (typeof SAC_SESSION.resolveNavigationSession === "function") {
-        session = await SAC_SESSION.resolveNavigationSession();
-      } else if (typeof SAC_SESSION.getActiveSession === "function") {
-        session = SAC_SESSION.getActiveSession();
-      } else {
-        session = SAC_SESSION.getSession();
-      }
-      const app = document.getElementById("platformApp");
-      const prompt = document.getElementById("loginPrompt");
-      const navEl = document.getElementById("platformNav");
-      const panelsEl = document.getElementById("platformPanels");
-      const headerActions = document.getElementById("headerActions");
-
-      if (!session) return;
-
-      prompt.style.display = "none";
-      app.style.display = "grid";
-      SAC_PLATFORM.seedDemoIfEmpty();
-      if (typeof SAC_LIVE !== "undefined") SAC_LIVE.seedDemoIfEmpty();
-
-      const dash = {
-        etudiant: "dashboard-etudiant.html",
-        professeur: "dashboard-professeur.html",
-        assistant: "dashboard-assistant.html",
-        universite: "dashboard-universite.html",
-        section: "dashboard-section.html",
-      }[session.role] || "index.html";
-
-      headerActions.innerHTML =
-        '<span style="font-size:0.88rem;color:var(--text-muted)">' +
-        (typeof SAC_IDENTITY !== "undefined" ? SAC_IDENTITY.getDisplayName(session) : session.email) +
-        '</span><a href="' + dash + '" class="btn btn--ghost">Mon tableau de bord</a>' +
-        '<button type="button" class="btn btn--ghost" id="btnLogout">Déconnexion</button>';
-
-      document.getElementById("btnLogout")?.addEventListener("click", () => {
-        SAC_SESSION.logout("index.html");
-      });
-
-      const modules = SAC_PLATFORM.modulesForRole(session.role);
-      const panelDefs = {
-        resultats: { title: "Résultats académiques", lead: "Relevés par semestre, validés par vos professeurs et votre université.", render: renderGrades },
-        bibliotheque: { title: "Bibliothèque numérique", lead: "Ouvrages et ressources du campus, accès selon votre rôle.", render: renderLibrary },
-        orientation_ia: { title: "IA — Orientation académique", lead: "Recommandations de parcours, compétences et stages (conseil indicatif).", render: renderOrientation },
-        stages_emplois: { title: "Stages & emplois", lead: "Offres campus et nationales publiées par les universités partenaires.", render: renderCareers },
-        reseau: { title: "Réseau social étudiant", lead: "Fil sécurisé de votre campus — publications modérées par établissement.", render: renderSocial },
-        cours_ligne: { title: "Cours en ligne & direct", lead: "MOOC, cours en direct (vidéo, chat, partage d'écran) et enregistrements.", render: renderCourses },
-        verification_diplome: { title: "Mes diplômes & vérification", lead: "Codes officiels pour employeurs et institutions.", render: renderDiplomas },
-        frais: { title: "Paiement des frais", lead: "Suivi et validation sécurisée des paiements campus.", render: renderFees },
-        inscription: { title: "Inscription en ligne", lead: "Création de compte et dossier administratif numérique.", render: renderInscription },
+      const dictionary = {
+        livre: "book",
+        books: "livres",
+        book: "livre",
+        bibliotheque: "library",
+        library: "bibliothèque",
+        etudiant: "student",
+        student: "étudiant",
+        ecole: "school",
+        school: "école",
+        professeur: "teacher",
+        teacher: "professeur",
+        recherche: "research",
+        research: "recherche",
       };
 
-      modules.forEach((m, i) => {
-        const btn = document.createElement("button");
-        btn.type = "button";
-        btn.className = "platform-nav-btn" + (i === 0 ? " active" : "");
-        btn.dataset.panel = m.id;
-        btn.innerHTML = "<span>" + m.icon + "</span> " + m.title;
-        btn.addEventListener("click", () => showPanel(m.id));
-        navEl.appendChild(btn);
+      const tabs = document.querySelectorAll("[data-tab]");
+      const panelLibrary = document.getElementById("panel-library");
+      const panelDictionary = document.getElementById("panel-dictionary");
+      const listRoot = document.getElementById("libraryList");
+      const form = document.getElementById("dictionaryForm");
+      const input = document.getElementById("dictInput");
+      const output = document.getElementById("dictOutput");
+      const headerActions = document.getElementById("headerActions");
 
-        const panel = document.createElement("section");
-        panel.className = "platform-panel" + (i === 0 ? " active" : "");
-        panel.id = "panel-" + m.id;
-        panel.innerHTML = "<h3>" + m.icon + " " + (panelDefs[m.id]?.title || m.title) + "</h3><p class='lead'>" + (panelDefs[m.id]?.lead || "") + "</p><div class='panel-body'></div>";
-        panelsEl.appendChild(panel);
+      let session = null;
+      try {
+        if (typeof SAC_SESSION !== "undefined" && SAC_SESSION.resolveNavigationSession) {
+          session = await SAC_SESSION.resolveNavigationSession();
+        } else if (typeof SAC_SESSION !== "undefined" && SAC_SESSION.getSession) {
+          session = SAC_SESSION.getSession();
+        }
+      } catch {
+        session = null;
+      }
+
+      if (session && headerActions) {
+        const dash = {
+          etudiant: "dashboard-etudiant.html",
+          professeur: "dashboard-professeur.html",
+          assistant: "dashboard-assistant.html",
+          universite: "dashboard-universite.html",
+          section: "dashboard-section.html",
+        }[session.role] || "index.html";
+        const displayName =
+          typeof SAC_IDENTITY !== "undefined" && SAC_IDENTITY.getDisplayName
+            ? SAC_IDENTITY.getDisplayName(session)
+            : session.email || session.identifiant || "Connecté";
+
+        headerActions.innerHTML =
+          '<span class="session-pill">● Session active</span>' +
+          '<span style="font-size:0.86rem;color:var(--text-muted);margin-right:0.35rem;">' +
+          esc(displayName) +
+          "</span>" +
+          '<a href="' +
+          dash +
+          '" class="btn btn--ghost">Mon tableau de bord</a> ' +
+          '<button type="button" class="btn btn--primary" id="btnLogout">Déconnexion</button>';
+        document.getElementById("btnLogout")?.addEventListener("click", () => {
+          if (typeof SAC_SESSION !== "undefined" && SAC_SESSION.logout) SAC_SESSION.logout("index.html");
+        });
+      } else if (headerActions) {
+        headerActions.innerHTML =
+          '<a href="connexion.html" class="btn btn--primary">Connexion</a> ' +
+          '<a href="index.html" class="btn btn--ghost">Accueil</a>';
+      }
+
+      tabs.forEach((btn) => {
+        btn.addEventListener("click", () => {
+          tabs.forEach((b) => b.classList.toggle("active", b === btn));
+          const isLibrary = btn.dataset.tab === "library";
+          panelLibrary.style.display = isLibrary ? "block" : "none";
+          panelDictionary.style.display = isLibrary ? "none" : "block";
+        });
       });
 
-      function showPanel(id) {
-        document.querySelectorAll(".platform-nav-btn").forEach((b) => b.classList.toggle("active", b.dataset.panel === id));
-        document.querySelectorAll(".platform-panel").forEach((p) => p.classList.toggle("active", p.id === "panel-" + id));
-        const def = panelDefs[id];
-        if (def?.render) def.render(document.querySelector("#panel-" + id + " .panel-body"));
+      async function renderLibrary() {
+        let items = [];
+        try {
+          if (typeof SAC_PLATFORM !== "undefined" && SAC_PLATFORM.getLibrary) {
+            items = await SAC_PLATFORM.getLibrary();
+          }
+        } catch {
+          items = [];
+        }
+
+        if (!items.length) {
+          items = [
+            { title: "English Grammar Essentials", author: "Open Learning", category: "Langues", description: "Bases de grammaire anglaise pour débutants." },
+            { title: "Français académique", author: "Ressource Campus", category: "Langues", description: "Rédaction universitaire en français." },
+            { title: "Méthodologie de recherche", author: "Collectif", category: "Méthodes", description: "Guide pratique pour mémoires et projets." },
+          ];
+        }
+
+        document.getElementById("kpiBooks").textContent = String(items.length);
+        listRoot.innerHTML = items
+          .map(
+            (item) =>
+              '<article class="lib-item"><div class="cover">📘</div><div class="lib-meta"><strong>' +
+              esc(item.title || "Ressource") +
+              '</strong><p>' +
+              esc(item.author || "—") +
+              " · " +
+              esc(item.category || "Document") +
+              "</p></div></article>"
+          )
+          .join("");
       }
 
-      if (modules[0]) showPanel(modules[0].id);
-
-      async function renderGrades(el) {
-        const grades = await SAC_PLATFORM.getGrades();
-        const gradeActions = {
-          etudiant:
-            '<p style="margin-top:1rem;display:flex;flex-wrap:wrap;gap:0.5rem">' +
-            '<a href="bulletin-semestre.html" class="btn btn--primary">Mon relevé de notes</a>' +
-            '<a href="dashboard-etudiant.html#notes" class="btn btn--ghost">Détail par cours</a></p>',
-          professeur:
-            '<p style="margin-top:1rem"><a href="dashboard-professeur.html" class="btn btn--ghost">Gérer et télécharger les relevés →</a></p>',
-          assistant:
-            '<p style="margin-top:1rem"><a href="dashboard-assistant.html" class="btn btn--ghost">Consulter les relevés campus →</a></p>',
-          universite:
-            '<p style="margin-top:1rem"><a href="dashboard-universite.html" class="btn btn--ghost">Relevés et validation campus →</a></p>',
-          section:
-            '<p style="margin-top:1rem"><a href="dashboard-section.html" class="btn btn--ghost">Espace section →</a></p>',
-        }[session.role] || "";
-
-        if (!grades.length) {
-          el.innerHTML =
-            "<p>Aucune cote publiée pour le moment.</p>" +
-            (session.role === "etudiant"
-              ? "<p style='font-size:0.88rem;color:var(--text-muted)'>Votre professeur les saisit depuis son espace.</p>"
-              : "") +
-            gradeActions;
+      form.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const raw = String(input.value || "").trim().toLowerCase();
+        if (!raw) return;
+        const key = raw
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "");
+        const translated = dictionary[key];
+        if (translated) {
+          output.style.color = "var(--text)";
+          output.innerHTML = "<strong>" + esc(raw) + "</strong> → <strong>" + esc(translated) + "</strong>";
           return;
         }
-        el.innerHTML =
-          "<ul class='platform-list'>" +
-          grades
-            .map(
-              (g) =>
-                "<li><strong>" +
-                (g.courseName || g.course_name) +
-                "</strong> — " +
-                (g.semester || "") +
-                " · Moy. <strong>" +
-                (g.avg ?? "—") +
-                "</strong>/20 · <span style='color:var(--success)'>" +
-                (g.status || "") +
-                "</span></li>"
-            )
-            .join("") +
-          "</ul>" +
-          gradeActions;
+        output.style.color = "var(--text-muted)";
+        output.textContent = "Mot non trouvé. Essayez: livre, book, école, school, étudiant, student.";
+      });
+
+      function esc(s) {
+        const el = document.createElement("div");
+        el.textContent = String(s || "");
+        return el.innerHTML;
       }
 
-      async function renderLibrary(el) {
-        const items = await SAC_PLATFORM.getLibrary();
-        el.innerHTML =
-          "<div class='platform-grid'>" +
-          items
-            .map(
-              (i) =>
-                "<article class='platform-card'><h4>" +
-                i.title +
-                "</h4><p>" +
-                (i.author || "") +
-                " · " +
-                (i.category || "") +
-                "</p><p>" +
-                (i.description || "") +
-                "</p></article>"
-            )
-            .join("") +
-          "</div>";
-      }
-
-      async function renderOrientation(el) {
-        el.innerHTML = "<button type='button' class='btn btn--primary' id='btnOrient'>Obtenir une orientation</button><div id='orientOut'></div>";
-        document.getElementById("btnOrient").onclick = async () => {
-          const advice = await SAC_PLATFORM.getOrientation();
-          document.getElementById("orientOut").innerHTML =
-            "<div class='platform-card' style='margin-top:1rem'><p><strong>Parcours :</strong> " +
-            advice.academicPath +
-            "</p><p><strong>Filières :</strong> " +
-            advice.recommendedFilieres.join(", ") +
-            "</p><p><strong>Stages suggérés :</strong> " +
-            advice.suggestedInternships.join(", ") +
-            "</p><p><strong>Compétences :</strong> " +
-            advice.skillsToDevelop.join(", ") +
-            "</p><p style='font-size:0.8rem;margin-top:0.5rem'>" +
-            advice.disclaimer +
-            "</p></div>";
-        };
-      }
-
-      async function renderCareers(el) {
-        const items = await SAC_PLATFORM.getCareers();
-        el.innerHTML = items.length
-          ? "<ul class='platform-list'>" +
-            items
-              .map(
-                (c) =>
-                  "<li><span class='platform-badge'>" +
-                  c.type +
-                  "</span> <strong>" +
-                  c.title +
-                  "</strong> — " +
-                  c.organization +
-                  " (" +
-                  (c.location || "RDC") +
-                  ")</li>"
-              )
-              .join("") +
-            "</ul>"
-          : "<p>Aucune offre pour le moment.</p>";
-        if (["universite", "professeur", "assistant", "section"].includes(session.role)) {
-          el.innerHTML +=
-            '<form class="platform-form" id="careerForm"><select name="type"><option value="stage">Stage</option><option value="emploi">Emploi</option></select><input name="title" placeholder="Titre" required /><input name="organization" placeholder="Organisation" required /><textarea name="description" placeholder="Description" required></textarea><button type="submit" class="btn btn--primary">Publier (campus)</button></form>';
-          document.getElementById("careerForm").onsubmit = (e) => {
-            e.preventDefault();
-            const fd = new FormData(e.target);
-            SAC_PLATFORM.addCareerLocal({
-              type: fd.get("type"),
-              title: fd.get("title"),
-              organization: fd.get("organization"),
-              description: fd.get("description"),
-              scope: "campus",
-            });
-            renderCareers(el);
-          };
-        }
-      }
-
-      async function renderSocial(el) {
-        const posts = await SAC_PLATFORM.getSocialPosts();
-        let html = '<form class="platform-form" id="socialForm"><textarea name="content" placeholder="Publier sur le fil campus…" maxlength="2000" required></textarea><button type="submit" class="btn btn--primary">Publier</button></form><div class="platform-feed">';
-        posts.forEach((p) => {
-          html +=
-            '<article class="post"><div class="post-meta">' +
-            (p.authorName || "") +
-            " · " +
-            (p.authorRole || "") +
-            "</div><p>" +
-            escapeHtml(p.content) +
-            "</p><button type='button' class='btn btn--ghost btn-like" data-id="' +
-            p.id +
-            '">👍 ' +
-            (p.likes?.length || 0) +
-            "</button></article>";
-        });
-        html += "</div>";
-        el.innerHTML = html;
-        document.getElementById("socialForm").onsubmit = (e) => {
-          e.preventDefault();
-          SAC_PLATFORM.addSocialLocal(new FormData(e.target).get("content"));
-          renderSocial(el);
-        };
-        el.querySelectorAll(".btn-like").forEach((b) => {
-          b.onclick = () => {
-            SAC_PLATFORM.toggleLikeLocal(b.dataset.id);
-            renderSocial(el);
-          };
-        });
-      }
-
-      async function renderCourses(el) {
-        if (typeof SAC_LIVE !== "undefined") {
-          SAC_LIVE.mountUI(el, session);
-          return;
-        }
-        const courses = await SAC_PLATFORM.getCourses();
-        el.innerHTML = courses.length
-          ? "<div class='platform-grid'>" +
-            courses
-              .map(
-                (c) =>
-                  "<article class='platform-card'><h4>" +
-                  c.title +
-                  "</h4><p>" +
-                  (c.description || "") +
-                  "</p>" +
-                  (session.role === "etudiant"
-                    ? '<button type="button" class="btn btn--primary btn-enroll" data-id="' +
-                      c.id +
-                      '">S\'inscrire</button>'
-                    : "") +
-                  "</article>"
-              )
-              .join("") +
-            "</div>"
-          : "<p>Aucun cours en ligne publié.</p>";
-        el.querySelectorAll(".btn-enroll").forEach((b) => {
-          b.onclick = async () => {
-            await SAC_PLATFORM.enrollCourse(b.dataset.id);
-            alert("Inscription enregistrée.");
-          };
-        });
-      }
-
-      async function renderDiplomas(el) {
-        if (session.role === "universite") {
-          el.innerHTML =
-            '<form class="platform-form" id="dipForm"><input name="studentName" placeholder="Nom complet étudiant" required /><input name="studentEmail" type="email" placeholder="Email étudiant" required /><input name="matricule" placeholder="Matricule" required /><input name="filiere" placeholder="Filière" required /><input name="niveau" placeholder="Niveau" required /><button type="submit" class="btn btn--primary">Émettre diplôme (signature SAC)</button></form><div id="dipIssued"></div><p style="margin-top:1rem"><a href="verifier-diplome.html">Page publique de vérification →</a></p>';
-          document.getElementById("dipForm").onsubmit = (e) => {
-            e.preventDefault();
-            const fd = new FormData(e.target);
-            const d = SAC_PLATFORM.issueDiplomaLocal({
-              universite: session.universite || session.nomUniversite,
-              studentName: fd.get("studentName"),
-              studentEmail: fd.get("studentEmail"),
-              matricule: fd.get("matricule"),
-              filiere: fd.get("filiere"),
-              niveau: fd.get("niveau"),
-              graduationYear: new Date().getFullYear(),
-            });
-            document.getElementById("dipIssued").innerHTML =
-              '<div class="platform-verify-result ok">Diplôme émis.<br/>N° <code>' +
-              d.diplomaNumber +
-              "</code><br/>Code vérification : <code>" +
-              d.verificationCode +
-              "</code></div>";
-          };
-          return;
-        }
-        const dips = await SAC_PLATFORM.getMyDiplomas();
-        el.innerHTML =
-          dips.length
-            ? dips
-                .map(
-                  (d) =>
-                    "<div class='platform-card'><strong>" +
-                    (d.diplomaType || "Diplôme") +
-                    "</strong><br/>N° " +
-                    d.diplomaNumber +
-                    "<br/><small>Code : " +
-                    d.verificationCode +
-                    "</small></div>"
-                )
-                .join("")
-            : "<p>Aucun diplôme numérique enregistré pour votre compte.</p>";
-        el.innerHTML += '<p style="margin-top:1rem"><a href="verifier-diplome.html">Vérifier un diplôme (tiers) →</a></p>';
-      }
-
-      function renderFees(el) {
-        if (session.role === "section") {
-          el.innerHTML =
-            '<p>Suivez les paiements des étudiants de votre section depuis votre tableau de bord.</p><a href="dashboard-section.html" class="btn btn--primary">Espace section</a>';
-          return;
-        }
-        if (session.role === "etudiant") {
-          el.innerHTML =
-            '<p>Consultez et réglez vos frais depuis votre tableau de bord étudiant (validation assistant / université).</p><a href="dashboard-etudiant.html#frais" class="btn btn--primary">Ouvrir mes frais</a>';
-          return;
-        }
-        el.innerHTML =
-          '<p>Validation et suivi des frais campus depuis votre espace administrateur.</p><a href="' +
-          dash +
-          '" class="btn btn--primary">Mon tableau de bord</a>';
-      }
-
-      function renderInscription(el) {
-        el.innerHTML =
-          '<p>Inscription en ligne sécurisée avec choix d\'université et paiement initial.</p><a href="inscription.html" class="btn btn--primary">S\'inscrire</a>';
-      }
-
-      function escapeHtml(s) {
-        const d = document.createElement("div");
-        d.textContent = s;
-        return d.innerHTML;
-      }
+      await renderLibrary();
     })();
   </script>
   <script src="js/sac-mobile.js" defer></script>
