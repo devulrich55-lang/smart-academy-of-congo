@@ -5,6 +5,7 @@
   "description": "Smart Academy of Congo — site statique (Render)",
   "scripts": {
     "build": "echo Static frontend ready",
-    "check:health": "node scripts/check-health.js"
+    "check:health": "node scripts/check-health.js",
+    "validate": "node scripts/validate-frontend.js"
   }
 }

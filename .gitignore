@@ -15,3 +15,6 @@ node_modules/
 # OS
 .DS_Store
 Thumbs.db
+
+# Ancien déploiement Firebase (Render est utilisé)
+.firebase/
