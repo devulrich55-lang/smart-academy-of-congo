@@ -268,19 +268,31 @@
           <div class="stat-card"><strong>${s.openReclamations}</strong><span>Réclamations campus</span></div>`;
       }
 
-      function renderPaymentRow(user) {
-        const p = user.payment || {};
-        const ref = p.paymentReference || p.transactionId || "—";
-        const paidAt = p.paidAt ? new Date(p.paidAt).toLocaleString("fr-FR") : "—";
-        return `<div class="task-row" data-email="${escapeHtml(user.email)}">
+      function renderPaymentRow(payment) {
+        const ref = payment.reference || payment.paymentReference || payment.transactionId || "—";
+        const paidAt = payment.createdAt || payment.paidAt;
+        const paidLabel = paidAt ? new Date(paidAt).toLocaleString("fr-FR") : "—";
+        const amount =
+          payment.amount != null
+            ? payment.amount + " " + (payment.currency || "USD")
+            : formatMoney(payment);
+        const method =
+          typeof SAC_PAYMENTS !== "undefined" && SAC_PAYMENTS.methodLabel
+            ? SAC_PAYMENTS.methodLabel(payment.method)
+            : payment.method || "—";
+        const roleTag = payment.studentRole
+          ? '<span style="font-size:0.78rem;color:var(--muted);margin-left:0.35rem;">' +
+            escapeHtml(SAC_TASKS.ROLE_LABELS[payment.studentRole] || "") +
+            "</span>"
+          : "";
+        return `<div class="task-row" data-pay-id="${escapeHtml(payment.id)}">
           <div>
-            <strong>${escapeHtml(SAC_TASKS.displayName(user))}</strong>
-            <span style="font-size:0.78rem;color:var(--muted);margin-left:0.35rem;">${escapeHtml(SAC_TASKS.ROLE_LABELS[user.role] || user.role)}</span>
-            <div class="task-row__meta">${escapeHtml(user.email)} · ${formatMoney(p)} · Réf. ${escapeHtml(ref)} · ${paidAt}</div>
+            <strong>${escapeHtml(payment.studentNom || payment.studentEmail)}</strong>${roleTag}
+            <div class="task-row__meta">${escapeHtml(payment.studentEmail || "")} · ${escapeHtml(payment.feeLabel || "Frais académiques")} · ${escapeHtml(amount)} · ${escapeHtml(method)} · Réf. ${escapeHtml(ref)} · ${paidLabel}</div>
           </div>
           <div class="task-row__actions">
-            <button type="button" class="btn--ok btn--sm" data-verify="${escapeHtml(user.email)}">✓ Valider</button>
-            <button type="button" class="btn--reject" data-reject="${escapeHtml(user.email)}">Refuser</button>
+            <button type="button" class="btn--ok btn--sm" data-verify="${escapeHtml(payment.id)}">✓ Valider</button>
+            <button type="button" class="btn--reject" data-reject="${escapeHtml(payment.id)}">Refuser</button>
           </div>
         </div>`;
       }
@@ -358,8 +370,8 @@
         });
       }
 
-      function renderPayments() {
-        const list = SAC_TASKS.getPendingPayments(session);
+      async function renderPayments() {
+        const list = SAC_TASKS.getPendingPayments();
         const el = document.getElementById("listPayments");
         document.getElementById("countPayments").textContent = list.length + " dossier(s)";
         if (!list.length) {
@@ -368,26 +380,26 @@
         }
         el.innerHTML = list.map(renderPaymentRow).join("");
         el.querySelectorAll("[data-verify]").forEach((btn) => {
-          btn.addEventListener("click", () => {
+          btn.addEventListener("click", async () => {
             if (!confirm("Confirmer la validation de ce paiement ?")) return;
             try {
-              SAC_TASKS.verifyPayment(session, btn.dataset.verify);
-              renderAllTasks();
+              await SAC_TASKS.verifyPayment(session, btn.dataset.verify);
+              await renderAllTasks();
               refreshPubStats();
-              alert("Paiement validé. Le compte est actif côté étudiant.");
+              alert("Paiement validé. Le solde étudiant est mis à jour.");
             } catch (e) {
               alert(e.message);
             }
           });
         });
         el.querySelectorAll("[data-reject]").forEach((btn) => {
-          btn.addEventListener("click", () => {
+          btn.addEventListener("click", async () => {
             const reason = prompt("Motif du refus (optionnel) :");
             if (reason === null) return;
             try {
-              SAC_TASKS.rejectPayment(session, btn.dataset.reject, reason);
-              renderAllTasks();
-              alert("Paiement refusé. L'utilisateur pourra soumettre à nouveau.");
+              await SAC_TASKS.rejectPayment(session, btn.dataset.reject, reason);
+              await renderAllTasks();
+              alert("Paiement refusé. L'étudiant pourra soumettre à nouveau.");
             } catch (e) {
               alert(e.message);
             }
@@ -405,11 +417,11 @@
         }
         el.innerHTML = list.map(renderRegistrationRow).join("");
         el.querySelectorAll("[data-verify]").forEach((btn) => {
-          btn.addEventListener("click", () => {
+          btn.addEventListener("click", async () => {
             if (!confirm("Valider le paiement de ce compte ?")) return;
             try {
-              SAC_TASKS.verifyPayment(session, btn.dataset.verify);
-              renderAllTasks();
+              await SAC_TASKS.verifyPayment(session, btn.dataset.verify);
+              await renderAllTasks();
               alert("Compte validé.");
             } catch (e) {
               alert(e.message);
@@ -467,9 +479,10 @@
         document.getElementById("panelAttestations").style.display = id === "attestations" ? "block" : "none";
       }
 
-      function renderAllTasks() {
+      async function renderAllTasks() {
+        await SAC_TASKS.refreshPayments(session);
         renderTaskStats();
-        renderPayments();
+        await renderPayments();
         renderRegistrations();
         renderReclamations();
         renderAttestations();

@@ -1786,6 +1786,8 @@ const SAC_LIVE = (function () {
 
   function seedDemoIfEmpty() {
 
+    if (typeof SAC_API !== "undefined" && SAC_API.isLocalDevHost && !SAC_API.isLocalDevHost()) return;
+
     const s = getSession();
 
     if (!s?.universite || read(STORAGE_KEY).length) return;

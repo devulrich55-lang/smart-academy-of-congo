@@ -24,19 +24,27 @@ const SAC_HOME_NEWS = (function () {
     syncPromise = null;
   }
 
+  function isLocalDevNews() {
+    return (
+      typeof SAC_API !== "undefined" &&
+      typeof SAC_API.isLocalDevHost === "function" &&
+      SAC_API.isLocalDevHost()
+    );
+  }
+
   function getAllFromLocalStorage() {
     const raw = localStorage.getItem(STORAGE_KEY);
     let list;
     if (!raw) {
-      list = DEFAULT_NEWS.map((n) => normalizeItem({ ...n }));
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+      list = isLocalDevNews() ? DEFAULT_NEWS.map((n) => normalizeItem({ ...n })) : [];
+      if (list.length) localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
       return list;
     }
     try {
       list = JSON.parse(raw);
     } catch {
-      list = DEFAULT_NEWS.map((n) => normalizeItem({ ...n }));
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+      list = isLocalDevNews() ? DEFAULT_NEWS.map((n) => normalizeItem({ ...n })) : [];
+      if (list.length) localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
       return list;
     }
     return list.map(normalizeItem);

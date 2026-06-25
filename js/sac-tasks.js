@@ -1,8 +1,18 @@
 /**
  * Tâches administratives — espace assistant (campus)
+ * Paiements : API SAC_PAYMENTS en production ; repli localStorage réservé au dev localhost.
  */
 const SAC_TASKS = (function () {
   const CAMPUS_ROLES = ["etudiant", "professeur", "assistant"];
+  let paymentsCache = [];
+
+  function isLocalDev() {
+    return (
+      typeof SAC_API !== "undefined" &&
+      typeof SAC_API.isLocalDevHost === "function" &&
+      SAC_API.isLocalDevHost()
+    );
+  }
 
   function campusCode(session) {
     return session?.universite || session?.codeUni || session?.sigle || "";
@@ -14,21 +24,53 @@ const SAC_TASKS = (function () {
   }
 
   function getCampusUsers(session) {
+    if (!isLocalDev()) return [];
     const code = campusCode(session);
-    if (!code) return [];
+    if (!code || typeof SAC_IDENTITY === "undefined") return [];
     return SAC_IDENTITY.getLocalUsers().filter(
       (u) => CAMPUS_ROLES.includes(u.role) && belongsToCampus(u, code)
     );
   }
 
-  /** Paiements Mobile Money / virement en attente de validation */
-  function getPendingPayments(session) {
-    return getCampusUsers(session).filter(
-      (u) => u.payment?.status === "pending_verification"
-    );
+  function legacyPendingFromUsers(session) {
+    return getCampusUsers(session)
+      .filter((u) => u.payment?.status === "pending_verification")
+      .map((u) => ({
+        id: u.email,
+        studentEmail: u.email,
+        studentNom: displayName(u),
+        studentRole: u.role,
+        amount: u.payment?.amountUsd,
+        currency: "USD",
+        amountCdf: u.payment?.amountCdf,
+        reference: u.payment?.paymentReference || u.payment?.transactionId || "—",
+        method: u.payment?.method,
+        paidAt: u.payment?.paidAt,
+        status: "pending",
+        _legacyUser: true,
+      }));
   }
 
-  /** Comptes récents sans paiement validé */
+  /** Charge les paiements campus (API ou démo locale). */
+  async function refreshPayments(session) {
+    if (typeof SAC_PAYMENTS !== "undefined" && SAC_PAYMENTS.listCampusPayments) {
+      try {
+        paymentsCache = (await SAC_PAYMENTS.listCampusPayments(session)) || [];
+        return paymentsCache;
+      } catch {
+        paymentsCache = [];
+      }
+    }
+    paymentsCache = isLocalDev() ? legacyPendingFromUsers(session) : [];
+    return paymentsCache;
+  }
+
+  /** Paiements académiques en attente de validation */
+  function getPendingPayments() {
+    return paymentsCache.filter((p) => p.status === "pending");
+  }
+
+  /** Comptes récents sans paiement validé (dev local uniquement) */
   function getRegistrationsToValidate(session, days = 60) {
     const cutoff = Date.now() - days * 86400000;
     return getCampusUsers(session).filter((u) => {
@@ -54,7 +96,6 @@ const SAC_TASKS = (function () {
     );
   }
 
-  /** Demandes d'attestation / documents administratifs */
   function getAttestationRequests(session) {
     return getOpenReclamations(session).filter(
       (r) =>
@@ -66,7 +107,7 @@ const SAC_TASKS = (function () {
   }
 
   function getSummary(session) {
-    const payments = getPendingPayments(session);
+    const payments = getPendingPayments();
     const registrations = getRegistrationsToValidate(session);
     const openRecs = getOpenReclamations(session);
     const attestations = getAttestationRequests(session);
@@ -82,13 +123,31 @@ const SAC_TASKS = (function () {
   }
 
   function displayName(user) {
+    if (!user) return "—";
+    if (user.studentNom) return user.studentNom;
     if (typeof SAC_IDENTITY !== "undefined") {
-      return SAC_IDENTITY.formatFullName(user.prenom, user.nom) || user.email;
+      return SAC_IDENTITY.formatFullName(user.prenom, user.nom) || user.email || "—";
     }
-    return [user.prenom, user.nom].filter(Boolean).join(" ") || user.email;
+    return [user.prenom, user.nom].filter(Boolean).join(" ") || user.email || "—";
   }
 
-  function verifyPayment(session, userEmail) {
+  async function verifyPayment(session, paymentId) {
+    if (typeof SAC_PAYMENTS !== "undefined" && SAC_PAYMENTS.confirmPayment) {
+      return SAC_PAYMENTS.confirmPayment(session, paymentId, "confirmed");
+    }
+    if (!isLocalDev()) throw new Error("Validation en ligne requise.");
+    return legacyVerifyLocal(session, paymentId);
+  }
+
+  async function rejectPayment(session, paymentId, reason) {
+    if (typeof SAC_PAYMENTS !== "undefined" && SAC_PAYMENTS.confirmPayment) {
+      return SAC_PAYMENTS.confirmPayment(session, paymentId, "rejected");
+    }
+    if (!isLocalDev()) throw new Error("Rejet en ligne requis.");
+    return legacyRejectLocal(session, paymentId, reason);
+  }
+
+  function legacyVerifyLocal(session, userEmail) {
     const code = campusCode(session);
     const users = SAC_IDENTITY.getLocalUsers();
     const idx = users.findIndex(
@@ -126,7 +185,7 @@ const SAC_TASKS = (function () {
     return users[idx];
   }
 
-  function rejectPayment(session, userEmail, reason) {
+  function legacyRejectLocal(session, userEmail, reason) {
     const code = campusCode(session);
     const users = SAC_IDENTITY.getLocalUsers();
     const idx = users.findIndex(
@@ -157,6 +216,7 @@ const SAC_TASKS = (function () {
 
   return {
     campusCode,
+    refreshPayments,
     getSummary,
     getPendingPayments,
     getRegistrationsToValidate,
@@ -167,5 +227,6 @@ const SAC_TASKS = (function () {
     rejectPayment,
     displayName,
     ROLE_LABELS,
+    isLocalDev,
   };
 })();

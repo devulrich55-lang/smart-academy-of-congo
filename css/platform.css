@@ -193,8 +193,17 @@
 
 .feature-pillar__tag {
   display: inline-block;
-  margin-top: 0.5rem;
-  font-size: 0.72rem;
-  font-weight: 600;
-  color: var(--success, #0d7a4a);
+  margin-top: 0.55rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  background: rgba(12, 61, 110, 0.08);
+  color: var(--primary, #0c3d6e);
+}
+.feature-pillar__tag--soon {
+  background: rgba(180, 83, 9, 0.12);
+  color: #b45309;
 }

@@ -378,6 +378,7 @@ const SAC_PLATFORM = (function () {
   }
 
   function seedDemoIfEmpty() {
+    if (typeof SAC_API !== "undefined" && SAC_API.isLocalDevHost && !SAC_API.isLocalDevHost()) return;
     const s = getSession();
     if (!s?.universite) return;
     if (read(KEYS.library).length) return;

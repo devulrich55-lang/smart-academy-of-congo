@@ -486,7 +486,9 @@ const SAC_GRADES = (function () {
       await syncFromServer(session);
       return getAll();
     }
-    if (!getAll().length) await initDemoGrades();
+    if (!getAll().length && (typeof SAC_API === "undefined" || !SAC_API.isLocalDevHost || SAC_API.isLocalDevHost())) {
+      await initDemoGrades();
+    }
     return getAll();
   }
 
