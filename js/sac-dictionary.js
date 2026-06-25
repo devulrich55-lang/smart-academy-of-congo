@@ -123,6 +123,8 @@ const SAC_DICTIONARY = (function () {
 
     if (data.offline || data.provider === "local") {
       html += '<p class="dict-entry__note">Définition locale intégrée.</p>';
+    } else if (data.provider && data.provider.startsWith("wiktionary")) {
+      html += '<p class="dict-entry__note">Source : Wiktionary — dictionnaire ouvert.</p>';
     }
 
     html += "</article>";
@@ -154,12 +156,21 @@ const SAC_DICTIONARY = (function () {
         const result = await lookup(raw, { lang });
         output.style.color = "var(--text)";
         output.innerHTML = renderResult(result);
-      } catch {
+      } catch (err) {
         output.style.color = "var(--muted)";
+        const apiDown =
+          typeof SAC_API !== "undefined" && SAC_API.ensureOnline
+            ? !(await SAC_API.ensureOnline().catch(() => false))
+            : false;
+        if (apiDown) {
+          output.innerHTML =
+            '<p style="margin:0;">Connexion au serveur impossible. Vérifiez que l\'API est en ligne puis réessayez.</p>';
+          return;
+        }
         output.innerHTML =
           '<p style="margin:0;">Mot introuvable dans le dictionnaire <strong>' +
           esc(langLabel(lang)) +
-          "</strong>. Essayez un autre mot ou vérifiez l'orthographe.</p>";
+          "</strong>. Vérifiez l'orthographe ou essayez un mot plus courant.</p>";
       }
     });
   }
