@@ -999,9 +999,17 @@ const SAC_API = (function () {
     return platformRequest("/platform/library", { auth: false });
   }
 
-  async function translateDictionary(word) {
-    const q = encodeURIComponent(String(word || "").trim());
-    return platformRequest("/platform/dictionary/translate?q=" + q, { auth: false });
+  async function translateDictionary(word, opts = {}) {
+    const params = new URLSearchParams();
+    params.set("q", String(word || "").trim());
+    if (opts.sourceLang) params.set("source", opts.sourceLang);
+    if (opts.targetLang) params.set("target", opts.targetLang);
+    return platformRequest("/platform/dictionary/translate?" + params.toString(), { auth: false });
+  }
+
+  async function listDictionaryLanguages() {
+    const data = await platformRequest("/platform/dictionary/languages", { auth: false });
+    return data.languages || [];
   }
 
   async function listDigitalLibraryManage() {
@@ -1277,6 +1285,7 @@ const SAC_API = (function () {
     listHomeNews,
     listDigitalLibrary,
     translateDictionary,
+    listDictionaryLanguages,
     listDigitalLibraryManage,
     createDigitalLibraryBook,
     updateDigitalLibraryBook,

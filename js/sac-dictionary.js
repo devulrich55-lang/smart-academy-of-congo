@@ -1,31 +1,47 @@
 /**
- * Dictionnaire bilingue FR / EN — API + repli local
+ * Dictionnaire multilingue — FR, EN, ES, Lingala, Tshiluba
  */
 const SAC_DICTIONARY = (function () {
-  const LOCAL = {
-    livre: { translation: "book", sourceLang: "fr", targetLang: "en" },
-    livres: { translation: "books", sourceLang: "fr", targetLang: "en" },
-    book: { translation: "livre", sourceLang: "en", targetLang: "fr" },
-    books: { translation: "livres", sourceLang: "en", targetLang: "fr" },
-    bibliotheque: { translation: "library", sourceLang: "fr", targetLang: "en" },
-    library: { translation: "bibliothèque", sourceLang: "en", targetLang: "fr" },
-    etudiant: { translation: "student", sourceLang: "fr", targetLang: "en" },
-    student: { translation: "étudiant", sourceLang: "en", targetLang: "fr" },
-    ecole: { translation: "school", sourceLang: "fr", targetLang: "en" },
-    school: { translation: "école", sourceLang: "en", targetLang: "fr" },
-    professeur: { translation: "teacher", sourceLang: "fr", targetLang: "en" },
-    teacher: { translation: "professeur", sourceLang: "en", targetLang: "fr" },
-    recherche: { translation: "research", sourceLang: "fr", targetLang: "en" },
-    research: { translation: "recherche", sourceLang: "en", targetLang: "fr" },
-    universite: { translation: "university", sourceLang: "fr", targetLang: "en" },
-    university: { translation: "université", sourceLang: "en", targetLang: "fr" },
-    diplome: { translation: "diploma", sourceLang: "fr", targetLang: "en" },
-    diploma: { translation: "diplôme", sourceLang: "en", targetLang: "fr" },
-    cours: { translation: "course", sourceLang: "fr", targetLang: "en" },
-    course: { translation: "cours", sourceLang: "en", targetLang: "fr" },
-    examen: { translation: "exam", sourceLang: "fr", targetLang: "en" },
-    exam: { translation: "examen", sourceLang: "en", targetLang: "fr" },
-  };
+  const LANGUAGES = [
+    { id: "fr", label: "Français", native: "Français" },
+    { id: "en", label: "Anglais", native: "English" },
+    { id: "es", label: "Espagnol", native: "Español" },
+    { id: "ln", label: "Lingala", native: "Lingála" },
+    { id: "lua", label: "Tshiluba", native: "Tshiluba" },
+  ];
+
+  const LOCAL_ENTRIES = [
+    ["livre", "fr", "en", "book"],
+    ["book", "en", "fr", "livre"],
+    ["école", "fr", "en", "school"],
+    ["school", "en", "fr", "école"],
+    ["bonjour", "fr", "en", "hello"],
+    ["hello", "en", "fr", "bonjour"],
+    ["libro", "es", "fr", "livre"],
+    ["livre", "fr", "es", "libro"],
+    ["escuela", "es", "fr", "école"],
+    ["école", "fr", "es", "escuela"],
+    ["hola", "es", "fr", "bonjour"],
+    ["bonjour", "fr", "es", "hola"],
+    ["mbote", "ln", "fr", "bonjour"],
+    ["bonjour", "fr", "ln", "mbote"],
+    ["malamu", "ln", "fr", "bien"],
+    ["bien", "fr", "ln", "malamu"],
+    ["eteyi", "ln", "fr", "école"],
+    ["école", "fr", "ln", "eteyi"],
+    ["ndako", "ln", "fr", "maison"],
+    ["maison", "fr", "ln", "ndako"],
+    ["moninga", "ln", "fr", "ami"],
+    ["ami", "fr", "ln", "moninga"],
+    ["moyo", "lua", "fr", "vie"],
+    ["vie", "fr", "lua", "moyo"],
+    ["diaku", "lua", "fr", "ami"],
+    ["ami", "fr", "lua", "diaku"],
+    ["dibuku", "lua", "fr", "livre"],
+    ["livre", "fr", "lua", "dibuku"],
+    ["tshikondo", "lua", "fr", "école"],
+    ["école", "fr", "lua", "tshikondo"],
+  ];
 
   function esc(s) {
     const el = document.createElement("div");
@@ -42,40 +58,89 @@ const SAC_DICTIONARY = (function () {
   }
 
   function langLabel(code) {
-    return code === "fr" ? "Français" : code === "en" ? "Anglais" : String(code || "");
+    const hit = LANGUAGES.find((l) => l.id === code);
+    return hit ? hit.label : String(code || "");
   }
 
-  function lookupLocal(word) {
+  function langOptions(selected) {
+    return (
+      '<option value="auto"' +
+      (selected === "auto" ? " selected" : "") +
+      ">Détection auto</option>" +
+      LANGUAGES.map(
+        (l) =>
+          '<option value="' +
+          l.id +
+          '"' +
+          (selected === l.id ? " selected" : "") +
+          ">" +
+          esc(l.label) +
+          " (" +
+          esc(l.native) +
+          ")</option>"
+      ).join("")
+    );
+  }
+
+  function lookupLocal(word, sourceLang, targetLang) {
     const key = normalizeKey(word);
-    const hit = LOCAL[key];
-    if (!hit) return null;
-    return {
-      ok: true,
-      query: word,
-      sourceLang: hit.sourceLang,
-      targetLang: hit.targetLang,
-      translation: hit.translation,
-      phonetic: "",
-      meanings: [],
-      alternatives: [],
-      offline: true,
-    };
+    const source = sourceLang === "auto" ? null : sourceLang;
+    const target = targetLang === "auto" ? null : targetLang;
+
+    for (const [entry, src, tgt, translation] of LOCAL_ENTRIES) {
+      if (normalizeKey(entry) !== key) continue;
+      if (source && src !== source) continue;
+      if (target && tgt !== target) continue;
+      return {
+        ok: true,
+        query: word,
+        sourceLang: src,
+        targetLang: tgt,
+        translation,
+        phonetic: "",
+        meanings: [],
+        alternatives: [],
+        offline: true,
+      };
+    }
+
+    if (!source && !target) {
+      for (const [entry, src, tgt, translation] of LOCAL_ENTRIES) {
+        if (normalizeKey(entry) === key) {
+          return {
+            ok: true,
+            query: word,
+            sourceLang: src,
+            targetLang: tgt,
+            translation,
+            phonetic: "",
+            meanings: [],
+            alternatives: [],
+            offline: true,
+          };
+        }
+      }
+    }
+    return null;
   }
 
-  async function lookup(word) {
+  async function lookup(word, opts = {}) {
     const clean = String(word || "").trim();
     if (!clean) throw new Error("INVALID_INPUT");
 
+    const sourceLang = opts.sourceLang || "auto";
+    const targetLang = opts.targetLang || "auto";
+
     if (typeof SAC_API !== "undefined" && SAC_API.translateDictionary) {
       try {
-        const online = await SAC_API.translateDictionary(clean);
+        const online = await SAC_API.translateDictionary(clean, { sourceLang, targetLang });
         if (online && online.translation) return online;
       } catch {
         /* repli local */
       }
     }
 
-    const local = lookupLocal(clean);
+    const local = lookupLocal(clean, sourceLang, targetLang);
     if (local) return local;
     throw new Error("NOT_FOUND");
   }
@@ -85,8 +150,8 @@ const SAC_DICTIONARY = (function () {
       return '<p style="margin:0;color:var(--muted);">Aucune traduction trouvée.</p>';
     }
 
-    const from = langLabel(data.sourceLang);
-    const to = langLabel(data.targetLang);
+    const from = data.sourceLabel || langLabel(data.sourceLang);
+    const to = data.targetLabel || langLabel(data.targetLang);
     let html =
       '<div class="dict-result">' +
       '<div class="dict-result__main"><strong>' +
@@ -133,34 +198,54 @@ const SAC_DICTIONARY = (function () {
     return html;
   }
 
-  function bindForm(form, input, output) {
+  function bindForm(form, input, output, sourceSelect, targetSelect, swapBtn) {
     if (!form || !input || !output) return;
+
+    if (swapBtn && sourceSelect && targetSelect) {
+      swapBtn.addEventListener("click", () => {
+        const from = sourceSelect.value;
+        const to = targetSelect.value;
+        if (from === "auto" || to === "auto") return;
+        sourceSelect.value = to;
+        targetSelect.value = from;
+      });
+    }
 
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
       const raw = String(input.value || "").trim();
       if (!raw) return;
 
+      const sourceLang = sourceSelect ? sourceSelect.value : "auto";
+      const targetLang = targetSelect ? targetSelect.value : "auto";
+      if (sourceLang !== "auto" && targetLang !== "auto" && sourceLang === targetLang) {
+        output.style.color = "var(--muted)";
+        output.textContent = "Choisissez deux langues différentes.";
+        return;
+      }
+
       output.style.color = "var(--muted)";
       output.innerHTML = "Recherche en cours…";
 
       try {
-        const result = await lookup(raw);
+        const result = await lookup(raw, { sourceLang, targetLang });
         output.style.color = "var(--text)";
         output.innerHTML = renderResult(result);
       } catch {
         output.style.color = "var(--muted)";
         output.textContent =
-          "Mot non trouvé. Essayez un mot simple en français ou en anglais (ex. book, livre, school, école).";
+          "Mot non trouvé. Essayez un mot simple (ex. book, livre, hola, mbote, moyo) ou changez les langues.";
       }
     });
   }
 
   return {
+    LANGUAGES,
     lookup,
     lookupLocal,
     renderResult,
     bindForm,
     langLabel,
+    langOptions,
   };
 })();
