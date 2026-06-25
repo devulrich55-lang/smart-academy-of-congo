@@ -227,6 +227,16 @@
 
     .panel__body { padding: 1.25rem 1.35rem; }
 
+    .cat-toolbar { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.75rem; }
+    .cat-toolbar .fi { min-width: 160px; flex: 1; }
+    .cat-course-grid { display: grid; gap: 0.65rem; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+    .cat-course-card {
+      display: flex; gap: 0.65rem; border: 1px solid var(--border); border-radius: 10px;
+      padding: 0.85rem; background: var(--bg);
+    }
+    .cat-course-card__icon { font-size: 1.6rem; line-height: 1; }
+    .cat-course-card__body { flex: 1; min-width: 0; }
+
     /* Table notes */
     .table-wrap { overflow-x: auto; }
 
@@ -503,6 +513,7 @@
       <button type="button" class="nav-tab" data-section="accueil">Tableau de bord</button>
       <button type="button" class="nav-tab" data-section="notes">Mes cotes</button>
       <button type="button" class="nav-tab" data-section="live">🔴 Cours & réunions live</button>
+      <button type="button" class="nav-tab" data-section="catalogue">📚 Catalogue de cours</button>
       <button type="button" class="nav-tab" data-section="correction-ia">🤖 Correction IA</button>
       <button type="button" class="nav-tab" data-section="documents">Documents</button>
       <button type="button" class="nav-tab" data-section="reclamations">📩 Réclamations</button>
@@ -717,6 +728,13 @@
           </table>
         </div>
       </div>
+    </section>
+
+    <!-- CATALOGUE DE COURS -->
+    <section class="page-section" id="section-catalogue">
+      <h1 class="page-title">Catalogue de cours</h1>
+      <p class="page-desc">Parcourez les cours en ligne publiés par votre université et inscrivez-vous.</p>
+      <div id="courseCatalogRoot"></div>
     </section>
 
     <!-- COURS & RÉUNIONS LIVE -->
@@ -1046,6 +1064,7 @@
   <script src="js/sac-video-live.js"></script>
   <script src="js/sac-presence.js"></script>
   <script src="js/sac-diplomas.js?v=20260626"></script>
+  <script src="js/sac-course-catalog.js?v=20260626"></script>
   <script>
     let studentGrades = [];
     let aiCorrectionUi = null;
@@ -1892,6 +1911,12 @@
             renderProfilePublications(session);
           }
         });
+      }
+      if (id === "catalogue" && typeof SAC_COURSE_CATALOG !== "undefined") {
+        const catSession = SAC_SESSION.getSession();
+        if (catSession) {
+          SAC_COURSE_CATALOG.mountStudentUI(document.getElementById("courseCatalogRoot"), catSession);
+        }
       }
       if (id === "correction-ia" && typeof SAC_AI_CORRECTION !== "undefined") {
         const root = document.getElementById("aiCorrectionStudentRoot");

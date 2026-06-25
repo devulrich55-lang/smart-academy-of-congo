@@ -187,6 +187,17 @@ const SAC_PLATFORM = (function () {
 
   /* ── Courses ── */
   async function getCourses() {
+    if (typeof SAC_API !== "undefined" && SAC_API.listCoursesPublic) {
+      try {
+        const online = await SAC_API.ensureOnline();
+        if (online) {
+          const s = getSession();
+          return await SAC_API.listCoursesPublic(s?.universite);
+        }
+      } catch {
+        /* fallback */
+      }
+    }
     const data = await api("/platform/courses");
     if (data?.items) return data.items;
     const s = getSession();
@@ -194,6 +205,14 @@ const SAC_PLATFORM = (function () {
   }
 
   async function enrollCourse(courseId) {
+    if (typeof SAC_API !== "undefined" && SAC_API.enrollCourse) {
+      try {
+        const online = await SAC_API.ensureOnline();
+        if (online) return await SAC_API.enrollCourse(courseId);
+      } catch (err) {
+        if (!isLocalDevHost || !(typeof SAC_API !== "undefined" && SAC_API.isLocalDevHost && SAC_API.isLocalDevHost())) throw err;
+      }
+    }
     const data = await api("/platform/courses/" + courseId + "/enroll", { method: "POST" });
     if (data) return data.enrollment;
     const s = getSession();

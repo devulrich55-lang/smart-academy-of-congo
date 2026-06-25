@@ -1085,6 +1085,55 @@ const SAC_API = (function () {
     });
   }
 
+  async function listCoursesForStudent() {
+    const data = await request("/platform/courses/for-student");
+    return data?.courses || [];
+  }
+
+  async function listCoursesManage() {
+    const data = await request("/platform/courses/manage");
+    return data?.items || [];
+  }
+
+  async function listMyCourseEnrollments() {
+    const data = await request("/platform/courses/enrollments/me");
+    return data?.enrollments || [];
+  }
+
+  async function listCoursesPublic(universite) {
+    const q = universite ? "?universite=" + encodeURIComponent(universite) : "";
+    const data = await platformRequest("/platform/courses" + q, { auth: false });
+    return data?.items || [];
+  }
+
+  async function createCourse(payload) {
+    const data = await request("/platform/courses", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+    return data?.item || data;
+  }
+
+  async function updateCourse(courseId, payload) {
+    const data = await request("/platform/courses/" + encodeURIComponent(courseId), {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    });
+    return data?.item || data;
+  }
+
+  async function deleteCourse(courseId) {
+    return request("/platform/courses/" + encodeURIComponent(courseId), { method: "DELETE" });
+  }
+
+  async function enrollCourse(courseId) {
+    const data = await request("/platform/courses/" + encodeURIComponent(courseId) + "/enroll", {
+      method: "POST",
+      body: JSON.stringify({}),
+    });
+    return data?.enrollment || data;
+  }
+
   async function recordHomeNewsView(itemId, viewerKey) {
     return platformRequest("/platform/home-news/" + encodeURIComponent(String(itemId || "").trim()) + "/view", {
       method: "POST",
@@ -1340,6 +1389,14 @@ const SAC_API = (function () {
     issueDiploma,
     revokeDiploma,
     verifyDiplomaPublic,
+    listCoursesForStudent,
+    listCoursesManage,
+    listMyCourseEnrollments,
+    listCoursesPublic,
+    createCourse,
+    updateCourse,
+    deleteCourse,
+    enrollCourse,
     recordHomeNewsView,
     getCampusBranding,
     listCampusSectionsPublic,
