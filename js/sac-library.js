@@ -4,16 +4,86 @@
 const SAC_LIBRARY = (function () {
   const STORAGE_KEY = "sac_digital_library_cache";
 
-  const CATEGORIES = [
-    { id: "roman", label: "Roman" },
-    { id: "sciences", label: "Sciences" },
-    { id: "langues", label: "Langues" },
-    { id: "methodes", label: "Méthodes" },
-    { id: "informatique", label: "Informatique" },
-    { id: "histoire", label: "Histoire" },
-    { id: "education", label: "Éducation" },
-    { id: "autre", label: "Autre" },
+  const CATEGORY_GROUPS = [
+    {
+      label: "Éducation & pédagogie",
+      items: [
+        { id: "education", label: "Éducation générale" },
+        { id: "pedagogie", label: "Pédagogie" },
+        { id: "manuel", label: "Manuels scolaires" },
+        { id: "programme", label: "Programmes officiels" },
+        { id: "examen", label: "Annales & examens" },
+        { id: "methodes", label: "Méthodes & recherche" },
+        { id: "memoire", label: "Mémoires & thèses" },
+      ],
+    },
+    {
+      label: "Sciences & techniques",
+      items: [
+        { id: "mathematiques", label: "Mathématiques" },
+        { id: "physique", label: "Physique" },
+        { id: "chimie", label: "Chimie" },
+        { id: "biologie", label: "Biologie & SVT" },
+        { id: "sciences", label: "Sciences générales" },
+        { id: "informatique", label: "Informatique & numérique" },
+        { id: "ingenierie", label: "Ingénierie & technologie" },
+        { id: "medecine", label: "Médecine & pharmacie" },
+        { id: "sante", label: "Santé publique" },
+        { id: "agriculture", label: "Agriculture & agronomie" },
+        { id: "environnement", label: "Environnement & écologie" },
+      ],
+    },
+    {
+      label: "Sciences humaines & sociales",
+      items: [
+        { id: "histoire", label: "Histoire" },
+        { id: "geographie", label: "Géographie" },
+        { id: "philosophie", label: "Philosophie" },
+        { id: "droit", label: "Droit" },
+        { id: "economie", label: "Économie" },
+        { id: "gestion", label: "Gestion & comptabilité" },
+        { id: "politique", label: "Sciences politiques" },
+        { id: "sociologie", label: "Sociologie & anthropologie" },
+        { id: "psychologie", label: "Psychologie" },
+      ],
+    },
+    {
+      label: "Lettres, arts & culture",
+      items: [
+        { id: "roman", label: "Romans & nouvelles" },
+        { id: "litterature", label: "Littérature" },
+        { id: "poesie", label: "Poésie" },
+        { id: "theatre", label: "Théâtre" },
+        { id: "langues", label: "Langues & linguistique" },
+        { id: "arts", label: "Arts & beaux-arts" },
+        { id: "musique", label: "Musique" },
+        { id: "religion", label: "Religion & théologie" },
+        { id: "enfants", label: "Jeunesse & lecture enfants" },
+      ],
+    },
+    {
+      label: "Références & divers",
+      items: [
+        { id: "dictionnaire", label: "Dictionnaires & encyclopédies" },
+        { id: "culture", label: "Culture & patrimoine" },
+        { id: "developpement", label: "Développement & coopération" },
+        { id: "autre", label: "Autre" },
+      ],
+    },
   ];
+
+  const CATEGORIES = CATEGORY_GROUPS.flatMap((g) => g.items);
+
+  function categoriesSelectHtml() {
+    return CATEGORY_GROUPS.map(
+      (g) =>
+        '<optgroup label="' +
+        esc(g.label) +
+        '">' +
+        g.items.map((c) => '<option value="' + c.id + '">' + esc(c.label) + "</option>").join("") +
+        "</optgroup>"
+    ).join("");
+  }
 
   function esc(s) {
     const el = document.createElement("div");
@@ -129,43 +199,53 @@ const SAC_LIBRARY = (function () {
     }
 
     const onChange = typeof options?.onChange === "function" ? options.onChange : null;
+    const showList = options?.showList !== false;
     let editingId = null;
 
+    const listPanel = showList
+      ? '<div class="panel panel--ws lib-manage-panel"><div class="panel__head"><h2>Mes publications — bibliothèque</h2></div>' +
+        '<div class="panel__body lib-manage-list"><p style="color:var(--muted);">Chargement…</p></div></div>'
+      : "";
+
     root.innerHTML =
-      '<div class="panel panel--ws" style="margin-bottom:1rem;">' +
-      '<div class="panel__head"><h2 id="libFormTitle">Publier un livre numérique</h2></div>' +
+      '<div class="panel panel--ws lib-form-panel" style="margin-bottom:1rem;">' +
+      '<div class="panel__head"><h2 class="lib-form-title">Publier un livre numérique</h2></div>' +
       '<div class="panel__body">' +
-      '<form id="libPublishForm" class="ws-form-grid">' +
-      '<div class="fg" style="grid-column:1/-1;"><label>Titre *</label><input class="fi" id="libTitle" required minlength="3" /></div>' +
-      '<div class="fg"><label>Auteur</label><input class="fi" id="libAuthor" /></div>' +
-      '<div class="fg"><label>Catégorie *</label><select class="fi" id="libCategory" required>' +
-      CATEGORIES.map((c) => '<option value="' + c.id + '">' + esc(c.label) + "</option>").join("") +
+      '<form class="lib-publish-form ws-form-grid">' +
+      '<p class="lib-form-intro" style="grid-column:1/-1;margin:0 0 0.35rem;color:var(--muted);font-size:0.88rem;">Renseignez les informations du livre, ajoutez une couverture et téléversez le fichier (PDF, EPUB, DOC).</p>' +
+      '<div class="fg" style="grid-column:1/-1;"><label>Titre du livre *</label><input class="fi lib-title" required minlength="3" placeholder="Ex: Mathématiques — Terminale" /></div>' +
+      '<div class="fg"><label>Auteur</label><input class="fi lib-author" placeholder="Nom de l\'auteur" /></div>' +
+      '<div class="fg"><label>Catégorie *</label><select class="fi lib-category" required>' +
+      categoriesSelectHtml() +
       "</select></div>" +
-      '<div class="fg"><label>Langue</label><select class="fi" id="libLang"><option value="fr">Français</option><option value="en">Anglais</option><option value="bilingue">Bilingue FR/EN</option></select></div>' +
-      '<div class="fg" style="grid-column:1/-1;"><label>Description</label><textarea class="fi" id="libDesc" rows="3"></textarea></div>' +
+      '<div class="fg"><label>Langue</label><select class="fi lib-lang"><option value="fr">Français</option><option value="en">Anglais</option><option value="bilingue">Bilingue FR/EN</option></select></div>' +
+      '<div class="fg" style="grid-column:1/-1;"><label>Description / résumé</label><textarea class="fi lib-desc" rows="3" placeholder="Présentation courte du livre…"></textarea></div>' +
       '<div class="fg" style="grid-column:1/-1;">' +
       '<label>Image de couverture (JPG, PNG, WebP)</label>' +
-      '<input type="file" class="fi" id="libCoverFile" accept="image/jpeg,image/png,image/webp,image/*" />' +
-      '<input class="fi" id="libCoverUrl" placeholder="Ou URL de l\'image de couverture" style="margin-top:0.45rem;" />' +
-      '<div id="libCoverPreview" style="display:none;margin-top:0.55rem;border:1px solid var(--border);border-radius:10px;overflow:hidden;max-width:180px;">' +
-      '<img id="libCoverPreviewImg" alt="Aperçu couverture" style="display:block;width:100%;height:220px;object-fit:cover;" />' +
+      '<input type="file" class="fi lib-cover-file" accept="image/jpeg,image/png,image/webp,image/*" />' +
+      '<input class="fi lib-cover-url" placeholder="Ou URL de l\'image de couverture" style="margin-top:0.45rem;" />' +
+      '<div class="lib-cover-preview" style="display:none;margin-top:0.55rem;border:1px solid var(--border);border-radius:10px;overflow:hidden;max-width:180px;">' +
+      '<img class="lib-cover-preview-img" alt="Aperçu couverture" style="display:block;width:100%;height:220px;object-fit:cover;" />' +
       "</div></div>" +
-      '<div class="fg" style="grid-column:1/-1;"><label>Fichier du livre (PDF, EPUB, DOC…)</label><input type="file" class="fi" id="libFile" accept=".pdf,.epub,.doc,.docx" /></div>' +
-      '<div class="fg" style="grid-column:1/-1;"><label>Ou lien direct du livre (URL)</label><input class="fi" id="libUrl" placeholder="https://…" /></div>' +
-      '<div class="fg" style="grid-column:1/-1;"><label class="chk"><input type="checkbox" id="libPublished" checked /> Publier dans la bibliothèque nationale</label></div>' +
+      '<div class="fg" style="grid-column:1/-1;"><label>Fichier du livre (PDF, EPUB, DOC…) *</label><input type="file" class="fi lib-file" accept=".pdf,.epub,.doc,.docx" /></div>' +
+      '<div class="fg" style="grid-column:1/-1;"><label>Ou lien direct du livre (URL)</label><input class="fi lib-url" placeholder="https://…" /></div>' +
+      '<div class="fg" style="grid-column:1/-1;"><label class="chk"><input type="checkbox" class="lib-published" checked /> Publier immédiatement dans la bibliothèque nationale</label></div>' +
       '<div class="fg" style="grid-column:1/-1;display:flex;gap:0.5rem;flex-wrap:wrap;">' +
-      '<button type="submit" class="btn btn--role" id="libSubmit">Publier le livre</button>' +
-      '<button type="button" class="btn btn--ghost" id="libCancel" style="display:none;">Annuler</button>' +
+      '<button type="submit" class="btn btn--role lib-submit">Publier le livre</button>' +
+      '<button type="button" class="btn btn--ghost lib-cancel" style="display:none;">Annuler</button>' +
       "</div></form></div></div>" +
-      '<div class="panel panel--ws"><div class="panel__head"><h2>Mes publications — bibliothèque</h2></div>' +
-      '<div class="panel__body" id="libManageList"><p style="color:var(--muted);">Chargement…</p></div></div>';
+      listPanel;
 
-    const form = root.querySelector("#libPublishForm");
-    const btnCancel = root.querySelector("#libCancel");
-    const formTitle = root.querySelector("#libFormTitle");
-    const btnSubmit = root.querySelector("#libSubmit");
-    const coverPreview = root.querySelector("#libCoverPreview");
-    const coverPreviewImg = root.querySelector("#libCoverPreviewImg");
+    const form = root.querySelector(".lib-publish-form");
+    const btnCancel = root.querySelector(".lib-cancel");
+    const formTitle = root.querySelector(".lib-form-title");
+    const btnSubmit = root.querySelector(".lib-submit");
+    const coverPreview = root.querySelector(".lib-cover-preview");
+    const coverPreviewImg = root.querySelector(".lib-cover-preview-img");
+
+    function q(sel) {
+      return root.querySelector(sel);
+    }
 
     function showCoverPreview(url) {
       if (!url || !coverPreview || !coverPreviewImg) return;
@@ -178,7 +258,7 @@ const SAC_LIBRARY = (function () {
       if (coverPreviewImg) coverPreviewImg.removeAttribute("src");
     }
 
-    root.querySelector("#libCoverFile")?.addEventListener("change", (e) => {
+    q(".lib-cover-file")?.addEventListener("change", (e) => {
       const file = e.target.files?.[0];
       if (!file) return;
       const reader = new FileReader();
@@ -186,14 +266,16 @@ const SAC_LIBRARY = (function () {
       reader.readAsDataURL(file);
     });
 
-    root.querySelector("#libCoverUrl")?.addEventListener("input", (e) => {
+    q(".lib-cover-url")?.addEventListener("input", (e) => {
       const url = e.target.value.trim();
       if (url) showCoverPreview(url);
       else hideCoverPreview();
     });
 
     async function renderManage() {
-      const listEl = root.querySelector("#libManageList");
+      if (!showList) return;
+      const listEl = root.querySelector(".lib-manage-list");
+      if (!listEl) return;
       try {
         const items = await listManage();
         if (!items.length) {
@@ -249,16 +331,16 @@ const SAC_LIBRARY = (function () {
             const item = items.find((x) => x.id === btn.dataset.editLib);
             if (!item) return;
             editingId = item.id;
-            root.querySelector("#libTitle").value = item.title || "";
-            root.querySelector("#libAuthor").value = item.author || "";
-            root.querySelector("#libCategory").value = item.category || "autre";
-            root.querySelector("#libLang").value = item.language || "fr";
-            root.querySelector("#libDesc").value = item.description || "";
-            root.querySelector("#libUrl").value = item.fileUrl || "";
-            root.querySelector("#libCoverUrl").value = item.coverUrl || "";
+            q(".lib-title").value = item.title || "";
+            q(".lib-author").value = item.author || "";
+            q(".lib-category").value = item.category || "autre";
+            q(".lib-lang").value = item.language || "fr";
+            q(".lib-desc").value = item.description || "";
+            q(".lib-url").value = item.fileUrl || "";
+            q(".lib-cover-url").value = item.coverUrl || "";
             if (item.coverUrl) showCoverPreview(item.coverUrl);
             else hideCoverPreview();
-            root.querySelector("#libPublished").checked = !!item.published;
+            q(".lib-published").checked = !!item.published;
             formTitle.textContent = "Modifier le livre";
             btnSubmit.textContent = "Enregistrer";
             btnCancel.style.display = "inline-block";
@@ -286,7 +368,7 @@ const SAC_LIBRARY = (function () {
     function resetForm() {
       editingId = null;
       form.reset();
-      root.querySelector("#libPublished").checked = true;
+      q(".lib-published").checked = true;
       hideCoverPreview();
       formTitle.textContent = "Publier un livre numérique";
       btnSubmit.textContent = "Publier le livre";
@@ -298,18 +380,17 @@ const SAC_LIBRARY = (function () {
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
       const payload = {
-        title: root.querySelector("#libTitle").value.trim(),
-        author: root.querySelector("#libAuthor").value.trim(),
-        category: root.querySelector("#libCategory").value,
-        language: root.querySelector("#libLang").value,
-        description: root.querySelector("#libDesc").value.trim(),
-        fileUrl: root.querySelector("#libUrl").value.trim(),
-        coverUrl: root.querySelector("#libCoverUrl").value.trim(),
-        published: root.querySelector("#libPublished").checked,
+        title: q(".lib-title").value.trim(),
+        author: q(".lib-author").value.trim(),
+        category: q(".lib-category").value,
+        language: q(".lib-lang").value,
+        description: q(".lib-desc").value.trim(),
+        fileUrl: q(".lib-url").value.trim(),
+        coverUrl: q(".lib-cover-url").value.trim(),
+        published: q(".lib-published").checked,
       };
 
-      const coverInput = root.querySelector("#libCoverFile");
-      const coverFile = coverInput?.files?.[0];
+      const coverFile = q(".lib-cover-file")?.files?.[0];
       if (coverFile) {
         try {
           const upCover = await uploadFile(coverFile);
@@ -320,8 +401,7 @@ const SAC_LIBRARY = (function () {
         }
       }
 
-      const fileInput = root.querySelector("#libFile");
-      const file = fileInput?.files?.[0];
+      const file = q(".lib-file")?.files?.[0];
       if (file) {
         try {
           const up = await uploadFile(file);
@@ -330,6 +410,11 @@ const SAC_LIBRARY = (function () {
           alert(err.message || "Échec du téléversement.");
           return;
         }
+      }
+
+      if (!payload.fileUrl) {
+        alert("Ajoutez un fichier du livre (PDF, EPUB, DOC) ou une URL.");
+        return;
       }
 
       try {
@@ -349,7 +434,9 @@ const SAC_LIBRARY = (function () {
   }
 
   return {
+    CATEGORY_GROUPS,
     CATEGORIES,
+    categoriesSelectHtml,
     categoryLabel,
     listPublished,
     listManage,

@@ -260,7 +260,9 @@ const SAC_DICTIONARY = (function () {
         "</footer>";
     }
 
-    if (data.provider && String(data.provider).includes("wiktionary")) {
+    if (data.provider === "pons") {
+      html += '<p class="dict-entry__note">Source : PONS — dictionnaire professionnel.</p>';
+    } else if (data.provider && String(data.provider).includes("wiktionary")) {
       html += '<p class="dict-entry__note">Source : Wiktionary — dictionnaire ouvert.</p>';
     } else if (data.provider === "local") {
       html += '<p class="dict-entry__note">Définition locale intégrée.</p>';

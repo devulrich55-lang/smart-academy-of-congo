@@ -129,6 +129,18 @@ const SAC_ADMIN_DASHBOARD = (function () {
         SAC_HOME_NEWS.renderPublicPreview("ministryPublicPreview");
       }
     }
+    if (id === "bibliotheque" && typeof SAC_LIBRARY !== "undefined") {
+      const session = SAC_SESSION.getSession();
+      if (session?.role === "ministere") {
+        SAC_LIBRARY.initMinistryPublisher(session, "libraryPublisherRoot", { showList: true });
+      }
+    }
+    if (id === "accueil" && typeof SAC_LIBRARY !== "undefined") {
+      const session = SAC_SESSION.getSession();
+      if (session?.role === "ministere") {
+        SAC_LIBRARY.initMinistryPublisher(session, "libraryPublisherAccueil", { showList: false });
+      }
+    }
     if (id === "registry" && typeof SAC_PLATFORM_REGISTRY !== "undefined") {
       const session = SAC_SESSION.getSession();
       if (session?.role === "superadmin") {
@@ -589,9 +601,13 @@ const SAC_ADMIN_DASHBOARD = (function () {
     if (isMinistere) {
       document.getElementById("tabLive")?.removeAttribute("hidden");
       document.getElementById("tabPublier")?.removeAttribute("hidden");
+      document.getElementById("tabBibliotheque")?.removeAttribute("hidden");
       document.querySelectorAll(".ws-only-ministere-hidden").forEach((el) => {
         el.classList.remove("ws-only-ministere-hidden");
       });
+      if (typeof SAC_LIBRARY !== "undefined") {
+        SAC_LIBRARY.initMinistryPublisher(session, "libraryPublisherAccueil", { showList: false });
+      }
     }
 
     document.getElementById("btnLogout")?.addEventListener("click", () => {

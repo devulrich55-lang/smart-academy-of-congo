@@ -152,6 +152,17 @@
         </div>
       </div>
 
+      <div class="panel panel--ws ws-only-ministere-hidden" id="ministryLibraryAccueil" style="margin-top:1rem;">
+        <div class="panel__head" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.5rem;">
+          <h2>📚 Publication — Bibliothèque numérique</h2>
+          <button type="button" class="btn btn--ghost btn--sm" data-goto="bibliotheque">Gérer tous les livres →</button>
+        </div>
+        <div class="panel__body">
+          <p class="page-desc" style="margin:0 0 1rem;">Publiez un livre officiel (PDF, EPUB, couverture) visible dans la bibliothèque nationale.</p>
+          <div id="libraryPublisherAccueil"></div>
+        </div>
+      </div>
+
       <div class="panel">
         <div class="panel__head"><h2>Actions rapides</h2></div>
         <div class="panel__body ws-quick-actions">
@@ -477,8 +488,8 @@
     <section class="page-section ws-only-ministere-hidden" id="section-bibliotheque">
       <h1 class="page-title">Bibliothèque numérique nationale</h1>
       <p class="page-desc">
-        Publiez les livres numériques officiels (PDF, documents, ressources FR/EN).
-        Chaque publication apparaît automatiquement dans la <strong>Bibliothèque numérique</strong> accessible à tous les utilisateurs.
+        Publiez les livres numériques officiels (PDF, EPUB, documents FR/EN).
+        Chaque publication apparaît dans la <strong>Bibliothèque numérique</strong> pour les utilisateurs connectés.
       </p>
       <div id="libraryPublisherRoot"></div>
       <p class="page-desc" style="margin-top:1rem;font-size:0.88rem;">
@@ -602,7 +613,7 @@
   <script src="js/sac-webrtc-room.js"></script>
   <script src="js/sac-ministry-live.js"></script>
   <script src="js/sac-home-news.js"></script>
-  <script src="js/sac-library.js?v=20260625b"></script>
+  <script src="js/sac-library.js?v=20260626b"></script>
   <script src="js/sac-platform-registry.js"></script>
   <script src="js/sac-tariffs.js?v=20260623b"></script>
   <script src="js/sac-admin-activities.js"></script>

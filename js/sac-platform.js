@@ -139,6 +139,17 @@ const SAC_PLATFORM = (function () {
 
   /* ── Library ── */
   async function getLibrary() {
+    if (typeof SAC_API !== "undefined" && SAC_API.listDigitalLibrary) {
+      try {
+        const online = await SAC_API.ensureOnline();
+        if (online) {
+          const data = await SAC_API.listDigitalLibrary();
+          if (data?.items?.length) return data.items;
+        }
+      } catch {
+        /* fallback */
+      }
+    }
     const data = await api("/platform/library");
     if (data?.items) return data.items;
     const s = getSession();
