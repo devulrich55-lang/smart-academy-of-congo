@@ -1,6 +1,6 @@
 /**
- * Dictionnaire — définitions par langue (style Larousse)
- * La langue choisie = langue de recherche et de définition de l'utilisateur.
+ * Dictionnaire — définitions par langue (Wiktionary + API)
+ * La langue choisie = langue de recherche de l'utilisateur.
  */
 const SAC_DICTIONARY = (function () {
   const LANG_KEY = "sac_dictionary_lang";
@@ -12,6 +12,14 @@ const SAC_DICTIONARY = (function () {
     { id: "ln", label: "Lingala", native: "Lingála" },
     { id: "lua", label: "Tshiluba", native: "Tshiluba" },
   ];
+
+  const WIKI_SITE = {
+    fr: ["fr", "fr"],
+    en: ["en", "en"],
+    es: ["es", "es"],
+    ln: ["fr", "ln"],
+    lua: ["fr", "lua"],
+  };
 
   function esc(s) {
     const el = document.createElement("div");
@@ -57,6 +65,127 @@ const SAC_DICTIONARY = (function () {
     ).join("");
   }
 
+  function stripWiki(text) {
+    return String(text || "")
+      .replace(/==+[^=]+==+/g, " ")
+      .replace(/\{\{[^}]+\}\}/g, " ")
+      .replace(/\[\[(?:[^|\]]+\|)?([^\]]+)\]\]/g, "$1")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  function buildResult(query, lang, meanings, provider, phonetic, synonyms) {
+    return {
+      ok: true,
+      query,
+      word: query,
+      lang,
+      langLabel: langLabel(lang),
+      phonetic: phonetic || "",
+      meanings,
+      synonyms: synonyms || [],
+      provider,
+    };
+  }
+
+  function parseWiktionaryRest(data, sectionLang, query, lang) {
+    if (!data || typeof data !== "object") return null;
+
+    let blocks = data[sectionLang];
+    if (!blocks && (sectionLang === "ln" || sectionLang === "lua")) {
+      blocks = data.fr || data.en || data.es;
+    }
+    if (!blocks) {
+      const keys = Object.keys(data);
+      if (keys.length) blocks = data[keys[0]];
+    }
+    if (!Array.isArray(blocks)) return null;
+
+    const meanings = [];
+    blocks.forEach((block) => {
+      if (!block || !Array.isArray(block.definitions)) return;
+      const part = block.partOfSpeech || block.language || "définition";
+      const defs = [];
+      block.definitions.forEach((item) => {
+        if (typeof item === "string") {
+          const text = stripWiki(item);
+          if (text) defs.push({ text, example: "" });
+        } else if (item && item.definition) {
+          const text = stripWiki(item.definition);
+          let example = "";
+          if (Array.isArray(item.examples) && item.examples[0]) {
+            example = stripWiki(item.examples[0]);
+          }
+          if (text) defs.push({ text, example });
+        }
+      });
+      if (defs.length) meanings.push({ partOfSpeech: part, definitions: defs.slice(0, 5) });
+    });
+
+    if (!meanings.length) return null;
+    return buildResult(query, lang, meanings.slice(0, 6), "wiktionary", "", []);
+  }
+
+  async function fetchWiktionaryRest(word, lang) {
+    const site = WIKI_SITE[lang] || ["fr", "fr"];
+    const [wikiSite, section] = site;
+    const candidates = [word.trim().toLowerCase(), word.trim(), word.trim()[0]?.toUpperCase() + word.trim().slice(1).toLowerCase()];
+
+    for (const candidate of candidates) {
+      if (!candidate) continue;
+      const url =
+        "https://" +
+        wikiSite +
+        ".wiktionary.org/api/rest_v1/page/definition/" +
+        encodeURIComponent(candidate);
+      try {
+        const res = await fetch(url, { headers: { Accept: "application/json" } });
+        if (!res.ok) continue;
+        const data = await res.json();
+        const parsed = parseWiktionaryRest(data, section, word, lang);
+        if (parsed) return parsed;
+      } catch {
+        /* essai suivant */
+      }
+    }
+    return null;
+  }
+
+  async function fetchWiktionaryExtract(word, lang) {
+    const site = (WIKI_SITE[lang] || ["fr", "fr"])[0];
+    const url =
+      "https://" +
+      site +
+      ".wiktionary.org/w/api.php?action=query&prop=extracts&exintro&explaintext&redirects=1&titles=" +
+      encodeURIComponent(word) +
+      "&format=json&origin=*";
+
+    try {
+      const res = await fetch(url);
+      if (!res.ok) return null;
+      const data = await res.json();
+      const pages = data?.query?.pages || {};
+      let extract = "";
+      Object.values(pages).forEach((page) => {
+        if (page && page.extract) extract = page.extract;
+      });
+      extract = stripWiki(extract);
+      if (extract.length < 12) return null;
+
+      const lines = extract
+        .split(/\n+/)
+        .map((l) => stripWiki(l))
+        .filter((l) => l.length > 10)
+        .slice(0, 6);
+
+      const defs = (lines.length ? lines : [extract]).map((text) => ({ text, example: "" }));
+      return buildResult(word, lang, [{ partOfSpeech: "définition", definitions: defs }], "wiktionary", "", []);
+    } catch {
+      return null;
+    }
+  }
+
   async function lookup(word, opts = {}) {
     const clean = String(word || "").trim();
     if (!clean) throw new Error("INVALID_INPUT");
@@ -64,9 +193,19 @@ const SAC_DICTIONARY = (function () {
     const lang = opts.lang || getUserLang();
 
     if (typeof SAC_API !== "undefined" && SAC_API.lookupDictionary) {
-      const online = await SAC_API.lookupDictionary(clean, lang);
-      if (online && Array.isArray(online.meanings) && online.meanings.length) return online;
+      try {
+        const online = await SAC_API.lookupDictionary(clean, lang);
+        if (online && Array.isArray(online.meanings) && online.meanings.length) return online;
+      } catch {
+        /* repli direct Wiktionary */
+      }
     }
+
+    const direct = await fetchWiktionaryRest(clean, lang);
+    if (direct) return direct;
+
+    const extract = await fetchWiktionaryExtract(clean, lang);
+    if (extract) return extract;
 
     throw new Error("NOT_FOUND");
   }
@@ -121,10 +260,10 @@ const SAC_DICTIONARY = (function () {
         "</footer>";
     }
 
-    if (data.offline || data.provider === "local") {
-      html += '<p class="dict-entry__note">Définition locale intégrée.</p>';
-    } else if (data.provider && data.provider.startsWith("wiktionary")) {
+    if (data.provider && String(data.provider).includes("wiktionary")) {
       html += '<p class="dict-entry__note">Source : Wiktionary — dictionnaire ouvert.</p>';
+    } else if (data.provider === "local") {
+      html += '<p class="dict-entry__note">Définition locale intégrée.</p>';
     }
 
     html += "</article>";
@@ -156,17 +295,8 @@ const SAC_DICTIONARY = (function () {
         const result = await lookup(raw, { lang });
         output.style.color = "var(--text)";
         output.innerHTML = renderResult(result);
-      } catch (err) {
+      } catch {
         output.style.color = "var(--muted)";
-        const apiDown =
-          typeof SAC_API !== "undefined" && SAC_API.ensureOnline
-            ? !(await SAC_API.ensureOnline().catch(() => false))
-            : false;
-        if (apiDown) {
-          output.innerHTML =
-            '<p style="margin:0;">Connexion au serveur impossible. Vérifiez que l\'API est en ligne puis réessayez.</p>';
-          return;
-        }
         output.innerHTML =
           '<p style="margin:0;">Mot introuvable dans le dictionnaire <strong>' +
           esc(langLabel(lang)) +
