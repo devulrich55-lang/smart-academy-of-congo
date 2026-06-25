@@ -289,15 +289,13 @@
         <button class="side-btn" data-tab="dictionary">📖 Dictionnaire</button>
       </nav>
       <div class="side-note">
-        Ressources académiques publiées par le Ministère — consultation libre et dictionnaire intégré.
+        Connexion requise pour consulter la bibliothèque. Le dictionnaire reste accessible une fois connecté.
       </div>
     </aside>
     <main class="main">
       <div class="topbar">
         <input id="globalSearch" class="search" type="search" placeholder="Rechercher un livre, un auteur, une catégorie…" />
-        <div id="headerActions">
-          <a href="index.html" class="btn btn--ghost">Accueil</a>
-        </div>
+        <div id="headerActions"></div>
       </div>
 
       <section class="hero">
@@ -364,13 +362,20 @@
         session = null;
       }
 
-      if (session && headerActions) {
+      if (!session || !session.identifiant) {
+        window.location.replace("connexion.html");
+        return;
+      }
+
+      if (headerActions) {
         const dash = {
           etudiant: "dashboard-etudiant.html",
           professeur: "dashboard-professeur.html",
           assistant: "dashboard-assistant.html",
           universite: "dashboard-universite.html",
           section: "dashboard-section.html",
+          ministere: "dashboard-admin.html",
+          superadmin: "dashboard-admin.html",
         }[session.role] || "index.html";
         const displayName =
           typeof SAC_IDENTITY !== "undefined" && SAC_IDENTITY.getDisplayName
@@ -387,12 +392,8 @@
           '" class="btn btn--ghost">Mon tableau de bord</a> ' +
           '<button type="button" class="btn btn--primary" id="btnLogout">Déconnexion</button>';
         document.getElementById("btnLogout")?.addEventListener("click", () => {
-          if (typeof SAC_SESSION !== "undefined" && SAC_SESSION.logout) SAC_SESSION.logout("index.html");
+          if (typeof SAC_SESSION !== "undefined" && SAC_SESSION.logout) SAC_SESSION.logout("connexion.html");
         });
-      } else if (headerActions) {
-        headerActions.innerHTML =
-          '<a href="connexion.html" class="btn btn--primary">Connexion</a> ' +
-          '<a href="index.html" class="btn btn--ghost">Accueil</a>';
       }
 
       tabs.forEach((btn) => {
