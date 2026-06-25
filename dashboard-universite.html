@@ -382,6 +382,7 @@
       <button type="button" class="nav-tab nav-tab--priority" data-section="communiquer">📢 Communiquer</button>
       <button type="button" class="nav-tab nav-tab--priority" data-section="sections">🏫 Sections & réclamations</button>
       <button type="button" class="nav-tab nav-tab--priority" data-section="reunions">🎥 Réunions</button>
+      <button type="button" class="nav-tab nav-tab--priority" data-section="diplomes">🎓 Diplômes</button>
       <button type="button" class="nav-tab" data-section="activites">📋 Activités</button>
       <button type="button" class="nav-tab" data-section="administration">⚙️ Campus & frais</button>
     </nav>
@@ -453,6 +454,7 @@
           <button type="button" class="btn btn--ghost" data-goto="administration" data-focus="payments">💳 Valider les paiements</button>
           <button type="button" class="btn btn--ghost" data-goto="administration" data-focus="professors">👨‍🏫 Enseignants & nominations</button>
           <button type="button" class="btn btn--ghost" data-goto="administration" data-focus="sections">🏫 Sections & responsables</button>
+          <button type="button" class="btn btn--ghost" data-goto="diplomes">🎓 Émettre un diplôme</button>
           <button type="button" class="btn btn--ghost" data-goto="administration" data-focus="tariffs">📚 Frais académiques</button>
         </div>
       </div>
@@ -706,6 +708,16 @@
           <p class="empty">Chargement…</p>
         </div>
       </div>
+    </section>
+
+    <!-- DIPLÔMES NUMÉRIQUES -->
+    <section class="page-section" id="section-diplomes">
+      <h1 class="page-title">Diplômes numériques</h1>
+      <p class="page-desc">
+        Émettez des diplômes officiels avec numéro unique et code de vérification.
+        Les employeurs peuvent contrôler l'authenticité sur la page publique de vérification.
+      </p>
+      <div id="diplomasUniversityRoot"></div>
     </section>
 
     <!-- ADMINISTRATION -->
@@ -1177,6 +1189,7 @@
   <script src="js/sac-home-news.js?v=20260622e"></script>
   <script src="js/sac-publisher.js?v=20260622e"></script>
   <script src="js/sac-meetings.js"></script>
+  <script src="js/sac-diplomas.js?v=20260626"></script>
   <script src="js/sac-ministry-live.js"></script>
   <script src="js/sac-live-call.js"></script>
   <script src="js/sac-webrtc-room.js"></script>
@@ -2419,6 +2432,9 @@
           if (typeof SAC_MEETINGS !== "undefined") {
             SAC_MEETINGS.mountUI(document.getElementById("meetingsRoot"), session);
           }
+        }
+        if (id === "diplomes" && typeof SAC_DIPLOMAS !== "undefined") {
+          SAC_DIPLOMAS.mountUniversityUI(document.getElementById("diplomasUniversityRoot"), session);
         }
         if (id === "activites" && typeof SAC_ADMIN_ACTIVITIES !== "undefined") {
           async function reloadUniActivities() {

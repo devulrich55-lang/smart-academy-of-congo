@@ -544,6 +544,13 @@
         </div>
       </div>
 
+      <div class="panel" id="panelStudentDiplomas" style="border-left:4px solid var(--primary);">
+        <div class="panel__head"><h2>🛡️ Mes diplômes numériques</h2></div>
+        <div class="panel__body" id="studentDiplomasRoot">
+          <p class="empty" style="margin:0;">Chargement…</p>
+        </div>
+      </div>
+
       <div class="panel profile-demand-panel">
         <div class="panel__head">
           <h2>📩 Demande à ma section faculté</h2>
@@ -1038,6 +1045,7 @@
   <script src="js/sac-live.js"></script>
   <script src="js/sac-video-live.js"></script>
   <script src="js/sac-presence.js"></script>
+  <script src="js/sac-diplomas.js?v=20260626"></script>
   <script>
     let studentGrades = [];
     let aiCorrectionUi = null;
@@ -2049,6 +2057,9 @@
       studentId = session.userId || session.identifiant || "etudiant-demo";
       await loadStudentGrades(session);
       renderProfile(session);
+      if (typeof SAC_DIPLOMAS !== "undefined") {
+        SAC_DIPLOMAS.mountStudentUI(document.getElementById("studentDiplomasRoot"), session);
+      }
       renderProfilePublications(session);
       bindFilePreview("recFiles", "recFilesPreview");
       bindFilePreview("recFilesProfile", "recFilesPreviewProfile");

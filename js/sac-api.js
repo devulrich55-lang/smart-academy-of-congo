@@ -1048,6 +1048,43 @@ const SAC_API = (function () {
     return uploadFormData("/platform/library/upload", formData);
   }
 
+  async function listCampusDiplomasManage() {
+    const data = await request("/platform/diplomas/manage");
+    return data?.diplomas || [];
+  }
+
+  async function listMyDiplomas() {
+    const data = await request("/platform/diplomas/me");
+    return data?.diplomas || [];
+  }
+
+  async function issueDiploma(payload) {
+    const data = await request("/platform/diplomas/issue", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+    return data?.diploma || data;
+  }
+
+  async function revokeDiploma(diplomaId) {
+    const data = await request("/platform/diplomas/" + encodeURIComponent(diplomaId), {
+      method: "PATCH",
+      body: JSON.stringify({ status: "revoque" }),
+    });
+    return data?.diploma || data;
+  }
+
+  async function verifyDiplomaPublic(verificationCode, diplomaNumber) {
+    return platformRequest("/platform/diplomas/verify", {
+      method: "POST",
+      auth: false,
+      body: JSON.stringify({
+        verificationCode: verificationCode,
+        diplomaNumber: diplomaNumber,
+      }),
+    });
+  }
+
   async function recordHomeNewsView(itemId, viewerKey) {
     return platformRequest("/platform/home-news/" + encodeURIComponent(String(itemId || "").trim()) + "/view", {
       method: "POST",
@@ -1298,6 +1335,11 @@ const SAC_API = (function () {
     updateDigitalLibraryBook,
     deleteDigitalLibraryBook,
     uploadDigitalLibraryFile,
+    listCampusDiplomasManage,
+    listMyDiplomas,
+    issueDiploma,
+    revokeDiploma,
+    verifyDiplomaPublic,
     recordHomeNewsView,
     getCampusBranding,
     listCampusSectionsPublic,

@@ -251,6 +251,14 @@ const SAC_PLATFORM = (function () {
 
   /* ── Diplomas ── */
   async function getMyDiplomas() {
+    if (typeof SAC_API !== "undefined" && SAC_API.listMyDiplomas) {
+      try {
+        const online = await SAC_API.ensureOnline();
+        if (online) return await SAC_API.listMyDiplomas();
+      } catch {
+        /* fallback */
+      }
+    }
     const data = await api("/platform/diplomas/me");
     if (data?.diplomas) return data.diplomas;
     const s = getSession();
@@ -264,11 +272,7 @@ const SAC_PLATFORM = (function () {
       const ok = await SAC_API.ensureOnline();
       if (ok) {
         try {
-          return await SAC_API.platformRequest("/platform/diplomas/verify", {
-            method: "POST",
-            body: JSON.stringify({ verificationCode: code, diplomaNumber: number }),
-            auth: false,
-          });
+          return await SAC_API.verifyDiplomaPublic(code, number);
         } catch (e) {
           return { valid: false, message: e.message || "Erreur de vérification." };
         }
