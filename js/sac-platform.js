@@ -168,6 +168,17 @@ const SAC_PLATFORM = (function () {
 
   /* ── Careers ── */
   async function getCareers(scope) {
+    if (typeof SAC_API !== "undefined" && SAC_API.listCareersPublic) {
+      try {
+        const online = await SAC_API.ensureOnline();
+        if (online) {
+          const s = getSession();
+          return await SAC_API.listCareersPublic(scope, s?.universite);
+        }
+      } catch {
+        /* fallback */
+      }
+    }
     const q = scope ? "?scope=" + encodeURIComponent(scope) : "";
     const data = await api("/platform/careers" + q);
     if (data?.items) return data.items;

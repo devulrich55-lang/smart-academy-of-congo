@@ -1134,6 +1134,71 @@ const SAC_API = (function () {
     return data?.enrollment || data;
   }
 
+  async function listCareersForStudent() {
+    const data = await request("/platform/careers/for-student");
+    return data?.items || [];
+  }
+
+  async function listCareersManage() {
+    const data = await request("/platform/careers/manage");
+    return data?.items || [];
+  }
+
+  async function listMyCareerApplications() {
+    const data = await request("/platform/careers/applications/me");
+    return data?.applications || [];
+  }
+
+  async function listCareersPublic(scope, universite) {
+    const params = new URLSearchParams();
+    if (scope) params.set("scope", scope);
+    if (universite) params.set("universite", universite);
+    const q = params.toString() ? "?" + params.toString() : "";
+    const data = await platformRequest("/platform/careers" + q, { auth: false });
+    return data?.items || [];
+  }
+
+  async function createCareer(payload) {
+    const data = await request("/platform/careers", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+    return data?.item || data;
+  }
+
+  async function updateCareer(offerId, payload) {
+    const data = await request("/platform/careers/" + encodeURIComponent(offerId), {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    });
+    return data?.item || data;
+  }
+
+  async function deleteCareer(offerId) {
+    return request("/platform/careers/" + encodeURIComponent(offerId), { method: "DELETE" });
+  }
+
+  async function applyCareer(offerId, message) {
+    const data = await request("/platform/careers/" + encodeURIComponent(offerId) + "/apply", {
+      method: "POST",
+      body: JSON.stringify({ message: message || "" }),
+    });
+    return data?.application || data;
+  }
+
+  async function listCareerApplications(offerId) {
+    const data = await request("/platform/careers/" + encodeURIComponent(offerId) + "/applications");
+    return data?.applications || [];
+  }
+
+  async function updateCareerApplication(appId, status) {
+    const data = await request("/platform/careers/applications/" + encodeURIComponent(appId), {
+      method: "PATCH",
+      body: JSON.stringify({ status: status }),
+    });
+    return data?.application || data;
+  }
+
   async function recordHomeNewsView(itemId, viewerKey) {
     return platformRequest("/platform/home-news/" + encodeURIComponent(String(itemId || "").trim()) + "/view", {
       method: "POST",
@@ -1397,6 +1462,16 @@ const SAC_API = (function () {
     updateCourse,
     deleteCourse,
     enrollCourse,
+    listCareersForStudent,
+    listCareersManage,
+    listMyCareerApplications,
+    listCareersPublic,
+    createCareer,
+    updateCareer,
+    deleteCareer,
+    applyCareer,
+    listCareerApplications,
+    updateCareerApplication,
     recordHomeNewsView,
     getCampusBranding,
     listCampusSectionsPublic,

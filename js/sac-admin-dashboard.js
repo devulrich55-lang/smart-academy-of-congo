@@ -135,6 +135,12 @@ const SAC_ADMIN_DASHBOARD = (function () {
         SAC_LIBRARY.initMinistryPublisher(session, "libraryPublisherRoot", { showList: true });
       }
     }
+    if (id === "stages" && typeof SAC_CAREERS !== "undefined") {
+      const session = SAC_SESSION.getSession();
+      if (session?.role === "ministere") {
+        SAC_CAREERS.mountManageUI(document.getElementById("careerNationalRoot"), session, { national: true });
+      }
+    }
     if (id === "accueil" && typeof SAC_LIBRARY !== "undefined") {
       const session = SAC_SESSION.getSession();
       if (session?.role === "ministere") {

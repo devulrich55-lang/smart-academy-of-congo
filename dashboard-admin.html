@@ -41,6 +41,7 @@
       <button type="button" class="nav-tab nav-tab--priority" data-section="activites">📋 Activités</button>
       <button type="button" class="nav-tab nav-tab--priority ws-only-ministere-hidden" data-section="publier" id="tabPublier">📢 Publier</button>
       <button type="button" class="nav-tab nav-tab--priority ws-only-ministere-hidden" data-section="bibliotheque" id="tabBibliotheque">📚 Bibliothèque numérique</button>
+      <button type="button" class="nav-tab nav-tab--priority ws-only-ministere-hidden" data-section="stages" id="tabStages">💼 Stages & emplois</button>
       <button type="button" class="nav-tab nav-tab--priority ws-only-ministere-hidden" data-section="live" id="tabLive">🎥 Espace live</button>
       <button type="button" class="nav-tab nav-tab--priority" data-section="create" id="tabCreate" hidden>➕ Créer un compte</button>
       <button type="button" class="nav-tab ws-registry-secret" data-section="registry" id="tabRegistry" hidden>📊 Registre</button>
@@ -497,6 +498,15 @@
       </p>
     </section>
 
+    <!-- STAGES & EMPLOIS NATIONAUX (Ministère uniquement) -->
+    <section class="page-section ws-only-ministere-hidden" id="section-stages">
+      <h1 class="page-title">Stages & emplois nationaux</h1>
+      <p class="page-desc">
+        Publiez les offres nationales (bourses, programmes, emplois publics) visibles par tous les étudiants SAC.
+      </p>
+      <div id="careerNationalRoot"></div>
+    </section>
+
     <!-- LIVE MINISTÈRE (Ministère uniquement) -->
     <section class="page-section ws-only-ministere-hidden" id="section-live">
       <h1 class="page-title">Espace live national</h1>
@@ -614,6 +624,7 @@
   <script src="js/sac-ministry-live.js"></script>
   <script src="js/sac-home-news.js"></script>
   <script src="js/sac-library.js?v=20260626b"></script>
+  <script src="js/sac-careers.js?v=20260626"></script>
   <script src="js/sac-platform-registry.js"></script>
   <script src="js/sac-tariffs.js?v=20260623b"></script>
   <script src="js/sac-admin-activities.js"></script>

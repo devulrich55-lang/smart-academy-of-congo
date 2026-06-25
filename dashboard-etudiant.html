@@ -514,6 +514,7 @@
       <button type="button" class="nav-tab" data-section="notes">Mes cotes</button>
       <button type="button" class="nav-tab" data-section="live">🔴 Cours & réunions live</button>
       <button type="button" class="nav-tab" data-section="catalogue">📚 Catalogue de cours</button>
+      <button type="button" class="nav-tab" data-section="stages">💼 Stages & emplois</button>
       <button type="button" class="nav-tab" data-section="correction-ia">🤖 Correction IA</button>
       <button type="button" class="nav-tab" data-section="documents">Documents</button>
       <button type="button" class="nav-tab" data-section="reclamations">📩 Réclamations</button>
@@ -735,6 +736,13 @@
       <h1 class="page-title">Catalogue de cours</h1>
       <p class="page-desc">Parcourez les cours en ligne publiés par votre université et inscrivez-vous.</p>
       <div id="courseCatalogRoot"></div>
+    </section>
+
+    <!-- STAGES & EMPLOIS -->
+    <section class="page-section" id="section-stages">
+      <h1 class="page-title">Stages & emplois</h1>
+      <p class="page-desc">Offres campus et nationales — postulez directement depuis votre espace étudiant.</p>
+      <div id="careerStudentRoot"></div>
     </section>
 
     <!-- COURS & RÉUNIONS LIVE -->
@@ -1065,6 +1073,7 @@
   <script src="js/sac-presence.js"></script>
   <script src="js/sac-diplomas.js?v=20260626"></script>
   <script src="js/sac-course-catalog.js?v=20260626"></script>
+  <script src="js/sac-careers.js?v=20260626"></script>
   <script>
     let studentGrades = [];
     let aiCorrectionUi = null;
@@ -1916,6 +1925,12 @@
         const catSession = SAC_SESSION.getSession();
         if (catSession) {
           SAC_COURSE_CATALOG.mountStudentUI(document.getElementById("courseCatalogRoot"), catSession);
+        }
+      }
+      if (id === "stages" && typeof SAC_CAREERS !== "undefined") {
+        const careerSession = SAC_SESSION.getSession();
+        if (careerSession) {
+          SAC_CAREERS.mountStudentUI(document.getElementById("careerStudentRoot"), careerSession);
         }
       }
       if (id === "correction-ia" && typeof SAC_AI_CORRECTION !== "undefined") {

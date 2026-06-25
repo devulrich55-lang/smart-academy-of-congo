@@ -207,3 +207,34 @@
   background: rgba(180, 83, 9, 0.12);
   color: #b45309;
 }
+.career-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+.career-toolbar .fi {
+  flex: 1 1 160px;
+  min-width: 0;
+}
+.career-grid {
+  display: grid;
+  gap: 0.75rem;
+}
+.career-card {
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 12px;
+  background: var(--surface, #fff);
+}
+.career-card__icon {
+  font-size: 1.75rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.career-card__body {
+  flex: 1;
+  min-width: 0;
+}

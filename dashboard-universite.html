@@ -384,6 +384,7 @@
       <button type="button" class="nav-tab nav-tab--priority" data-section="reunions">🎥 Réunions</button>
       <button type="button" class="nav-tab nav-tab--priority" data-section="diplomes">🎓 Diplômes</button>
       <button type="button" class="nav-tab nav-tab--priority" data-section="catalogue">📚 Catalogue</button>
+      <button type="button" class="nav-tab nav-tab--priority" data-section="stages">💼 Stages & emplois</button>
       <button type="button" class="nav-tab" data-section="activites">📋 Activités</button>
       <button type="button" class="nav-tab" data-section="administration">⚙️ Campus & frais</button>
     </nav>
@@ -727,6 +728,13 @@
       <h1 class="page-title">Catalogue de cours en ligne</h1>
       <p class="page-desc">Publiez les MOOC, TD et parcours de révision visibles par les étudiants de votre campus.</p>
       <div id="courseCatalogManageRoot"></div>
+    </section>
+
+    <!-- STAGES & EMPLOIS -->
+    <section class="page-section" id="section-stages">
+      <h1 class="page-title">Stages & emplois campus</h1>
+      <p class="page-desc">Publiez les offres de stage, emploi et alternance visibles par les étudiants de votre établissement.</p>
+      <div id="careerManageRoot"></div>
     </section>
 
     <!-- ADMINISTRATION -->
@@ -1199,6 +1207,7 @@
   <script src="js/sac-publisher.js?v=20260622e"></script>
   <script src="js/sac-meetings.js"></script>
   <script src="js/sac-course-catalog.js?v=20260626"></script>
+  <script src="js/sac-careers.js?v=20260626"></script>
   <script src="js/sac-diplomas.js?v=20260626"></script>
   <script src="js/sac-ministry-live.js"></script>
   <script src="js/sac-live-call.js"></script>
@@ -2448,6 +2457,9 @@
         }
         if (id === "catalogue" && typeof SAC_COURSE_CATALOG !== "undefined") {
           SAC_COURSE_CATALOG.mountManageUI(document.getElementById("courseCatalogManageRoot"), session);
+        }
+        if (id === "stages" && typeof SAC_CAREERS !== "undefined") {
+          SAC_CAREERS.mountManageUI(document.getElementById("careerManageRoot"), session);
         }
         if (id === "activites" && typeof SAC_ADMIN_ACTIVITIES !== "undefined") {
           async function reloadUniActivities() {
