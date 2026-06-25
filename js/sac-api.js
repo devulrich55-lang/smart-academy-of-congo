@@ -995,6 +995,45 @@ const SAC_API = (function () {
     return data.items || [];
   }
 
+  async function listDigitalLibrary() {
+    return platformRequest("/platform/library", { auth: false });
+  }
+
+  async function translateDictionary(word) {
+    const q = encodeURIComponent(String(word || "").trim());
+    return platformRequest("/platform/dictionary/translate?q=" + q, { auth: false });
+  }
+
+  async function listDigitalLibraryManage() {
+    return request("/platform/library/manage");
+  }
+
+  async function createDigitalLibraryBook(payload) {
+    const data = await request("/platform/library", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+    return data;
+  }
+
+  async function updateDigitalLibraryBook(id, payload) {
+    const data = await request("/platform/library/" + encodeURIComponent(id), {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    });
+    return data;
+  }
+
+  async function deleteDigitalLibraryBook(id) {
+    return request("/platform/library/" + encodeURIComponent(id), {
+      method: "DELETE",
+    });
+  }
+
+  async function uploadDigitalLibraryFile(formData) {
+    return uploadFormData("/platform/library/upload", formData);
+  }
+
   async function recordHomeNewsView(itemId, viewerKey) {
     return platformRequest("/platform/home-news/" + encodeURIComponent(String(itemId || "").trim()) + "/view", {
       method: "POST",
@@ -1236,6 +1275,13 @@ const SAC_API = (function () {
     getSectionPresence,
     getProfessorPresence,
     listHomeNews,
+    listDigitalLibrary,
+    translateDictionary,
+    listDigitalLibraryManage,
+    createDigitalLibraryBook,
+    updateDigitalLibraryBook,
+    deleteDigitalLibraryBook,
+    uploadDigitalLibraryFile,
     recordHomeNewsView,
     getCampusBranding,
     listCampusSectionsPublic,
