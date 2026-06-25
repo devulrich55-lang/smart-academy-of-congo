@@ -1173,8 +1173,9 @@
   <script src="js/sac-university-workspace.js"></script>
   <script src="js/sac-admin-accounts.js"></script>
   <script src="js/sac-admin-activities.js"></script>
-  <script src="js/sac-home-news.js?v=20260622d"></script>
-  <script src="js/sac-publisher.js?v=20260622d"></script>
+  <script src="js/sac-courses.js?v=20260622e"></script>
+  <script src="js/sac-home-news.js?v=20260622e"></script>
+  <script src="js/sac-publisher.js?v=20260622e"></script>
   <script src="js/sac-meetings.js"></script>
   <script src="js/sac-ministry-live.js"></script>
   <script src="js/sac-live-call.js"></script>
@@ -1988,20 +1989,45 @@
       }
 
       function initPublishers() {
-        if (publishersReady) return;
-        SAC_HOME_NEWS.initProfilePublishers(session);
-        SAC_HOME_NEWS.renderNationalFeedReadonly("nationalFeedReadonly");
-        if (typeof SAC_initCampusWidePublisher === "function") {
-          SAC_initCampusWidePublisher(session, "campusWidePublisherRoot");
+        const pubErr =
+          '<p class="page-desc" style="color:#b91c1c;margin:0;padding:1rem;background:rgba(185,28,28,0.08);border-radius:8px;border:1px solid rgba(185,28,28,0.25);">Impossible de charger le formulaire. Rechargez la page (Ctrl+F5).</p>';
+
+        function safeInit(fn, rootId) {
+          const root = document.getElementById(rootId);
+          if (!root || root.dataset.pubInited === "1") return;
+          try {
+            fn();
+            root.dataset.pubInited = "1";
+          } catch (err) {
+            console.error("[SAC] init publisher", rootId, err);
+            if (!root.innerHTML.trim()) root.innerHTML = pubErr;
+          }
         }
-        SAC_initPublisherPage({
-          session,
-          rootId: "publisherRoot",
-          accentColor: "#0d7a4a",
-          pageTitle: "",
-          multiFile: true,
-          maxFiles: 10,
-        });
+
+        safeInit(() => {
+          if (typeof SAC_initCampusWidePublisher === "function") {
+            SAC_initCampusWidePublisher(session, "campusWidePublisherRoot");
+          } else {
+            throw new Error("SAC_initCampusWidePublisher missing");
+          }
+        }, "campusWidePublisherRoot");
+
+        if (publishersReady) return;
+
+        safeInit(() => SAC_HOME_NEWS.initProfilePublishers(session), "campusHomeNewsRoot");
+        SAC_HOME_NEWS.renderNationalFeedReadonly("nationalFeedReadonly");
+        safeInit(
+          () =>
+            SAC_initPublisherPage({
+              session,
+              rootId: "publisherRoot",
+              accentColor: "#0d7a4a",
+              pageTitle: "",
+              multiFile: true,
+              maxFiles: 10,
+            }),
+          "publisherRoot"
+        );
         publishersReady = true;
       }
 
