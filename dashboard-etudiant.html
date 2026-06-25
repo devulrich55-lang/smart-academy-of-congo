@@ -515,6 +515,8 @@
       <button type="button" class="nav-tab" data-section="live">🔴 Cours & réunions live</button>
       <button type="button" class="nav-tab" data-section="catalogue">📚 Catalogue de cours</button>
       <button type="button" class="nav-tab" data-section="stages">💼 Stages & emplois</button>
+      <button type="button" class="nav-tab" data-section="orientation">🤖 Orientation IA</button>
+      <button type="button" class="nav-tab" data-section="reseau">👥 Réseau campus</button>
       <button type="button" class="nav-tab" data-section="correction-ia">🤖 Correction IA</button>
       <button type="button" class="nav-tab" data-section="documents">Documents</button>
       <button type="button" class="nav-tab" data-section="reclamations">📩 Réclamations</button>
@@ -743,6 +745,20 @@
       <h1 class="page-title">Stages & emplois</h1>
       <p class="page-desc">Offres campus et nationales — postulez directement depuis votre espace étudiant.</p>
       <div id="careerStudentRoot"></div>
+    </section>
+
+    <!-- ORIENTATION IA -->
+    <section class="page-section" id="section-orientation">
+      <h1 class="page-title">Orientation académique IA</h1>
+      <p class="page-desc">Conseils de parcours, compétences et stages selon votre filière et niveau.</p>
+      <div id="orientationStudentRoot"></div>
+    </section>
+
+    <!-- RÉSEAU CAMPUS -->
+    <section class="page-section" id="section-reseau">
+      <h1 class="page-title">Réseau campus</h1>
+      <p class="page-desc">Fil social modéré de votre établissement — partagez et réagissez avec votre communauté.</p>
+      <div id="socialStudentRoot"></div>
     </section>
 
     <!-- COURS & RÉUNIONS LIVE -->
@@ -1074,6 +1090,8 @@
   <script src="js/sac-diplomas.js?v=20260626"></script>
   <script src="js/sac-course-catalog.js?v=20260626"></script>
   <script src="js/sac-careers.js?v=20260626"></script>
+  <script src="js/sac-orientation.js?v=20260626"></script>
+  <script src="js/sac-social.js?v=20260626"></script>
   <script>
     let studentGrades = [];
     let aiCorrectionUi = null;
@@ -1931,6 +1949,18 @@
         const careerSession = SAC_SESSION.getSession();
         if (careerSession) {
           SAC_CAREERS.mountStudentUI(document.getElementById("careerStudentRoot"), careerSession);
+        }
+      }
+      if (id === "orientation" && typeof SAC_ORIENTATION !== "undefined") {
+        const oriSession = SAC_SESSION.getSession();
+        if (oriSession) {
+          SAC_ORIENTATION.mountStudentUI(document.getElementById("orientationStudentRoot"), oriSession);
+        }
+      }
+      if (id === "reseau" && typeof SAC_SOCIAL !== "undefined") {
+        const socialSession = SAC_SESSION.getSession();
+        if (socialSession) {
+          SAC_SOCIAL.mountFeedUI(document.getElementById("socialStudentRoot"), socialSession);
         }
       }
       if (id === "correction-ia" && typeof SAC_AI_CORRECTION !== "undefined") {

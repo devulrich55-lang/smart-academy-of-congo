@@ -385,6 +385,7 @@
       <button type="button" class="nav-tab nav-tab--priority" data-section="diplomes">🎓 Diplômes</button>
       <button type="button" class="nav-tab nav-tab--priority" data-section="catalogue">📚 Catalogue</button>
       <button type="button" class="nav-tab nav-tab--priority" data-section="stages">💼 Stages & emplois</button>
+      <button type="button" class="nav-tab" data-section="reseau">👥 Réseau campus</button>
       <button type="button" class="nav-tab" data-section="activites">📋 Activités</button>
       <button type="button" class="nav-tab" data-section="administration">⚙️ Campus & frais</button>
     </nav>
@@ -735,6 +736,13 @@
       <h1 class="page-title">Stages & emplois campus</h1>
       <p class="page-desc">Publiez les offres de stage, emploi et alternance visibles par les étudiants de votre établissement.</p>
       <div id="careerManageRoot"></div>
+    </section>
+
+    <!-- RÉSEAU CAMPUS -->
+    <section class="page-section" id="section-reseau">
+      <h1 class="page-title">Réseau campus — modération</h1>
+      <p class="page-desc">Consultez le fil social étudiant et masquez les publications inappropriées.</p>
+      <div id="socialUniRoot"></div>
     </section>
 
     <!-- ADMINISTRATION -->
@@ -1208,6 +1216,7 @@
   <script src="js/sac-meetings.js"></script>
   <script src="js/sac-course-catalog.js?v=20260626"></script>
   <script src="js/sac-careers.js?v=20260626"></script>
+  <script src="js/sac-social.js?v=20260626"></script>
   <script src="js/sac-diplomas.js?v=20260626"></script>
   <script src="js/sac-ministry-live.js"></script>
   <script src="js/sac-live-call.js"></script>
@@ -2460,6 +2469,9 @@
         }
         if (id === "stages" && typeof SAC_CAREERS !== "undefined") {
           SAC_CAREERS.mountManageUI(document.getElementById("careerManageRoot"), session);
+        }
+        if (id === "reseau" && typeof SAC_SOCIAL !== "undefined") {
+          SAC_SOCIAL.mountFeedUI(document.getElementById("socialUniRoot"), session);
         }
         if (id === "activites" && typeof SAC_ADMIN_ACTIVITIES !== "undefined") {
           async function reloadUniActivities() {

@@ -84,6 +84,7 @@
       <button type="button" class="nav-tab nav-tab--priority" data-section="documents">📁 Publier</button>
       <button type="button" class="nav-tab nav-tab--priority" data-section="notes">📊 Notes & cotes</button>
       <button type="button" class="nav-tab nav-tab--priority" data-section="correction-ia">🤖 Correction IA</button>
+      <button type="button" class="nav-tab" data-section="reseau">👥 Réseau campus</button>
       <button type="button" class="nav-tab nav-tab--priority" data-section="chef-section" id="tabChefSection" style="display:none;">🏫 Chef de section</button>
       <button type="button" class="nav-tab" data-section="reunions">🎥 Réunions section</button>
       <button type="button" class="nav-tab" data-section="annonces">📢 Annonces</button>
@@ -188,6 +189,12 @@
       <h1 class="page-title">Agent IA — Validation des corrections</h1>
       <p class="page-desc">Validez les notes provisoires générées par l'agent IA SAC. Les fiches de cotes, bulletins et statistiques sont mis à jour automatiquement.</p>
       <div id="aiCorrectionProfRoot"></div>
+    </section>
+
+    <section class="page-section" id="section-reseau">
+      <h1 class="page-title">Réseau campus</h1>
+      <p class="page-desc">Fil social de votre établissement — partagez des ressources et échangez avec la communauté campus.</p>
+      <div id="socialProfRoot"></div>
     </section>
 
     <section class="page-section" id="section-reunions">
@@ -359,6 +366,7 @@
   <script src="js/sac-live.js"></script>
   <script src="js/sac-video-live.js"></script>
   <script src="js/sac-presence.js"></script>
+  <script src="js/sac-social.js?v=20260626"></script>
   <script>
     (async function () {
       let session = await SAC_SESSION.guard("professeur");
@@ -762,6 +770,12 @@
             document.getElementById("aiCorrectionProfRoot"),
             { ...session, email: session.identifiant },
             courses.length ? courses : [{ courseCode: "TRV1", courseName: "Travail académique" }]
+          );
+        }
+        if (id === "reseau" && typeof SAC_SOCIAL !== "undefined") {
+          SAC_SOCIAL.mountFeedUI(
+            document.getElementById("socialProfRoot"),
+            { ...session, email: session.identifiant || session.email }
           );
         }
         if (id === "reunions" && typeof SAC_MEETINGS !== "undefined") {

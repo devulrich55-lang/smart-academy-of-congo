@@ -235,6 +235,14 @@ const SAC_PLATFORM = (function () {
 
   /* ── Social ── */
   async function getSocialPosts() {
+    if (typeof SAC_API !== "undefined" && SAC_API.listSocialPosts) {
+      try {
+        const online = await SAC_API.ensureOnline();
+        if (online) return await SAC_API.listSocialPosts();
+      } catch {
+        /* fallback */
+      }
+    }
     const data = await api("/platform/social");
     if (data?.posts) return data.posts;
     const s = getSession();
@@ -383,6 +391,14 @@ const SAC_PLATFORM = (function () {
   };
 
   async function getOrientation(interests) {
+    if (typeof SAC_API !== "undefined" && SAC_API.getOrientationAdvice) {
+      try {
+        const online = await SAC_API.ensureOnline();
+        if (online) return await SAC_API.getOrientationAdvice(interests);
+      } catch {
+        /* fallback local */
+      }
+    }
     const data = await api("/platform/orientation", {
       method: "POST",
       body: JSON.stringify({ interests }),

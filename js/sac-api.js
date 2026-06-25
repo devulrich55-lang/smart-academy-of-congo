@@ -1199,6 +1199,47 @@ const SAC_API = (function () {
     return data?.application || data;
   }
 
+  async function listSocialPosts() {
+    const data = await request("/platform/social");
+    return data?.posts || [];
+  }
+
+  async function createSocialPost(content, audience) {
+    const data = await request("/platform/social", {
+      method: "POST",
+      body: JSON.stringify({ content: content, audience: audience || "campus" }),
+    });
+    return data?.post || data;
+  }
+
+  async function toggleSocialLike(postId) {
+    const data = await request("/platform/social/" + encodeURIComponent(postId) + "/like", {
+      method: "POST",
+      body: JSON.stringify({}),
+    });
+    return data?.post || data;
+  }
+
+  async function deleteSocialPost(postId) {
+    return request("/platform/social/" + encodeURIComponent(postId), { method: "DELETE" });
+  }
+
+  async function moderateSocialPost(postId, hidden) {
+    const data = await request("/platform/social/" + encodeURIComponent(postId), {
+      method: "PATCH",
+      body: JSON.stringify({ hidden: !!hidden }),
+    });
+    return data?.post || data;
+  }
+
+  async function getOrientationAdvice(interests) {
+    const data = await request("/platform/orientation", {
+      method: "POST",
+      body: JSON.stringify({ interests: interests || "" }),
+    });
+    return data?.advice || data;
+  }
+
   async function recordHomeNewsView(itemId, viewerKey) {
     return platformRequest("/platform/home-news/" + encodeURIComponent(String(itemId || "").trim()) + "/view", {
       method: "POST",
@@ -1472,6 +1513,12 @@ const SAC_API = (function () {
     applyCareer,
     listCareerApplications,
     updateCareerApplication,
+    listSocialPosts,
+    createSocialPost,
+    toggleSocialLike,
+    deleteSocialPost,
+    moderateSocialPost,
+    getOrientationAdvice,
     recordHomeNewsView,
     getCampusBranding,
     listCampusSectionsPublic,
