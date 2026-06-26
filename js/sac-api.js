@@ -1218,23 +1218,41 @@ const SAC_API = (function () {
     return data?.application || data;
   }
 
-  async function listSocialPosts() {
-    const data = await request("/platform/social");
+  async function listSocialPosts(filters) {
+    const f = filters || {};
+    const params = new URLSearchParams();
+    if (f.q) params.set("q", f.q);
+    if (f.hashtag) params.set("hashtag", f.hashtag);
+    if (f.group) params.set("group", f.group);
+    if (f.feed) params.set("feed", f.feed);
+    const q = params.toString();
+    const data = await request("/platform/social" + (q ? "?" + q : ""));
     return data?.posts || [];
   }
 
-  async function createSocialPost(content, audience) {
+  async function createSocialPost(payload) {
+    const body =
+      typeof payload === "string"
+        ? { content: payload, audience: arguments[1] || "campus" }
+        : payload || {};
     const data = await request("/platform/social", {
       method: "POST",
-      body: JSON.stringify({ content: content, audience: audience || "campus" }),
+      body: JSON.stringify(body),
     });
     return data?.post || data;
   }
 
-  async function toggleSocialLike(postId) {
-    const data = await request("/platform/social/" + encodeURIComponent(postId) + "/like", {
+  async function uploadSocialMedia(file, kind) {
+    const fd = new FormData();
+    fd.append("file", file);
+    const k = encodeURIComponent(kind || "photo");
+    return uploadFormData("/platform/social/upload?kind=" + k, fd);
+  }
+
+  async function toggleSocialReaction(postId, reaction) {
+    const data = await request("/platform/social/" + encodeURIComponent(postId) + "/reaction", {
       method: "POST",
-      body: JSON.stringify({}),
+      body: JSON.stringify({ reaction: reaction || "like" }),
     });
     return data?.post || data;
   }
@@ -1243,12 +1261,83 @@ const SAC_API = (function () {
     return request("/platform/social/" + encodeURIComponent(postId), { method: "DELETE" });
   }
 
-  async function moderateSocialPost(postId, hidden) {
+  async function moderateSocialPost(postId, patch) {
+    const body = typeof patch === "boolean" ? { hidden: patch } : patch || {};
     const data = await request("/platform/social/" + encodeURIComponent(postId), {
       method: "PATCH",
-      body: JSON.stringify({ hidden: !!hidden }),
+      body: JSON.stringify(body),
     });
     return data?.post || data;
+  }
+
+  async function listSocialComments(postId) {
+    const data = await request("/platform/social/" + encodeURIComponent(postId) + "/comments");
+    return data?.comments || [];
+  }
+
+  async function addSocialComment(postId, content) {
+    const data = await request("/platform/social/" + encodeURIComponent(postId) + "/comments", {
+      method: "POST",
+      body: JSON.stringify({ content: content }),
+    });
+    return data?.comment || data;
+  }
+
+  async function listSocialEvents() {
+    const data = await request("/platform/social/events");
+    return data?.events || [];
+  }
+
+  async function listSocialHashtags() {
+    const data = await request("/platform/social/hashtags");
+    return data?.hashtags || [];
+  }
+
+  async function listSocialNotifications() {
+    const data = await request("/platform/social/notifications");
+    return data?.notifications || [];
+  }
+
+  async function markSocialNotificationRead(notifId) {
+    return request("/platform/social/notifications/" + encodeURIComponent(notifId) + "/read", {
+      method: "PATCH",
+      body: JSON.stringify({}),
+    });
+  }
+
+  async function getSocialSettings() {
+    return request("/platform/social/settings");
+  }
+
+  async function updateSocialSettings(patch) {
+    return request("/platform/social/settings", {
+      method: "PATCH",
+      body: JSON.stringify(patch || {}),
+    });
+  }
+
+  async function listSocialConversations() {
+    const data = await request("/platform/social/messages/conversations");
+    return data?.conversations || [];
+  }
+
+  async function listSocialMessages(peerEmail) {
+    const data = await request(
+      "/platform/social/messages/with/" + encodeURIComponent(peerEmail || "")
+    );
+    return data?.messages || [];
+  }
+
+  async function sendSocialMessage(toEmail, body) {
+    const data = await request("/platform/social/messages", {
+      method: "POST",
+      body: JSON.stringify({ toEmail: toEmail, body: body }),
+    });
+    return data?.message || data;
+  }
+
+  async function toggleSocialLike(postId) {
+    return toggleSocialReaction(postId, "like");
   }
 
   async function getOrientationAdvice(interests) {
@@ -1542,9 +1631,22 @@ const SAC_API = (function () {
     updateCareerApplication,
     listSocialPosts,
     createSocialPost,
+    uploadSocialMedia,
     toggleSocialLike,
+    toggleSocialReaction,
     deleteSocialPost,
     moderateSocialPost,
+    listSocialComments,
+    addSocialComment,
+    listSocialEvents,
+    listSocialHashtags,
+    listSocialNotifications,
+    markSocialNotificationRead,
+    getSocialSettings,
+    updateSocialSettings,
+    listSocialConversations,
+    listSocialMessages,
+    sendSocialMessage,
     getOrientationAdvice,
     recordHomeNewsView,
     getCampusBranding,
