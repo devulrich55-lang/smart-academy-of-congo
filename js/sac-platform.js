@@ -421,6 +421,7 @@ const SAC_PLATFORM = (function () {
       academicPath: `Parcours ${niveau} → prochaine étape : ${next}.`,
       message: `Conseil IA pour ${s?.filiere || "votre filière"} (${s?.universite || "campus"}).`,
       disclaimer: "Conseil indicatif — validation par le service orientation de l'université requise.",
+      source: "rules",
     };
     write(KEYS.orientation, [{ at: new Date().toISOString(), advice }].concat(read(KEYS.orientation)).slice(0, 20));
     audit("orientation_ia", "orientation", key);

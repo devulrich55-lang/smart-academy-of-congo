@@ -2,7 +2,7 @@
  * Établissements d'enseignement supérieur — RDC (universités & instituts)
  */
 const SAC_UNIVERSITIES = (function () {
-  const UNIVERSITIES = [
+  let UNIVERSITIES = [
     { id: "unkin", name: "Université de Kinshasa", sigle: "UNIKIN", type: "universite" },
     { id: "unilu", name: "Université de Lubumbashi", sigle: "UNILU", type: "universite" },
     { id: "unikis", name: "Université de Kisangani", sigle: "UNIKIS", type: "universite" },
@@ -20,7 +20,7 @@ const SAC_UNIVERSITIES = (function () {
     { id: "uccm", name: "Université Chrétienne Cardinal Malula", sigle: "UCCM", type: "universite" },
   ];
 
-  const INSTITUTES = [
+  let INSTITUTES = [
     { id: "istap", name: "Institut Supérieur des Techniques Appliquées", sigle: "ISTA", type: "institut" },
     { id: "inbat", name: "Institut National du Bâtiment et Travaux Publics", sigle: "INBTP", type: "institut" },
     { id: "ifsic", name: "Institut Facultaire des Sciences de l'Information et de la Communication", sigle: "IFSIC", type: "institut" },
@@ -34,7 +34,39 @@ const SAC_UNIVERSITIES = (function () {
     { id: "isam", name: "Institut Supérieur des Arts et Métiers", sigle: "ISAM", type: "institut" },
   ];
 
-  const LIST = [...UNIVERSITIES, ...INSTITUTES];
+  let LIST = [...UNIVERSITIES, ...INSTITUTES];
+  let catalogHydrated = false;
+  let catalogHydratePromise = null;
+
+  function applyCatalog(data) {
+    if (!data) return false;
+    const uni = data.universities || data.all;
+    if (!Array.isArray(uni) || !uni.length) return false;
+    UNIVERSITIES = (data.universities || []).slice();
+    INSTITUTES = (data.institutes || []).slice();
+    LIST = data.all && data.all.length ? data.all.slice() : [...UNIVERSITIES, ...INSTITUTES];
+    catalogHydrated = true;
+    return true;
+  }
+
+  function hydrateFromApi() {
+    if (catalogHydrated) return Promise.resolve(true);
+    if (catalogHydratePromise) return catalogHydratePromise;
+    if (typeof SAC_API === "undefined" || !SAC_API.getCampusCatalog) {
+      return Promise.resolve(false);
+    }
+    catalogHydratePromise = SAC_API.ensureOnline()
+      .then((online) => {
+        if (!online) return false;
+        return SAC_API.getCampusCatalog();
+      })
+      .then((data) => applyCatalog(data))
+      .catch(() => false)
+      .finally(() => {
+        catalogHydratePromise = null;
+      });
+    return catalogHydratePromise;
+  }
 
   function getById(id) {
     return LIST.find((u) => u.id === id);
@@ -86,12 +118,15 @@ const SAC_UNIVERSITIES = (function () {
   }
 
   function populateAll(selectors, selectedId) {
-    document.querySelectorAll(selectors).forEach((el) => {
-      const sel = selectedId ?? el.dataset.selected ?? el.value;
-      const includeAutre = el.dataset.includeAutre === "true";
-      const emptyLabel = el.dataset.emptyLabel || "— Choisir —";
-      el.innerHTML = optionsHtml(sel, { emptyLabel, includeAutre });
-    });
+    const run = () => {
+      document.querySelectorAll(selectors).forEach((el) => {
+        const sel = selectedId ?? el.dataset.selected ?? el.value;
+        const includeAutre = el.dataset.includeAutre === "true";
+        const emptyLabel = el.dataset.emptyLabel || "— Choisir —";
+        el.innerHTML = optionsHtml(sel, { emptyLabel, includeAutre });
+      });
+    };
+    return hydrateFromApi().finally(run);
   }
 
   function normKey(value) {
@@ -167,18 +202,25 @@ const SAC_UNIVERSITIES = (function () {
     return profile;
   }
 
-  const NAMES = Object.fromEntries(LIST.map((u) => [u.id, getLabel(u.id)]));
-
   return {
-    LIST,
-    UNIVERSITIES,
-    INSTITUTES,
-    NAMES,
+    get LIST() {
+      return LIST;
+    },
+    get UNIVERSITIES() {
+      return UNIVERSITIES;
+    },
+    get INSTITUTES() {
+      return INSTITUTES;
+    },
+    get NAMES() {
+      return Object.fromEntries(LIST.map((u) => [u.id, getLabel(u.id)]));
+    },
     getById,
     getLabel,
     getName,
     optionsHtml,
     populateAll,
+    hydrateFromApi,
     resolveId,
     sameCampus,
     buildAdminCampusPayload,

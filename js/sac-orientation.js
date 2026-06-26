@@ -1,11 +1,23 @@
 /**
- * IA orientation académique — conseils parcours / stages / compétences
+ * IA orientation académique — conseils parcours / stages / compétences (chat + LLM)
  */
 const SAC_ORIENTATION = (function () {
   function esc(s) {
     const el = document.createElement("div");
     el.textContent = String(s || "");
     return el.innerHTML;
+  }
+
+  async function getStatus() {
+    if (typeof SAC_API !== "undefined" && SAC_API.getOrientationStatus) {
+      try {
+        const online = await SAC_API.ensureOnline();
+        if (online) return await SAC_API.getOrientationStatus();
+      } catch {
+        /* fallback */
+      }
+    }
+    return { llmAvailable: false, mode: "rules" };
   }
 
   async function getAdvice(session, interests) {
@@ -19,15 +31,27 @@ const SAC_ORIENTATION = (function () {
     throw new Error("Service orientation indisponible.");
   }
 
+  function sourceBadge(source) {
+    if (source === "llm") {
+      return '<span class="ori-badge ori-badge--llm">✨ Conseil IA (OpenAI)</span>';
+    }
+    return '<span class="ori-badge ori-badge--rules">📋 Mode règles SAC</span>';
+  }
+
   function renderAdvice(advice) {
     if (!advice) return "<p class='empty'>Aucun conseil disponible.</p>";
     const list = (items) =>
       (items || []).map((x) => "<li>" + esc(x) + "</li>").join("") || "<li>—</li>";
+    const keyPoints = (advice.keyPoints || [])
+      .map((p) => '<span class="ori-chip">' + esc(p) + "</span>")
+      .join("");
     return (
       '<div class="orientation-result">' +
-      '<p style="margin:0 0 0.75rem;font-size:0.95rem;">' +
+      sourceBadge(advice.source) +
+      '<p class="ori-message">' +
       esc(advice.message) +
       "</p>" +
+      (keyPoints ? '<div class="ori-chips">' + keyPoints + "</div>" : "") +
       '<div class="orientation-grid">' +
       '<div class="orientation-block"><h3>Filières recommandées</h3><ul>' +
       list(advice.recommendedFilieres) +
@@ -39,46 +63,101 @@ const SAC_ORIENTATION = (function () {
       list(advice.skillsToDevelop) +
       "</ul></div>" +
       "</div>" +
-      '<p style="margin:0.85rem 0 0;font-weight:600;color:var(--primary);">' +
+      '<p class="ori-path">' +
       esc(advice.academicPath) +
       "</p>" +
-      '<p style="margin:0.5rem 0 0;font-size:0.8rem;color:var(--muted);">' +
+      '<p class="ori-disclaimer">' +
       esc(advice.disclaimer) +
       "</p></div>"
     );
   }
 
+  function appendBubble(thread, role, html) {
+    const row = document.createElement("div");
+    row.className = "ori-bubble-row ori-bubble-row--" + role;
+    row.innerHTML =
+      '<div class="ori-bubble ori-bubble--' +
+      role +
+      '">' +
+      html +
+      "</div>";
+    thread.appendChild(row);
+    thread.scrollTop = thread.scrollHeight;
+  }
+
   function mountStudentUI(root, session) {
     if (!root || !session) return;
     root.innerHTML =
-      '<div class="panel panel--workspace">' +
-      '<div class="panel__head"><h2>Assistant orientation</h2></div>' +
-      '<div class="panel__body">' +
-      '<p style="margin:0 0 0.75rem;color:var(--muted);font-size:0.88rem;">' +
-      "Indiquez vos centres d'intérêt ou laissez vide pour utiliser votre filière enregistrée (" +
+      '<div class="panel panel--workspace ori-panel">' +
+      '<div class="panel__head ori-head">' +
+      "<div><h2>Assistant orientation</h2>" +
+      '<p class="ori-head__sub">Parcours, filières et stages — personnalisé pour votre campus.</p></div>' +
+      '<span id="orientationModeBadge" class="ori-badge ori-badge--loading">…</span></div>' +
+      '<div class="panel__body ori-body">' +
+      '<div id="orientationThread" class="ori-thread">' +
+      '<div class="ori-bubble-row ori-bubble-row--bot">' +
+      '<div class="ori-bubble ori-bubble--bot">' +
+      "Bonjour" +
+      (session.prenom ? " " + esc(session.prenom) : "") +
+      " ! Décrivez vos centres d'intérêt ou posez une question sur votre orientation. " +
+      "Votre filière enregistrée : <strong>" +
       esc(session.filiere || "—") +
-      ", " +
+      "</strong> (" +
       esc(session.niveau || "—") +
-      ").</p>" +
-      '<form id="orientationForm" class="rec-form" style="display:flex;flex-wrap:wrap;gap:0.5rem;align-items:flex-end;">' +
-      '<div class="fg" style="flex:1;min-width:200px;"><label>Centres d\'intérêt (optionnel)</label>' +
-      '<input class="fi" id="orientationInterests" placeholder="Ex. informatique, data, cybersécurité…" /></div>' +
-      '<button type="submit" class="btn btn--role">Obtenir un conseil</button></form>' +
-      '<div id="orientationResult" style="margin-top:1rem;"></div></div></div>';
+      ").</div></div></div>" +
+      '<form id="orientationForm" class="ori-compose">' +
+      '<input class="fi ori-input" id="orientationInterests" autocomplete="off" ' +
+      'placeholder="Ex. je veux travailler en cybersécurité à Kinshasa…" />' +
+      '<button type="submit" class="btn btn--role ori-send" aria-label="Envoyer">➤</button>' +
+      "</form></div></div>";
 
-    root.querySelector("#orientationForm").addEventListener("submit", async (e) => {
+    const thread = root.querySelector("#orientationThread");
+    const badge = root.querySelector("#orientationModeBadge");
+    const form = root.querySelector("#orientationForm");
+    const input = root.querySelector("#orientationInterests");
+
+    getStatus().then((st) => {
+      if (!badge) return;
+      if (st.llmAvailable) {
+        badge.className = "ori-badge ori-badge--llm";
+        badge.textContent = "✨ IA active";
+        badge.title = st.model ? "Modèle : " + st.model : "";
+      } else {
+        badge.className = "ori-badge ori-badge--rules";
+        badge.textContent = "📋 Mode règles";
+        badge.title = "Ajoutez OPENAI_API_KEY sur le serveur pour activer l'IA.";
+      }
+    });
+
+    form.addEventListener("submit", async (e) => {
       e.preventDefault();
-      const box = root.querySelector("#orientationResult");
-      box.innerHTML = "<p style='color:var(--muted);'>Analyse en cours…</p>";
-      const interests = root.querySelector("#orientationInterests").value.trim();
+      const text = input.value.trim();
+      if (!text) return;
+      appendBubble(thread, "user", esc(text));
+      input.value = "";
+      input.disabled = true;
+      const btn = form.querySelector("button");
+      if (btn) btn.disabled = true;
+      appendBubble(thread, "bot", "<span class='ori-typing'>Analyse en cours…</span>");
+      const typing = thread.lastElementChild;
       try {
-        const advice = await getAdvice(session, interests);
-        box.innerHTML = renderAdvice(advice);
+        const advice = await getAdvice(session, text);
+        if (typing) typing.remove();
+        appendBubble(thread, "bot", renderAdvice(advice));
       } catch (err) {
-        box.innerHTML = "<p style='color:#b91c1c;'>" + esc(err.message) + "</p>";
+        if (typing) typing.remove();
+        appendBubble(
+          thread,
+          "bot",
+          "<p style='margin:0;color:#b91c1c;'>" + esc(err.message) + "</p>"
+        );
+      } finally {
+        input.disabled = false;
+        if (btn) btn.disabled = false;
+        input.focus();
       }
     });
   }
 
-  return { mountStudentUI, getAdvice, renderAdvice };
+  return { mountStudentUI, getAdvice, getStatus, renderAdvice };
 })();

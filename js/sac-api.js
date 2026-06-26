@@ -1348,6 +1348,10 @@ const SAC_API = (function () {
     return data?.advice || data;
   }
 
+  async function getOrientationStatus() {
+    return request("/platform/orientation/status");
+  }
+
   async function recordHomeNewsView(itemId, viewerKey) {
     return platformRequest("/platform/home-news/" + encodeURIComponent(String(itemId || "").trim()) + "/view", {
       method: "POST",
@@ -1360,6 +1364,16 @@ const SAC_API = (function () {
     const code = encodeURIComponent(String(universite || "").trim());
     if (!code) return { logoUrl: null };
     return platformRequest("/platform/campus-branding?universite=" + code, { auth: false });
+  }
+
+  async function getCampusCatalog() {
+    return platformRequest("/platform/campus-catalog", { auth: false });
+  }
+
+  async function resolveCampusCatalog(q) {
+    const code = encodeURIComponent(String(q || "").trim());
+    if (!code) return { id: null, item: null };
+    return platformRequest("/platform/campus-catalog/resolve?q=" + code, { auth: false });
   }
 
   async function listCampusSectionsPublic(universite) {
@@ -1648,8 +1662,11 @@ const SAC_API = (function () {
     listSocialMessages,
     sendSocialMessage,
     getOrientationAdvice,
+    getOrientationStatus,
     recordHomeNewsView,
     getCampusBranding,
+    getCampusCatalog,
+    resolveCampusCatalog,
     listCampusSectionsPublic,
     createHomeNews,
     updateHomeNews,

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>Plateforme SAC — Bibliothèque, stages & réseau</title>
+  <title>Plateforme SAC — Bibliothèque, orientation, stages & réseau</title>
   <script src="js/sac-config.js?v=20260625"></script>
   <script src="js/sac-theme.js"></script>
   <link rel="icon" href="logos.svg" type="image/svg+xml" />
@@ -323,16 +323,17 @@
     <aside class="side">
       <a href="index.html" class="brand">
         <img src="logos.svg" alt="" width="38" height="38" style="border-radius:50%" />
-        <span>Plateforme SAC<small>Bibliothèque · Stages · Réseau</small></span>
+        <span>Plateforme SAC<small>Bibliothèque · Orientation · Stages · Réseau</small></span>
       </a>
       <nav class="side-nav" id="platformSideNav">
         <button class="side-btn active" data-tab="library">📚 Bibliothèque</button>
         <button class="side-btn" data-tab="dictionary">📖 Dictionnaire</button>
+        <button class="side-btn" data-tab="orientation" data-module="orientation_ia" hidden>🤖 Orientation IA</button>
         <button class="side-btn" data-tab="stages" data-module="stages_emplois" hidden>💼 Stages &amp; emplois</button>
         <button class="side-btn" data-tab="reseau" data-module="reseau" hidden>👥 Réseau campus</button>
       </nav>
       <div class="side-note">
-        Connexion requise. Bibliothèque, dictionnaire, offres de stage et fil social campus selon votre rôle.
+        Connexion requise. Bibliothèque, dictionnaire, orientation IA, offres de stage et fil social campus selon votre rôle.
       </div>
     </aside>
     <main class="main">
@@ -380,6 +381,12 @@
         <div id="dictOutput" class="dict-out">Sélectionnez votre langue et entrez un mot à définir.</div>
       </section>
 
+      <section id="panel-orientation" class="panel-card" style="display:none">
+        <h3 style="margin:0 0 0.45rem;">Orientation IA</h3>
+        <p style="margin:0 0 0.85rem;color:var(--muted);font-size:0.9rem">Conseils personnalisés sur votre parcours, filières et stages — propulsé par l'IA ou les règles SAC.</p>
+        <div id="platformOrientationRoot"></div>
+      </section>
+
       <section id="panel-stages" class="panel-card" style="display:none">
         <h3 style="margin:0 0 0.45rem;">Stages &amp; emplois</h3>
         <p style="margin:0 0 0.85rem;color:var(--muted);font-size:0.9rem">Offres campus et nationales — consultez les opportunités ou publiez selon votre rôle.</p>
@@ -401,12 +408,14 @@
   <script src="js/sac-library.js?v=20260626b"></script>
   <script src="js/sac-dictionary.js?v=20260625f"></script>
   <script src="js/sac-careers.js?v=20260626c"></script>
+  <script src="js/sac-orientation.js?v=20260627"></script>
   <script src="js/sac-social.js?v=20260626c"></script>
   <script>
     (async function () {
       const tabs = document.querySelectorAll("[data-tab]");
       const panelLibrary = document.getElementById("panel-library");
       const panelDictionary = document.getElementById("panel-dictionary");
+      const panelOrientation = document.getElementById("panel-orientation");
       const panelStages = document.getElementById("panel-stages");
       const panelReseau = document.getElementById("panel-reseau");
       const heroTitle = document.getElementById("platformHeroTitle");
@@ -471,6 +480,7 @@
       });
 
       let careersMounted = false;
+      let orientationMounted = false;
       let socialMounted = false;
 
       const HERO_COPY = {
@@ -481,6 +491,10 @@
         dictionary: {
           title: "Dictionnaire intégré",
           desc: "Définitions multilingues — choisissez votre langue puis recherchez un mot.",
+        },
+        orientation: {
+          title: "Orientation IA",
+          desc: "Obtenez des conseils personnalisés sur votre parcours académique, les filières et les stages adaptés à votre profil.",
         },
         stages: {
           title: "Stages & emplois",
@@ -493,6 +507,11 @@
       };
 
       function mountPlatformModule(tabId) {
+        if (tabId === "orientation" && !orientationMounted && typeof SAC_ORIENTATION !== "undefined") {
+          orientationMounted = true;
+          const root = document.getElementById("platformOrientationRoot");
+          if (root && session.role === "etudiant") SAC_ORIENTATION.mountStudentUI(root, session);
+        }
         if (tabId === "stages" && !careersMounted && typeof SAC_CAREERS !== "undefined") {
           careersMounted = true;
           const root = document.getElementById("platformCareerRoot");
@@ -514,6 +533,7 @@
         tabs.forEach((b) => b.classList.toggle("active", b.dataset.tab === tabId));
         if (panelLibrary) panelLibrary.style.display = tabId === "library" ? "block" : "none";
         if (panelDictionary) panelDictionary.style.display = tabId === "dictionary" ? "block" : "none";
+        if (panelOrientation) panelOrientation.style.display = tabId === "orientation" ? "block" : "none";
         if (panelStages) panelStages.style.display = tabId === "stages" ? "block" : "none";
         if (panelReseau) panelReseau.style.display = tabId === "reseau" ? "block" : "none";
         const copy = HERO_COPY[tabId] || HERO_COPY.library;
@@ -533,6 +553,13 @@
       tabs.forEach((btn) => {
         btn.addEventListener("click", () => showTab(btn.dataset.tab || "library"));
       });
+
+      const hashTab = (location.hash || "").replace("#", "").toLowerCase();
+      const validTabs = ["library", "dictionary", "orientation", "stages", "reseau"];
+      if (validTabs.includes(hashTab)) {
+        const hashBtn = document.querySelector('[data-tab="' + hashTab + '"]');
+        if (hashBtn && !hashBtn.hidden) showTab(hashTab);
+      }
 
       let allBooks = [];
       let activeCategory = "all";
