@@ -412,6 +412,73 @@ const SAC_API = (function () {
     }
   }
 
+  /** Distingue API down vs API live mais CORS bloqué (cas fréquent sur Render). */
+  async function probeApiReachability() {
+    if (!BASE) {
+      return { ok: false, scenario: "NO_API", message: "URL API non configurée." };
+    }
+    const origin =
+      typeof window !== "undefined" ? window.location.origin || "" : "";
+    try {
+      const res = await fetchWithTimeout(
+        `${BASE}/api/health`,
+        { method: "GET", mode: "cors", credentials: "omit" },
+        25000
+      );
+      const data = await res.json().catch(() => ({}));
+      const corsInfo = data.cors || null;
+      if (corsInfo && corsInfo.originAllowed === false) {
+        return {
+          ok: false,
+          scenario: "CORS_DENIED",
+          message:
+            "L'API répond mais refuse votre site.\n→ ALLOWED_ORIGINS=" + origin,
+          cors: corsInfo,
+          data,
+        };
+      }
+      const healthy =
+        res.ok ||
+        (data && typeof data === "object" && ("ok" in data || "database" in data));
+      if (healthy) {
+        online = true;
+        return { ok: true, scenario: "OK", data, cors: corsInfo };
+      }
+      return {
+        ok: false,
+        scenario: "API_ERROR",
+        message: "L'API répond mais signale une erreur (base de données ?).",
+        data,
+      };
+    } catch {
+      try {
+        await fetchWithTimeout(
+          `${BASE}/api/health`,
+          { method: "GET", mode: "no-cors", credentials: "omit" },
+          20000
+        );
+        return {
+          ok: false,
+          scenario: "CORS_BLOCKED",
+          message:
+            "L'API est EN LIGNE (health OK dans Safari) mais le navigateur bloque les appels.\n\n" +
+            "→ Render API-1 → Environment :\n" +
+            "ALLOWED_ORIGINS=" +
+            origin +
+            "\nCROSS_ORIGIN_AUTH=true\n\n" +
+            "Puis Manual Deploy API.",
+        };
+      } catch {
+        return {
+          ok: false,
+          scenario: "UNREACHABLE",
+          message:
+            "L'API ne répond pas du tout.\n→ Render API-1 → onglet Logs (erreur au démarrage).",
+        };
+      }
+    }
+  }
+
   /** Réveille l'API Render (cold start ~30–90 s) avant connexion / inscription. */
   async function wakeServer(options) {
     return ping(Object.assign({}, wakeDefaults(true), options || {}));
@@ -1598,6 +1665,7 @@ const SAC_API = (function () {
     wakeServer,
     probeLiveApi,
     probeCors,
+    probeApiReachability,
     ensureOnline,
     ensureApiSession,
     isOnline,

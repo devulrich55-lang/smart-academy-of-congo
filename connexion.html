@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="description" content="Connexion sécurisée — Smart Academy of Congo. Étudiant, professeur, assistant ou chef de section." />
   <title>Connexion — Smart Academy of Congo</title>
-  <script src="js/sac-config.js?v=20260628d"></script>
+  <script src="js/sac-config.js?v=20260628e"></script>
   <script src="js/sac-theme.js"></script>
   <link rel="icon" href="logos.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="logos.svg" />
@@ -176,8 +176,8 @@
   <script src="js/sac-identity.js"></script>
   <script src="js/sac-tariffs.js"></script>
   <script src="js/sac-section-approval.js?v=20260624e"></script>
-  <script src="js/sac-session.js?v=20260628d"></script>
-  <script src="js/sac-api.js?v=20260628d"></script>
+  <script src="js/sac-session.js?v=20260628e"></script>
+  <script src="js/sac-api.js?v=20260628e"></script>
   <script>
     (async function () {
       const roleParam = new URLSearchParams(window.location.search).get("role");
@@ -497,27 +497,46 @@
             typeof SAC_API !== "undefined" && SAC_API.getFrontendOrigin
               ? SAC_API.getFrontendOrigin()
               : window.location.origin;
-          let corsHint = "";
-          if (typeof SAC_API.probeCors === "function") {
+          let detail = "";
+          if (typeof SAC_API.probeApiReachability === "function") {
+            const probe = await SAC_API.probeApiReachability();
+            if (probe.message) detail = "\n\n" + probe.message;
+            if (probe.scenario === "OK") {
+              btnSubmit.textContent = "Connexion en cours…";
+              try {
+                apiSession = await SAC_API.login(idVal, pwdVal, currentRole, {
+                  universite: uniVal,
+                });
+              } catch (err) {
+                apiError = err.message || "Identifiant ou mot de passe incorrect.";
+              }
+              if (apiSession) {
+                redirectAfterLogin(apiSession);
+                return;
+              }
+              alert(apiError || "Identifiant ou mot de passe incorrect.");
+              return;
+            }
+          } else if (typeof SAC_API.probeCors === "function") {
             const probe = await SAC_API.probeCors();
             if (probe.cors && probe.cors.originAllowed === false) {
-              corsHint =
+              detail =
                 "\n\nCORS : votre site n'est PAS autorisé par l'API.\n" +
-                "Origine détectée : " + (probe.cors.requestOrigin || originHint) + "\n" +
-                "→ Corrigez ALLOWED_ORIGINS sur API-1 puis redéployez l'API.";
+                "Origine : " + (probe.cors.requestOrigin || originHint) + "\n" +
+                "→ ALLOWED_ORIGINS=" + originHint;
             } else if (probe.error) {
-              corsHint = "\n\nErreur réseau : " + probe.error;
+              detail = "\n\nErreur réseau : " + probe.error;
             }
           }
           alert(
-            "Connexion impossible : l'API est injoignable.\n\n" +
-            (apiHint ? "API : " + apiHint + "\n\n" : "") +
-            "1. Testez : " + (apiHint ? apiHint + "/api/health" : "/api/health") + "\n\n" +
-            "2. Sur Render → API-1 → Environment :\n" +
-            "ALLOWED_ORIGINS=" + originHint + "\n" +
-            "CROSS_ORIGIN_AUTH=true\n\n" +
-            "3. Poussez le code API (dossier backend-python) puis Manual Deploy API." +
-            corsHint
+            "Connexion impossible.\n\n" +
+            (apiHint ? "API : " + apiHint + "\n" : "") +
+            "Test direct : " + (apiHint ? apiHint + "/api/health" : "/api/health") +
+            "\n\nSi ce lien s'ouvre dans Safari mais pas ici → CORS (voir ci-dessous)." +
+            detail +
+            "\n\nRender API-1 → Environment :\nALLOWED_ORIGINS=" +
+            originHint +
+            "\nCROSS_ORIGIN_AUTH=true"
           );
           return;
         }
