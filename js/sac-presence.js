@@ -42,12 +42,28 @@ const SAC_PRESENCE = (function () {
       typeof SAC_API.hasAuthTokens === "function" &&
       !SAC_API.hasAuthTokens()
     ) {
-      safeCall(hooks?.onSelfOnline, false);
-      return;
+      const local =
+        typeof SAC_SESSION !== "undefined" && SAC_SESSION.getSession
+          ? SAC_SESSION.getSession()
+          : null;
+      const serverBacked =
+        local &&
+        (local.authSource === "api" ||
+          (local.userId && local.userId !== local.identifiant));
+      if (serverBacked && typeof SAC_API.refresh === "function") {
+        await SAC_API.refresh({ soft: true });
+      }
+      if (typeof SAC_API.hasAuthTokens === "function" && !SAC_API.hasAuthTokens()) {
+        safeCall(hooks?.onSelfOnline, false);
+        return;
+      }
     }
     try {
       const online = await SAC_API.ensureOnline();
-      if (!online) return;
+      if (!online) {
+        safeCall(hooks?.onSelfOnline, false);
+        return;
+      }
       await SAC_API.pingPresence(buildPayload(session));
       safeCall(hooks?.onSelfOnline, true);
     } catch {
