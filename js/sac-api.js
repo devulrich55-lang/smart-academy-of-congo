@@ -111,6 +111,34 @@ const SAC_API = (function () {
     }
   }
 
+  function isMobileClient() {
+    if (typeof navigator === "undefined") return false;
+    return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent || "");
+  }
+
+  function networkErrorMessage(netErr) {
+    const msg = String(netErr?.message || netErr || "");
+    if (isCrossOriginApi() && !hasAuthTokens() && getStoredSession()?.identifiant) {
+      return "Session expirée — déconnectez-vous puis reconnectez-vous.";
+    }
+    if (msg === "Load failed" || msg === "Failed to fetch" || netErr?.name === "AbortError") {
+      return "Connexion au serveur impossible — vérifiez le réseau ou réessayez.";
+    }
+    return msg || "Erreur réseau";
+  }
+
+  function wakeDefaults(force) {
+    const mobile = isMobileClient();
+    if (force) {
+      return mobile
+        ? { attempts: 4, timeoutMs: 18000, delayMs: 3000 }
+        : { attempts: 8, timeoutMs: 55000, delayMs: 5000 };
+    }
+    return mobile
+      ? { attempts: 3, timeoutMs: 15000, delayMs: 2500 }
+      : { attempts: 5, timeoutMs: 45000, delayMs: 4000 };
+  }
+
   function saveApiTokens(accessToken, refreshToken) {
     if (!isCrossOriginApi()) return;
     if (accessToken) sessionStorage.setItem(TOKEN_ACCESS, accessToken);
@@ -135,6 +163,16 @@ const SAC_API = (function () {
     } catch {
       return false;
     }
+  }
+
+  /** Restaure les JWT (sessionStorage) si sac_session existe encore — indispensable sur Render. */
+  async function ensureApiSession(opts) {
+    if (!isCrossOriginApi()) return true;
+    if (hasAuthTokens()) return true;
+    const sess = getStoredSession();
+    if (!sess?.identifiant || sess.authSource === "local") return false;
+    if (!sessionStorage.getItem(TOKEN_REFRESH)) return false;
+    return refresh({ soft: !!(opts && opts.soft) });
   }
 
   function apiCredentials() {
@@ -258,12 +296,7 @@ const SAC_API = (function () {
         }),
       });
     } catch (netErr) {
-      const msg = String(netErr?.message || netErr || "");
-      const err = new Error(
-        msg === "Load failed" || msg === "Failed to fetch" || netErr?.name === "AbortError"
-          ? "Connexion au serveur impossible — vérifiez le réseau ou réessayez."
-          : msg || "Erreur réseau"
-      );
+      const err = new Error(networkErrorMessage(netErr));
       err.code = "NETWORK_ERROR";
       throw err;
     }
@@ -395,11 +428,7 @@ const SAC_API = (function () {
 
   async function ensureOnline(force) {
     if (isCrossOriginApi()) {
-      return wakeServer(
-        force
-          ? { attempts: 8, timeoutMs: 55000, delayMs: 5000 }
-          : { attempts: 5, timeoutMs: 45000, delayMs: 4000 }
-      );
+      return wakeServer(wakeDefaults(force));
     }
     if (force || online === null) await ping(force ? { attempts: 5, timeoutMs: 45000 } : undefined);
     return online;
@@ -1579,7 +1608,10 @@ const SAC_API = (function () {
     probeLiveApi,
     probeCors,
     ensureOnline,
+    ensureApiSession,
     isOnline,
+    isCrossOriginApi,
+    isMobileClient,
     isLocalDevHost,
     allowOfflineAuth,
     login,

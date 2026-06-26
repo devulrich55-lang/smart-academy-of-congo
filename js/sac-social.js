@@ -73,8 +73,22 @@ const SAC_SOCIAL = (function () {
 
   async function listPosts(session, filters) {
     if (typeof SAC_API !== "undefined" && SAC_API.listSocialPosts) {
+      if (typeof SAC_API.ensureApiSession === "function") {
+        await SAC_API.ensureApiSession({ soft: true });
+      }
+      if (
+        SAC_API.isCrossOriginApi &&
+        SAC_API.isCrossOriginApi() &&
+        SAC_API.hasAuthTokens &&
+        !SAC_API.hasAuthTokens()
+      ) {
+        throw new Error("Session expirée — déconnectez-vous puis reconnectez-vous.");
+      }
       const online = await SAC_API.ensureOnline();
-      if (online) return SAC_API.listSocialPosts(filters);
+      if (!online) {
+        throw new Error("Connexion au serveur impossible — l'API ne répond pas. Réessayez dans 1 minute.");
+      }
+      return SAC_API.listSocialPosts(filters);
     }
     if (typeof SAC_PLATFORM !== "undefined" && SAC_PLATFORM.getSocialPosts) {
       return SAC_PLATFORM.getSocialPosts();
@@ -84,8 +98,16 @@ const SAC_SOCIAL = (function () {
 
   async function createPost(session, payload) {
     if (typeof SAC_API !== "undefined" && SAC_API.createSocialPost) {
-      if (typeof SAC_API.wakeServer === "function") {
-        await SAC_API.wakeServer({ attempts: 6, timeoutMs: 55000, delayMs: 5000 });
+      if (typeof SAC_API.ensureApiSession === "function") {
+        await SAC_API.ensureApiSession({ soft: true });
+      }
+      if (
+        SAC_API.isCrossOriginApi &&
+        SAC_API.isCrossOriginApi() &&
+        SAC_API.hasAuthTokens &&
+        !SAC_API.hasAuthTokens()
+      ) {
+        throw new Error("Session expirée — déconnectez-vous puis reconnectez-vous.");
       }
       const online = await SAC_API.ensureOnline(true);
       if (!online) {
@@ -1003,9 +1025,12 @@ const SAC_SOCIAL = (function () {
 
     async function init() {
       try {
-        if (typeof SAC_API !== "undefined" && SAC_API.getSocialSettings) {
+        if (typeof SAC_API !== "undefined") {
+          if (SAC_API.ensureApiSession) {
+            await SAC_API.ensureApiSession({ soft: true });
+          }
           const online = await SAC_API.ensureOnline();
-          if (online) {
+          if (online && SAC_API.getSocialSettings) {
             state.settings = { ...state.settings, ...(await SAC_API.getSocialSettings()) };
             const dmToggle = root.querySelector("#socialDmToggle");
             if (dmToggle) dmToggle.checked = state.settings.privateDmEnabled !== false;
