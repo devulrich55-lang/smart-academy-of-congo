@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>Bibliothèque Numérique — Smart Academy of Congo</title>
+  <title>Plateforme SAC — Bibliothèque, stages & réseau</title>
   <script src="js/sac-config.js?v=20260625"></script>
   <script src="js/sac-theme.js"></script>
   <link rel="icon" href="logos.svg" type="image/svg+xml" />
@@ -322,14 +322,16 @@
     <aside class="side">
       <a href="index.html" class="brand">
         <img src="logos.svg" alt="" width="38" height="38" style="border-radius:50%" />
-        <span>Bibliothèque Numérique<small>Smart Academy of Congo</small></span>
+        <span>Plateforme SAC<small>Bibliothèque · Stages · Réseau</small></span>
       </a>
-      <nav class="side-nav">
+      <nav class="side-nav" id="platformSideNav">
         <button class="side-btn active" data-tab="library">📚 Bibliothèque</button>
         <button class="side-btn" data-tab="dictionary">📖 Dictionnaire</button>
+        <button class="side-btn" data-tab="stages" data-module="stages_emplois" hidden>💼 Stages &amp; emplois</button>
+        <button class="side-btn" data-tab="reseau" data-module="reseau" hidden>👥 Réseau campus</button>
       </nav>
       <div class="side-note">
-        Connexion requise pour consulter la bibliothèque. Le dictionnaire reste accessible une fois connecté.
+        Connexion requise. Bibliothèque, dictionnaire, offres de stage et fil social campus selon votre rôle.
       </div>
     </aside>
     <main class="main">
@@ -339,8 +341,8 @@
       </div>
 
       <section class="hero">
-        <h1>Bibliothèque Numérique</h1>
-        <p>Consultez les livres et documents publiés officiellement, et recherchez des définitions dans le dictionnaire intégré.</p>
+        <h1 id="platformHeroTitle">Bibliothèque Numérique</h1>
+        <p id="platformHeroDesc">Consultez les livres et documents publiés officiellement, et recherchez des définitions dans le dictionnaire intégré.</p>
         <div class="kpis">
           <div class="kpi"><b id="kpiBooks">0</b><span>Livres disponibles</span></div>
           <div class="kpi"><b>5 langues</b><span>Dictionnaire intégré</span></div>
@@ -376,6 +378,18 @@
         </form>
         <div id="dictOutput" class="dict-out">Sélectionnez votre langue et entrez un mot à définir.</div>
       </section>
+
+      <section id="panel-stages" class="panel-card" style="display:none">
+        <h3 style="margin:0 0 0.45rem;">Stages &amp; emplois</h3>
+        <p style="margin:0 0 0.85rem;color:var(--muted);font-size:0.9rem">Offres campus et nationales — consultez les opportunités ou publiez selon votre rôle.</p>
+        <div id="platformCareerRoot"></div>
+      </section>
+
+      <section id="panel-reseau" class="panel-card" style="display:none">
+        <h3 style="margin:0 0 0.45rem;">Réseau social campus</h3>
+        <p style="margin:0 0 0.85rem;color:var(--muted);font-size:0.9rem">Fil modéré de votre université — partages, questions et likes.</p>
+        <div id="platformSocialRoot"></div>
+      </section>
     </main>
   </div>
 
@@ -385,11 +399,17 @@
   <script src="js/sac-platform.js"></script>
   <script src="js/sac-library.js?v=20260626b"></script>
   <script src="js/sac-dictionary.js?v=20260625f"></script>
+  <script src="js/sac-careers.js?v=20260626"></script>
+  <script src="js/sac-social.js?v=20260626"></script>
   <script>
     (async function () {
       const tabs = document.querySelectorAll("[data-tab]");
       const panelLibrary = document.getElementById("panel-library");
       const panelDictionary = document.getElementById("panel-dictionary");
+      const panelStages = document.getElementById("panel-stages");
+      const panelReseau = document.getElementById("panel-reseau");
+      const heroTitle = document.getElementById("platformHeroTitle");
+      const heroDesc = document.getElementById("platformHeroDesc");
       const listRoot = document.getElementById("libraryList");
       const form = document.getElementById("dictionaryForm");
       const input = document.getElementById("dictInput");
@@ -443,12 +463,74 @@
       }
 
       tabs.forEach((btn) => {
-        btn.addEventListener("click", () => {
-          tabs.forEach((b) => b.classList.toggle("active", b === btn));
-          const isLibrary = btn.dataset.tab === "library";
-          panelLibrary.style.display = isLibrary ? "block" : "none";
-          panelDictionary.style.display = isLibrary ? "none" : "block";
-        });
+        const mod = btn.dataset.module;
+        if (mod && typeof SAC_PLATFORM !== "undefined" && SAC_PLATFORM.canAccess) {
+          btn.hidden = !SAC_PLATFORM.canAccess(mod, session.role);
+        }
+      });
+
+      let careersMounted = false;
+      let socialMounted = false;
+
+      const HERO_COPY = {
+        library: {
+          title: "Bibliothèque Numérique",
+          desc: "Consultez les livres et documents publiés officiellement, et recherchez des définitions dans le dictionnaire intégré.",
+        },
+        dictionary: {
+          title: "Dictionnaire intégré",
+          desc: "Définitions multilingues — choisissez votre langue puis recherchez un mot.",
+        },
+        stages: {
+          title: "Stages & emplois",
+          desc: "Parcourez les offres campus et nationales, ou publiez une opportunité pour votre communauté.",
+        },
+        reseau: {
+          title: "Réseau social campus",
+          desc: "Fil de votre université — partagez des infos, posez des questions et interagissez avec la communauté.",
+        },
+      };
+
+      function mountPlatformModule(tabId) {
+        if (tabId === "stages" && !careersMounted && typeof SAC_CAREERS !== "undefined") {
+          careersMounted = true;
+          const root = document.getElementById("platformCareerRoot");
+          if (!root) return;
+          if (session.role === "etudiant") {
+            SAC_CAREERS.mountStudentUI(root, session);
+          } else if (["professeur", "assistant", "universite", "section"].includes(session.role)) {
+            SAC_CAREERS.mountManageUI(root, session);
+          }
+        }
+        if (tabId === "reseau" && !socialMounted && typeof SAC_SOCIAL !== "undefined") {
+          socialMounted = true;
+          const root = document.getElementById("platformSocialRoot");
+          if (root) SAC_SOCIAL.mountFeedUI(root, session);
+        }
+      }
+
+      function showTab(tabId) {
+        tabs.forEach((b) => b.classList.toggle("active", b.dataset.tab === tabId));
+        if (panelLibrary) panelLibrary.style.display = tabId === "library" ? "block" : "none";
+        if (panelDictionary) panelDictionary.style.display = tabId === "dictionary" ? "block" : "none";
+        if (panelStages) panelStages.style.display = tabId === "stages" ? "block" : "none";
+        if (panelReseau) panelReseau.style.display = tabId === "reseau" ? "block" : "none";
+        const copy = HERO_COPY[tabId] || HERO_COPY.library;
+        if (heroTitle) heroTitle.textContent = copy.title;
+        if (heroDesc) heroDesc.textContent = copy.desc;
+        const search = document.getElementById("globalSearch");
+        if (search) {
+          search.style.display = tabId === "library" ? "" : "none";
+          search.placeholder =
+            tabId === "library"
+              ? "Rechercher un livre, un auteur, une catégorie…"
+              : "Recherche disponible dans la bibliothèque";
+        }
+        mountPlatformModule(tabId);
+      }
+
+      tabs.forEach((btn) => {
+        btn.addEventListener("click", () => showTab(btn.dataset.tab || "library"));
       });
 
       let allBooks = [];

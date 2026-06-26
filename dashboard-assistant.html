@@ -61,6 +61,8 @@
       <button type="button" class="nav-tab nav-tab--priority" data-section="taches">📋 Tâches admin</button>
       <button type="button" class="nav-tab nav-tab--priority" data-section="documents">📁 Publier</button>
       <button type="button" class="nav-tab nav-tab--priority" data-section="correction-ia">🤖 Correction IA</button>
+      <button type="button" class="nav-tab" data-section="stages">💼 Stages &amp; emplois</button>
+      <button type="button" class="nav-tab" data-section="reseau">👥 Réseau campus</button>
       <button type="button" class="nav-tab" data-section="accueil">Tableau de bord</button>
     </nav>
   </header>
@@ -166,6 +168,18 @@
       </div>
     </section>
 
+    <section class="page-section" id="section-stages">
+      <h1 class="page-title">Stages &amp; emplois</h1>
+      <p class="page-desc">Publiez des offres pour votre campus et suivez les opportunités nationales.</p>
+      <div id="assistantCareerRoot"></div>
+    </section>
+
+    <section class="page-section" id="section-reseau">
+      <h1 class="page-title">Réseau social campus</h1>
+      <p class="page-desc">Fil modéré — partagez des informations utiles avec la communauté étudiante.</p>
+      <div id="assistantSocialRoot"></div>
+    </section>
+
     <section class="page-section" id="section-accueil">
       <h1 class="page-title">Tableau de bord assistant</h1>
       <p class="page-desc" id="welcomeDesc">Vue d'ensemble de votre activité.</p>
@@ -203,6 +217,8 @@
   <script src="js/sac-grades.js"></script>
   <script src="js/sac-grade-sheet.js"></script>
   <script src="js/sac-platform.js"></script>
+  <script src="js/sac-careers.js?v=20260626"></script>
+  <script src="js/sac-social.js?v=20260626"></script>
   <script src="js/sac-ai-correction.js"></script>
   <script src="js/sac-presence.js"></script>
   <script>
@@ -538,6 +554,8 @@
 
       let aiCorrectionUi = null;
       let adminBulletinsUi = null;
+      let careersMounted = false;
+      let socialMounted = false;
 
       function showSection(id) {
         document.querySelectorAll(".nav-tab").forEach((x) => x.classList.remove("active"));
@@ -561,6 +579,20 @@
           } else if (adminBulletinsUi?.refresh) {
             adminBulletinsUi.refresh();
           }
+        }
+        if (id === "stages" && !careersMounted && typeof SAC_CAREERS !== "undefined") {
+          careersMounted = true;
+          SAC_CAREERS.mountManageUI(
+            document.getElementById("assistantCareerRoot"),
+            { ...session, email: session.identifiant, role: "assistant" }
+          );
+        }
+        if (id === "reseau" && !socialMounted && typeof SAC_SOCIAL !== "undefined") {
+          socialMounted = true;
+          SAC_SOCIAL.mountFeedUI(
+            document.getElementById("assistantSocialRoot"),
+            { ...session, email: session.identifiant, role: "assistant" }
+          );
         }
       }
 
