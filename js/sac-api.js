@@ -414,16 +414,7 @@ const SAC_API = (function () {
 
   /** Réveille l'API Render (cold start ~30–90 s) avant connexion / inscription. */
   async function wakeServer(options) {
-    return ping(
-      Object.assign(
-        {
-          attempts: 6,
-          timeoutMs: 50000,
-          delayMs: 6000,
-        },
-        options || {}
-      )
-    );
+    return ping(Object.assign({}, wakeDefaults(true), options || {}));
   }
 
   async function ensureOnline(force) {
