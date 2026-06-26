@@ -1307,6 +1307,11 @@ const SAC_API = (function () {
     return uploadFormData("/platform/home-news/upload", fd);
   }
 
+  async function uploadLiveRecording(sessionId, formData) {
+    const sid = encodeURIComponent(String(sessionId || "").trim());
+    return uploadFormData("/platform/live/sessions/" + sid + "/recording", formData, undefined, 300000);
+  }
+
   async function pingPresence(payload = {}) {
     return request("/platform/presence/ping", {
       method: "POST",
@@ -1347,7 +1352,7 @@ const SAC_API = (function () {
     return request(path, opts);
   }
 
-  async function uploadFormData(path, formData, method) {
+  async function uploadFormData(path, formData, method, timeoutMs) {
     const doUpload = async () =>
       fetchWithTimeout(`${BASE}/api${path}`, {
         method: method || "POST",
@@ -1356,7 +1361,7 @@ const SAC_API = (function () {
           ...getAuthHeaders(),
         },
         body: formData,
-      }, 60000);
+      }, timeoutMs || 60000);
 
     let res = await doUpload();
     let data = await res.json().catch(() => ({}));
@@ -1548,6 +1553,7 @@ const SAC_API = (function () {
     updateHomeNews,
     deleteHomeNews,
     uploadHomeNewsMedia,
+    uploadLiveRecording,
     listProfessorStudents,
     getAdminAccountsSummary,
     listAdminAccounts,

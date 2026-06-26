@@ -21,6 +21,8 @@ const SAC_WEBRTC_ROOM = (function () {
   };
 
   let active = null;
+  let lastRecordingUrl = null;
+  let recordingUploadPromise = null;
 
   const HOST_ROLES = ["professeur", "universite", "assistant", "section"];
 
@@ -994,15 +996,67 @@ const SAC_WEBRTC_ROOM = (function () {
       };
       this.recorder.onstop = () => {
         const blob = new Blob(this.recordChunks, { type: "video/webm" });
-        const a = document.createElement("a");
-        a.href = URL.createObjectURL(blob);
-        a.download = "sac-live-" + (this.roomId || "session").slice(0, 24) + ".webm";
-        a.click();
-        setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+        recordingUploadPromise = this.handleRecordingBlob(blob);
       };
       this.recorder.start();
       btn.classList.add("sac-webrtc__btn--active");
       btn.textContent = "⏹";
+    }
+
+    async handleRecordingBlob(blob) {
+      const sessionId = this.opts.sessionId;
+      if (sessionId && typeof SAC_API !== "undefined" && SAC_API.uploadLiveRecording) {
+        this.setStatus("Envoi de l'enregistrement vers SAC…");
+        const fd = new FormData();
+        fd.append(
+          "file",
+          blob,
+          "sac-live-" + String(sessionId).slice(-8) + ".webm"
+        );
+        try {
+          const data = await SAC_API.uploadLiveRecording(sessionId, fd);
+          lastRecordingUrl = data.recordingUrl || data.session?.recordingUrl || null;
+          if (lastRecordingUrl) {
+            this.setStatus("Enregistrement enregistré sur SAC");
+            if (typeof this.opts.onRecordingUploaded === "function") {
+              this.opts.onRecordingUploaded(lastRecordingUrl);
+            }
+            return lastRecordingUrl;
+          }
+        } catch (err) {
+          this.setStatus("Échec envoi enregistrement — téléchargement local");
+        }
+      }
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "sac-live-" + (this.roomId || "session").slice(0, 24) + ".webm";
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+      return null;
+    }
+
+    async finalizeRecording() {
+      if (this.recorder && this.recorder.state === "recording") {
+        await new Promise((resolve) => {
+          const prev = this.recorder.onstop;
+          this.recorder.onstop = () => {
+            if (typeof prev === "function") prev();
+            resolve();
+          };
+          this.recorder.stop();
+          const btn = this.container.querySelector("#sacWrtcRecord");
+          if (btn) {
+            btn.classList.remove("sac-webrtc__btn--active");
+            btn.textContent = "⏺️";
+          }
+        });
+      }
+      if (recordingUploadPromise) {
+        const url = await recordingUploadPromise;
+        recordingUploadPromise = null;
+        return url || lastRecordingUrl;
+      }
+      return lastRecordingUrl;
     }
 
     destroy() {
@@ -1098,6 +1152,20 @@ const SAC_WEBRTC_ROOM = (function () {
     if (active) active.sendAnswer(questionId, answer);
   }
 
+  async function finalizeRecording() {
+    if (!active) return lastRecordingUrl;
+    return active.finalizeRecording();
+  }
+
+  function getLastRecordingUrl() {
+    return lastRecordingUrl;
+  }
+
+  function clearRecordingUrl() {
+    lastRecordingUrl = null;
+    recordingUploadPromise = null;
+  }
+
   return {
     join,
     leave,
@@ -1107,6 +1175,9 @@ const SAC_WEBRTC_ROOM = (function () {
     renderPresenceList,
     sendQuestion,
     sendAnswer,
+    finalizeRecording,
+    getLastRecordingUrl,
+    clearRecordingUrl,
     isHostRole,
   };
 })();

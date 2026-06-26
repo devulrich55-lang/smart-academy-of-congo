@@ -862,19 +862,39 @@ const SAC_LIVE = (function () {
     return liveSession.roomName || sanitizeRoom(liveSession.title, liveSession.id);
   }
 
-  function openSacVideoRoom(hostId, roomName, user, onLeave) {
+  function resolveRecordingUrl(url) {
+    if (!url) return "";
+    const s = String(url);
+    if (/^https?:\/\//i.test(s) || s.startsWith("data:")) return s;
+    if (s.startsWith("/uploads/") && typeof SAC_API !== "undefined" && SAC_API.getBase) {
+      const base = String(SAC_API.getBase() || "").replace(/\/$/, "");
+      return base ? base + "/api" + s : s;
+    }
+    return s;
+  }
+
+  function openSacVideoRoom(hostId, roomName, user, liveSession, onLeave) {
     if (typeof SAC_WEBRTC_ROOM === "undefined") {
       alert("Module vidéo SAC indisponible.");
       return;
     }
     const userName = displayName(user);
     const isHost = isHostRole(user?.role);
+    if (typeof SAC_WEBRTC_ROOM !== "undefined" && SAC_WEBRTC_ROOM.clearRecordingUrl) {
+      SAC_WEBRTC_ROOM.clearRecordingUrl();
+    }
     SAC_WEBRTC_ROOM.attachToHost(hostId, {
       roomId: roomName,
+      sessionId: liveSession?.id || null,
       displayName: userName,
       userRole: user?.role || "",
       isHost,
       onLeave,
+      onRecordingUploaded: (recordingUrl) => {
+        if (liveSession?.id && recordingUrl) {
+          patchLocal(liveSession.id, { recordingUrl });
+        }
+      },
       onQaUpdate: (questions) => {
         if (activeRoomSession) {
           activeRoomSession.questions = questions;
@@ -1264,7 +1284,7 @@ const SAC_LIVE = (function () {
 
         </div>
 
-        <p class="live-room__hint">🎥 Vidéo SAC · 🎤 Audio · 🖥️ Partage d'écran · 💬 Commentaires sur l'écran · ⏺️ Enregistrement</p>`;
+        <p class="live-room__hint">🎥 Vidéo SAC · 🎤 Audio · 🖥️ Partage d'écran · 💬 Commentaires · ⏺️ Replay auto sur SAC</p>`;
 
       document.body.appendChild(overlay);
 
@@ -1282,7 +1302,7 @@ const SAC_LIVE = (function () {
 
       (fresh.attendance?.length || 0) + " présent(s) · " + (fresh.documents?.length || 0) + " document(s)";
 
-    openSacVideoRoom("sacLiveRoomFrame", liveRoomName(fresh), user, closeRoom);
+    openSacVideoRoom("sacLiveRoomFrame", liveRoomName(fresh), user, fresh, closeRoom);
 
     renderSidePanel(fresh, user, isHost);
 
@@ -1397,8 +1417,8 @@ const SAC_LIVE = (function () {
     }
 
     if (liveSession.recordingUrl) {
-
-      actions += `<a class="live-rec-link" href="${esc(liveSession.recordingUrl)}" target="_blank" rel="noopener">🎬 Revoir</a>`;
+      const replayUrl = resolveRecordingUrl(liveSession.recordingUrl);
+      actions += `<a class="live-rec-link" href="${esc(replayUrl)}" target="_blank" rel="noopener">🎬 Revoir</a>`;
 
     }
 
@@ -1466,11 +1486,29 @@ const SAC_LIVE = (function () {
 
       btn.addEventListener("click", async () => {
 
+        let recordingUrl = "";
+        if (typeof SAC_WEBRTC_ROOM !== "undefined") {
+          try {
+            recordingUrl =
+              (await SAC_WEBRTC_ROOM.finalizeRecording()) ||
+              SAC_WEBRTC_ROOM.getLastRecordingUrl() ||
+              "";
+          } catch {
+            recordingUrl = SAC_WEBRTC_ROOM.getLastRecordingUrl() || "";
+          }
+        }
+
         const transcript = prompt("Notes / transcription du cours (IA générera le résumé) :", "") || "";
 
-        const url = prompt("URL enregistrement (YouTube, Drive…) — vide si pas encore prêt :", "") || "";
+        if (!recordingUrl) {
+          const manual = prompt(
+            "URL enregistrement (YouTube, Drive…) — laissez vide si déjà envoyé via ⏺️ :",
+            ""
+          );
+          if (manual) recordingUrl = manual;
+        }
 
-        await endSession(btn.dataset.end, { recordingUrl: url, transcript });
+        await endSession(btn.dataset.end, { recordingUrl, transcript });
 
         closeRoom();
 
