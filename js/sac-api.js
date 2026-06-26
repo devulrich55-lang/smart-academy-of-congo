@@ -89,6 +89,8 @@ const SAC_API = (function () {
     TOKEN_EXPIRED: "Session expirée — veuillez vous reconnecter.",
     FORBIDDEN: "Action non autorisée.",
     NOT_FOUND: "Publication introuvable ou accès refusé.",
+    CORS_BLOCKED: "Origine non autorisée — contactez l'administrateur (CORS).",
+    NETWORK_ERROR: "Connexion au serveur impossible — l'API se réveille, réessayez dans 1 minute.",
   };
 
   function apiErrorMessage(data) {
@@ -392,6 +394,13 @@ const SAC_API = (function () {
   }
 
   async function ensureOnline(force) {
+    if (isCrossOriginApi()) {
+      return wakeServer(
+        force
+          ? { attempts: 8, timeoutMs: 55000, delayMs: 5000 }
+          : { attempts: 5, timeoutMs: 45000, delayMs: 4000 }
+      );
+    }
     if (force || online === null) await ping(force ? { attempts: 5, timeoutMs: 45000 } : undefined);
     return online;
   }

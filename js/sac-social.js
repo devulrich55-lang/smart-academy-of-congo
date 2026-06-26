@@ -84,8 +84,16 @@ const SAC_SOCIAL = (function () {
 
   async function createPost(session, payload) {
     if (typeof SAC_API !== "undefined" && SAC_API.createSocialPost) {
-      const online = await SAC_API.ensureOnline();
-      if (online) return SAC_API.createSocialPost(payload);
+      if (typeof SAC_API.wakeServer === "function") {
+        await SAC_API.wakeServer({ attempts: 6, timeoutMs: 55000, delayMs: 5000 });
+      }
+      const online = await SAC_API.ensureOnline(true);
+      if (!online) {
+        throw new Error(
+          "Serveur en cours de démarrage (Render). Attendez 1 minute puis réessayez."
+        );
+      }
+      return SAC_API.createSocialPost(payload);
     }
     if (typeof SAC_PLATFORM !== "undefined" && SAC_PLATFORM.addSocialLocal) {
       return SAC_PLATFORM.addSocialLocal(payload.content, payload.audience);
@@ -268,6 +276,10 @@ const SAC_SOCIAL = (function () {
     };
 
     const showMessagesNav = session.role === "etudiant";
+
+    if (typeof SAC_API !== "undefined" && SAC_API.wakeServer) {
+      SAC_API.wakeServer({ attempts: 4, timeoutMs: 45000, delayMs: 4000 }).catch(() => {});
+    }
 
     root.innerHTML =
       '<div class="social-hub">' +
@@ -459,6 +471,11 @@ const SAC_SOCIAL = (function () {
         payload.eventAt = raw ? new Date(raw).toISOString() : "";
       }
       try {
+        const publishBtn = form.querySelector('button[type="submit"]');
+        if (publishBtn) {
+          publishBtn.disabled = true;
+          publishBtn.textContent = "Connexion au serveur…";
+        }
         await createPost(session, payload);
         composer?.classList.remove("social-composer--open");
         resetComposer();
@@ -466,6 +483,12 @@ const SAC_SOCIAL = (function () {
         await paintSidebar();
       } catch (err) {
         alert(err.message || "Publication impossible.");
+      } finally {
+        const publishBtn = form.querySelector('button[type="submit"]');
+        if (publishBtn) {
+          publishBtn.disabled = false;
+          publishBtn.textContent = "Publier";
+        }
       }
     });
 
