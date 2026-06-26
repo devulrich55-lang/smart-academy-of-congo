@@ -529,6 +529,10 @@ const SAC_SOCIAL = (function () {
       const box = root.querySelector("#comments-" + postId + " .social-comments__list");
       if (!box) return;
       try {
+        if (typeof SAC_API !== "undefined" && SAC_API.ensureOnline) {
+          const online = await SAC_API.ensureOnline();
+          if (!online) throw new Error("Connexion API requise pour les commentaires.");
+        }
         const comments =
           typeof SAC_API !== "undefined" && SAC_API.listSocialComments
             ? await SAC_API.listSocialComments(postId)
@@ -563,12 +567,16 @@ const SAC_SOCIAL = (function () {
       feedEl.querySelectorAll("[data-react]").forEach((btn) => {
         btn.addEventListener("click", async () => {
           try {
+            if (typeof SAC_API !== "undefined" && SAC_API.ensureOnline) {
+              const online = await SAC_API.ensureOnline();
+              if (!online) throw new Error("Connexion API requise pour réagir.");
+            }
             if (typeof SAC_API !== "undefined" && SAC_API.toggleSocialReaction) {
               await SAC_API.toggleSocialReaction(btn.dataset.react, btn.dataset.kind);
             }
             await paintFeed();
           } catch (err) {
-            alert(err.message);
+            alert(err.message || "Réaction impossible.");
           }
         });
       });
@@ -586,14 +594,20 @@ const SAC_SOCIAL = (function () {
           const text = input?.value.trim();
           if (!text) return;
           try {
+            if (typeof SAC_API !== "undefined" && SAC_API.ensureOnline) {
+              const online = await SAC_API.ensureOnline();
+              if (!online) throw new Error("Connexion API requise pour commenter.");
+            }
             if (typeof SAC_API !== "undefined" && SAC_API.addSocialComment) {
               await SAC_API.addSocialComment(form.dataset.commentForm, text);
               input.value = "";
               await loadComments(form.dataset.commentForm);
               await paintFeed();
+            } else {
+              throw new Error("Commentaires indisponibles hors ligne.");
             }
           } catch (err) {
-            alert(err.message);
+            alert(err.message || "Impossible d'envoyer le commentaire.");
           }
         });
       });

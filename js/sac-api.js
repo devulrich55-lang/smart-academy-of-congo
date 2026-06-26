@@ -88,6 +88,7 @@ const SAC_API = (function () {
     AUTH_REQUIRED: "Connexion requise — veuillez vous reconnecter.",
     TOKEN_EXPIRED: "Session expirée — veuillez vous reconnecter.",
     FORBIDDEN: "Action non autorisée.",
+    NOT_FOUND: "Publication introuvable ou accès refusé.",
   };
 
   function apiErrorMessage(data) {

@@ -14,6 +14,7 @@
   <link rel="stylesheet" href="css/live.css" />
   <link rel="stylesheet" href="css/webrtc-room.css" />
   <link rel="stylesheet" href="css/sac-social.css?v=20260626c" />
+  <link rel="stylesheet" href="css/payments.css?v=20260628a" />
   <script src="js/sac-config.js"></script>
   <script src="js/sac-theme.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -937,144 +938,159 @@
 
     <!-- FRAIS & PAIEMENTS -->
     <section class="page-section" id="section-frais">
-      <h1 class="page-title">Frais académiques & paiement</h1>
-      <p class="page-desc">
-        Payez <strong>100 % en ligne</strong> via le compte sécurisé de votre université — sans déplacement physique.
-        Le numéro de compte est partiellement masqué ; confirmez les derniers chiffres avant chaque paiement.
-      </p>
+      <div class="pay-page">
+        <header class="pay-page__header">
+          <div>
+            <h1 class="page-title">Frais académiques & paiement</h1>
+            <p class="page-desc pay-page__desc">
+              Payez <strong>100 % en ligne</strong> via le compte sécurisé de votre université — sans déplacement physique.
+            </p>
+          </div>
+          <div class="pay-security-banner pay-security-banner--compact" id="paySecurityBanner">
+            <span class="pay-security-banner__icon" aria-hidden="true">🔒</span>
+            <div>
+              <strong>Paiement sécurisé SAC</strong>
+              <p>Fonds versés directement au compte officiel de votre établissement.</p>
+            </div>
+          </div>
+        </header>
 
-      <div class="pay-security-banner" id="paySecurityBanner">
-        <span class="pay-security-banner__icon" aria-hidden="true">🔒</span>
-        <div>
-          <strong>Paiement sécurisé SAC</strong>
-          <p>Vos fonds vont directement au compte officiel de votre établissement. SAC ne détient jamais l'argent.</p>
-        </div>
-      </div>
+        <div class="pay-dashboard">
+          <div class="pay-dashboard__summary">
+            <div class="pay-hero" id="payHero">
+              <div class="pay-hero__ring" id="payProgressRing" style="--pct:0">
+                <div class="pay-hero__ring-inner"><span id="payProgressPct">0%</span></div>
+              </div>
+              <div class="pay-hero__content">
+                <h2 class="pay-hero__title" id="payHeroTitle">Mon solde académique</h2>
+                <p class="pay-hero__sub" id="payHeroSub">Chargement de vos frais…</p>
+                <div id="paySettledBadge" style="display:none;" class="pay-settled-badge">✓ Soldé — tous vos frais sont payés</div>
+              </div>
+              <button type="button" class="btn-pay-main" id="btnPayMain" disabled>PAYER MAINTENANT</button>
+            </div>
+            <div class="pay-stats pay-stats--inline">
+              <div class="pay-stat">
+                <div class="pay-stat__label">Total frais</div>
+                <div class="pay-stat__value" id="feesTotal">—</div>
+              </div>
+              <div class="pay-stat">
+                <div class="pay-stat__label">Payé</div>
+                <div class="pay-stat__value pay-stat__value--ok" id="feesPaid">—</div>
+              </div>
+              <div class="pay-stat">
+                <div class="pay-stat__label">Reste à payer</div>
+                <div class="pay-stat__value pay-stat__value--warn" id="feesDue">—</div>
+              </div>
+            </div>
+          </div>
 
-      <div class="pay-hero" id="payHero">
-        <div class="pay-hero__ring" id="payProgressRing" style="--pct:0">
-          <div class="pay-hero__ring-inner"><span id="payProgressPct">0%</span></div>
+          <aside class="pay-dashboard__bank pay-bank-card payment-panel pay-bank-card--secure" id="partnerBankCard">
+            <div class="pay-bank-card__head">
+              <strong>🏦 Compte bancaire partenaire</strong>
+              <span class="pay-shield-badge">Compte vérifié</span>
+            </div>
+            <div id="partnerBankInfo" class="pay-bank-card__body">
+              Chargement…
+            </div>
+          </aside>
         </div>
-        <div>
-          <h2 class="pay-hero__title" id="payHeroTitle">Mon solde académique</h2>
-          <p class="pay-hero__sub" id="payHeroSub">Chargement de vos frais…</p>
-          <div id="paySettledBadge" style="display:none;" class="pay-settled-badge">✓ Soldé — tous vos frais sont payés</div>
-        </div>
-        <button type="button" class="btn-pay-main" id="btnPayMain" disabled>PAYER MAINTENANT</button>
-      </div>
 
-      <div class="pay-stats">
-        <div class="pay-stat">
-          <div class="pay-stat__label">Total frais</div>
-          <div class="pay-stat__value" id="feesTotal">—</div>
-        </div>
-        <div class="pay-stat">
-          <div class="pay-stat__label">Payé</div>
-          <div class="pay-stat__value pay-stat__value--ok" id="feesPaid">—</div>
-        </div>
-        <div class="pay-stat">
-          <div class="pay-stat__label">Reste à payer</div>
-          <div class="pay-stat__value pay-stat__value--warn" id="feesDue">—</div>
-        </div>
-      </div>
+        <div class="pay-page__grid">
+          <div class="panel pay-panel-fees">
+            <div class="panel__head"><h2>Mes frais à payer</h2></div>
+            <div class="panel__body">
+              <div class="fee-cards" id="feesCards"></div>
+              <div class="table-wrap pay-table-wrap">
+                <table class="fee-table-compact">
+                  <thead>
+                    <tr>
+                      <th>Frais</th>
+                      <th>Période</th>
+                      <th>Montant</th>
+                      <th>Statut</th>
+                      <th>Date</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody id="feesTable"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
 
-      <div class="pay-bank-card payment-panel pay-bank-card--secure" id="partnerBankCard">
-        <div class="pay-bank-card__head">
-          <strong>🏦 Compte bancaire partenaire (sécurisé)</strong>
-          <span class="pay-shield-badge">Compte vérifié</span>
-        </div>
-        <p id="partnerBankInfo" class="pay-bank-card__body">
-          Chargement…
-        </p>
-      </div>
-
-      <div class="panel">
-        <div class="panel__head"><h2>Mes frais à payer</h2></div>
-        <div class="panel__body">
-          <div class="fee-cards" id="feesCards"></div>
-          <div class="table-wrap" style="margin-top:1rem;">
-            <table class="fee-table-compact">
-              <thead>
-                <tr>
-                  <th>Frais</th>
-                  <th>Période</th>
-                  <th>Montant</th>
-                  <th>Statut</th>
-                  <th>Date</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody id="feesTable"></tbody>
-            </table>
+          <div class="panel pay-panel-history">
+            <div class="panel__head"><h2>Historique des paiements</h2></div>
+            <div class="panel__body table-wrap">
+              <table class="pay-history-table">
+                <thead>
+                  <tr>
+                    <th>Référence</th>
+                    <th>Montant</th>
+                    <th>Mode</th>
+                    <th>Date</th>
+                    <th>Statut</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="payHistoryTable"></tbody>
+              </table>
+              <p class="empty-state" id="payHistoryEmpty" style="display:none;">Aucun paiement enregistré.</p>
+            </div>
           </div>
         </div>
       </div>
 
-      <div class="panel">
-        <div class="panel__head"><h2>Historique des paiements</h2></div>
-        <div class="panel__body table-wrap">
-          <table class="pay-history-table">
-            <thead>
-              <tr>
-                <th>Référence</th>
-                <th>Montant</th>
-                <th>Mode</th>
-                <th>Date</th>
-                <th>Statut</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody id="payHistoryTable"></tbody>
-          </table>
-          <p class="empty-state" id="payHistoryEmpty" style="display:none;">Aucun paiement enregistré.</p>
+      <div class="pay-modal-overlay" id="payModal" aria-hidden="true">
+        <div class="pay-modal pay-modal--wide" role="dialog" aria-labelledby="payModalTitle">
+          <div class="pay-modal__head">
+            <div>
+              <h3 id="payModalTitle">Payer mes frais académiques</h3>
+              <p id="payModalFeeLabel" class="pay-modal__fee-label"></p>
+            </div>
+            <div class="pay-modal__amount" id="payModalAmount">—</div>
+          </div>
+          <p class="pay-modal__intro">
+            Versement 100 % en ligne vers le compte officiel de <strong>votre université</strong>.
+          </p>
+          <div class="pay-methods pay-methods--bar" id="payMethods">
+            <button type="button" class="pay-method is-active" data-method="bank_usd">🏦 Banque (USD)</button>
+            <button type="button" class="pay-method" data-method="bank_cdf">🏦 Banque (CDF)</button>
+            <button type="button" class="pay-method" data-method="orange">🟠 Orange Money</button>
+            <button type="button" class="pay-method" data-method="mpesa">📱 M-Pesa</button>
+          </div>
+          <div id="payDestInfo" class="pay-bank-card pay-bank-card--dest"></div>
+          <div class="pay-modal__fields">
+            <div id="payMobileFields" class="pay-confirm-box pay-modal__field" style="display:none;">
+              <label for="payMobilePhone">Votre numéro de paiement *</label>
+              <input type="tel" class="fi" id="payMobilePhone" placeholder="Ex. 085 184 8859" />
+              <p class="pay-confirm-hint">Une demande de paiement sera envoyée sur votre téléphone.</p>
+            </div>
+            <div class="pay-confirm-box pay-modal__field" id="payBankConfirmBox">
+              <label for="payAccountSuffix">
+                Confirmez les <strong>5 derniers chiffres</strong> du compte destinataire *
+              </label>
+              <input type="text" class="fi pay-suffix-input" id="payAccountSuffix" inputmode="numeric" maxlength="8" placeholder="Ex. 98967" autocomplete="off" />
+              <p class="pay-confirm-hint">Vérifiez que le compte masqué correspond à celui de votre université.</p>
+            </div>
+            <div class="fg pay-modal__field" id="payReferenceBox">
+              <label for="payReference">Référence bancaire / n° transaction *</label>
+              <input type="text" class="fi" id="payReference" placeholder="Ex. VIR-2026-001245" />
+            </div>
+          </div>
+          <div class="pay-modal__actions">
+            <button type="button" class="btn btn--primary" id="btnSubmitPay">Confirmer mon paiement</button>
+            <button type="button" class="btn btn--ghost" id="btnClosePay">Annuler</button>
+          </div>
         </div>
       </div>
     </section>
   </main>
 
-  <div class="pay-modal-overlay" id="payModal" aria-hidden="true">
-    <div class="pay-modal" role="dialog" aria-labelledby="payModalTitle">
-      <h3 id="payModalTitle">Payer mes frais académiques</h3>
-      <p id="payModalFeeLabel" style="font-size:0.88rem;color:var(--text-muted);margin:0;"></p>
-      <div class="pay-modal__amount" id="payModalAmount">—</div>
-      <p style="font-size:0.84rem;color:var(--text-muted);">
-        Versement 100 % en ligne vers le compte officiel de <strong>votre université</strong>.
-      </p>
-      <div class="pay-methods" id="payMethods">
-        <button type="button" class="pay-method is-active" data-method="bank_usd">🏦 Banque (USD)</button>
-        <button type="button" class="pay-method" data-method="bank_cdf">🏦 Banque (CDF)</button>
-        <button type="button" class="pay-method" data-method="orange">🟠 Orange Money</button>
-        <button type="button" class="pay-method" data-method="mpesa">📱 M-Pesa</button>
-      </div>
-      <div id="payDestInfo" class="pay-bank-card pay-bank-card--dest" style="margin-top:0.75rem;"></div>
-      <div id="payMobileFields" class="pay-confirm-box" style="display:none;margin-top:0.75rem;">
-        <label for="payMobilePhone">Votre numéro de paiement *</label>
-        <input type="tel" class="fi" id="payMobilePhone" placeholder="Ex. 085 184 8859" />
-        <p class="pay-confirm-hint">Une demande de paiement sera envoyée sur votre téléphone (Orange Money ou M-Pesa).</p>
-      </div>
-      <div class="pay-confirm-box" id="payBankConfirmBox">
-        <label for="payAccountSuffix">
-          Confirmez les <strong>5 derniers chiffres</strong> du compte destinataire *
-        </label>
-        <input type="text" class="fi pay-suffix-input" id="payAccountSuffix" inputmode="numeric" maxlength="8" placeholder="Ex. 98967" autocomplete="off" />
-        <p class="pay-confirm-hint">Sécurité anti-fraude : vérifiez que le compte masqué correspond à celui de votre université.</p>
-      </div>
-      <div class="fg" style="margin-top:0.75rem;" id="payReferenceBox">
-        <label for="payReference">Référence bancaire / n° transaction *</label>
-        <input type="text" class="fi" id="payReference" placeholder="Ex. VIR-2026-001245" />
-      </div>
-      <div style="display:flex;gap:0.5rem;margin-top:1rem;flex-wrap:wrap;">
-        <button type="button" class="btn btn--primary" id="btnSubmitPay">Confirmer mon paiement</button>
-        <button type="button" class="btn btn--ghost" id="btnClosePay">Annuler</button>
-      </div>
-    </div>
-  </div>
-
   <script src="js/sac-universities.js"></script>
   <script src="js/sac-identity.js"></script>
   <script src="js/sac-section-approval.js"></script>
   <script src="js/sac-session.js?v=20260617d"></script>
-  <script src="js/sac-api.js?v=20260617d"></script>
+  <script src="js/sac-api.js?v=20260628a"></script>
   <script src="js/sac-tariffs.js?v=20260624c"></script>
   <script src="js/sac-payments.js?v=20260622f"></script>
   <script src="js/sac-mobile-money.js?v=20260626c"></script>
@@ -1676,15 +1692,16 @@
       }
       const masked = SAC_PAYMENTS.accountDisplay(partnerBankCache);
       el.innerHTML =
-        "<div class='pay-bank-row'><span>Banque</span><strong>" +
+        "<div class='pay-bank-grid'>" +
+        "<div class='pay-bank-chip'><span class='pay-bank-chip__label'>Banque</span><strong class='pay-bank-chip__value'>" +
         (partnerBankCache.bankName || "Banque partenaire") +
         "</strong></div>" +
-        "<div class='pay-bank-row'><span>Titulaire</span><strong>" +
+        "<div class='pay-bank-chip'><span class='pay-bank-chip__label'>Titulaire</span><strong class='pay-bank-chip__value'>" +
         (partnerBankCache.accountName || "—") +
         "</strong></div>" +
-        "<div class='pay-bank-row'><span>N° compte (masqué)</span><code class='pay-account-masked'>" +
+        "<div class='pay-bank-chip pay-bank-chip--account'><span class='pay-bank-chip__label'>N° compte (masqué)</span><code class='pay-account-masked'>" +
         masked +
-        "</code></div>" +
+        "</code></div></div>" +
         "<p class='pay-bank-note'>Seuls les 2 premiers et 5 derniers chiffres sont visibles pour votre sécurité.</p>" +
         (partnerBankCache.note ? "<p class='pay-bank-instructions'><em>" + partnerBankCache.note + "</em></p>" : "");
     }
@@ -1974,6 +1991,7 @@
     });
 
     function showSection(id) {
+      if (id !== "frais") closePayModal();
       document.querySelectorAll(".page-section").forEach((s) => s.classList.remove("active"));
       document.querySelectorAll(".nav-tab").forEach((t) => t.classList.remove("active"));
       document.getElementById("section-" + id).classList.add("active");
