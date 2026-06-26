@@ -242,17 +242,29 @@ const SAC_API = (function () {
   }
 
   async function request(path, options = {}) {
-    const res = await fetchWithTimeout(`${BASE}/api${path}`, {
-      ...options,
-      credentials: apiCredentials(),
-      headers: apiJsonHeaders({
-        ...getAuthHeaders(),
-        ...(options.body && !(options.body instanceof FormData)
-          ? { "Content-Type": "application/json" }
-          : {}),
-        ...options.headers,
-      }),
-    });
+    let res;
+    try {
+      res = await fetchWithTimeout(`${BASE}/api${path}`, {
+        ...options,
+        credentials: apiCredentials(),
+        headers: apiJsonHeaders({
+          ...getAuthHeaders(),
+          ...(options.body && !(options.body instanceof FormData)
+            ? { "Content-Type": "application/json" }
+            : {}),
+          ...options.headers,
+        }),
+      });
+    } catch (netErr) {
+      const msg = String(netErr?.message || netErr || "");
+      const err = new Error(
+        msg === "Load failed" || msg === "Failed to fetch" || netErr?.name === "AbortError"
+          ? "Connexion au serveur impossible — vérifiez le réseau ou réessayez."
+          : msg || "Erreur réseau"
+      );
+      err.code = "NETWORK_ERROR";
+      throw err;
+    }
 
     let data = {};
     try {

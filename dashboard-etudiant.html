@@ -1040,7 +1040,7 @@
         </div>
       </div>
 
-      <div class="pay-modal-overlay" id="payModal" aria-hidden="true">
+      <div class="pay-modal-overlay" id="payModal" aria-hidden="true" hidden>
         <div class="pay-modal pay-modal--wide" role="dialog" aria-labelledby="payModalTitle">
           <div class="pay-modal__head">
             <div>
@@ -1892,12 +1892,14 @@
       });
       updatePayDestInfo();
       togglePayModalFields();
+      document.getElementById("payModal").hidden = false;
       document.getElementById("payModal").classList.add("open");
       document.getElementById("payModal").setAttribute("aria-hidden", "false");
     }
 
     function closePayModal() {
       document.getElementById("payModal").classList.remove("open");
+      document.getElementById("payModal").hidden = true;
       document.getElementById("payModal").setAttribute("aria-hidden", "true");
       payModalFee = null;
     }
@@ -1976,7 +1978,12 @@
         );
         await renderFees(profile, session);
       } catch (err) {
-        alert(err.message || "Paiement impossible.");
+        const msg = String(err?.message || "");
+        alert(
+          msg === "Load failed" || msg === "Failed to fetch"
+            ? "Connexion au serveur impossible. Vérifiez votre réseau et réessayez dans quelques secondes."
+            : msg || "Paiement impossible."
+        );
       } finally {
         if (btn) {
           btn.disabled = false;

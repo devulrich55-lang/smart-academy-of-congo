@@ -163,6 +163,10 @@
   padding: 1rem;
 }
 
+.pay-modal-overlay[hidden] {
+  display: none !important;
+}
+
 .pay-modal-overlay.open {
   display: flex;
 }
