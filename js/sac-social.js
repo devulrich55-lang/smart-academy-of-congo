@@ -453,6 +453,7 @@ const SAC_SOCIAL = (function () {
       const audience = root.querySelector("#socialAudience")?.value || "campus";
       const isEvent = root.querySelector("#socialIsEvent")?.checked;
       const pinned = root.querySelector("#socialPinned")?.checked;
+      const publishBtn = root.querySelector("#socialPublishBtn");
       let postType = "text";
       if (isEvent) postType = "event";
       else if (state.pendingKind === "photo") postType = "photo";
@@ -471,7 +472,6 @@ const SAC_SOCIAL = (function () {
         payload.eventAt = raw ? new Date(raw).toISOString() : "";
       }
       try {
-        const publishBtn = form.querySelector('button[type="submit"]');
         if (publishBtn) {
           publishBtn.disabled = true;
           publishBtn.textContent = "Connexion au serveur…";
@@ -484,7 +484,6 @@ const SAC_SOCIAL = (function () {
       } catch (err) {
         alert(err.message || "Publication impossible.");
       } finally {
-        const publishBtn = form.querySelector('button[type="submit"]');
         if (publishBtn) {
           publishBtn.disabled = false;
           publishBtn.textContent = "Publier";
