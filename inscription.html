@@ -1673,6 +1673,7 @@
   <script src="js/sac-identity.js"></script>
   <script src="js/sac-session.js?v=20260617d"></script>
   <script src="js/sac-api.js?v=20260617d"></script>
+  <script src="js/sac-mobile-money.js?v=20260626"></script>
   <script src="js/sac-tariffs.js?v=20260623b"></script>
   <script src="js/sac-sections.js"></script>
   <script src="js/sac-section-accounts.js"></script>
@@ -2478,6 +2479,7 @@
     }
 
     let activeMobileMethod = null;
+    let activeMobileTxId = null;
     let mobileProcessTimer = null;
     let skipMobileAutoStart = false;
 
@@ -2507,6 +2509,7 @@
     function resetMobilePayUI() {
       if (mobileProcessTimer) clearTimeout(mobileProcessTimer);
       activeMobileMethod = null;
+      activeMobileTxId = null;
       document.getElementById("mobileProcessing").classList.remove("active");
       document.getElementById("mobileAlertStep").classList.remove("active");
       document.getElementById("payMethodsBar").style.display = "";
@@ -2538,20 +2541,29 @@
         return;
       }
       const method = activeMobileMethod;
-      if (!method) return;
+      if (!method || !activeMobileTxId) return;
 
       const btn = document.getElementById("btnConfirmPin");
       btn.disabled = true;
       btn.textContent = "Envoi en cours…";
 
-      setTimeout(() => {
-        const txAuto = "MM-" + Date.now().toString(36).toUpperCase();
-        markPaymentPaid(method, txAuto, {
-          payerPhone: document.getElementById("payerPhone").value.trim(),
-          status: "completed",
-          confirmedByPin: true,
-        });
-      }, 1500);
+      (async () => {
+        try {
+          if (typeof SAC_MOBILE_MONEY === "undefined") {
+            throw new Error("Module Mobile Money indisponible.");
+          }
+          const tx = await SAC_MOBILE_MONEY.confirmPin(activeMobileTxId, pin);
+          markPaymentPaid(method, tx.id, {
+            payerPhone: document.getElementById("payerPhone").value.trim(),
+            status: "completed",
+            mobileTransactionId: tx.id,
+          });
+        } catch (err) {
+          btn.disabled = false;
+          btn.textContent = "Confirmer le paiement";
+          alert(err.message || "Paiement refusé.");
+        }
+      })();
     }
 
     function switchPayPanel(method) {
@@ -2607,7 +2619,7 @@
       }
     }
 
-    function startMobilePaymentFlow(method) {
+    async function startMobilePaymentFlow(method) {
       if (!validatePayerPhone()) return;
 
       activeMobileMethod = method;
@@ -2629,25 +2641,56 @@
       const timerEl = document.getElementById("mobileTimer");
       const tick = setInterval(() => {
         seconds++;
-        timerEl.textContent = "Traitement… " + seconds + " s (moins d'une minute)";
+        timerEl.textContent = "Connexion sécurisée… " + seconds + " s";
       }, 1000);
 
-      const processMs = 8000 + Math.floor(Math.random() * 22000);
-
-      mobileProcessTimer = setTimeout(() => {
+      try {
+        if (typeof SAC_MOBILE_MONEY === "undefined") {
+          throw new Error("Paiement mobile en ligne requis.");
+        }
+        const emailEl = document.getElementById("email");
+        const tx = await SAC_MOBILE_MONEY.initiate({
+          provider: method,
+          payerPhone: payerPhone,
+          amountCdf: fee.cdf,
+          amountUsd: fee.amount,
+          purpose: "inscription",
+          email: (pendingProfile?.email || emailEl?.value || "").trim(),
+          metadata: { role: pendingProfile?.role || currentRole },
+        });
+        activeMobileTxId = tx.id;
         clearInterval(tick);
         document.getElementById("mobileProcessing").classList.remove("active");
-        document.getElementById("mobileAlertStep").classList.add("active");
 
+        if (tx.status === "processing" || tx.providerMode === "flexpay") {
+          timerEl.textContent = "Validez le paiement sur votre téléphone…";
+          document.getElementById("mobileProcessing").classList.add("active");
+          const done = await SAC_MOBILE_MONEY.pollUntilComplete(tx.id, { timeoutMs: 180000 });
+          document.getElementById("mobileProcessing").classList.remove("active");
+          markPaymentPaid(method, done.id, {
+            payerPhone: payerPhone,
+            status: "completed",
+            mobileTransactionId: done.id,
+          });
+          return;
+        }
+
+        document.getElementById("mobileAlertStep").classList.add("active");
         document.getElementById("alertPhoneDisplay").textContent = formatPayerPhoneDisplay(payerPhone);
         document.getElementById("alertProviderIcon").textContent = method === "orange" ? "🟠" : "📱";
         document.getElementById("alertProviderName").textContent = provider.name;
         document.getElementById("alertAmount").textContent = cdfLabel;
-        document.getElementById("alertMerchantPhone").textContent = provider.phone;
+        document.getElementById("alertMerchantPhone").textContent = tx.merchantPhone || provider.phone;
         document.getElementById("mobilePin").value = "";
         updateSubmitPinButton();
         document.getElementById("mobilePin").focus();
-      }, processMs);
+      } catch (err) {
+        clearInterval(tick);
+        document.getElementById("mobileProcessing").classList.remove("active");
+        document.getElementById("btnStartMobilePay").disabled = false;
+        alert(err.message || "Impossible de lancer le paiement mobile.");
+        resetMobilePayUI();
+      }
     }
 
     async function completeRegistration(profile, payment) {

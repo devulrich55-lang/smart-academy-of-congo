@@ -837,6 +837,25 @@ const SAC_API = (function () {
     });
   }
 
+  async function initiateMobilePayment(payload) {
+    const data = await request("/payments/mobile/initiate", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+    return data;
+  }
+
+  async function getMobilePaymentStatus(txId) {
+    return request("/payments/mobile/" + encodeURIComponent(txId));
+  }
+
+  async function confirmMobilePaymentPin(txId, pin) {
+    return request("/payments/mobile/" + encodeURIComponent(txId) + "/confirm", {
+      method: "POST",
+      body: JSON.stringify({ pin: pin }),
+    });
+  }
+
   async function listCampusPayments() {
     return request("/payments/campus");
   }
@@ -1469,6 +1488,9 @@ const SAC_API = (function () {
     approveCampusBankChange,
     listMyPayments,
     createAcademicPayment,
+    initiateMobilePayment,
+    getMobilePaymentStatus,
+    confirmMobilePaymentPin,
     listCampusPayments,
     updatePaymentStatus,
     listSections,

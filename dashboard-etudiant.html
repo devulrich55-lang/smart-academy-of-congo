@@ -1047,14 +1047,19 @@
         <button type="button" class="pay-method" data-method="mpesa">📱 M-Pesa</button>
       </div>
       <div id="payDestInfo" class="pay-bank-card pay-bank-card--dest" style="margin-top:0.75rem;"></div>
-      <div class="pay-confirm-box">
+      <div id="payMobileFields" class="pay-confirm-box" style="display:none;margin-top:0.75rem;">
+        <label for="payMobilePhone">Votre numéro de paiement *</label>
+        <input type="tel" class="fi" id="payMobilePhone" placeholder="Ex. 085 184 8859" />
+        <p class="pay-confirm-hint">Une demande de paiement sera envoyée sur votre téléphone (Orange Money ou M-Pesa).</p>
+      </div>
+      <div class="pay-confirm-box" id="payBankConfirmBox">
         <label for="payAccountSuffix">
           Confirmez les <strong>5 derniers chiffres</strong> du compte destinataire *
         </label>
         <input type="text" class="fi pay-suffix-input" id="payAccountSuffix" inputmode="numeric" maxlength="8" placeholder="Ex. 98967" autocomplete="off" />
         <p class="pay-confirm-hint">Sécurité anti-fraude : vérifiez que le compte masqué correspond à celui de votre université.</p>
       </div>
-      <div class="fg" style="margin-top:0.75rem;">
+      <div class="fg" style="margin-top:0.75rem;" id="payReferenceBox">
         <label for="payReference">Référence bancaire / n° transaction *</label>
         <input type="text" class="fi" id="payReference" placeholder="Ex. VIR-2026-001245" />
       </div>
@@ -1072,6 +1077,7 @@
   <script src="js/sac-api.js?v=20260617d"></script>
   <script src="js/sac-tariffs.js?v=20260624c"></script>
   <script src="js/sac-payments.js?v=20260622f"></script>
+  <script src="js/sac-mobile-money.js?v=20260626"></script>
   <script src="js/sac-payment-receipt.js"></script>
   <script src="js/sac-university-logo.js"></script>
   <script src="js/sac-courses.js"></script>
@@ -1814,6 +1820,15 @@
       if (statFrais) statFrais.textContent = summary.paid + " / " + summary.total + " $";
     }
 
+    function togglePayModalFields() {
+      const isMobile = payModalMethod === "orange" || payModalMethod === "mpesa";
+      document.getElementById("payMobileFields").style.display = isMobile ? "" : "none";
+      document.getElementById("payBankConfirmBox").style.display = isMobile ? "none" : "";
+      document.getElementById("payReferenceBox").style.display = isMobile ? "none" : "";
+      const btn = document.getElementById("btnSubmitPay");
+      if (btn) btn.textContent = isMobile ? "Payer par Mobile Money" : "Confirmer mon paiement";
+    }
+
     function updatePayDestInfo() {
       const box = document.getElementById("payDestInfo");
       if (!box || typeof SAC_PAYMENTS === "undefined") return;
@@ -1859,6 +1874,7 @@
         b.classList.toggle("is-active", b.dataset.method === payModalMethod);
       });
       updatePayDestInfo();
+      togglePayModalFields();
       document.getElementById("payModal").classList.add("open");
       document.getElementById("payModal").setAttribute("aria-hidden", "false");
     }
@@ -1877,6 +1893,7 @@
         b.classList.toggle("is-active", b.dataset.method === payModalMethod);
       });
       updatePayDestInfo();
+      togglePayModalFields();
     });
 
     document.getElementById("btnClosePay")?.addEventListener("click", closePayModal);
@@ -1888,25 +1905,66 @@
       if (!payModalFee) return;
       const session = SAC_SESSION.getSession();
       const profile = getStudentProfile(session);
+      const isMobile = payModalMethod === "orange" || payModalMethod === "mpesa";
+      const btn = document.getElementById("btnSubmitPay");
       try {
+        let mobileTransactionId = "";
+        if (isMobile) {
+          const phone = document.getElementById("payMobilePhone")?.value?.trim() || profile.telephone || "";
+          const phoneCheck = SAC_IDENTITY.validatePhone(phone);
+          if (!phoneCheck.ok) {
+            alert(phoneCheck.message || "Numéro mobile invalide.");
+            return;
+          }
+          const amountCdf =
+            typeof SAC_TARIFFS !== "undefined" && SAC_TARIFFS.toCdf
+              ? SAC_TARIFFS.toCdf(payModalFee.amount)
+              : Math.round(payModalFee.amount * 2300);
+          if (btn) {
+            btn.disabled = true;
+            btn.textContent = "Paiement en cours…";
+          }
+          const tx = await SAC_MOBILE_MONEY.runFlow({
+            provider: payModalMethod,
+            payerPhone: phoneCheck.value || phone,
+            amountCdf: amountCdf,
+            amountUsd: payModalFee.amount,
+            purpose: "academic_fee",
+            universite: session.universite,
+            metadata: {
+              feeKey: SAC_PAYMENTS.feeKey(payModalFee),
+              feeLabel: payModalFee.label,
+            },
+            onPinPrompt: () => prompt("Entrez votre code PIN Mobile Money :"),
+          });
+          mobileTransactionId = tx.id;
+        }
         await SAC_PAYMENTS.submitAcademicPayment(session, {
           feeKey: SAC_PAYMENTS.feeKey(payModalFee),
           feeLabel: payModalFee.label,
           amount: payModalFee.amount,
           currency: "USD",
           method: payModalMethod,
-          reference: document.getElementById("payReference").value.trim(),
+          reference: mobileTransactionId || document.getElementById("payReference").value.trim(),
           accountSuffix: document.getElementById("payAccountSuffix")?.value.trim() || "",
+          mobileTransactionId: mobileTransactionId,
           studentNom: profile.prenom + " " + profile.nom,
           matricule: profile.matricule,
         });
         closePayModal();
         alert(
-          "Paiement enregistré — statut : en attente de confirmation par votre université."
+          isMobile
+            ? "Paiement mobile enregistré — en attente de confirmation par votre université."
+            : "Paiement enregistré — statut : en attente de confirmation par votre université."
         );
         await renderFees(profile, session);
       } catch (err) {
         alert(err.message || "Paiement impossible.");
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          togglePayModalFields();
+        }
       }
     });
 
