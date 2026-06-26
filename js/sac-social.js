@@ -316,7 +316,7 @@ const SAC_SOCIAL = (function () {
           '<label class="social-composer__tool">📷 Photo<input type="file" id="socialPhotoInput" accept="image/*" hidden /></label>' +
           '<label class="social-composer__tool">📄 Document<input type="file" id="socialDocInput" accept=".pdf,.doc,.docx,.ppt,.pptx,.txt" hidden /></label>' +
           '<label class="social-composer__tool"><input type="checkbox" id="socialIsEvent" /> Événement</label>' +
-          '<select class="fi" id="socialAudience"><option value="campus">Campus</option><option value="filiere">Filière</option><option value="promotion">Promotion</option></select>' +
+          '<select class="fi" id="socialAudience"><option value="filiere">Ma filière</option><option value="campus">Tout le campus</option><option value="promotion">Ma promotion</option></select>' +
           (state.settings.canModerate ? '<label class="social-composer__tool"><input type="checkbox" id="socialPinned" /> Épingler</label>' : "") +
           "</div>" +
           '<div id="socialEventFields" class="social-composer__tools" style="display:none;">' +
@@ -364,6 +364,12 @@ const SAC_SOCIAL = (function () {
 
     const composer = root.querySelector("#socialComposer");
     const feedEl = root.querySelector("#socialFeedList");
+    const audienceSel = root.querySelector("#socialAudience");
+    if (audienceSel && session.filiere) {
+      audienceSel.value = "filiere";
+    } else if (audienceSel) {
+      audienceSel.value = "campus";
+    }
 
     root.querySelector("#socialComposerOpen")?.addEventListener("click", () => {
       composer?.classList.add("social-composer--open");
@@ -545,8 +551,11 @@ const SAC_SOCIAL = (function () {
               "</time></div></div>"
           )
           .join("");
-      } catch {
-        box.innerHTML = "<p style='color:#b91c1c;'>Commentaires indisponibles.</p>";
+      } catch (err) {
+        box.innerHTML =
+          "<p style='color:#b91c1c;'>" +
+          esc(err.message || "Commentaires indisponibles.") +
+          "</p>";
       }
     }
 
