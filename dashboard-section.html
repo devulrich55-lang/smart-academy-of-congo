@@ -383,11 +383,11 @@
 
   <script src="js/sac-identity.js"></script>
   <script src="js/sac-session.js?v=20260620"></script>
-  <script src="js/sac-api.js?v=20260630a"></script>
+  <script src="js/sac-api.js?v=20260630b"></script>
   <script src="js/sac-university-logo.js"></script>
   <script src="js/sac-sections.js?v=20260621"></script>
   <script src="js/sac-section-accounts.js?v=20260621"></script>
-  <script src="js/sac-section-approval.js?v=20260630a"></script>
+  <script src="js/sac-section-approval.js?v=20260630b"></script>
   <script src="js/sac-courses.js"></script>
   <script src="js/sac-data.js?v=20260621"></script>
   <script src="js/sac-home-news.js"></script>
@@ -404,6 +404,19 @@
       if (!session) return;
 
       session = SAC_SESSION.syncSessionWithAccount("section") || session;
+      if (typeof SAC_API !== "undefined" && SAC_API.hasAuthTokens && SAC_API.hasAuthTokens()) {
+        try {
+          const me = await SAC_API.me({ soft: true });
+          if (me) {
+            if (me.sectionId) session.sectionId = me.sectionId;
+            if (me.filiere) session.filiere = me.filiere;
+            if (me.universite) session.universite = me.universite;
+            SAC_SESSION.saveSession(session);
+          }
+        } catch {
+          /* session locale conservée */
+        }
+      }
       if (typeof SAC_UNIVERSITIES !== "undefined" && SAC_UNIVERSITIES.normalizeProfileCampus) {
         SAC_UNIVERSITIES.normalizeProfileCampus(session);
         SAC_SESSION.saveSession(session);

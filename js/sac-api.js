@@ -845,23 +845,37 @@ const SAC_API = (function () {
   }
 
   async function linkSectionStudent(email, payload) {
-    return request(
-      "/sections/students/" + encodeURIComponent(String(email || "").trim()) + "/link",
-      {
+    const em = String(email || "").trim();
+    const body = { ...(payload || {}), email: em };
+    try {
+      return await request("/sections/students/link", {
+        method: "POST",
+        body: JSON.stringify(body),
+      });
+    } catch (err) {
+      if (err.status !== 404 && err.status !== 405) throw err;
+      return request("/sections/students/" + encodeURIComponent(em) + "/link", {
         method: "PATCH",
         body: JSON.stringify(payload || {}),
-      }
-    );
+      });
+    }
   }
 
   async function approveSectionStudent(email, payload) {
-    return request(
-      "/sections/students/" + encodeURIComponent(String(email || "").trim()) + "/approval",
-      {
+    const em = String(email || "").trim();
+    const body = { ...(payload || { status: "approved" }), email: em };
+    try {
+      return await request("/sections/students/approval", {
+        method: "POST",
+        body: JSON.stringify(body),
+      });
+    } catch (err) {
+      if (err.status !== 404 && err.status !== 405) throw err;
+      return request("/sections/students/" + encodeURIComponent(em) + "/approval", {
         method: "PATCH",
         body: JSON.stringify(payload || { status: "approved" }),
-      }
-    );
+      });
+    }
   }
 
   /** Recteur : tente plusieurs routes pour lister tous les étudiants du campus. */
