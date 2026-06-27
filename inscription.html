@@ -1672,8 +1672,8 @@
   <script src="js/sac-universities.js"></script>
   <script src="js/sac-identity.js"></script>
   <script src="js/sac-session.js?v=20260617d"></script>
-  <script src="js/sac-api.js?v=20260617d"></script>
-  <script src="js/sac-mobile-money.js?v=20260626"></script>
+  <script src="js/sac-api.js?v=20260629c"></script>
+  <script src="js/sac-mobile-money.js?v=20260629c"></script>
   <script src="js/sac-tariffs.js?v=20260623b"></script>
   <script src="js/sac-sections.js"></script>
   <script src="js/sac-section-accounts.js"></script>
@@ -2549,10 +2549,7 @@
 
       (async () => {
         try {
-          if (typeof SAC_MOBILE_MONEY === "undefined") {
-            throw new Error("Module Mobile Money indisponible.");
-          }
-          const tx = await SAC_MOBILE_MONEY.confirmPin(activeMobileTxId, pin);
+          const tx = await mobileMoneyConfirmPin(activeMobileTxId, pin);
           markPaymentPaid(method, tx.id, {
             payerPhone: document.getElementById("payerPhone").value.trim(),
             status: "completed",
@@ -2619,6 +2616,52 @@
       }
     }
 
+    async function mobileMoneyInitiate(payload) {
+      if (typeof SAC_MOBILE_MONEY !== "undefined" && SAC_MOBILE_MONEY.initiate) {
+        return SAC_MOBILE_MONEY.initiate(payload);
+      }
+      if (typeof SAC_API !== "undefined" && SAC_API.initiateMobilePayment) {
+        await SAC_API.wakeServer({ attempts: 3, timeoutMs: 45000, delayMs: 3000 });
+        if (!(await SAC_API.ensureOnline(true))) {
+          throw new Error("Connexion au serveur impossible — réessayez dans 1 minute.");
+        }
+        const data = await SAC_API.initiateMobilePayment(payload);
+        return data?.transaction || data;
+      }
+      throw new Error("Paiement mobile indisponible — actualisez la page et réessayez.");
+    }
+
+    async function mobileMoneyConfirmPin(txId, pin) {
+      if (typeof SAC_MOBILE_MONEY !== "undefined" && SAC_MOBILE_MONEY.confirmPin) {
+        return SAC_MOBILE_MONEY.confirmPin(txId, pin);
+      }
+      if (typeof SAC_API !== "undefined" && SAC_API.confirmMobilePaymentPin) {
+        const data = await SAC_API.confirmMobilePaymentPin(txId, pin);
+        return data?.transaction || data;
+      }
+      throw new Error("Confirmation mobile indisponible.");
+    }
+
+    async function mobileMoneyPollUntilComplete(txId, options) {
+      if (typeof SAC_MOBILE_MONEY !== "undefined" && SAC_MOBILE_MONEY.pollUntilComplete) {
+        return SAC_MOBILE_MONEY.pollUntilComplete(txId, options);
+      }
+      const maxMs = options?.timeoutMs || 120000;
+      const interval = options?.intervalMs || 2500;
+      const start = Date.now();
+      while (Date.now() - start < maxMs) {
+        const data = await SAC_API.getMobilePaymentStatus(txId);
+        const tx = data?.transaction || data;
+        if (tx.status === "completed") return tx;
+        if (tx.status === "failed" || tx.status === "expired") {
+          throw new Error(tx.errorMessage || "Paiement refusé ou expiré.");
+        }
+        if (tx.status === "awaiting_pin") return tx;
+        await new Promise((r) => setTimeout(r, interval));
+      }
+      throw new Error("Délai dépassé — vérifiez votre téléphone ou réessayez.");
+    }
+
     async function startMobilePaymentFlow(method) {
       if (!validatePayerPhone()) return;
 
@@ -2645,11 +2688,8 @@
       }, 1000);
 
       try {
-        if (typeof SAC_MOBILE_MONEY === "undefined") {
-          throw new Error("Paiement mobile en ligne requis.");
-        }
         const emailEl = document.getElementById("email");
-        const tx = await SAC_MOBILE_MONEY.initiate({
+        const tx = await mobileMoneyInitiate({
           provider: method,
           payerPhone: payerPhone,
           amountCdf: fee.cdf,
@@ -2665,7 +2705,7 @@
         if (tx.status === "processing" || tx.providerMode === "flexpay") {
           timerEl.textContent = "Validez le paiement sur votre téléphone…";
           document.getElementById("mobileProcessing").classList.add("active");
-          const done = await SAC_MOBILE_MONEY.pollUntilComplete(tx.id, { timeoutMs: 180000 });
+          const done = await mobileMoneyPollUntilComplete(tx.id, { timeoutMs: 180000 });
           document.getElementById("mobileProcessing").classList.remove("active");
           markPaymentPaid(method, done.id, {
             payerPhone: payerPhone,

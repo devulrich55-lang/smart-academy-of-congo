@@ -796,8 +796,15 @@ const SAC_SECTION_APPROVAL = (function () {
         await SAC_API.approveSectionStudent(email, { status: "approved" });
         apiSynced = true;
       } catch (err) {
+        const msg = err.message || "Validation serveur refusée.";
+        if (/accès refusé|forbidden|non autoris/i.test(msg)) {
+          throw new Error(
+            "Validation refusée — l'étudiant n'est pas rattaché à votre section sur le serveur. " +
+              "Demandez-lui de se réinscrire ou contactez l'administration université."
+          );
+        }
         throw new Error(
-          (err.message || "Validation serveur refusée.") +
+          msg +
             " Le compte restera bloqué sur les autres téléphones tant que la validation n'est pas enregistrée sur le serveur."
         );
       }
