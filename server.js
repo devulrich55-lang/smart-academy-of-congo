@@ -13,20 +13,24 @@ const API_TARGET =
   "https://smart-academy-of-congo-api-1.onrender.com";
 const PORT = Number(process.env.PORT) || 10000;
 
-const proxyOpts = {
-  target: API_TARGET,
-  changeOrigin: true,
-  secure: true,
-  xfwd: true,
-  onProxyReq(proxyReq, req) {
-    if (req.headers.origin) {
-      proxyReq.setHeader("X-Forwarded-Host", req.headers.host);
-    }
-  },
-};
+function makeProxy(prefix) {
+  return createProxyMiddleware({
+    target: API_TARGET,
+    changeOrigin: true,
+    secure: true,
+    xfwd: true,
+    // Express retire le préfixe (/api/health → /health) : on le remet pour l'API FastAPI
+    pathRewrite: (path) => prefix + path,
+    onProxyReq(proxyReq, req) {
+      if (req.headers.origin) {
+        proxyReq.setHeader("X-Forwarded-Host", req.headers.host);
+      }
+    },
+  });
+}
 
-app.use("/api", createProxyMiddleware(proxyOpts));
-app.use("/uploads", createProxyMiddleware(proxyOpts));
+app.use("/api", makeProxy("/api"));
+app.use("/uploads", makeProxy("/uploads"));
 
 app.use(
   express.static(ROOT, {
