@@ -1098,7 +1098,7 @@
   <script src="js/sac-payment-receipt.js"></script>
   <script src="js/sac-university-logo.js"></script>
   <script src="js/sac-courses.js"></script>
-  <script src="js/sac-sections.js?v=20260625"></script>
+  <script src="js/sac-sections.js?v=20260625b"></script>
   <script src="js/sac-data.js"></script>
   <script src="js/sac-home-news.js"></script>
   <script src="js/sac-grades.js"></script>
@@ -1468,7 +1468,20 @@
 
     async function handleReclamationSubmit(e, fields) {
       e.preventDefault();
-      const session = JSON.parse(localStorage.getItem("sac_session") || "null");
+      e.stopPropagation();
+      const form = e.currentTarget || e.target;
+      const submitBtn = form.querySelector('button[type="submit"]');
+      if (submitBtn?.disabled) return;
+
+      const session =
+        (typeof SAC_SESSION !== "undefined" && SAC_SESSION.getSession
+          ? SAC_SESSION.getSession()
+          : null) || JSON.parse(localStorage.getItem("sac_session") || "null");
+      if (!session) {
+        alert("Session expirée — reconnectez-vous.");
+        return;
+      }
+
       const p = getStudentProfile(session);
       const categorie = document.getElementById(fields.categorieId).value;
       if (!categorie) {
@@ -1485,7 +1498,22 @@
         document.getElementById(autreDetailId)?.focus();
         return;
       }
+
+      const prevLabel = submitBtn?.textContent || "";
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = "Envoi en cours…";
+      }
+
       try {
+        if (typeof SAC_API !== "undefined") {
+          if (SAC_API.ensureApiSession) {
+            await SAC_API.ensureApiSession({ soft: true });
+          }
+          if (SAC_API.ensureOnline) {
+            await SAC_API.ensureOnline();
+          }
+        }
         const attachments = await SAC_SECTIONS.readAttachmentFiles(
           document.getElementById(fields.filesId)?.files
         );
@@ -1496,16 +1524,46 @@
           categorieDetail,
           attachments,
         });
-        e.target.reset();
+        form.reset();
         const preview = document.getElementById(fields.previewId);
         if (preview) preview.innerHTML = "";
         renderReclamations(session);
         renderProfilePublications(session);
         alert("Demande envoyée à votre section faculté.");
       } catch (err) {
-        alert(err.message);
+        alert(err.message || "Impossible d'envoyer la réclamation. Réessayez.");
+      } finally {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = prevLabel;
+        }
       }
     }
+
+    function bindReclamationForms() {
+      const bindOne = (formId, fields) => {
+        const form = document.getElementById(formId);
+        if (!form || form.dataset.recBound === "1") return;
+        form.addEventListener("submit", (e) => handleReclamationSubmit(e, fields));
+        form.dataset.recBound = "1";
+      };
+      bindOne("formReclamation", {
+        categorieId: "recCategorie",
+        sujetId: "recSujet",
+        messageId: "recMessage",
+        filesId: "recFiles",
+        previewId: "recFilesPreview",
+      });
+      bindOne("formReclamationProfile", {
+        categorieId: "recCategorieProfile",
+        sujetId: "recSujetProfile",
+        messageId: "recMessageProfile",
+        filesId: "recFilesProfile",
+        previewId: "recFilesPreviewProfile",
+      });
+    }
+
+    bindReclamationForms();
 
     function renderRecCard(r) {
       return `
@@ -2169,6 +2227,7 @@
     });
 
     (async function initDashboard() {
+      try {
       let session = await SAC_SESSION.guard("etudiant");
       if (!session) return;
       session = SAC_SESSION.syncSessionWithAccount("etudiant") || session;
@@ -2248,25 +2307,11 @@
       if (typeof SAC_LIVE_CALL !== "undefined") {
         SAC_LIVE_CALL.init(session);
       }
-
-      document.getElementById("formReclamation").addEventListener("submit", (e) =>
-        handleReclamationSubmit(e, {
-          categorieId: "recCategorie",
-          sujetId: "recSujet",
-          messageId: "recMessage",
-          filesId: "recFiles",
-          previewId: "recFilesPreview",
-        })
-      );
-      document.getElementById("formReclamationProfile").addEventListener("submit", (e) =>
-        handleReclamationSubmit(e, {
-          categorieId: "recCategorieProfile",
-          sujetId: "recSujetProfile",
-          messageId: "recMessageProfile",
-          filesId: "recFilesProfile",
-          previewId: "recFilesPreviewProfile",
-        })
-      );
+      } catch (err) {
+        console.error("[SAC] initDashboard étudiant:", err);
+      } finally {
+        bindReclamationForms();
+      }
     })();
 
     document.querySelectorAll(".nav-tab").forEach((tab) => {

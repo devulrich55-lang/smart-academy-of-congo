@@ -858,9 +858,12 @@ const SAC_SECTIONS = (function () {
     };
 
     if (await isApiOnline() && typeof SAC_API !== "undefined") {
+      if (typeof SAC_API.ensureApiSession === "function") {
+        await SAC_API.ensureApiSession({ soft: true });
+      }
       if (typeof SAC_API.hasAuthTokens === "function" && !SAC_API.hasAuthTokens()) {
         throw new Error(
-          "Connexion au serveur requise pour envoyer une réclamation. Déconnectez-vous puis reconnectez-vous."
+          "Session expirée — déconnectez-vous puis reconnectez-vous pour envoyer une réclamation."
         );
       }
       try {
@@ -870,7 +873,14 @@ const SAC_SECTIONS = (function () {
           return data.reclamation;
         }
       } catch (err) {
-        throw new Error(err.message || "Impossible d'envoyer la réclamation au serveur.");
+        const msg = err.message || "Impossible d'envoyer la réclamation au serveur.";
+        if (/NO_SECTION|aucune section/i.test(msg)) {
+          throw new Error(
+            "Aucune section de votre faculté n'est enregistrée sur le serveur. " +
+              "Contactez l'administration de votre université pour créer votre section, puis réessayez."
+          );
+        }
+        throw new Error(msg);
       }
     }
 
