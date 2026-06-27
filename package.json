@@ -2,10 +2,15 @@
   "name": "smart-academy-congo",
   "version": "1.0.0",
   "private": true,
-  "description": "Smart Academy of Congo — site statique (Render)",
+  "description": "Smart Academy of Congo — site + proxy API (Render)",
   "scripts": {
     "build": "echo Static frontend ready",
+    "start": "node server.js",
     "check:health": "node scripts/check-health.js",
     "validate": "node scripts/validate-frontend.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "http-proxy-middleware": "^3.0.3"
   }
 }

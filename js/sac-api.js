@@ -17,9 +17,9 @@ const SAC_API = (function () {
 
     const { protocol, hostname, port } = window.location;
 
-    // Repli Render si sac-config.js absent
+    // Render : même origine — /api proxifié par server.js (pas de CORS)
     if (hostname.endsWith(".onrender.com") && hostname.indexOf("-api") === -1) {
-      return "https://smart-academy-of-congo-api-1.onrender.com";
+      return window.location.origin.replace(/\/+$/, "");
     }
     const isLocalHost =
       hostname === "localhost" ||
@@ -111,6 +111,17 @@ const SAC_API = (function () {
     }
   }
 
+  /** Render (proxy /api) : même origine mais JWT Bearer (CROSS_ORIGIN_AUTH côté API). */
+  function isRenderFrontend() {
+    if (typeof window === "undefined") return false;
+    const host = window.location.hostname || "";
+    return host.endsWith(".onrender.com") && host.indexOf("-api") === -1;
+  }
+
+  function useBearerAuth() {
+    return isCrossOriginApi() || isRenderFrontend();
+  }
+
   function isMobileClient() {
     if (typeof navigator === "undefined") return false;
     return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent || "");
@@ -118,7 +129,7 @@ const SAC_API = (function () {
 
   function networkErrorMessage(netErr) {
     const msg = String(netErr?.message || netErr || "");
-    if (isCrossOriginApi() && !hasAuthTokens() && getStoredSession()?.identifiant) {
+    if (useBearerAuth() && !hasAuthTokens() && getStoredSession()?.identifiant) {
       return "Session expirée — déconnectez-vous puis reconnectez-vous.";
     }
     if (msg === "Load failed" || msg === "Failed to fetch" || netErr?.name === "AbortError") {
@@ -140,13 +151,13 @@ const SAC_API = (function () {
   }
 
   function saveApiTokens(accessToken, refreshToken) {
-    if (!isCrossOriginApi()) return;
+    if (!useBearerAuth()) return;
     if (accessToken) sessionStorage.setItem(TOKEN_ACCESS, accessToken);
     if (refreshToken) sessionStorage.setItem(TOKEN_REFRESH, refreshToken);
   }
 
   function hasAuthTokens() {
-    if (!isCrossOriginApi()) return true;
+    if (!useBearerAuth()) return true;
     return !!(
       sessionStorage.getItem(TOKEN_ACCESS) || sessionStorage.getItem(TOKEN_REFRESH)
     );
@@ -154,7 +165,7 @@ const SAC_API = (function () {
 
   /** Connexion de secours si l'inscription n'a pas renvoyé de jetons (cross-origin). */
   async function ensureAuthTokens(credentials) {
-    if (!isCrossOriginApi() || hasAuthTokens() || !credentials) return hasAuthTokens();
+    if (!useBearerAuth() || hasAuthTokens() || !credentials) return hasAuthTokens();
     const { identifier, password, role, extra = {} } = credentials;
     if (!identifier || !password) return false;
     try {
@@ -167,7 +178,7 @@ const SAC_API = (function () {
 
   /** Restaure les JWT (sessionStorage) si sac_session existe encore — indispensable sur Render. */
   async function ensureApiSession(opts) {
-    if (!isCrossOriginApi()) return true;
+    if (!useBearerAuth()) return true;
     if (hasAuthTokens()) return true;
     const sess = getStoredSession();
     if (!sess?.identifiant || sess.authSource === "local") return false;
@@ -176,25 +187,25 @@ const SAC_API = (function () {
   }
 
   function apiCredentials() {
-    return isCrossOriginApi() ? "omit" : "include";
+    return useBearerAuth() ? "omit" : "include";
   }
 
   function apiJsonHeaders(extra) {
     const headers = Object.assign({}, extra || {});
-    if (!isCrossOriginApi()) {
+    if (!useBearerAuth()) {
       headers.Accept = "application/json";
     }
     return headers;
   }
 
   function getAuthHeaders() {
-    if (!isCrossOriginApi()) return {};
+    if (!useBearerAuth()) return {};
     const token = sessionStorage.getItem(TOKEN_ACCESS);
     return token ? { Authorization: "Bearer " + token } : {};
   }
 
   function getAccessToken() {
-    if (!isCrossOriginApi()) return null;
+    if (!useBearerAuth()) return null;
     return sessionStorage.getItem(TOKEN_ACCESS) || null;
   }
 
@@ -675,7 +686,7 @@ const SAC_API = (function () {
 
   async function refresh(opts) {
     try {
-      const refreshToken = isCrossOriginApi()
+      const refreshToken = useBearerAuth()
         ? sessionStorage.getItem(TOKEN_REFRESH)
         : null;
       const data = await request("/auth/refresh", {
@@ -697,7 +708,7 @@ const SAC_API = (function () {
 
   async function logout() {
     try {
-      const refreshToken = isCrossOriginApi()
+      const refreshToken = useBearerAuth()
         ? sessionStorage.getItem(TOKEN_REFRESH)
         : null;
       await request("/auth/logout", {
@@ -1606,14 +1617,14 @@ const SAC_API = (function () {
     if (!BASE) {
       return { ok: false, reason: "NO_API", message: "URL API non configurée." };
     }
-    if (isCrossOriginApi() && !getAccessToken()) {
+    if (useBearerAuth() && !getAccessToken()) {
       try {
         await refresh();
       } catch {
         /* ignore */
       }
     }
-    if (isCrossOriginApi() && !getAccessToken()) {
+    if (useBearerAuth() && !getAccessToken()) {
       return {
         ok: false,
         reason: "NO_TOKEN",
@@ -1670,6 +1681,8 @@ const SAC_API = (function () {
     ensureApiSession,
     isOnline,
     isCrossOriginApi,
+    isRenderFrontend,
+    useBearerAuth,
     isMobileClient,
     isLocalDevHost,
     allowOfflineAuth,

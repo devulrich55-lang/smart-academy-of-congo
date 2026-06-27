@@ -1,23 +1,13 @@
-# Frontend statique — devulrich55-lang/smart-academy-of-congo
+# Frontend — proxy /api vers l'API (évite CORS sur Render)
 services:
   - type: web
     name: smart-academy-of-congo
-    runtime: static
-    buildCommand: npm run build
-    staticPublishPath: "."
-    routes:
-      - type: redirect
-        source: /ministere
-        destination: /ministere/
-      - type: redirect
-        source: /superadmin
-        destination: /superadmin/
-      - type: redirect
-        source: /admin-uni
-        destination: /admin-uni/
-      - type: redirect
-        source: /connexion-admin.html
-        destination: /ministere/
+    runtime: node
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: API_PROXY_TARGET
+        value: https://smart-academy-of-congo-api-1.onrender.com
     headers:
       - path: /*
         name: Cache-Control
