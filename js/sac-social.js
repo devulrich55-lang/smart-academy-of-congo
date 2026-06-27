@@ -71,17 +71,18 @@ const SAC_SOCIAL = (function () {
     throw new Error("Connexion API requise.");
   }
 
+  function needsApiTokens() {
+    return typeof SAC_API.useBearerAuth === "function"
+      ? SAC_API.useBearerAuth()
+      : SAC_API.isCrossOriginApi && SAC_API.isCrossOriginApi();
+  }
+
   async function listPosts(session, filters) {
     if (typeof SAC_API !== "undefined" && SAC_API.listSocialPosts) {
       if (typeof SAC_API.ensureApiSession === "function") {
         await SAC_API.ensureApiSession({ soft: true });
       }
-      if (
-        SAC_API.isCrossOriginApi &&
-        SAC_API.isCrossOriginApi() &&
-        SAC_API.hasAuthTokens &&
-        !SAC_API.hasAuthTokens()
-      ) {
+      if (needsApiTokens() && SAC_API.hasAuthTokens && !SAC_API.hasAuthTokens()) {
         throw new Error("Session expirée — déconnectez-vous puis reconnectez-vous.");
       }
       const online = await SAC_API.ensureOnline();
@@ -101,12 +102,7 @@ const SAC_SOCIAL = (function () {
       if (typeof SAC_API.ensureApiSession === "function") {
         await SAC_API.ensureApiSession({ soft: true });
       }
-      if (
-        SAC_API.isCrossOriginApi &&
-        SAC_API.isCrossOriginApi() &&
-        SAC_API.hasAuthTokens &&
-        !SAC_API.hasAuthTokens()
-      ) {
+      if (needsApiTokens() && SAC_API.hasAuthTokens && !SAC_API.hasAuthTokens()) {
         throw new Error("Session expirée — déconnectez-vous puis reconnectez-vous.");
       }
       const online = await SAC_API.ensureOnline(true);

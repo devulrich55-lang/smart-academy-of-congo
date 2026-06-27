@@ -96,13 +96,25 @@ const SAC_API = (function () {
     NETWORK_ERROR: "Connexion au serveur impossible — l'API se réveille, réessayez dans 1 minute.",
   };
 
-  function apiErrorMessage(data) {
+  function apiErrorMessage(data, status) {
+    if (typeof data?.detail === "string" && data.detail.trim()) {
+      return data.detail.trim();
+    }
     const payload =
       data && data.detail && typeof data.detail === "object" && !Array.isArray(data.detail)
         ? data.detail
         : data;
     const code = payload && payload.error;
-    return (payload && payload.message) || ERROR_MESSAGES[code] || code || "Erreur serveur";
+    const msg =
+      (payload && payload.message) || ERROR_MESSAGES[code] || code || "";
+    if (msg) return msg;
+    if (status === 500) {
+      return "Erreur serveur API — vérifiez les Logs de API-1 sur Render (réseau social).";
+    }
+    if (status === 404) {
+      return "Fonction indisponible sur l'API — redéployez backend-python (API-1).";
+    }
+    return "Erreur serveur";
   }
 
   function isCrossOriginApi() {
@@ -369,7 +381,7 @@ const SAC_API = (function () {
       if (!options.softAuth) {
         clearClientSession();
       }
-      const authErr = new Error(apiErrorMessage(data) || ERROR_MESSAGES.AUTH_REQUIRED);
+      const authErr = new Error(apiErrorMessage(data, 401) || ERROR_MESSAGES.AUTH_REQUIRED);
       authErr.code = data.error || "AUTH_REQUIRED";
       authErr.status = 401;
       authErr.sessionInvalid = !options.softAuth;
@@ -381,7 +393,7 @@ const SAC_API = (function () {
         data && data.detail && typeof data.detail === "object" && !Array.isArray(data.detail)
           ? data.detail
           : data;
-      const err = new Error(apiErrorMessage(data));
+      const err = new Error(apiErrorMessage(data, res.status));
       err.code = payload.error || data.error;
       err.status = res.status;
       if (payload.error === "USER_NOT_FOUND" || payload.error === "TOKEN_EXPIRED") {
@@ -1643,7 +1655,7 @@ const SAC_API = (function () {
     }
 
     if (!res.ok) {
-      const err = new Error(apiErrorMessage(data));
+      const err = new Error(apiErrorMessage(data, res.status));
       err.code = data.error;
       err.status = res.status;
       if (data.error === "USER_NOT_FOUND" || data.error === "TOKEN_EXPIRED") {
