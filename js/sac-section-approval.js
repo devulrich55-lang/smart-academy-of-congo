@@ -353,25 +353,15 @@ const SAC_SECTION_APPROVAL = (function () {
   }
 
   /**
-   * Après /auth/register — enregistre l'étudiant dans le registre section (/sections/students)
-   * comme pour les comptes créés par le chef de section, afin d'être visible à la validation.
+   * Après /auth/register — l'API rattache déjà l'étudiant à sa section (filière + campus).
+   * L'ancien appel /sections/students échouait (403 : réservé au chef de section).
    */
   async function enrollPendingRegistrationOnApi(profile, password) {
     if (!profile || profile.role !== "etudiant") return false;
-    if (typeof SAC_API === "undefined" || typeof SAC_API.buildSectionStudentPayload !== "function") {
-      return false;
-    }
+    if (typeof SAC_API === "undefined") return false;
     try {
-      if (!(await SAC_API.ensureOnline())) return false;
-      const payload = SAC_API.buildSectionStudentPayload(profile, password);
-      await SAC_API.createSectionStudent(payload);
-      return true;
-    } catch (err) {
-      if (isEnrollmentDuplicateError(err)) return true;
-      console.warn(
-        "[SAC_SECTION_APPROVAL] rattachement section après inscription:",
-        err.message || err
-      );
+      return await SAC_API.ensureOnline();
+    } catch {
       return false;
     }
   }
