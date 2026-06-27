@@ -19,6 +19,7 @@ function makeProxy(prefix) {
     changeOrigin: true,
     secure: true,
     xfwd: true,
+    methods: ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     // Express retire le préfixe (/api/health → /health) : on le remet pour l'API FastAPI
     pathRewrite: (path) => prefix + path,
     onProxyReq(proxyReq, req) {

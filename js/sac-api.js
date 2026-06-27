@@ -120,6 +120,9 @@ const SAC_API = (function () {
       }
       return msg || "Fonction indisponible sur l'API — redéployez backend-python (API-1).";
     }
+    if (status === 405) {
+      return "Méthode refusée par l'API — redéployez API-1 et congoat, puis reconnectez-vous.";
+    }
     return "Erreur serveur";
   }
 
@@ -847,35 +850,74 @@ const SAC_API = (function () {
   async function linkSectionStudent(email, payload) {
     const em = String(email || "").trim();
     const body = { ...(payload || {}), email: em };
-    try {
-      return await request("/sections/students/link", {
-        method: "POST",
-        body: JSON.stringify(body),
-      });
-    } catch (err) {
-      if (err.status !== 404 && err.status !== 405) throw err;
-      return request("/sections/students/" + encodeURIComponent(em) + "/link", {
-        method: "PATCH",
-        body: JSON.stringify(payload || {}),
-      });
+    const attempts = [
+      () =>
+        request("/sections/students/link", {
+          method: "PATCH",
+          body: JSON.stringify(body),
+        }),
+      () =>
+        request("/sections/students/link", {
+          method: "POST",
+          body: JSON.stringify(body),
+        }),
+      () =>
+        request("/sections/students/" + encodeURIComponent(em) + "/link", {
+          method: "PATCH",
+          body: JSON.stringify(payload || {}),
+        }),
+    ];
+    let lastErr;
+    for (const fn of attempts) {
+      try {
+        return await fn();
+      } catch (err) {
+        lastErr = err;
+        if (err.status === 401 || err.status === 403 || err.status === 404 && err.code === "STUDENT_NOT_FOUND") {
+          throw err;
+        }
+      }
     }
+    throw lastErr || new Error("Lien section impossible.");
   }
 
   async function approveSectionStudent(email, payload) {
     const em = String(email || "").trim();
     const body = { ...(payload || { status: "approved" }), email: em };
-    try {
-      return await request("/sections/students/approval", {
-        method: "POST",
-        body: JSON.stringify(body),
-      });
-    } catch (err) {
-      if (err.status !== 404 && err.status !== 405) throw err;
-      return request("/sections/students/" + encodeURIComponent(em) + "/approval", {
-        method: "PATCH",
-        body: JSON.stringify(payload || { status: "approved" }),
-      });
+    const patchBody = payload || { status: "approved" };
+    const attempts = [
+      () =>
+        request("/sections/students/approval", {
+          method: "PATCH",
+          body: JSON.stringify(body),
+        }),
+      () =>
+        request("/sections/students/approval", {
+          method: "POST",
+          body: JSON.stringify(body),
+        }),
+      () =>
+        request("/sections/students/" + encodeURIComponent(em) + "/approval", {
+          method: "PATCH",
+          body: JSON.stringify(patchBody),
+        }),
+    ];
+    let lastErr;
+    for (const fn of attempts) {
+      try {
+        return await fn();
+      } catch (err) {
+        lastErr = err;
+        if (
+          err.status === 401 ||
+          err.status === 403 ||
+          (err.status === 404 && err.code === "STUDENT_NOT_FOUND")
+        ) {
+          throw err;
+        }
+      }
     }
+    throw lastErr || new Error("Validation serveur impossible.");
   }
 
   /** Recteur : tente plusieurs routes pour lister tous les étudiants du campus. */
