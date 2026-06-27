@@ -536,6 +536,20 @@ const SAC_SOCIAL = (function () {
       });
     });
 
+    function syncMessengerLayout() {
+      const section = root.closest("section[id^='section-']");
+      const inMessages = state.view === "messages";
+      const inChat = inMessages && !!state.msgPeer;
+      root.classList.toggle("social-hub--messages", inMessages);
+      root.classList.toggle("social-hub--chat-open", inChat);
+      if (section) {
+        section.classList.toggle("social-messages-mode", inMessages);
+        section.classList.toggle("social-chat-fullscreen", inChat);
+      }
+      const toolbar = root.querySelector(".social-hub__toolbar");
+      if (toolbar) toolbar.hidden = inMessages;
+    }
+
     function switchView(view) {
       state.view = view;
       root.querySelectorAll("[data-view]").forEach((b) => {
@@ -545,6 +559,7 @@ const SAC_SOCIAL = (function () {
       const msgView = root.querySelector("#socialViewMessages");
       if (msgView) msgView.hidden = view !== "messages";
       root.querySelector("#socialViewNotif").hidden = view !== "notif";
+      syncMessengerLayout();
       if (view === "messages") paintMessenger();
       if (view === "notif") paintNotifications();
       if (view === "feed") paintFeed();
@@ -892,6 +907,7 @@ const SAC_SOCIAL = (function () {
       if (emptyEl) emptyEl.hidden = hasPeer;
       if (activeEl) activeEl.hidden = !hasPeer;
       root.querySelector(".messenger")?.classList.toggle("messenger--chat-open", hasPeer);
+      syncMessengerLayout();
 
       if (!hasPeer) return;
 
