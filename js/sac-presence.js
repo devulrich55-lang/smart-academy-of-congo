@@ -52,27 +52,13 @@ const SAC_PRESENCE = (function () {
       if (typeof SAC_API.ensureApiSession === "function") {
         await SAC_API.ensureApiSession({ soft: true });
       }
-    } catch {
-      /* ignore */
-    }
-    if (
-      typeof SAC_API.hasAuthTokens === "function" &&
-      !SAC_API.hasAuthTokens()
-    ) {
-      const local = liveSession(session);
-      const serverBacked =
-        local &&
-        (local.authSource === "api" ||
-          (local.userId && local.userId !== local.identifiant));
-      if (serverBacked && typeof SAC_API.refresh === "function") {
+      if (
+        typeof SAC_API.hasAuthTokens === "function" &&
+        !SAC_API.hasAuthTokens() &&
+        typeof SAC_API.refresh === "function"
+      ) {
         await SAC_API.refresh({ soft: true });
       }
-      if (typeof SAC_API.hasAuthTokens === "function" && !SAC_API.hasAuthTokens()) {
-        safeCall(hooks?.onSelfOnline, false);
-        return;
-      }
-    }
-    try {
       const online = await SAC_API.ensureOnline();
       if (!online) {
         safeCall(hooks?.onSelfOnline, false);

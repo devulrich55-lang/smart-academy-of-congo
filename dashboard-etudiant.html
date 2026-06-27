@@ -14,6 +14,7 @@
   <link rel="stylesheet" href="css/live.css" />
   <link rel="stylesheet" href="css/webrtc-room.css" />
   <link rel="stylesheet" href="css/sac-social.css?v=20260630e" />
+  <link rel="stylesheet" href="css/presence.css?v=20260630g" />
   <link rel="stylesheet" href="css/payments.css?v=20260629c" />
   <script src="js/sac-config.js?v=20260629c"></script>
   <script src="js/sac-theme.js"></script>
@@ -1108,7 +1109,7 @@
   <script src="js/sac-webrtc-room.js"></script>
   <script src="js/sac-live.js"></script>
   <script src="js/sac-video-live.js"></script>
-  <script src="js/sac-presence.js?v=20260630f"></script>
+  <script src="js/sac-presence.js?v=20260630g"></script>
   <script src="js/sac-diplomas.js?v=20260626c"></script>
   <script src="js/sac-course-catalog.js?v=20260626c"></script>
   <script src="js/sac-careers.js?v=20260626c"></script>
@@ -2205,6 +2206,9 @@
         }
       }
       startPresence(session);
+      if (typeof SAC_API !== "undefined" && SAC_API.wakeServer) {
+        SAC_API.wakeServer({ attempts: 4, timeoutMs: 40000, delayMs: 5000 });
+      }
       if (typeof SAC_TARIFFS !== "undefined") {
         await SAC_TARIFFS.ensurePlatformSettings();
         await SAC_TARIFFS.refreshStudentFeesFromCampus(session);
@@ -2241,9 +2245,6 @@
       renderReclamations(session);
       renderFees(p, session);
       startPresence(SAC_SESSION.getSession() || session);
-      if (typeof SAC_API !== "undefined" && SAC_API.wakeServer) {
-        SAC_API.wakeServer({ attempts: 4, timeoutMs: 40000, delayMs: 5000 });
-      }
       if (typeof SAC_LIVE_CALL !== "undefined") {
         SAC_LIVE_CALL.init(session);
       }
