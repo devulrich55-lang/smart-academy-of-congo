@@ -447,12 +447,39 @@ const SAC_SECTIONS = (function () {
   async function ensureReady(session) {
     session = session || getSession();
     await syncSectionsFromServer(session);
+    if (session?.role === "section") {
+      repairSectionHeadSession(session);
+    }
     await migrateLocalSectionsToServer(session);
     await syncReclamationsFromServer(session);
     return {
       sections: getSections(),
       reclamations: getReclamations(),
     };
+  }
+
+  /** Aligne sectionId du chef de section sur la section API (même filière / campus). */
+  function repairSectionHeadSession(session) {
+    if (!session || session.role !== "section") return session;
+    if (session.isRector || session.sectionKind === "recteur") return session;
+    const campus =
+      session.universite || session.universiteLocked || session.sigle || session.codeUni;
+    let meta = session.sectionId ? getSectionById(session.sectionId) : null;
+    if (!meta && session.filiere && campus) {
+      meta = findCampusSectionByDomain(campus, session.filiere);
+    }
+    if (!meta && session.sectionName && campus) {
+      meta = findCampusSectionByDomain(campus, session.sectionName);
+    }
+    if (meta) {
+      if (session.sectionId !== meta.id) session.sectionId = meta.id;
+      if (!session.sectionName) session.sectionName = meta.name;
+      if (!session.filiere) session.filiere = meta.filiere;
+      if (typeof SAC_SESSION !== "undefined" && SAC_SESSION.saveSession) {
+        SAC_SESSION.saveSession(session);
+      }
+    }
+    return session;
   }
 
   async function pushSectionToApi(session, section) {
@@ -831,6 +858,11 @@ const SAC_SECTIONS = (function () {
     };
 
     if (await isApiOnline() && typeof SAC_API !== "undefined") {
+      if (typeof SAC_API.hasAuthTokens === "function" && !SAC_API.hasAuthTokens()) {
+        throw new Error(
+          "Connexion au serveur requise pour envoyer une réclamation. Déconnectez-vous puis reconnectez-vous."
+        );
+      }
       try {
         const data = await SAC_API.createReclamation(body);
         if (data?.reclamation) {
@@ -879,6 +911,40 @@ const SAC_SECTIONS = (function () {
       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
   }
 
+  /** Réclamations visibles par le chef de section (ID section ou même filière / campus). */
+  function getReclamationsForSectionHead(sectionSession) {
+    if (!sectionSession) return [];
+    if (sectionSession.isRector || sectionSession.sectionKind === "recteur") {
+      return getReclamationsForUniversity(sectionSession);
+    }
+    const campus =
+      sectionSession.universite ||
+      sectionSession.universiteLocked ||
+      sectionSession.sigle ||
+      sectionSession.codeUni;
+    const sectionId = sectionSession.sectionId;
+    const meta = sectionId
+      ? getSectionById(sectionId)
+      : findCampusSectionByDomain(campus, sectionSession.filiere || sectionSession.sectionName);
+    const filiereKeys = [
+      sectionSession.filiere,
+      sectionSession.sectionName,
+      meta?.filiere,
+      meta?.name,
+    ].filter(Boolean);
+    const canonicalId = meta?.id || sectionId;
+
+    return getReclamations()
+      .filter((r) => {
+        if (canonicalId && r.sectionId === canonicalId) return true;
+        if (sectionId && r.sectionId === sectionId) return true;
+        if (!campus || !universiteMatches(r.universite, campus)) return false;
+        if (!filiereKeys.length) return false;
+        return filiereKeys.some((f) => filiereMatches(r.filiere, f));
+      })
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  }
+
   function getReclamationsForUniversity(uniSession) {
     const sectionIds = getSectionsByUniversity(uniSession).map((s) => s.id);
     return getReclamations()
@@ -896,8 +962,11 @@ const SAC_SECTIONS = (function () {
   }
 
   function getReclamationsForStudent(studentEmail) {
+    const needle = String(studentEmail || "").trim().toLowerCase();
     return getReclamations()
-      .filter((r) => r.studentEmail === studentEmail)
+      .filter(
+        (r) => String(r.studentEmail || "").trim().toLowerCase() === needle
+      )
       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
   }
 
@@ -908,15 +977,14 @@ const SAC_SECTIONS = (function () {
 
     const rec = list[i];
 
-    if (actorSession.role === "section" && rec.sectionId !== actorSession.sectionId) {
-      throw new Error("Cette réclamation n'appartient pas à votre section.");
-    }
     if (
-      actorSession.role === "professeur" &&
-      actorSession.nomination === "chef_section" &&
-      rec.sectionId !== actorSession.sectionId
+      actorSession.role === "section" ||
+      (actorSession.role === "professeur" && actorSession.nomination === "chef_section")
     ) {
-      throw new Error("Cette réclamation n'appartient pas à votre section.");
+      const allowed = getReclamationsForSectionHead(actorSession).some((r) => r.id === recId);
+      if (!allowed) {
+        throw new Error("Cette réclamation n'appartient pas à votre section.");
+      }
     }
     if (actorSession.role === "universite" && !universityOwnsSection(actorSession, rec.sectionId)) {
       throw new Error("Cette réclamation n'appartient pas à votre établissement.");
@@ -1171,6 +1239,7 @@ const SAC_SECTIONS = (function () {
     deactivateSection,
     submitReclamation,
     getReclamationsForSection,
+    getReclamationsForSectionHead,
     getReclamationsForUniversity,
     getReclamationsForCampus,
     getReclamationsForStudent,
@@ -1180,6 +1249,7 @@ const SAC_SECTIONS = (function () {
     statutLabel,
     statutColor,
     ensureReady,
+    repairSectionHeadSession,
     syncSectionsFromServer,
     syncReclamationsFromServer,
   };
