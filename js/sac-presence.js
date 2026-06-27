@@ -25,11 +25,20 @@ const SAC_PRESENCE = (function () {
   }
 
   function buildPayload(session) {
+    const s = session || {};
     return {
-      classe: session?.classe || null,
-      filiere: session?.filiere || null,
-      sectionId: session?.sectionId || null,
+      classe: s.classe || null,
+      filiere: s.filiere || null,
+      sectionId: s.sectionId || null,
+      universite: s.universite || s.universiteLocked || s.sigle || null,
     };
+  }
+
+  function liveSession(fallback) {
+    if (typeof SAC_SESSION !== "undefined" && SAC_SESSION.getSession) {
+      return SAC_SESSION.getSession() || fallback;
+    }
+    return fallback;
   }
 
   function canFetchSectionPresence(role) {
@@ -38,14 +47,19 @@ const SAC_PRESENCE = (function () {
 
   async function heartbeat(session, hooks) {
     if (!isApiReady()) return;
+    const activeSession = liveSession(session);
+    try {
+      if (typeof SAC_API.ensureApiSession === "function") {
+        await SAC_API.ensureApiSession({ soft: true });
+      }
+    } catch {
+      /* ignore */
+    }
     if (
       typeof SAC_API.hasAuthTokens === "function" &&
       !SAC_API.hasAuthTokens()
     ) {
-      const local =
-        typeof SAC_SESSION !== "undefined" && SAC_SESSION.getSession
-          ? SAC_SESSION.getSession()
-          : null;
+      const local = liveSession(session);
       const serverBacked =
         local &&
         (local.authSource === "api" ||
@@ -64,7 +78,7 @@ const SAC_PRESENCE = (function () {
         safeCall(hooks?.onSelfOnline, false);
         return;
       }
-      await SAC_API.pingPresence(buildPayload(session));
+      await SAC_API.pingPresence(buildPayload(activeSession));
       safeCall(hooks?.onSelfOnline, true);
     } catch {
       safeCall(hooks?.onSelfOnline, false);
@@ -73,6 +87,7 @@ const SAC_PRESENCE = (function () {
 
   async function refreshViews(session, hooks) {
     if (!isApiReady()) return;
+    const activeSession = liveSession(session);
     if (
       typeof SAC_API.hasAuthTokens === "function" &&
       !SAC_API.hasAuthTokens()
@@ -80,11 +95,11 @@ const SAC_PRESENCE = (function () {
       return;
     }
     try {
-      if (canFetchSectionPresence(session?.role) && typeof SAC_API.getSectionPresence === "function") {
+      if (canFetchSectionPresence(activeSession?.role) && typeof SAC_API.getSectionPresence === "function") {
         const data = await SAC_API.getSectionPresence();
         safeCall(hooks?.onSectionPresence, data);
       }
-      if (session?.role === "professeur" && typeof SAC_API.getProfessorPresence === "function") {
+      if (activeSession?.role === "professeur" && typeof SAC_API.getProfessorPresence === "function") {
         const data = await SAC_API.getProfessorPresence();
         safeCall(hooks?.onProfessorPresence, data);
       }

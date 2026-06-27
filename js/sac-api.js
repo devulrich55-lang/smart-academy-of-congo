@@ -1691,6 +1691,7 @@ const SAC_API = (function () {
     return request("/platform/presence/ping", {
       method: "POST",
       body: JSON.stringify(payload || {}),
+      softAuth: true,
     });
   }
 

@@ -1090,7 +1090,7 @@
   <script src="js/sac-identity.js"></script>
   <script src="js/sac-section-approval.js"></script>
   <script src="js/sac-session.js?v=20260617d"></script>
-  <script src="js/sac-api.js?v=20260629c"></script>
+  <script src="js/sac-api.js?v=20260630f"></script>
   <script src="js/sac-tariffs.js?v=20260624c"></script>
   <script src="js/sac-payments.js?v=20260622f"></script>
   <script src="js/sac-mobile-money.js?v=20260626c"></script>
@@ -1108,7 +1108,7 @@
   <script src="js/sac-webrtc-room.js"></script>
   <script src="js/sac-live.js"></script>
   <script src="js/sac-video-live.js"></script>
-  <script src="js/sac-presence.js"></script>
+  <script src="js/sac-presence.js?v=20260630f"></script>
   <script src="js/sac-diplomas.js?v=20260626c"></script>
   <script src="js/sac-course-catalog.js?v=20260626c"></script>
   <script src="js/sac-careers.js?v=20260626c"></script>
@@ -2171,6 +2171,14 @@
       let session = await SAC_SESSION.guard("etudiant");
       if (!session) return;
       session = SAC_SESSION.syncSessionWithAccount("etudiant") || session;
+      let presenceCtrl = null;
+      function startPresence(sess) {
+        if (typeof SAC_PRESENCE === "undefined" || !sess) return;
+        if (presenceCtrl && presenceCtrl.stop) presenceCtrl.stop();
+        presenceCtrl = SAC_PRESENCE.start(sess, {
+          onSelfOnline: SAC_PRESENCE.bindSelfPresence("selfPresence", "profilePresence"),
+        });
+      }
       if (typeof SAC_API !== "undefined") {
         if (SAC_API.ensureApiSession) {
           await SAC_API.ensureApiSession({ soft: true });
@@ -2196,6 +2204,7 @@
           }
         }
       }
+      startPresence(session);
       if (typeof SAC_TARIFFS !== "undefined") {
         await SAC_TARIFFS.ensurePlatformSettings();
         await SAC_TARIFFS.refreshStudentFeesFromCampus(session);
@@ -2231,11 +2240,7 @@
       renderDocuments();
       renderReclamations(session);
       renderFees(p, session);
-      if (typeof SAC_PRESENCE !== "undefined") {
-        SAC_PRESENCE.start(session, {
-          onSelfOnline: SAC_PRESENCE.bindSelfPresence("selfPresence", "profilePresence"),
-        });
-      }
+      startPresence(SAC_SESSION.getSession() || session);
       if (typeof SAC_API !== "undefined" && SAC_API.wakeServer) {
         SAC_API.wakeServer({ attempts: 4, timeoutMs: 40000, delayMs: 5000 });
       }
