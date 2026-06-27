@@ -383,11 +383,11 @@
 
   <script src="js/sac-identity.js"></script>
   <script src="js/sac-session.js?v=20260620"></script>
-  <script src="js/sac-api.js?v=20260629d"></script>
+  <script src="js/sac-api.js?v=20260630a"></script>
   <script src="js/sac-university-logo.js"></script>
   <script src="js/sac-sections.js?v=20260621"></script>
   <script src="js/sac-section-accounts.js?v=20260621"></script>
-  <script src="js/sac-section-approval.js?v=20260629d"></script>
+  <script src="js/sac-section-approval.js?v=20260630a"></script>
   <script src="js/sac-courses.js"></script>
   <script src="js/sac-data.js?v=20260621"></script>
   <script src="js/sac-home-news.js"></script>
@@ -655,8 +655,8 @@
           empty.style.display = pending.length ? "none" : "block";
           if (empty) {
             empty.textContent = isRector
-              ? "Aucun étudiant en attente pour votre campus."
-              : "Aucun étudiant en attente pour votre section.";
+              ? "Aucun étudiant en attente sur le serveur pour votre campus. Les inscriptions doivent être terminées en ligne (inscription.html)."
+              : "Aucun étudiant en attente sur le serveur pour votre section. L'étudiant doit terminer son inscription en ligne avant validation.";
           }
           bindPendingActions(tbody, "student", () => {
             renderPendingStudents();

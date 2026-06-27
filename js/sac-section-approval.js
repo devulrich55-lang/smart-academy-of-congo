@@ -219,7 +219,17 @@ const SAC_SECTION_APPROVAL = (function () {
     return user;
   }
 
+  let pendingStudentsApiCache = null;
+
   async function fetchApiStudentsForApproval(sectionSession) {
+    if (typeof SAC_API !== "undefined" && SAC_API.listPendingSectionStudents) {
+      try {
+        const pending = await SAC_API.listPendingSectionStudents();
+        if (Array.isArray(pending)) return pending;
+      } catch (err) {
+        console.warn("[SAC_SECTION_APPROVAL] pending API:", err.message || err);
+      }
+    }
     if (typeof SAC_API === "undefined") return [];
     const actor = resolveSectionActor(sectionSession);
     const uni = campusCode(actor);
@@ -673,11 +683,37 @@ const SAC_SECTION_APPROVAL = (function () {
   }
 
   async function refreshPendingStudentsForSection(sectionSession) {
+    pendingStudentsApiCache = null;
+    if (typeof SAC_API !== "undefined") {
+      try {
+        const online = await SAC_API.ensureOnline();
+        if (online && SAC_API.listPendingSectionStudents) {
+          const apiPending = await SAC_API.listPendingSectionStudents();
+          pendingStudentsApiCache = (apiPending || []).map((raw) => {
+            const u = repairStudentCampus({ ...raw, role: "etudiant" });
+            mirrorLocalUser({
+              ...u,
+              sectionApproval: u.sectionApproval || STATUS.pending,
+              sectionApprovalRequestedAt:
+                u.sectionApprovalRequestedAt || u.createdAt || new Date().toISOString(),
+            });
+            return u;
+          });
+          if (typeof SAC_SECTIONS !== "undefined" && SAC_SECTIONS.repairStudentsForSection) {
+            SAC_SECTIONS.repairStudentsForSection(resolveSectionActor(sectionSession));
+          }
+          return pendingStudentsApiCache;
+        }
+      } catch (err) {
+        console.warn("[SAC_SECTION_APPROVAL] liste pending serveur:", err.message || err);
+      }
+    }
     await syncPendingStudentsFromApi(sectionSession);
     if (typeof SAC_SECTIONS !== "undefined" && SAC_SECTIONS.repairStudentsForSection) {
       SAC_SECTIONS.repairStudentsForSection(resolveSectionActor(sectionSession));
     }
-    return getPendingStudentsForSection(sectionSession);
+    pendingStudentsApiCache = filterPending(sectionSession, "student");
+    return pendingStudentsApiCache;
   }
 
   async function refreshPendingStaffForSection(sectionSession) {
@@ -686,6 +722,7 @@ const SAC_SECTION_APPROVAL = (function () {
   }
 
   function getPendingStudentsForSection(sectionSession) {
+    if (pendingStudentsApiCache) return pendingStudentsApiCache;
     return filterPending(sectionSession, "student");
   }
 
@@ -855,9 +892,9 @@ const SAC_SECTION_APPROVAL = (function () {
       result = await SAC_API.approveSectionStudent(email, { status: "approved" });
     } catch (err) {
       const msg = err.message || "Validation serveur refusée.";
-      if (/introuvable|not_found|404/i.test(msg)) {
+      if (/introuvable|not_found|404|STUDENT_NOT_FOUND/i.test(msg)) {
         throw new Error(
-          "Étudiant introuvable sur le serveur — il doit d'abord terminer son inscription en ligne."
+          "Étudiant absent du serveur — demandez-lui de refaire l'inscription en ligne (inscription.html) jusqu'au bout, puis réessayez."
         );
       }
       if (/accès refusé|forbidden|non autoris/i.test(msg)) {

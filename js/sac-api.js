@@ -92,6 +92,8 @@ const SAC_API = (function () {
     TOKEN_EXPIRED: "Session expirée — veuillez vous reconnecter.",
     FORBIDDEN: "Action non autorisée.",
     NOT_FOUND: "Publication introuvable ou accès refusé.",
+    STUDENT_NOT_FOUND:
+      "Étudiant introuvable sur le serveur — il doit d'abord terminer son inscription en ligne.",
     CORS_BLOCKED: "Origine non autorisée — contactez l'administrateur (CORS).",
     NETWORK_ERROR: "Connexion au serveur impossible — l'API se réveille, réessayez dans 1 minute.",
   };
@@ -112,7 +114,11 @@ const SAC_API = (function () {
       return "Erreur serveur API — vérifiez les Logs de API-1 sur Render (réseau social).";
     }
     if (status === 404) {
-      return "Fonction indisponible sur l'API — redéployez backend-python (API-1).";
+      if (code === "STUDENT_NOT_FOUND") return msg;
+      if (typeof data?.detail === "string" && /^not found$/i.test(data.detail.trim())) {
+        return "Fonction API absente — redéployez API-1 sur Render (route sections/approval).";
+      }
+      return msg || "Fonction indisponible sur l'API — redéployez backend-python (API-1).";
     }
     return "Erreur serveur";
   }
@@ -830,6 +836,11 @@ const SAC_API = (function () {
 
   async function listSectionStudents() {
     const data = await request("/sections/students");
+    return data.students || [];
+  }
+
+  async function listPendingSectionStudents() {
+    const data = await request("/sections/students/pending");
     return data.students || [];
   }
 
@@ -1766,6 +1777,7 @@ const SAC_API = (function () {
     createSectionStudent,
     createSectionHeadAccount,
     listSectionStudents,
+    listPendingSectionStudents,
     approveSectionStudent,
     linkSectionStudent,
     listCampusSectionStudents,
