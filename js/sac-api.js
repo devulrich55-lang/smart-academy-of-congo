@@ -3,7 +3,10 @@
  * Cross-origin Render : jetons Bearer (CROSS_ORIGIN_AUTH) — pas de cookies tiers.
  */
 const SAC_API = (function () {
-  const BASE = (function () {
+  const RENDER_API_DIRECT = "https://smart-academy-of-congo-api-1.onrender.com";
+  let baseResolved = false;
+
+  let BASE = (function () {
     if (typeof window === "undefined") return "";
 
     const normalize = (value) => String(value || "").trim().replace(/\/+$/, "");
@@ -17,9 +20,9 @@ const SAC_API = (function () {
 
     const { protocol, hostname, port } = window.location;
 
-    // Render : même origine — /api proxifié par server.js (pas de CORS)
+    // Render : sac-config.js définit l'URL ; resolveApiBase() choisit proxy ou direct
     if (hostname.endsWith(".onrender.com") && hostname.indexOf("-api") === -1) {
-      return window.location.origin.replace(/\/+$/, "");
+      return RENDER_API_DIRECT;
     }
     const isLocalHost =
       hostname === "localhost" ||
@@ -120,6 +123,44 @@ const SAC_API = (function () {
 
   function useBearerAuth() {
     return isCrossOriginApi() || isRenderFrontend();
+  }
+
+  /** Node (proxy /api) si dispo, sinon API directe (Static Site + CORS). */
+  async function resolveApiBase() {
+    if (baseResolved || !isRenderFrontend()) return BASE;
+    const proxyOrigin =
+      (typeof window !== "undefined" && window.SAC_API_PROXY_ORIGIN) ||
+      (typeof window !== "undefined" ? window.location.origin.replace(/\/+$/, "") : "");
+    if (proxyOrigin) {
+      try {
+        const res = await fetchWithTimeout(
+          proxyOrigin + "/api/health",
+          { method: "GET", credentials: "omit", mode: "cors" },
+          8000
+        );
+        let data = {};
+        try {
+          data = await res.json();
+        } catch {
+          /* non-json */
+        }
+        if (
+          res.ok ||
+          (data && typeof data === "object" && ("ok" in data || "database" in data))
+        ) {
+          BASE = proxyOrigin;
+          if (typeof window !== "undefined") window.SAC_API_BASE = proxyOrigin;
+          baseResolved = true;
+          return BASE;
+        }
+      } catch {
+        /* pas de proxy — site Static */
+      }
+    }
+    BASE = RENDER_API_DIRECT;
+    if (typeof window !== "undefined") window.SAC_API_BASE = RENDER_API_DIRECT;
+    baseResolved = true;
+    return BASE;
   }
 
   function isMobileClient() {
@@ -293,6 +334,7 @@ const SAC_API = (function () {
   }
 
   async function request(path, options = {}) {
+    if (isRenderFrontend() && !baseResolved) await resolveApiBase();
     let res;
     try {
       res = await fetchWithTimeout(`${BASE}/api${path}`, {
@@ -358,6 +400,7 @@ const SAC_API = (function () {
       online = false;
       return false;
     }
+    if (isRenderFrontend() && !baseResolved) await resolveApiBase();
     if (!BASE) {
       online = false;
       return false;
@@ -1677,6 +1720,7 @@ const SAC_API = (function () {
     probeLiveApi,
     probeCors,
     probeApiReachability,
+    resolveApiBase,
     ensureOnline,
     ensureApiSession,
     isOnline,
