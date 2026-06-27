@@ -848,8 +848,16 @@ const SAC_API = (function () {
   }
 
   async function linkSectionStudent(email, payload) {
-    const em = String(email || "").trim();
-    const body = { ...(payload || {}), email: em };
+    const em = String(
+      email || payload?.email || payload?.identifiant || ""
+    ).trim();
+    if (!em) {
+      const err = new Error("E-mail étudiant requis");
+      err.code = "INVALID_INPUT";
+      err.status = 400;
+      throw err;
+    }
+    const body = { ...(payload || {}), email: em, identifiant: em };
     const attempts = [
       () =>
         request("/sections/students/link", {
@@ -882,8 +890,20 @@ const SAC_API = (function () {
   }
 
   async function approveSectionStudent(email, payload) {
-    const em = String(email || "").trim();
-    const body = { ...(payload || { status: "approved" }), email: em };
+    const em = String(
+      email || payload?.email || payload?.identifiant || ""
+    ).trim();
+    if (!em) {
+      const err = new Error("E-mail étudiant requis");
+      err.code = "INVALID_INPUT";
+      err.status = 400;
+      throw err;
+    }
+    const body = {
+      ...(payload || { status: "approved" }),
+      email: em,
+      identifiant: em,
+    };
     const patchBody = payload || { status: "approved" };
     const attempts = [
       () =>

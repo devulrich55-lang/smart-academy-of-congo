@@ -29,6 +29,25 @@ const SAC_SECTION_APPROVAL = (function () {
     return ROLES.includes(String(role || "").trim());
   }
 
+  /** E-mail de connexion — l'API expose souvent `identifiant` sans `email`. */
+  function studentAccountEmail(userOrEmail) {
+    if (typeof userOrEmail === "string") {
+      const s = userOrEmail.trim();
+      return typeof SAC_IDENTITY !== "undefined"
+        ? SAC_IDENTITY.normalizeEmail(s)
+        : s.toLowerCase();
+    }
+    const raw = userOrEmail?.email || userOrEmail?.identifiant || userOrEmail?.userId || "";
+    return typeof SAC_IDENTITY !== "undefined"
+      ? SAC_IDENTITY.normalizeEmail(raw)
+      : String(raw || "").trim().toLowerCase();
+  }
+
+  function withStudentAccountEmail(user) {
+    const email = studentAccountEmail(user);
+    return email ? { ...user, email, identifiant: user?.identifiant || email } : user;
+  }
+
   function getStatus(userOrSession) {
     if (!userOrSession) return STATUS.approved;
     if (!requiresApproval(userOrSession.role)) return STATUS.approved;
@@ -689,7 +708,9 @@ const SAC_SECTION_APPROVAL = (function () {
       if (online && SAC_API.listPendingSectionStudents) {
         const apiPending = await SAC_API.listPendingSectionStudents();
         pendingStudentsApiCache = (apiPending || []).map((raw) => {
-          const u = repairStudentCampus({ ...raw, role: "etudiant" });
+          const u = withStudentAccountEmail(
+            repairStudentCampus({ ...raw, role: "etudiant" })
+          );
           mirrorLocalUser({
             ...u,
             sectionApproval: u.sectionApproval || STATUS.pending,
@@ -873,15 +894,19 @@ const SAC_SECTION_APPROVAL = (function () {
 
   async function approveStudent(email, sectionSession) {
     await ensureSectionApiReady();
+    const studentEmail = studentAccountEmail(email);
+    if (!studentEmail) {
+      throw new Error("E-mail étudiant manquant — rechargez la page et réessayez.");
+    }
     if (!SAC_API.approveSectionStudent) {
       throw new Error("Validation serveur indisponible sur cette version.");
     }
 
-    await tryLinkStudentOnServer(email, sectionSession);
+    await tryLinkStudentOnServer(studentEmail, sectionSession);
 
     let result;
     try {
-      result = await SAC_API.approveSectionStudent(email, { status: "approved" });
+      result = await SAC_API.approveSectionStudent(studentEmail, { status: "approved" });
     } catch (err) {
       const msg = err.message || "Validation serveur refusée.";
       if (/introuvable|not found|not_found|404|STUDENT_NOT_FOUND/i.test(msg)) {
@@ -893,9 +918,9 @@ const SAC_SECTION_APPROVAL = (function () {
         throw new Error(msg);
       }
       if (/accès refusé|forbidden|non autoris/i.test(msg)) {
-        await tryLinkStudentOnServer(email, sectionSession);
+        await tryLinkStudentOnServer(studentEmail, sectionSession);
         try {
-          result = await SAC_API.approveSectionStudent(email, { status: "approved" });
+          result = await SAC_API.approveSectionStudent(studentEmail, { status: "approved" });
         } catch (retryErr) {
           throw new Error(
             (retryErr.message || msg) +
@@ -915,13 +940,17 @@ const SAC_SECTION_APPROVAL = (function () {
 
   async function rejectStudent(email, sectionSession, reason) {
     await ensureSectionApiReady();
+    const studentEmail = studentAccountEmail(email);
+    if (!studentEmail) {
+      throw new Error("E-mail étudiant manquant — rechargez la page et réessayez.");
+    }
     if (!SAC_API.approveSectionStudent) {
       throw new Error("Validation serveur indisponible sur cette version.");
     }
 
     let result;
     try {
-      result = await SAC_API.approveSectionStudent(email, {
+      result = await SAC_API.approveSectionStudent(studentEmail, {
         status: "rejected",
         reason: reason || "",
       });
@@ -968,6 +997,8 @@ const SAC_SECTION_APPROVAL = (function () {
     matchesCampusUser,
     campusCode,
     requiresApproval,
+    studentAccountEmail,
+    withStudentAccountEmail,
     getStatus,
     isApproved,
     isPending,

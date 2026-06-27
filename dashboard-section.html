@@ -383,11 +383,11 @@
 
   <script src="js/sac-identity.js"></script>
   <script src="js/sac-session.js?v=20260620"></script>
-  <script src="js/sac-api.js?v=20260630c"></script>
+  <script src="js/sac-api.js?v=20260630d"></script>
   <script src="js/sac-university-logo.js"></script>
   <script src="js/sac-sections.js?v=20260621"></script>
   <script src="js/sac-section-accounts.js?v=20260621"></script>
-  <script src="js/sac-section-approval.js?v=20260630c"></script>
+  <script src="js/sac-section-approval.js?v=20260630d"></script>
   <script src="js/sac-courses.js"></script>
   <script src="js/sac-data.js?v=20260621"></script>
   <script src="js/sac-home-news.js"></script>
@@ -501,6 +501,13 @@
           .replace(/"/g, "&quot;");
       }
 
+      function accountEmail(u) {
+        if (typeof SAC_SECTION_APPROVAL !== "undefined" && SAC_SECTION_APPROVAL.studentAccountEmail) {
+          return SAC_SECTION_APPROVAL.studentAccountEmail(u);
+        }
+        return String(u?.email || u?.identifiant || "").trim();
+      }
+
       function initRectorStudentForm() {
         if (!isRector) return;
         const wrapStuSection = document.getElementById("wrapStuSection");
@@ -604,11 +611,16 @@
         tbody.querySelectorAll("[data-approve]").forEach((btn) => {
           btn.addEventListener("click", async () => {
             try {
+              const em = accountEmail({ email: btn.dataset.approve });
+              if (!em) {
+                alert("E-mail étudiant manquant — rechargez la page.");
+                return;
+              }
               if (scope === "student") {
-                await SAC_SECTION_APPROVAL.approveStudent(btn.dataset.approve, session);
+                await SAC_SECTION_APPROVAL.approveStudent(em, session);
                 alert("Validation enregistrée sur le serveur.");
               } else {
-                await SAC_SECTION_APPROVAL.approveStaff(btn.dataset.approve, session);
+                await SAC_SECTION_APPROVAL.approveStaff(em, session);
               }
               refresh();
             } catch (err) {
@@ -619,12 +631,17 @@
         tbody.querySelectorAll("[data-reject]").forEach((btn) => {
           btn.addEventListener("click", async () => {
             const reason = window.prompt("Motif du refus (optionnel) :") || "";
+            const em = accountEmail({ email: btn.dataset.reject });
+            if (!em) {
+              alert("E-mail manquant — rechargez la page.");
+              return;
+            }
             try {
               if (scope === "student") {
-                await SAC_SECTION_APPROVAL.rejectStudent(btn.dataset.reject, session, reason);
+                await SAC_SECTION_APPROVAL.rejectStudent(em, session, reason);
                 alert("Refus enregistré sur le serveur.");
               } else {
-                await SAC_SECTION_APPROVAL.rejectStaff(btn.dataset.reject, session, reason);
+                await SAC_SECTION_APPROVAL.rejectStaff(em, session, reason);
               }
               refresh();
             } catch (err) {
@@ -642,23 +659,24 @@
         const draw = (pending) => {
           tbody.innerHTML = pending
             .map((u) => {
+              const em = accountEmail(u);
               const name =
                 typeof SAC_IDENTITY !== "undefined"
                   ? SAC_IDENTITY.getDisplayName(u)
-                  : [u.prenom, u.nom].filter(Boolean).join(" ") || u.email;
+                  : [u.prenom, u.nom].filter(Boolean).join(" ") || em;
               const filiere = SAC_SECTION_APPROVAL.displayFiliere(u);
               const details =
                 (u.niveau || "—").toUpperCase() + " · " + (u.classe || "—");
               return (
                 "<tr>" +
                 "<td>" + esc(name) + "</td>" +
-                "<td>" + esc(u.email) + "</td>" +
+                "<td>" + esc(em) + "</td>" +
                 "<td>" + esc(filiere) + "</td>" +
                 "<td>" + esc(details) + "</td>" +
                 delayCell(u) +
                 "<td style=\"white-space:nowrap;\">" +
-                "<button type=\"button\" class=\"btn btn--role btn--sm\" data-approve=\"" + esc(u.email) + "\">Valider</button> " +
-                "<button type=\"button\" class=\"btn btn--ghost btn--sm\" data-reject=\"" + esc(u.email) + "\">Refuser</button>" +
+                "<button type=\"button\" class=\"btn btn--role btn--sm\" data-approve=\"" + esc(em) + "\">Valider</button> " +
+                "<button type=\"button\" class=\"btn btn--ghost btn--sm\" data-reject=\"" + esc(em) + "\">Refuser</button>" +
                 "</td>" +
                 "</tr>"
               );
@@ -697,10 +715,11 @@
         const draw = (pending) => {
           tbody.innerHTML = pending
             .map((u) => {
+              const em = accountEmail(u);
               const name =
                 typeof SAC_IDENTITY !== "undefined"
                   ? SAC_IDENTITY.getDisplayName(u)
-                  : [u.prenom, u.nom].filter(Boolean).join(" ") || u.email;
+                  : [u.prenom, u.nom].filter(Boolean).join(" ") || em;
               const role = SAC_SECTION_APPROVAL.roleLabel(u.role);
               const filiere = SAC_SECTION_APPROVAL.displayFiliere(u);
               let details = "—";
@@ -717,13 +736,13 @@
                 "<tr>" +
                 "<td>" + esc(role) + "</td>" +
                 "<td>" + esc(name) + "</td>" +
-                "<td>" + esc(u.email) + "</td>" +
+                "<td>" + esc(em) + "</td>" +
                 "<td>" + esc(filiere) + "</td>" +
                 "<td>" + esc(details) + "</td>" +
                 delayCell(u) +
                 "<td style=\"white-space:nowrap;\">" +
-                "<button type=\"button\" class=\"btn btn--role btn--sm\" data-approve=\"" + esc(u.email) + "\">Valider</button> " +
-                "<button type=\"button\" class=\"btn btn--ghost btn--sm\" data-reject=\"" + esc(u.email) + "\">Refuser</button>" +
+                "<button type=\"button\" class=\"btn btn--role btn--sm\" data-approve=\"" + esc(em) + "\">Valider</button> " +
+                "<button type=\"button\" class=\"btn btn--ghost btn--sm\" data-reject=\"" + esc(em) + "\">Refuser</button>" +
                 "</td>" +
                 "</tr>"
               );
