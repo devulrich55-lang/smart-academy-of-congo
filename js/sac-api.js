@@ -833,6 +833,16 @@ const SAC_API = (function () {
     return data.students || [];
   }
 
+  async function linkSectionStudent(email, payload) {
+    return request(
+      "/sections/students/" + encodeURIComponent(String(email || "").trim()) + "/link",
+      {
+        method: "PATCH",
+        body: JSON.stringify(payload || {}),
+      }
+    );
+  }
+
   async function approveSectionStudent(email, payload) {
     return request(
       "/sections/students/" + encodeURIComponent(String(email || "").trim()) + "/approval",
@@ -1757,6 +1767,7 @@ const SAC_API = (function () {
     createSectionHeadAccount,
     listSectionStudents,
     approveSectionStudent,
+    linkSectionStudent,
     listCampusSectionStudents,
     listCampusProfessors,
     nominateProfessor,

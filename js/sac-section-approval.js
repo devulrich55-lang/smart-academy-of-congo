@@ -783,52 +783,130 @@ const SAC_SECTION_APPROVAL = (function () {
     });
   }
 
+  function mirrorFromServerUser(serverUser, sectionSession, status) {
+    if (!serverUser) return null;
+    const local = findLocalUser(serverUser.email || serverUser.identifiant);
+    const merged = {
+      ...(local || {}),
+      ...serverUser,
+      email: serverUser.email || serverUser.identifiant || local?.email,
+      sectionApproval: status || serverUser.sectionApproval || STATUS.approved,
+      sectionApprovedAt: serverUser.sectionApprovedAt || new Date().toISOString(),
+      sectionApprovedBy:
+        sectionSession?.identifiant || sectionSession?.userId || serverUser.sectionApprovedBy,
+    };
+    if (merged.sectionApproval === STATUS.approved) {
+      markApproved(merged, resolveSectionActor(sectionSession));
+    }
+    mirrorLocalUser(merged);
+    return merged;
+  }
+
+  async function ensureSectionApiReady() {
+    if (typeof SAC_API === "undefined") {
+      throw new Error("API indisponible — validation serveur impossible.");
+    }
+    if (typeof SAC_API.ensureApiSession === "function") {
+      await SAC_API.ensureApiSession();
+    }
+    if (SAC_API.hasAuthTokens && !SAC_API.hasAuthTokens()) {
+      throw new Error(
+        "Session expirée — déconnectez-vous puis reconnectez-vous pour enregistrer la validation sur le serveur."
+      );
+    }
+    const online = await SAC_API.ensureOnline(true);
+    if (!online) {
+      throw new Error(
+        "Connexion au serveur impossible. La validation doit être enregistrée en ligne pour activer le compte sur tous les appareils."
+      );
+    }
+  }
+
+  async function tryLinkStudentOnServer(email, sectionSession) {
+    if (typeof SAC_API === "undefined" || !SAC_API.linkSectionStudent) return;
+    const local = findLocalUser(email);
+    const actor = resolveSectionActor(sectionSession);
+    const payload = {
+      filiere: local?.filiere || actor.filiere,
+      universite: local?.universite || actor.universite || actor.universiteLocked,
+      sectionId: local?.sectionId || actor.sectionId,
+      niveau: local?.niveau,
+      classe: local?.classe,
+    };
+    try {
+      await SAC_API.linkSectionStudent(email, payload);
+    } catch (err) {
+      if (/introuvable|not_found|404/i.test(String(err.message || ""))) return;
+      if (/accès refusé|forbidden|403/i.test(String(err.message || ""))) return;
+      console.warn("[SAC_SECTION_APPROVAL] lien section serveur:", err.message || err);
+    }
+  }
+
   async function approveStudent(email, sectionSession) {
-    let apiSynced = false;
-    if (typeof SAC_API !== "undefined" && SAC_API.approveSectionStudent) {
-      const online = await SAC_API.ensureOnline();
-      if (!online) {
+    await ensureSectionApiReady();
+    if (!SAC_API.approveSectionStudent) {
+      throw new Error("Validation serveur indisponible sur cette version.");
+    }
+
+    await tryLinkStudentOnServer(email, sectionSession);
+
+    let result;
+    try {
+      result = await SAC_API.approveSectionStudent(email, { status: "approved" });
+    } catch (err) {
+      const msg = err.message || "Validation serveur refusée.";
+      if (/introuvable|not_found|404/i.test(msg)) {
         throw new Error(
-          "Connexion au serveur impossible. La validation doit être enregistrée en ligne pour activer le compte sur tous les appareils."
+          "Étudiant introuvable sur le serveur — il doit d'abord terminer son inscription en ligne."
         );
       }
-      try {
-        await SAC_API.approveSectionStudent(email, { status: "approved" });
-        apiSynced = true;
-      } catch (err) {
-        const msg = err.message || "Validation serveur refusée.";
-        if (/accès refusé|forbidden|non autoris/i.test(msg)) {
+      if (/accès refusé|forbidden|non autoris/i.test(msg)) {
+        await tryLinkStudentOnServer(email, sectionSession);
+        try {
+          result = await SAC_API.approveSectionStudent(email, { status: "approved" });
+        } catch (retryErr) {
           throw new Error(
-            "Validation refusée — l'étudiant n'est pas rattaché à votre section sur le serveur. " +
-              "Demandez-lui de se réinscrire ou contactez l'administration université."
+            (retryErr.message || msg) +
+              " La validation n'a pas été enregistrée sur le serveur."
           );
         }
-        throw new Error(
-          msg +
-            " Le compte restera bloqué sur les autres téléphones tant que la validation n'est pas enregistrée sur le serveur."
-        );
+      } else {
+        throw new Error(msg + " La validation n'a pas été enregistrée sur le serveur.");
       }
     }
-    const user = await approve(email, sectionSession, { scope: "student" });
-    if (apiSynced) user._apiSynced = true;
-    return user;
+
+    const serverUser = result?.user || result;
+    const synced = mirrorFromServerUser(serverUser, sectionSession, STATUS.approved);
+    if (synced) synced._apiSynced = true;
+    return synced || serverUser;
   }
 
   async function rejectStudent(email, sectionSession, reason) {
-    if (typeof SAC_API !== "undefined" && SAC_API.approveSectionStudent) {
-      const online = await SAC_API.ensureOnline();
-      if (online) {
-        try {
-          await SAC_API.approveSectionStudent(email, {
-            status: "rejected",
-            reason: reason || "",
-          });
-        } catch (err) {
-          throw new Error(err.message || "Rejet serveur impossible.");
-        }
-      }
+    await ensureSectionApiReady();
+    if (!SAC_API.approveSectionStudent) {
+      throw new Error("Validation serveur indisponible sur cette version.");
     }
-    return reject(email, sectionSession, reason, { scope: "student" });
+
+    let result;
+    try {
+      result = await SAC_API.approveSectionStudent(email, {
+        status: "rejected",
+        reason: reason || "",
+      });
+    } catch (err) {
+      throw new Error(
+        (err.message || "Rejet serveur impossible.") +
+          " Le refus n'a pas été enregistré sur le serveur."
+      );
+    }
+
+    const serverUser = result?.user || result;
+    const synced = mirrorFromServerUser(serverUser, sectionSession, STATUS.rejected);
+    if (synced) {
+      synced.sectionRejectionReason = (reason || "").trim() || null;
+      mirrorLocalUser(synced);
+    }
+    return synced || serverUser;
   }
 
   async function approveStaff(email, sectionSession) {

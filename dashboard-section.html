@@ -593,6 +593,7 @@
             try {
               if (scope === "student") {
                 await SAC_SECTION_APPROVAL.approveStudent(btn.dataset.approve, session);
+                alert("Validation enregistrée sur le serveur.");
               } else {
                 await SAC_SECTION_APPROVAL.approveStaff(btn.dataset.approve, session);
               }
@@ -608,6 +609,7 @@
             try {
               if (scope === "student") {
                 await SAC_SECTION_APPROVAL.rejectStudent(btn.dataset.reject, session, reason);
+                alert("Refus enregistré sur le serveur.");
               } else {
                 await SAC_SECTION_APPROVAL.rejectStaff(btn.dataset.reject, session, reason);
               }
