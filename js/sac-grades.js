@@ -21,14 +21,17 @@ const SAC_GRADES = (function () {
 
   function getAll() {
     try {
-      return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+      const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+      const deduped = dedupeGradesList(raw);
+      if (deduped.length !== raw.length) saveAll(deduped);
+      return deduped;
     } catch {
       return [];
     }
   }
 
   function saveAll(list) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(dedupeGradesList(list)));
   }
 
   function normEmail(email) {
@@ -59,8 +62,21 @@ const SAC_GRADES = (function () {
       normCourseCode(g.courseCode),
       normCourseName(g.courseName),
       g.semester || "",
-      normEmail(g.professorEmail || ""),
     ].join("|");
+  }
+
+  function dedupeGradesList(list) {
+    const byKey = new Map();
+    (list || []).forEach((g) => {
+      const key = gradeKey(g);
+      const prev = byKey.get(key);
+      const gTime = String(g.updatedAt || g.syncedAt || "");
+      const prevTime = String(prev?.updatedAt || prev?.syncedAt || "");
+      if (!prev || gTime >= prevTime) {
+        byKey.set(key, prev ? normalizeRow(g, prev) : normalizeRow(g));
+      }
+    });
+    return [...byKey.values()];
   }
 
   function normalizeRow(g, existing) {

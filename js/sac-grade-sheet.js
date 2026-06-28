@@ -57,6 +57,12 @@ const SAC_GRADE_SHEET = (function () {
     return String(name || "").trim().toLowerCase();
   }
 
+  function bulletinCourseKey(g) {
+    const code = normCourseCode(g.courseCode);
+    const name = normCourseName(g.courseName);
+    return (code || name ? `${code}|${name}` : "") || String(g.id || "");
+  }
+
   function uniLabel(code) {
     return UNI_NAMES[code] || code || "—";
   }
@@ -133,13 +139,11 @@ const SAC_GRADE_SHEET = (function () {
 
     const gradeMap = new Map();
     grades.forEach((g) => {
-      const key = [
-        normCourseCode(g.courseCode),
-        normCourseName(g.courseName),
-        (g.professorEmail || "").toLowerCase(),
-      ].join("|");
+      const key = bulletinCourseKey(g);
       const prev = gradeMap.get(key);
-      if (!prev || String(g.updatedAt || "") > String(prev.updatedAt || "")) {
+      const gTime = String(g.updatedAt || g.syncedAt || "");
+      const prevTime = String(prev?.updatedAt || prev?.syncedAt || "");
+      if (!prev || gTime >= prevTime) {
         gradeMap.set(key, g);
       }
     });
