@@ -1011,6 +1011,62 @@ const SAC_API = (function () {
     throw lastErr || new Error("Validation serveur impossible.");
   }
 
+  async function approveSectionStaff(email, payload) {
+    const em = String(
+      email || payload?.email || payload?.identifiant || ""
+    ).trim();
+    if (!em) {
+      const err = new Error("E-mail professeur ou assistant requis");
+      err.code = "INVALID_INPUT";
+      err.status = 400;
+      throw err;
+    }
+    const body = {
+      ...(payload || { status: "approved" }),
+      email: em,
+      identifiant: em,
+    };
+    const patchBody = payload || { status: "approved" };
+    const attempts = [
+      () =>
+        request("/sections/staff/approval", {
+          method: "PATCH",
+          body: JSON.stringify(body),
+        }),
+      () =>
+        request("/sections/staff/approval", {
+          method: "POST",
+          body: JSON.stringify(body),
+        }),
+      () =>
+        request("/sections/staff/" + encodeURIComponent(em) + "/approval", {
+          method: "PATCH",
+          body: JSON.stringify(patchBody),
+        }),
+    ];
+    let lastErr;
+    for (const fn of attempts) {
+      try {
+        return await fn();
+      } catch (err) {
+        lastErr = err;
+        if (
+          err.status === 401 ||
+          err.status === 403 ||
+          (err.status === 404 && err.code === "STAFF_NOT_FOUND")
+        ) {
+          throw err;
+        }
+      }
+    }
+    throw lastErr || new Error("Validation personnel serveur impossible.");
+  }
+
+  async function listPendingSectionStaff() {
+    const data = await request("/sections/staff/pending");
+    return data.staff || [];
+  }
+
   /** Recteur : tente plusieurs routes pour lister tous les étudiants du campus. */
   async function listCampusSectionStudents(universite) {
     const uni = universite ? String(universite).trim() : "";
@@ -1929,6 +1985,8 @@ const SAC_API = (function () {
     listSectionStudents,
     listPendingSectionStudents,
     approveSectionStudent,
+    approveSectionStaff,
+    listPendingSectionStaff,
     linkSectionStudent,
     listCampusSectionStudents,
     listCampusProfessors,

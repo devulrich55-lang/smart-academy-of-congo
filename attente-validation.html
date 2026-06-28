@@ -58,6 +58,11 @@
           <p id="waitEmail" style="margin:0.75rem 0 0;font-size:0.9rem;color:var(--muted);"></p>
         </div>
         <p id="waitHint" style="font-size:0.88rem;color:var(--muted);margin:0 0 1.25rem;"></p>
+        <p id="waitCrossDevice" style="font-size:0.88rem;color:var(--muted);margin:0 0 1.25rem;line-height:1.5;" hidden>
+          Si vous vous connectez sur un autre appareil (PC, tablette), la validation doit être enregistrée
+          <strong>en ligne</strong> par le chef de section depuis le tableau de bord section.
+          Demandez-lui de valider à nouveau votre compte si vous voyez encore cette page après connexion.
+        </p>
         <div style="display:flex;flex-wrap:wrap;gap:0.65rem;">
           <a href="connexion.html" id="btnConnexion" class="auth-submit" style="text-decoration:none;display:inline-flex;align-items:center;justify-content:center;">Retour à la connexion</a>
           <a href="index.html" class="auth-link" style="align-self:center;">Accueil</a>
@@ -96,6 +101,13 @@
 
       if (email) {
         document.getElementById("waitEmail").textContent = "Compte : " + email;
+      }
+
+      if (
+        (role === "professeur" || role === "assistant" || role === "etudiant") &&
+        status !== "rejected"
+      ) {
+        document.getElementById("waitCrossDevice").hidden = false;
       }
 
       if (status !== "rejected" && typeof SAC_SECTION_APPROVAL !== "undefined") {

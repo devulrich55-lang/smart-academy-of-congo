@@ -239,6 +239,7 @@ const SAC_SECTION_APPROVAL = (function () {
   }
 
   let pendingStudentsApiCache = null;
+  let pendingStaffApiCache = null;
 
   async function fetchApiStudentsForApproval(sectionSession) {
     if (typeof SAC_API !== "undefined" && SAC_API.listPendingSectionStudents) {
@@ -321,11 +322,16 @@ const SAC_SECTION_APPROVAL = (function () {
     } catch {
       return;
     }
-    if (!online || typeof SAC_API.listCampusProfessors !== "function") return;
+    if (!online) return;
+    const actor = resolveSectionActor(sectionSession);
+    const campusWide = isRector(sectionSession);
     try {
-      const apiStaff = await SAC_API.listCampusProfessors();
-      const actor = resolveSectionActor(sectionSession);
-      const campusWide = isRector(sectionSession);
+      let apiStaff = [];
+      if (typeof SAC_API.listPendingSectionStaff === "function") {
+        apiStaff = (await SAC_API.listPendingSectionStaff()) || [];
+      } else if (typeof SAC_API.listCampusProfessors === "function") {
+        apiStaff = (await SAC_API.listCampusProfessors()) || [];
+      }
       (apiStaff || []).forEach((raw) => {
         const u = { ...raw, role: raw.role || "professeur" };
         if (!STAFF_ROLES.includes(u.role)) return;
@@ -334,9 +340,10 @@ const SAC_SECTION_APPROVAL = (function () {
           : matchesStaffSection(u, actor);
         if (!inScope) return;
         if (isExplicitlyClosed(u)) return;
+        if (!isPending(u)) return;
         mirrorLocalUser({
           ...u,
-          sectionApproval: STATUS.pending,
+          sectionApproval: u.sectionApproval || STATUS.pending,
           sectionApprovalRequestedAt:
             u.sectionApprovalRequestedAt || u.createdAt || new Date().toISOString(),
         });
@@ -720,8 +727,33 @@ const SAC_SECTION_APPROVAL = (function () {
   }
 
   async function refreshPendingStaffForSection(sectionSession) {
+    pendingStaffApiCache = null;
+    if (typeof SAC_API !== "undefined") {
+      const online = await SAC_API.ensureOnline();
+      if (online && SAC_API.listPendingSectionStaff) {
+        const apiPending = await SAC_API.listPendingSectionStaff();
+        pendingStaffApiCache = (apiPending || []).map((raw) => {
+          const u = { ...raw, role: raw.role || "professeur" };
+          mirrorLocalUser({
+            ...u,
+            sectionApproval: u.sectionApproval || STATUS.pending,
+            sectionApprovalRequestedAt:
+              u.sectionApprovalRequestedAt || u.createdAt || new Date().toISOString(),
+          });
+          return u;
+        });
+        const actor = resolveSectionActor(sectionSession);
+        return pendingStaffApiCache.filter((u) => {
+          if (isRector(sectionSession)) {
+            return matchesCampusUser(u, actor);
+          }
+          return matchesStaffSection(u, actor);
+        });
+      }
+    }
     await syncPendingStaffFromApi(sectionSession);
-    return getPendingStaffForSection(sectionSession);
+    pendingStaffApiCache = filterPending(sectionSession, "staff");
+    return pendingStaffApiCache;
   }
 
   function getPendingStudentsForSection(sectionSession) {
@@ -730,6 +762,7 @@ const SAC_SECTION_APPROVAL = (function () {
   }
 
   function getPendingStaffForSection(sectionSession) {
+    if (pendingStaffApiCache) return pendingStaffApiCache;
     return filterPending(sectionSession, "staff");
   }
 
@@ -961,11 +994,64 @@ const SAC_SECTION_APPROVAL = (function () {
   }
 
   async function approveStaff(email, sectionSession) {
-    return approve(email, sectionSession, { scope: "staff" });
+    await ensureSectionApiReady();
+    const staffEmail = studentAccountEmail(email);
+    if (!staffEmail) {
+      throw new Error("E-mail professeur ou assistant manquant — rechargez la page et réessayez.");
+    }
+    if (!SAC_API.approveSectionStaff) {
+      throw new Error("Validation serveur indisponible sur cette version.");
+    }
+
+    let result;
+    try {
+      result = await SAC_API.approveSectionStaff(staffEmail, { status: "approved" });
+    } catch (err) {
+      const msg = err.message || "Validation serveur refusée.";
+      if (/introuvable|not found|not_found|404|STAFF_NOT_FOUND/i.test(msg)) {
+        throw new Error(
+          "Professeur absent du serveur — il doit terminer son inscription en ligne (inscription.html), puis réessayez."
+        );
+      }
+      throw new Error(msg + " La validation n'a pas été enregistrée sur le serveur.");
+    }
+
+    const serverUser = result?.user || result;
+    const synced = mirrorFromServerUser(serverUser, sectionSession, STATUS.approved);
+    if (synced) synced._apiSynced = true;
+    return synced || serverUser;
   }
 
   async function rejectStaff(email, sectionSession, reason) {
-    return reject(email, sectionSession, reason, { scope: "staff" });
+    await ensureSectionApiReady();
+    const staffEmail = studentAccountEmail(email);
+    if (!staffEmail) {
+      throw new Error("E-mail professeur ou assistant manquant — rechargez la page et réessayez.");
+    }
+    if (!SAC_API.approveSectionStaff) {
+      throw new Error("Validation serveur indisponible sur cette version.");
+    }
+
+    let result;
+    try {
+      result = await SAC_API.approveSectionStaff(staffEmail, {
+        status: "rejected",
+        reason: reason || "",
+      });
+    } catch (err) {
+      throw new Error(
+        (err.message || "Rejet serveur impossible.") +
+          " Le refus n'a pas été enregistré sur le serveur."
+      );
+    }
+
+    const serverUser = result?.user || result;
+    const synced = mirrorFromServerUser(serverUser, sectionSession, STATUS.rejected);
+    if (synced) {
+      synced.sectionRejectionReason = (reason || "").trim() || null;
+      mirrorLocalUser(synced);
+    }
+    return synced || serverUser;
   }
 
   function roleLabel(role) {
