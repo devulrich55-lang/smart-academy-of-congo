@@ -600,6 +600,7 @@ const SAC_API = (function () {
     "sectionKind",
     "sectionName",
     "sectionId",
+    "isRector",
     "dateNaissance",
     "paymentStatus",
     "registrationSource",
@@ -756,6 +757,23 @@ const SAC_API = (function () {
     sessionCache = tagApiSession(data.session);
     saveApiTokens(data.accessToken, data.refreshToken);
     localStorage.setItem("sac_session", JSON.stringify(sessionCache));
+    if (typeof SAC_ACCOUNT_REGISTRY !== "undefined" && SAC_ACCOUNT_REGISTRY.markSynced) {
+      SAC_ACCOUNT_REGISTRY.markSynced(sessionCache.email);
+    }
+    return sessionCache;
+  }
+
+  async function provisionAccount(profile) {
+    const data = await request("/auth/provision", {
+      method: "POST",
+      body: JSON.stringify(profile),
+    });
+    sessionCache = tagApiSession(data.session);
+    saveApiTokens(data.accessToken, data.refreshToken);
+    localStorage.setItem("sac_session", JSON.stringify(sessionCache));
+    if (typeof SAC_ACCOUNT_REGISTRY !== "undefined" && SAC_ACCOUNT_REGISTRY.markSynced) {
+      SAC_ACCOUNT_REGISTRY.markSynced(sessionCache.email);
+    }
     return sessionCache;
   }
 
@@ -767,6 +785,10 @@ const SAC_API = (function () {
     sessionCache = tagApiSession(data.session);
     saveApiTokens(data.accessToken, data.refreshToken);
     localStorage.setItem("sac_session", JSON.stringify(sessionCache));
+
+    if (typeof SAC_ACCOUNT_REGISTRY !== "undefined" && SAC_ACCOUNT_REGISTRY.markSynced) {
+      SAC_ACCOUNT_REGISTRY.markSynced(sessionCache.email);
+    }
 
     if (!hasAuthTokens() && profile.password) {
       const loggedIn = await ensureAuthTokens({
@@ -1891,9 +1913,11 @@ const SAC_API = (function () {
     allowOfflineAuth,
     login,
     register,
+    provisionAccount,
     registerOrLogin,
     buildRegisterPayload,
     buildSectionStudentPayload,
+    isDuplicateRegistrationError,
     refresh,
     logout,
     me,

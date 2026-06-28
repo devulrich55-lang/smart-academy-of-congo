@@ -177,7 +177,8 @@
   <script src="js/sac-tariffs.js"></script>
   <script src="js/sac-section-approval.js?v=20260624e"></script>
   <script src="js/sac-session.js?v=20260629b"></script>
-  <script src="js/sac-api.js?v=20260629b"></script>
+  <script src="js/sac-api.js?v=20260630h"></script>
+  <script src="js/sac-account-registry.js?v=20260630a"></script>
   <script>
     (async function () {
       const roleParam = new URLSearchParams(window.location.search).get("role");
@@ -444,7 +445,7 @@
       let apiSession = null;
       let apiError = "";
       try {
-        if (currentRole === "section") {
+        if (currentRole === "section" && SAC_SESSION.allowLocalAuth()) {
           if (await tryLocalSectionLogin(idVal, pwdVal, { silent: true })) {
             return;
           }
@@ -479,8 +480,22 @@
         }
 
         if (typeof SAC_API !== "undefined" && SAC_API.isOnline()) {
-          if (currentRole === "section" && (await tryLocalSectionLogin(idVal, pwdVal))) {
+          const migrated = await attemptServerMigration(idVal, pwdVal, uniVal);
+          if (migrated?.session) {
+            apiSession = migrated.session;
+            if (currentRole === "section") {
+              apiSession = enrichSectionSession(apiSession, idVal);
+            }
+            redirectAfterLogin(apiSession);
             return;
+          }
+          if (migrated?.error) {
+            apiError = migrated.error;
+          }
+          if (currentRole === "section" && SAC_SESSION.allowLocalAuth()) {
+            if (await tryLocalSectionLogin(idVal, pwdVal)) {
+              return;
+            }
           }
           alert(
             apiError ||
@@ -513,6 +528,18 @@
               if (apiSession) {
                 redirectAfterLogin(apiSession);
                 return;
+              }
+              const migrated = await attemptServerMigration(idVal, pwdVal, uniVal);
+              if (migrated?.session) {
+                apiSession = migrated.session;
+                if (currentRole === "section") {
+                  apiSession = enrichSectionSession(apiSession, idVal);
+                }
+                redirectAfterLogin(apiSession);
+                return;
+              }
+              if (migrated?.error) {
+                apiError = migrated.error;
               }
               alert(apiError || "Identifiant ou mot de passe incorrect.");
               return;
@@ -581,6 +608,34 @@
         return;
       }
 
+      if (typeof SAC_ACCOUNT_REGISTRY !== "undefined" && typeof SAC_API !== "undefined") {
+        if (await SAC_API.ensureOnline()) {
+          btnSubmit.textContent = "Enregistrement sur le serveur…";
+          try {
+            const migrated = await SAC_ACCOUNT_REGISTRY.migrateLocalUserAtLogin(
+              idVal,
+              pwdVal,
+              currentRole,
+              { universite: resolveLoginUniversite(idVal) }
+            );
+            if (migrated?.session) {
+              let session = migrated.session;
+              if (currentRole === "section") {
+                session = enrichSectionSession(session, idVal);
+              }
+              redirectAfterLogin(session);
+              return;
+            }
+          } catch (mErr) {
+            alert(mErr.message || "Synchronisation serveur impossible.");
+            btnSubmit.disabled = false;
+            btnSubmit.textContent = ROLES[currentRole].btnText;
+            updateSteps(2);
+            return;
+          }
+        }
+      }
+
       const session = SAC_IDENTITY.buildSessionFromUser(found);
       session.authSource = "local";
       redirectAfterLogin(session);
@@ -633,6 +688,18 @@
       }
       if (universiteSelect.value) return universiteSelect.value;
       return null;
+    }
+
+    async function attemptServerMigration(idVal, pwdVal, uniVal) {
+      if (typeof SAC_ACCOUNT_REGISTRY === "undefined") return null;
+      btnSubmit.textContent = "Enregistrement sur le serveur…";
+      try {
+        return await SAC_ACCOUNT_REGISTRY.migrateLocalUserAtLogin(idVal, pwdVal, currentRole, {
+          universite: uniVal,
+        });
+      } catch (err) {
+        return { error: err.message || "Erreur de synchronisation serveur." };
+      }
     }
 
     async function tryLocalSectionLogin(idVal, pwdVal, opts) {

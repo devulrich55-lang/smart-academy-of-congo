@@ -9,6 +9,16 @@ const SAC_SECTION_ACCOUNTS = (function () {
     return raw;
   }
 
+  async function requireServerOnline(actionLabel) {
+    if (typeof SAC_API === "undefined" || !(await SAC_API.ensureOnline())) {
+      throw new Error(
+        "Connexion au serveur obligatoire pour " +
+          (actionLabel || "cette opération") +
+          ". Tous les comptes doivent être enregistrés sur le serveur SAC."
+      );
+    }
+  }
+
   function splitResponsableName(fullName) {
     const parts = (fullName || "").trim().split(/\s+/).filter(Boolean);
     if (parts.length >= 2) {
@@ -49,21 +59,20 @@ const SAC_SECTION_ACCOUNTS = (function () {
     const dup = SAC_IDENTITY.checkRegistration(profile);
     if (!dup.ok) throw new Error(dup.message);
 
-    if (typeof SAC_API !== "undefined" && (await SAC_API.ensureOnline())) {
-      await SAC_API.createSectionHeadAccount({
-        email: profile.email,
-        password: account.password,
-        telephone: profile.telephone,
-        prenom: profile.prenom,
-        nom: profile.nom,
-        filiere: profile.filiere,
-        sectionId: section.id,
-        sectionName: section.name,
-        universite: campusCode,
-        sectionKind: "chef_section",
-        role: "section",
-      });
-    }
+    await requireServerOnline("créer un compte chef de section");
+    await SAC_API.createSectionHeadAccount({
+      email: profile.email,
+      password: account.password,
+      telephone: profile.telephone,
+      prenom: profile.prenom,
+      nom: profile.nom,
+      filiere: profile.filiere,
+      sectionId: section.id,
+      sectionName: section.name,
+      universite: campusCode,
+      sectionKind: "chef_section",
+      role: "section",
+    });
 
     const users = SAC_IDENTITY.getLocalUsers();
     const hashed = await SAC_IDENTITY.hashPassword(account.password);
@@ -71,6 +80,8 @@ const SAC_SECTION_ACCOUNTS = (function () {
       ...profile,
       passwordHash: hashed,
       universiteLocked: campusCode,
+      serverSynced: true,
+      authSource: "api",
       createdAt: new Date().toISOString(),
     });
     localStorage.setItem("sac_users", JSON.stringify(users));
@@ -144,41 +155,32 @@ const SAC_SECTION_ACCOUNTS = (function () {
     const dup = SAC_IDENTITY.checkRegistration(profile);
     if (!dup.ok) throw new Error(dup.message);
 
-    let apiRegistered = false;
-    if (typeof SAC_API !== "undefined" && (await SAC_API.ensureOnline())) {
-      const regPayload = SAC_API.buildRegisterPayload({
+    await requireServerOnline("créer le compte recteur");
+    const regPayload = SAC_API.buildRegisterPayload({
+      email: profile.email,
+      password: account.password,
+      role: "section",
+      telephone: profile.telephone,
+      prenom: profile.prenom,
+      nom: profile.nom,
+      universite: uniCode,
+      sectionKind: "recteur",
+      sectionName: profile.sectionName,
+      isRector: true,
+      payment: profile.payment,
+    });
+    if (typeof SAC_API.provisionAccount === "function") {
+      await SAC_API.provisionAccount(regPayload);
+    } else {
+      await SAC_API.createSectionHeadAccount({
         email: profile.email,
         password: account.password,
-        role: "section",
         telephone: profile.telephone,
         prenom: profile.prenom,
         nom: profile.nom,
-        universite: uniCode,
         sectionKind: "recteur",
-        sectionName: profile.sectionName,
+        universite: uniCode,
       });
-      try {
-        await SAC_API.register(regPayload);
-        apiRegistered = true;
-      } catch (regErr) {
-        try {
-          await SAC_API.createSectionHeadAccount({
-            email: profile.email,
-            password: account.password,
-            telephone: profile.telephone,
-            prenom: profile.prenom,
-            nom: profile.nom,
-            sectionKind: "recteur",
-            universite: uniCode,
-          });
-          apiRegistered = true;
-        } catch (headErr) {
-          console.warn(
-            "[SAC_SECTION_ACCOUNTS] API recteur:",
-            headErr.message || regErr.message || headErr
-          );
-        }
-      }
     }
 
     const users = SAC_IDENTITY.getLocalUsers();
@@ -189,6 +191,8 @@ const SAC_SECTION_ACCOUNTS = (function () {
       universiteLocked: uniCode,
       isRector: true,
       sectionKind: "recteur",
+      serverSynced: true,
+      authSource: "api",
       createdAt: new Date().toISOString(),
     };
     delete stored.password;
@@ -202,7 +206,7 @@ const SAC_SECTION_ACCOUNTS = (function () {
         role: "section",
         sectionKind: "recteur",
       },
-      apiRegistered,
+      apiRegistered: true,
     };
   }
 
@@ -323,26 +327,25 @@ const SAC_SECTION_ACCOUNTS = (function () {
     const dup = SAC_IDENTITY.checkRegistration(profile);
     if (!dup.ok) throw new Error(dup.message);
 
-    if (typeof SAC_API !== "undefined" && (await SAC_API.ensureOnline())) {
-      const enrollPayload =
-        typeof SAC_API.buildSectionStudentPayload === "function"
-          ? SAC_API.buildSectionStudentPayload(profile, student.password)
-          : {
-              email: profile.email,
-              password: student.password,
-              telephone: profile.telephone,
-              prenom: profile.prenom,
-              nom: profile.nom,
-              matricule: profile.matricule,
-              niveau: profile.niveau,
-              classe: profile.classe,
-              dateNaissance: profile.dateNaissance,
-              universite: profile.universite,
-              filiere: profile.filiere,
-              sectionId: profile.sectionId,
-            };
-      await SAC_API.createSectionStudent(enrollPayload);
-    }
+    await requireServerOnline("inscrire un étudiant");
+    const enrollPayload =
+      typeof SAC_API.buildSectionStudentPayload === "function"
+        ? SAC_API.buildSectionStudentPayload(profile, student.password)
+        : {
+            email: profile.email,
+            password: student.password,
+            telephone: profile.telephone,
+            prenom: profile.prenom,
+            nom: profile.nom,
+            matricule: profile.matricule,
+            niveau: profile.niveau,
+            classe: profile.classe,
+            dateNaissance: profile.dateNaissance,
+            universite: profile.universite,
+            filiere: profile.filiere,
+            sectionId: profile.sectionId,
+          };
+    await SAC_API.createSectionStudent(enrollPayload);
 
     const users = SAC_IDENTITY.getLocalUsers();
     const hashed = await SAC_IDENTITY.hashPassword(student.password);
@@ -353,6 +356,8 @@ const SAC_SECTION_ACCOUNTS = (function () {
       sectionApproval: "approved",
       sectionApprovedAt: new Date().toISOString(),
       sectionApprovedBy: actor.identifiant || actor.userId || null,
+      serverSynced: true,
+      authSource: "api",
       createdAt: new Date().toISOString(),
     });
     localStorage.setItem("sac_users", JSON.stringify(users));
