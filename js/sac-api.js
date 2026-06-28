@@ -620,11 +620,22 @@ const SAC_API = (function () {
     if (src.password) out.password = src.password;
     if (src.email) out.email = src.email;
     if (src.role) out.role = src.role;
-    if (src.payment && !out.paymentStatus) {
-      out.paymentStatus = src.payment.status || "pending_verification";
+    if (src.numEmploye) out.numEmploye = src.numEmploye;
+    if (src.numAssist) out.numAssist = src.numAssist;
+    if (src.payment && typeof src.payment === "object") {
+      out.payment = src.payment;
+      if (!out.paymentStatus) {
+        out.paymentStatus = src.payment.status || "pending_verification";
+      }
     }
     if (src.role === "etudiant" && !out.registrationSource) {
       out.registrationSource = "public_inscription";
+    }
+    if (
+      (src.role === "professeur" || src.role === "assistant") &&
+      !out.registrationSource
+    ) {
+      out.registrationSource = src.registrationSource || "public_inscription";
     }
     return out;
   }
@@ -687,16 +698,46 @@ const SAC_API = (function () {
   }
 
   async function registerOrLogin(profile) {
-    const payload = buildRegisterPayload(profile);
+    const pwd = profile.password || profile._pwd || "";
+    const payload = buildRegisterPayload({ ...profile, password: pwd });
+    if (!payload.password) {
+      throw new Error(
+        "Mot de passe manquant pour finaliser l'inscription. Recommencez le formulaire."
+      );
+    }
     const loginExtra = {
-      universite: profile.universite || null,
-      codeUni: profile.codeUni || null,
+      universite: payload.universite || profile.universite || null,
+      codeUni: payload.codeUni || profile.codeUni || null,
     };
     try {
       return await register(payload);
     } catch (regErr) {
-      if (!profile.password || !isDuplicateRegistrationError(regErr)) throw regErr;
-      return login(profile.email, profile.password, profile.role, loginExtra);
+      if (!pwd || !isDuplicateRegistrationError(regErr)) throw regErr;
+      try {
+        return await login(profile.email, pwd, profile.role, loginExtra);
+      } catch (loginErr) {
+        const code = loginErr.code || "";
+        if (code === "INVALID_CREDENTIALS") {
+          throw new Error(
+            "Cet e-mail est déjà inscrit avec un autre mot de passe. " +
+              "Connectez-vous depuis la page Connexion, utilisez « Mot de passe oublié », " +
+              "ou choisissez un autre e-mail."
+          );
+        }
+        if (code === "ROLE_MISMATCH") {
+          throw new Error(
+            "Cet e-mail est déjà utilisé pour un autre type de compte. " +
+              "Connectez-vous avec le bon profil ou utilisez un autre e-mail."
+          );
+        }
+        if (code === "UNIVERSITY_MISMATCH") {
+          throw new Error(
+            "Cet e-mail est déjà lié à une autre université. " +
+              "Sélectionnez le même établissement qu'à l'inscription."
+          );
+        }
+        throw loginErr;
+      }
     }
   }
 
@@ -737,9 +778,17 @@ const SAC_API = (function () {
           codeUni: profile.codeUni || null,
         },
       });
+      if (!loggedIn && sessionCache) {
+        return sessionCache;
+      }
       if (!loggedIn) {
-        throw new Error(
-          "Compte créé mais session impossible. Reconnectez-vous avec votre e-mail et mot de passe."
+        return (
+          sessionCache || {
+            ok: true,
+            email: profile.email,
+            role: profile.role,
+            authSource: "api",
+          }
         );
       }
       return sessionCache;
