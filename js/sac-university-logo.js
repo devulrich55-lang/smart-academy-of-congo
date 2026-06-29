@@ -5,7 +5,8 @@ const SAC_UNIVERSITY_LOGO = (function () {
   const INDEX_KEY = "sac_university_logos";
   const MAX_BYTES = 2 * 1024 * 1024;
   const ACCEPT = ["image/png", "image/jpeg", "image/webp", "image/svg+xml"];
-  const FALLBACK = "logos.svg";
+  const FALLBACK =
+    (typeof window !== "undefined" && window.SAC_PLATFORM_LOGO) || "evo-uni.jpeg";
 
   function normCode(code) {
     return String(code || "")

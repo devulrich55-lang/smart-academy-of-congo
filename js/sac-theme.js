@@ -81,48 +81,37 @@
     new MutationObserver(() => injectAllToggles()).observe(headerActions, { childList: true });
   }
 
-  const LOGO_PNG = "logos.png";
-  const LOGO_SVG = "logos.svg";
+  const LOGO_FILE =
+    (typeof window !== "undefined" && window.SAC_PLATFORM_LOGO) || "evo-uni.jpeg";
 
   function setupLogos() {
     if (typeof SAC_PORTAL !== "undefined" && SAC_PORTAL.isInstitutionalPortal()) {
       return;
     }
 
-    const imgs = document.querySelectorAll('img[src*="logos"]:not([data-portal-logo])');
+    const imgs = document.querySelectorAll(
+      'img[src*="logos"], img[src*="evo-uni"]:not([data-portal-logo])'
+    );
     const iconLinks = document.querySelectorAll(
-      'link[rel="icon"][href*="logos"]:not([data-portal-favicon]), link[rel="apple-touch-icon"][href*="logos"]:not([data-portal-favicon])'
+      'link[rel="icon"][href*="logos"]:not([data-portal-favicon]), link[rel="apple-touch-icon"][href*="logos"]:not([data-portal-favicon]), link[rel="icon"][href*="evo-uni"]:not([data-portal-favicon]), link[rel="apple-touch-icon"][href*="evo-uni"]:not([data-portal-favicon])'
     );
     if (!imgs.length && !iconLinks.length) return;
 
-    const useSvg = () => {
-      imgs.forEach((img) => {
-        if (img.dataset.logoReady) return;
-        img.dataset.logoReady = "1";
-        img.src = LOGO_SVG;
-      });
-      iconLinks.forEach((link) => {
-        link.href = LOGO_SVG;
-        if (link.rel === "icon") link.type = "image/svg+xml";
-      });
-    };
+    const alt =
+      (typeof window !== "undefined" && window.SAC_PLATFORM_LOGO_ALT) || "Evo-smartUni";
 
-    const usePng = () => {
-      imgs.forEach((img) => {
-        if (img.dataset.logoReady) return;
-        img.dataset.logoReady = "1";
-        img.src = LOGO_PNG;
-      });
-      iconLinks.forEach((link) => {
-        link.href = LOGO_PNG;
-        if (link.rel === "icon") link.type = "image/png";
-      });
-    };
-
-    const probe = new Image();
-    probe.onload = usePng;
-    probe.onerror = useSvg;
-    probe.src = LOGO_PNG + "?" + Date.now();
+    imgs.forEach((img) => {
+      if (img.dataset.logoReady) return;
+      img.dataset.logoReady = "1";
+      img.src = LOGO_FILE;
+      if (!img.getAttribute("alt") || /smart academy|logos/i.test(img.getAttribute("alt") || "")) {
+        img.alt = alt;
+      }
+    });
+    iconLinks.forEach((link) => {
+      link.href = LOGO_FILE;
+      if (link.rel === "icon") link.type = "image/jpeg";
+    });
   }
 
   apply(getPreferred());

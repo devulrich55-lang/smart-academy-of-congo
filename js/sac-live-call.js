@@ -144,7 +144,7 @@ const SAC_LIVE_CALL = (function () {
     try {
       const n = new Notification(title, {
         body,
-        icon: "logos.svg",
+        icon: "evo-uni.jpeg",
         tag: "sac-live-call",
         requireInteraction: true,
       });

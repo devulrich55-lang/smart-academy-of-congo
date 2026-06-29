@@ -3,6 +3,11 @@
  * ministere/ · superadmin/ · admin-uni/ (+ domaines personnalisés plus tard)
  */
 const SAC_PORTAL = (function () {
+  const PLATFORM_LOGO =
+    (typeof window !== "undefined" && window.SAC_PLATFORM_LOGO) || "evo-uni.jpeg";
+  const PLATFORM_LOGO_ALT =
+    (typeof window !== "undefined" && window.SAC_PLATFORM_LOGO_ALT) || "Evo-smartUni";
+
   const DEFS = {
     ministere: {
       id: "ministere",
@@ -23,7 +28,7 @@ const SAC_PORTAL = (function () {
       notice: "Accès réservé aux agents habilités du Ministère. Compte créé par le Super Admin SAC.",
       dashboard: "dashboard-admin.html",
       adminPortal: true,
-      logoFile: "logos.png",
+      logoFile: "../" + PLATFORM_LOGO,
     },
     superadmin: {
       id: "superadmin",
@@ -44,7 +49,7 @@ const SAC_PORTAL = (function () {
       notice: "Accès ultra-restreint. Toute action est journalisée.",
       dashboard: "dashboard-admin.html",
       adminPortal: true,
-      logoFile: "logos.png",
+      logoFile: "../" + PLATFORM_LOGO,
     },
     "admin-uni": {
       id: "admin-uni",
@@ -66,7 +71,7 @@ const SAC_PORTAL = (function () {
       dashboard: "dashboard-universite.html",
       adminPortal: false,
       showCodeUni: true,
-      logoFile: "logos.png",
+      logoFile: "../" + PLATFORM_LOGO,
     },
   };
 
@@ -162,7 +167,16 @@ const SAC_PORTAL = (function () {
     if (slug && DEFS[slug] && DEFS[slug].logoFile) {
       return siteUrl(slug + "/" + DEFS[slug].logoFile);
     }
-    return siteUrl("logos.svg");
+    return siteUrl(PLATFORM_LOGO);
+  }
+
+  function faviconMimeFor(src) {
+    const s = String(src || "").toLowerCase();
+    if (s.endsWith(".png")) return "image/png";
+    if (s.endsWith(".jpg") || s.endsWith(".jpeg")) return "image/jpeg";
+    if (s.endsWith(".webp")) return "image/webp";
+    if (s.endsWith(".svg")) return "image/svg+xml";
+    return "image/jpeg";
   }
 
   function localLogoUrl() {
@@ -196,17 +210,20 @@ const SAC_PORTAL = (function () {
             : def
               ? def.role
               : null;
-      logoSrc = role ? logoUrlForRole(role) : siteUrl("logos.svg");
+      logoSrc = role ? logoUrlForRole(role) : siteUrl(PLATFORM_LOGO);
     }
 
     document.querySelectorAll("[data-portal-logo]").forEach((img) => {
       img.src = logoSrc;
       img.dataset.logoReady = "portal";
+      if (!img.getAttribute("alt") || /smart academy/i.test(img.getAttribute("alt") || "")) {
+        img.alt = PLATFORM_LOGO_ALT;
+      }
     });
     const fav = document.querySelector('link[rel="icon"]');
     if (fav && logoSrc) {
       fav.href = logoSrc;
-      fav.type = logoSrc.endsWith(".png") ? "image/png" : "image/svg+xml";
+      fav.type = faviconMimeFor(logoSrc);
       fav.setAttribute("data-portal-favicon", "");
     }
     const apple = document.querySelector('link[rel="apple-touch-icon"]');

@@ -174,7 +174,7 @@ const SAC_MEETINGS = (function () {
       if ("Notification" in window && Notification.permission === "granted") {
         new Notification("📞 Réunion live", {
           body: d.meeting.title + " — rejoignez maintenant",
-          icon: "logos.svg",
+          icon: "evo-uni.jpeg",
           requireInteraction: true,
         });
       }

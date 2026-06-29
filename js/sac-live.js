@@ -304,13 +304,13 @@ const SAC_LIVE = (function () {
 
     if (Notification.permission === "granted") {
 
-      new Notification(title, { body, icon: "logos.svg" });
+      new Notification(title, { body, icon: "evo-uni.jpeg" });
 
     } else if (Notification.permission !== "denied") {
 
       Notification.requestPermission().then((p) => {
 
-        if (p === "granted") new Notification(title, { body, icon: "logos.svg" });
+        if (p === "granted") new Notification(title, { body, icon: "evo-uni.jpeg" });
 
       });
 
