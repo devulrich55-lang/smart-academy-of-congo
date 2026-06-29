@@ -1,6 +1,6 @@
 @echo off
 
-title Smart Academy — serveur local
+title Evo-smartUni — serveur local
 
 cd /d "%~dp0backend-python"
 
@@ -8,7 +8,7 @@ cd /d "%~dp0backend-python"
 
 echo.
 
-echo  Smart Academy of Congo — demarrage local
+echo  Evo-smartUni — demarrage local
 
 echo  ==========================================
 

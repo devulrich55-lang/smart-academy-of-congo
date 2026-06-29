@@ -702,7 +702,7 @@ function SAC_initUniversityProfilePublisher(session, rootId) {
     accentColor: "#0d7a4a",
     pageTitle: "Informations — Mon université (portail)",
     pageDesc:
-      "<strong>Fil campus :</strong> annonces, documents, photos et vidéos visibles par <strong>tous les étudiants et personnels</strong> rattachés à votre établissement dans Smart Academy.",
+      "<strong>Fil campus :</strong> annonces, documents, photos et vidéos visibles par <strong>tous les étudiants et personnels</strong> rattachés à votre établissement dans Evo-smartUni.",
     multiFile: true,
     maxFiles: 10,
   });

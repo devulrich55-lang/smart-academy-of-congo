@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>Profil Étudiant — Smart Academy of Congo</title>
+  <title>Profil Étudiant — Evo-smartUni</title>
   <link rel="icon" href="evo-uni.jpeg" type="image/jpeg" />
   <link rel="stylesheet" href="css/logo.css" />
   <link rel="stylesheet" href="css/reclamations.css" />
@@ -496,7 +496,7 @@
     <div class="header__top">
       <a href="index.html" class="logo">
         <img src="evo-uni.jpeg" alt="Evo-smartUni" class="logo__img" width="44" height="44" data-uni-nav-logo data-uni-logo-fallback="evo-uni.jpeg" />
-        <span class="logo__text">Smart Academy</span>
+        <span class="logo__text">Evo-smartUni</span>
       </a>
       <div class="header__user">
         <button type="button" class="theme-toggle" data-theme-toggle title="Changer de thème" aria-label="Changer de thème">
@@ -1675,7 +1675,7 @@
       const tarifSac = p.inscriptionFee || (typeof SAC_TARIFFS !== "undefined" ? SAC_TARIFFS.defaultFor("etudiant") : null);
       const acad = p.campusAcademicFees;
       const tarifSacHtml = tarifSac
-        ? `<div class="info-row"><span>Inscription Smart Academy</span><span><strong>${tarifSac.amount} USD</strong> · ~${(tarifSac.cdf || 0).toLocaleString("fr-FR")} CDF</span></div>`
+        ? `<div class="info-row"><span>Inscription Evo-smartUni</span><span><strong>${tarifSac.amount} USD</strong> · ~${(tarifSac.cdf || 0).toLocaleString("fr-FR")} CDF</span></div>`
         : "";
       const tarifAcadHtml = acad?.trimestre
         ? `<div class="info-row"><span>Frais académiques campus</span><span><strong>${acad.trimestre.amount} USD</strong> / trimestre · ~${(typeof SAC_TARIFFS !== "undefined" ? SAC_TARIFFS.toCdf(acad.trimestre.amount) : 0).toLocaleString("fr-FR")} CDF</span></div>`

@@ -1,4 +1,4 @@
-# Déploiement — Smart Academy of Congo
+# Déploiement — Evo-smartUni
 
 Checklist pour un déploiement **stable** sur **Render** (auth JWT, données persistantes, CORS).
 

@@ -8,7 +8,7 @@ cd /d "%~dp0"
 
 echo.
 
-echo  Smart Academy — envoi des corrections en ligne
+echo  Evo-smartUni — envoi des corrections en ligne
 
 echo  ================================================
 

@@ -5,7 +5,7 @@ const SAC_SECTIONS = (function () {
   const SECTIONS_KEY = "sac_sections";
   const RECLAMATIONS_KEY = "sac_reclamations";
 
-  /** Grandes catégories Smart Academy — réclamations étudiant / section. */
+  /** Grandes catégories Evo-smartUni — réclamations étudiant / section. */
   const RECLAMATION_CATEGORIES = [
     { id: "academique", label: "Réclamation académique", icon: "📚" },
     { id: "finance", label: "Finance", icon: "💳" },

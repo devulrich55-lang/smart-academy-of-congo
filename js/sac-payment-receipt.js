@@ -62,7 +62,7 @@ const SAC_PAYMENT_RECEIPT = (function () {
   <div class="receipt">
     <div class="receipt__head">
       <h1>Reçu de paiement académique</h1>
-      <p>Smart Academy of Congo — ${esc(universityName || payment.universite || "")}</p>
+      <p>Evo-smartUni — ${esc(universityName || payment.universite || "")}</p>
     </div>
     <div class="receipt__body">
       <div class="receipt__grid">
@@ -85,7 +85,7 @@ const SAC_PAYMENT_RECEIPT = (function () {
       </p>
     </div>
     <div class="receipt__foot">
-      Document généré le ${formatDate(new Date().toISOString())} — Smart Academy of Congo
+      Document généré le ${formatDate(new Date().toISOString())} — Evo-smartUni
     </div>
   </div>
   <p class="no-print" style="text-align:center;margin-top:16px;">

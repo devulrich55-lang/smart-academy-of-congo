@@ -678,7 +678,7 @@ const SAC_GRADE_SHEET = (function () {
       <p>Fait à ${esc(inst.cityTitle)}, le ${esc(formatLongDate(sheet.validatedAt))}</p>
       <p class="releve-signature__role">Secrétaire du jury</p>
     </div>
-    <p class="releve-footer-note">Document numérique — Smart Academy of Congo · Réf. ${esc(sheet.id)}</p>
+    <p class="releve-footer-note">Document numérique — Evo-smartUni · Réf. ${esc(sheet.id)}</p>
     <div class="grade-sheet__actions no-print" data-sac-transcript-actions="fiche">
       <button type="button" data-sac-action="download">⬇ Télécharger la fiche</button>
       <button type="button" data-sac-action="print">🖨 Imprimer</button>
@@ -745,7 +745,7 @@ const SAC_GRADE_SHEET = (function () {
       <p>Fait à ${esc(inst.cityTitle)}, le ${esc(formatLongDate(bulletin.generatedAt))}</p>
       <p class="releve-signature__role">Secrétaire du jury</p>
     </div>
-    <p class="releve-footer-note">Document numérique — Smart Academy of Congo · Réf. ${esc(bulletin.id)} · ${esc(bulletin.totalCredits)} crédits</p>
+    <p class="releve-footer-note">Document numérique — Evo-smartUni · Réf. ${esc(bulletin.id)} · ${esc(bulletin.totalCredits)} crédits</p>
     <div class="grade-sheet__actions no-print" data-sac-transcript-actions="bulletin">
       <button type="button" data-sac-action="download">⬇ Télécharger le relevé</button>
       <button type="button" data-sac-action="print">🖨 Imprimer</button>

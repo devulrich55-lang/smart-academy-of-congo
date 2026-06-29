@@ -1,5 +1,5 @@
 /**
- * Tarifs d'inscription Smart Academy
+ * Tarifs d'inscription Evo-smartUni
  * — défauts plateforme (Super Admin) + tarifs campus par université (DG)
  */
 const SAC_TARIFFS = (function () {
@@ -443,7 +443,7 @@ const SAC_TARIFFS = (function () {
     const year = new Date().getFullYear();
     const rows = [
       {
-        label: "Frais d'inscription (Smart Academy)",
+        label: "Frais d'inscription (Evo-smartUni)",
         term: `Année ${year}-${year + 1}`,
         amount: inscAmount,
         amountCdf: inscFee.cdf != null ? inscFee.cdf : toCdf(inscAmount),

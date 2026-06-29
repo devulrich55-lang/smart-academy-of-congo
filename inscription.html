@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <meta name="description" content="Inscription — Smart Academy of Congo. Étudiant, professeur ou assistant." />
-  <title>Inscription — Smart Academy of Congo</title>
+  <meta name="description" content="Inscription — Evo-smartUni. Étudiant, professeur ou assistant." />
+  <title>Inscription — Evo-smartUni</title>
   <script src="js/sac-config.js"></script>
   <script src="js/sac-theme.js"></script>
   <link rel="icon" href="evo-uni.jpeg" type="image/jpeg" />
@@ -1135,7 +1135,7 @@
     <div class="header__inner">
       <a href="index.html" class="logo">
         <img src="evo-uni.jpeg" alt="Evo-smartUni" class="logo__img" width="48" height="48" />
-        <span class="logo__text">Smart Academy</span>
+        <span class="logo__text">Evo-smartUni</span>
       </a>
       <a href="connexion.html" class="header__link">Déjà inscrit ? Se connecter</a>
     </div>
@@ -1145,9 +1145,9 @@
     <aside class="intro">
       <div class="logo-brand">
         <img src="evo-uni.jpeg" alt="Evo-smartUni" class="logo__img" width="100" height="100" />
-        <p class="logo__caption">Smart Academy of Congo</p>
+        <p class="logo__caption">Evo-smartUni</p>
       </div>
-      <h1>Rejoignez Smart Academy of Congo</h1>
+      <h1>Rejoignez Evo-smartUni</h1>
       <p>Créez votre compte selon votre profil pour accéder aux informations officielles de votre campus.</p>
       <div class="pricing-box" style="margin-bottom: 0.75rem;">
         <div class="pricing-box__row">
@@ -1466,7 +1466,7 @@
           <input type="checkbox" id="terms" name="terms" required />
           <span>
             J'accepte les <a href="#">conditions d'utilisation</a> et la
-            <a href="#">politique de confidentialité</a> de Smart Academy of Congo.
+            <a href="#">politique de confidentialité</a> de Evo-smartUni.
           </span>
         </label>
 
@@ -1505,7 +1505,7 @@
       <div class="modal__header">
         <img src="evo-uni.jpeg" alt="" width="56" height="56" style="display:block;margin:0 auto 0.75rem;object-fit:contain;" aria-hidden="true" />
         <h3 id="modalTitle">Finaliser l'inscription</h3>
-        <p id="modalSubtitle">Frais d'ouverture de compte Smart Academy</p>
+        <p id="modalSubtitle">Frais d'ouverture de compte Evo-smartUni</p>
         <div class="modal__amount" id="modalAmount">1,00 USD</div>
       </div>
       <div class="modal__body">
@@ -1555,7 +1555,7 @@
             <div class="phone-alert-mock__icon" id="alertProviderIcon">🟠</div>
             <div class="phone-alert-mock__title" id="alertProviderName">Orange Money</div>
             <p class="phone-alert-mock__body">
-              <strong>Smart Academy of Congo</strong> demande un paiement :
+              <strong>Evo-smartUni</strong> demande un paiement :
             </p>
             <div class="phone-alert-mock__amount" id="alertAmount">2 300 FC</div>
             <p class="phone-alert-mock__body" style="font-size:0.8rem;">
@@ -1696,7 +1696,7 @@
         accountRaw: "5644130901009439797",
         note: "Francs congolais (CDF) uniquement",
       },
-      beneficiary: "Smart Academy of Congo",
+      beneficiary: "Evo-smartUni",
     };
 
     const MOBILE_MONEY = {
@@ -1794,7 +1794,7 @@
       universite: {
         badge: "Inscription établissement",
         icon: "🏛️",
-        note: "Un conseiller Smart Academy vous contactera sous 48 h pour valider le partenariat et activer le portail de votre campus.",
+        note: "Un conseiller Evo-smartUni vous contactera sous 48 h pour valider le partenariat et activer le portail de votre campus.",
         benefits: [
           "Enregistrez toutes les sections / facultés de votre campus à l'inscription",
           "Publiez par section : seuls les étudiants concernés voient le message",
@@ -1852,11 +1852,11 @@
         month: "long",
         year: "numeric",
       });
-      const motif = "Inscription Smart Academy — " + roleLabel;
+      const motif = "Inscription Evo-smartUni — " + roleLabel;
       const cdfLabel = fee.cdf.toLocaleString("fr-FR") + " CDF";
 
       const head =
-        '<div class="bordereau-slip__head"><h4>Bordereau de paiement</h4><strong>Smart Academy of Congo</strong></div>';
+        '<div class="bordereau-slip__head"><h4>Bordereau de paiement</h4><strong>Evo-smartUni</strong></div>';
 
       const foot =
         '<div class="bordereau-slip__foot">Conservez la référence de transaction après l\'opération. L\'inscription est activée après vérification par l\'administration.<br />Support : contact@smartacademy.cd</div>';
@@ -1867,7 +1867,7 @@
           bordereauLine("Type d'opération", "Virement bancaire international / local") +
           bordereauLine("Banque bénéficiaire", "UBA BANK") +
           bordereauLine("Pays", "République Démocratique du Congo") +
-          bordereauLine("Bénéficiaire", "Smart Academy of Congo") +
+          bordereauLine("Bénéficiaire", "Evo-smartUni") +
           bordereauLine("N° de compte", "4035 2512 8823 8967", "bordereau-line__v--mono") +
           bordereauLine("Devise du compte", "USD — Dollars américains uniquement") +
           bordereauLine("Montant exact à virer", formatUsd(fee.amount), "bordereau-line__v--amount") +
@@ -1885,7 +1885,7 @@
           bordereauLine("Type d'opération", "Virement bancaire") +
           bordereauLine("Banque bénéficiaire", "FIRST BANK") +
           bordereauLine("Pays", "République Démocratique du Congo") +
-          bordereauLine("Bénéficiaire", "Smart Academy of Congo") +
+          bordereauLine("Bénéficiaire", "Evo-smartUni") +
           bordereauLine("N° de compte", "5644 1309 0100 9439 797", "bordereau-line__v--mono") +
           bordereauLine("Devise du compte", "CDF — Francs congolais uniquement") +
           bordereauLine("Montant exact à virer", cdfLabel, "bordereau-line__v--amount") +
@@ -1902,7 +1902,7 @@
           head +
           bordereauLine("Type d'opération", "Transfert Orange Money") +
           bordereauLine("Opérateur", "Orange RDC") +
-          bordereauLine("Bénéficiaire", "Smart Academy of Congo") +
+          bordereauLine("Bénéficiaire", "Evo-smartUni") +
           bordereauLine("Numéro marchand", "+243 85 184 8859", "bordereau-line__v--mono") +
           bordereauLine("Devise", "CDF — Francs congolais") +
           bordereauLine("Montant exact", cdfLabel, "bordereau-line__v--amount") +
@@ -1918,7 +1918,7 @@
         head +
         bordereauLine("Type d'opération", "Transfert M-Pesa") +
         bordereauLine("Opérateur", "Vodacom M-Pesa") +
-        bordereauLine("Bénéficiaire", "Smart Academy of Congo") +
+        bordereauLine("Bénéficiaire", "Evo-smartUni") +
         bordereauLine("Numéro marchand", "+243 83 247 9012", "bordereau-line__v--mono") +
         bordereauLine("Devise", "CDF — Francs congolais") +
         bordereauLine("Montant exact", cdfLabel, "bordereau-line__v--amount") +

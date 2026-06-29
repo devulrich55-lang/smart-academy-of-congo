@@ -1,5 +1,5 @@
 /**
- * Smart Academy of Congo — navigation et tableaux mobile (iOS / Android / tablette)
+ * Evo-smartUni — navigation et tableaux mobile (iOS / Android / tablette)
  */
 (function () {
   "use strict";

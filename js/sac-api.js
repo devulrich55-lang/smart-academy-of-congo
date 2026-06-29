@@ -1,5 +1,5 @@
 /**
- * Client API sécurisé — Smart Academy of Congo
+ * Client API sécurisé — Evo-smartUni
  * Cross-origin Render : jetons Bearer (CROSS_ORIGIN_AUTH) — pas de cookies tiers.
  */
 const SAC_API = (function () {

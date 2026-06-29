@@ -499,7 +499,7 @@ const SAC_SECTION_APPROVAL = (function () {
             "Votre compte étudiant est enregistré sur la plateforme mais n'est pas encore activé par votre section.",
           detailHtml:
             "Le <strong>chef de section de votre filière</strong> doit valider votre inscription " +
-            "<strong>directement sur Smart Academy</strong> (onglet Validation). " +
+            "<strong>directement sur Evo-smartUni</strong> (onglet Validation). " +
             "Aucun déplacement n'est requis — la validation se fait en ligne, en principe sous <strong>24 heures</strong>." +
             dossierHtml,
           hint:

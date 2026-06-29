@@ -1,5 +1,5 @@
 /**
- * Plateforme unifiée Smart Academy of Congo
+ * Plateforme unifiée Evo-smartUni
  * 10 piliers · RBAC · sync API + repli localStorage sécurisé par campus
  */
 const SAC_PLATFORM = (function () {

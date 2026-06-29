@@ -35,7 +35,7 @@ const SAC_PORTAL = (function () {
       role: "superadmin",
       slug: "superadmin",
       title: "Portail Super Admin",
-      orgName: "Smart Academy of Congo — Administration centrale",
+      orgName: "Evo-smartUni — Administration centrale",
       hostHints: ["superadmin."],
       pathPrefix: "/superadmin",
       accent: "#5b21b6",
@@ -216,7 +216,7 @@ const SAC_PORTAL = (function () {
     document.querySelectorAll("[data-portal-logo]").forEach((img) => {
       img.src = logoSrc;
       img.dataset.logoReady = "portal";
-      if (!img.getAttribute("alt") || /smart academy/i.test(img.getAttribute("alt") || "")) {
+      if (!img.getAttribute("alt") || /evo-smartuni/i.test(img.getAttribute("alt") || "")) {
         img.alt = PLATFORM_LOGO_ALT;
       }
     });

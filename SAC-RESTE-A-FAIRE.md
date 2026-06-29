@@ -1,4 +1,4 @@
-# Smart Academy of Congo — État de la plateforme
+# Evo-smartUni — État de la plateforme
 
 > Document de référence — mis à jour le **18 juin 2026**.  
 > Bilan complet : ce qui marche, ce qui ne marche pas, ce qui reste à faire.

@@ -3,7 +3,7 @@ title Repartir a zero — frontend sur GitHub
 cd /d "%~dp0"
 
 echo.
-echo  Smart Academy — remplacement complet du depot frontend
+echo  Evo-smartUni — remplacement complet du depot frontend
 echo  https://github.com/devulrich55-lang/smart-academy-of-congo
 echo  ========================================================
 echo.
@@ -39,7 +39,7 @@ git add -A
 git status
 
 echo.
-git commit -m "Frontend Smart Academy of Congo — site statique Render"
+git commit -m "Frontend Evo-smartUni — site statique Render"
 
 git branch -D main 2>nul
 git branch -m main

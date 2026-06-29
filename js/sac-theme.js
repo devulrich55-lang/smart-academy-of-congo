@@ -1,5 +1,5 @@
 /**
- * Smart Academy — thème clair / nocturne (toute la plateforme)
+ * Evo-smartUni — thème clair / nocturne (toute la plateforme)
  */
 (function () {
   const STORAGE_KEY = "sac-theme";
@@ -104,7 +104,7 @@
       if (img.dataset.logoReady) return;
       img.dataset.logoReady = "1";
       img.src = LOGO_FILE;
-      if (!img.getAttribute("alt") || /smart academy|logos/i.test(img.getAttribute("alt") || "")) {
+      if (!img.getAttribute("alt") || /evo-smartuni|logos/i.test(img.getAttribute("alt") || "")) {
         img.alt = alt;
       }
     });

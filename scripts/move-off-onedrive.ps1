@@ -1,4 +1,4 @@
-# Copie / synchronise Smart Academy of Congo hors OneDrive vers C:\Dev
+# Copie / synchronise Evo-smartUni hors OneDrive vers C:\Dev
 # Usage :
 #   powershell -ExecutionPolicy Bypass -File ".\scripts\move-off-onedrive.ps1"
 #   powershell -ExecutionPolicy Bypass -File ".\scripts\move-off-onedrive.ps1" -Force
