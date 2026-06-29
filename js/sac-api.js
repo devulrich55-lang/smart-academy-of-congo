@@ -1784,6 +1784,10 @@ const SAC_API = (function () {
     return platformRequest("/platform/campus-catalog", { auth: false });
   }
 
+  async function getPublicPlatformStats() {
+    return platformRequest("/platform/public-stats", { auth: false });
+  }
+
   async function resolveCampusCatalog(q) {
     const code = encodeURIComponent(String(q || "").trim());
     if (!code) return { id: null, item: null };
@@ -2094,6 +2098,7 @@ const SAC_API = (function () {
     recordHomeNewsView,
     getCampusBranding,
     getCampusCatalog,
+    getPublicPlatformStats,
     resolveCampusCatalog,
     listCampusSectionsPublic,
     createHomeNews,
