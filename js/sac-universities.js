@@ -72,6 +72,15 @@ const SAC_UNIVERSITIES = (function () {
     return LIST.find((u) => u.id === id);
   }
 
+  function getCountryCode(id) {
+    const u = getById(id);
+    if (u?.countryCode) return String(u.countryCode).toUpperCase();
+    if (typeof SAC_AFRICA_COUNTRIES !== "undefined") {
+      return SAC_AFRICA_COUNTRIES.getCountryForUniversite(id);
+    }
+    return "CD";
+  }
+
   function formatLabel(u) {
     if (!u) return "";
     return u.sigle ? `${u.name} (${u.sigle})` : u.name;
@@ -216,6 +225,7 @@ const SAC_UNIVERSITIES = (function () {
       return Object.fromEntries(LIST.map((u) => [u.id, getLabel(u.id)]));
     },
     getById,
+    getCountryCode,
     getLabel,
     getName,
     optionsHtml,

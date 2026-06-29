@@ -9,6 +9,43 @@
   margin: 0 auto;
 }
 
+.home-news__country-bar {
+  max-width: 640px;
+  margin: 0 auto 1.25rem;
+  text-align: center;
+}
+
+.home-news__country-label {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--primary, #0c3d6e);
+  margin-bottom: 0.4rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.home-news__country-select {
+  width: 100%;
+  max-width: 420px;
+  padding: 0.65rem 0.85rem;
+  border-radius: 10px;
+  border: 2px solid var(--primary, #0c3d6e);
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 600;
+  background: #fff;
+  color: var(--text, #1a2b3c);
+  cursor: pointer;
+}
+
+.home-news__country-hint {
+  font-size: 0.84rem;
+  color: var(--text-muted, #5a6d7e);
+  margin: 0.55rem 0 0;
+  line-height: 1.45;
+}
+
 .home-news__toolbar {
   display: flex;
   flex-wrap: wrap;
@@ -56,6 +93,10 @@
   font-size: 0.88rem;
   min-width: 220px;
   background: #fff;
+}
+
+.hn-card__pin--country {
+  font-size: 0.72rem;
 }
 
 .home-news__grid {

@@ -116,6 +116,7 @@ const SAC_HOME_NEWS = (function () {
       validUntil: "",
       createdAt: "2025-11-01T09:00:00.000Z",
       updatedAt: "2025-11-01T09:00:00.000Z",
+      countryCode: "PAN",
     },
     {
       id: "hn-demo-1",
@@ -137,6 +138,7 @@ const SAC_HOME_NEWS = (function () {
       validUntil: "",
       createdAt: "2025-11-15T10:00:00.000Z",
       updatedAt: "2025-11-15T10:00:00.000Z",
+      countryCode: "CD",
     },
     {
       id: "hn-demo-2",
@@ -158,6 +160,7 @@ const SAC_HOME_NEWS = (function () {
       validUntil: "2025-11-30",
       createdAt: "2025-10-20T08:00:00.000Z",
       updatedAt: "2025-10-20T08:00:00.000Z",
+      countryCode: "CD",
     },
     {
       id: "hn-demo-3",
@@ -178,6 +181,7 @@ const SAC_HOME_NEWS = (function () {
       validUntil: "2025-12-20",
       createdAt: "2025-10-05T12:00:00.000Z",
       updatedAt: "2025-10-05T12:00:00.000Z",
+      countryCode: "CD",
     },
     {
       id: "hn-demo-4",
@@ -199,6 +203,71 @@ const SAC_HOME_NEWS = (function () {
       validUntil: "",
       createdAt: "2025-09-28T09:00:00.000Z",
       updatedAt: "2025-09-28T09:00:00.000Z",
+      countryCode: "CD",
+    },
+    {
+      id: "hn-demo-ke",
+      scope: SCOPES.national,
+      authorRole: AUTHOR_ROLES.ministry,
+      universite: MINISTRY_CODE,
+      universityName: "Ministère de l'Enseignement Supérieur — Kenya",
+      authorId: "admin@mesu.ke",
+      authorName: "MESU Kenya",
+      category: "bourse",
+      title: "Bourses régionales — mobilité étudiante EAC 2025",
+      excerpt:
+        "Programme de mobilité pour étudiants des pays de la Communauté d'Afrique de l'Est : semestre d'échange et frais partiels.",
+      body: "Candidatures ouvertes jusqu'au 31 janvier. Dossier : relevé de notes, lettre de motivation, passeport ou carte nationale.",
+      linkUrl: "",
+      linkLabel: "Détails",
+      published: true,
+      pinned: false,
+      validUntil: "2026-01-31",
+      createdAt: "2025-10-10T08:00:00.000Z",
+      updatedAt: "2025-10-10T08:00:00.000Z",
+      countryCode: "KE",
+    },
+    {
+      id: "hn-demo-sn",
+      scope: SCOPES.university,
+      authorRole: AUTHOR_ROLES.university,
+      universite: "ucad",
+      universityName: "Université Cheikh Anta Diop (UCAD)",
+      authorId: "admin@ucad.sn",
+      authorName: "Administration UCAD",
+      category: "concours",
+      title: "Concours d'entrée — Institut de technologie (Dakar)",
+      excerpt: "Session 2025 : épreuves écrites en mars. Inscription en ligne obligatoire.",
+      body: "Pièces : relevé BAC, extrait de naissance, certificat de nationalité, frais de dossier.",
+      linkUrl: "",
+      linkLabel: "",
+      published: true,
+      pinned: false,
+      validUntil: "2026-03-15",
+      createdAt: "2025-09-15T10:00:00.000Z",
+      updatedAt: "2025-09-15T10:00:00.000Z",
+      countryCode: "SN",
+    },
+    {
+      id: "hn-demo-ng",
+      scope: SCOPES.national,
+      authorRole: AUTHOR_ROLES.university,
+      universite: "national",
+      universityName: "Réseau universitaire — Nigeria",
+      authorId: "admin@uni.ng",
+      authorName: "Plateforme partenaire NG",
+      category: "opportunite",
+      title: "Stages tech — Lagos & Abuja (partenaires industriels)",
+      excerpt: "40 places pour étudiants L3/Master en informatique et data. Durée 4 à 6 mois.",
+      body: "Postuler via la plateforme avec CV et portfolio. Entretien en ligne en anglais ou français.",
+      linkUrl: "",
+      linkLabel: "Candidater",
+      published: true,
+      pinned: false,
+      validUntil: "",
+      createdAt: "2025-09-01T12:00:00.000Z",
+      updatedAt: "2025-09-01T12:00:00.000Z",
+      countryCode: "NG",
     },
   ];
 
@@ -293,7 +362,33 @@ const SAC_HOME_NEWS = (function () {
     if (item.mediaName === undefined) item.mediaName = "";
     if (item.viewCount === undefined) item.viewCount = 0;
     if (item.uniqueViewCount === undefined) item.uniqueViewCount = 0;
+    item.countryCode = resolveCountryCode(item);
     return item;
+  }
+
+  function resolveCountryCode(item) {
+    if (typeof SAC_AFRICA_COUNTRIES !== "undefined") {
+      return SAC_AFRICA_COUNTRIES.inferFromNewsItem(item);
+    }
+    if (item?.countryCode) return String(item.countryCode).toUpperCase();
+    if (item?.universite && typeof SAC_UNIVERSITIES !== "undefined" && SAC_UNIVERSITIES.getCountryCode) {
+      return SAC_UNIVERSITIES.getCountryCode(item.universite);
+    }
+    return "CD";
+  }
+
+  function countryBadgeHtml(item) {
+    if (typeof SAC_AFRICA_COUNTRIES === "undefined") return "";
+    const code = resolveCountryCode(item);
+    if (code === SAC_AFRICA_COUNTRIES.PAN) {
+      return '<span class="hn-card__pin hn-card__pin--country" style="background:#475569;color:#fff;">🌐 Pan-africain</span>';
+    }
+    const label = SAC_AFRICA_COUNTRIES.label(code);
+    return (
+      '<span class="hn-card__pin hn-card__pin--country" style="background:#0f766e;color:#fff;">' +
+      escHtml(label) +
+      "</span>"
+    );
   }
 
   function isMinistryItem(item) {
@@ -349,8 +444,11 @@ const SAC_HOME_NEWS = (function () {
       list = list.filter((n) => n.scope === SCOPES.university);
     } else if (opts.publicSite) {
       const uni = opts.universite && opts.universite !== "all" ? opts.universite : null;
+      const hasCountry = opts.country && opts.country !== "all";
       if (!uni) {
-        list = list.filter((n) => n.scope === SCOPES.national);
+        if (!hasCountry) {
+          list = list.filter((n) => n.scope === SCOPES.national);
+        }
       } else {
         list = list.filter(
           (n) =>
@@ -366,6 +464,15 @@ const SAC_HOME_NEWS = (function () {
     }
     if (opts.category && opts.category !== "all") {
       list = list.filter((n) => n.category === opts.category);
+    }
+    if (opts.country && opts.country !== "all") {
+      list = list.filter((n) => {
+        const cc = resolveCountryCode(n);
+        if (typeof SAC_AFRICA_COUNTRIES !== "undefined") {
+          return SAC_AFRICA_COUNTRIES.matchesFilter(cc, opts.country);
+        }
+        return cc === String(opts.country).toUpperCase();
+      });
     }
     return list.sort((a, b) => {
       if (a.pinned && !b.pinned) return -1;
@@ -482,6 +589,9 @@ const SAC_HOME_NEWS = (function () {
         published: data.published !== false,
         pinned: !!data.pinned,
         validUntil: data.validUntil || "",
+        countryCode:
+          data.countryCode ||
+          (typeof SAC_AFRICA_COUNTRIES !== "undefined" ? SAC_AFRICA_COUNTRIES.PAN : "PAN"),
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
@@ -523,6 +633,15 @@ const SAC_HOME_NEWS = (function () {
       published: data.published !== false,
       pinned: !!data.pinned,
       validUntil: data.validUntil || "",
+      countryCode:
+        data.countryCode ||
+        (scope === SCOPES.national
+          ? typeof SAC_AFRICA_COUNTRIES !== "undefined"
+            ? SAC_AFRICA_COUNTRIES.getCountryForUniversite(code)
+            : "CD"
+          : typeof SAC_UNIVERSITIES !== "undefined"
+            ? SAC_UNIVERSITIES.getCountryCode(code)
+            : "CD"),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -574,6 +693,7 @@ const SAC_HOME_NEWS = (function () {
       published: data.published !== undefined ? !!data.published : prev.published,
       pinned: data.pinned !== undefined ? !!data.pinned : prev.pinned,
       validUntil: data.validUntil !== undefined ? data.validUntil : prev.validUntil,
+      countryCode: data.countryCode !== undefined ? data.countryCode : prev.countryCode,
       updatedAt: new Date().toISOString(),
     };
     saveAll(list);
@@ -742,6 +862,7 @@ const SAC_HOME_NEWS = (function () {
         <div class="hn-card__top">
           <span class="hn-card__badge" style="background:${cat.color}">${cat.icon} ${escHtml(cat.label)}</span>
           ${nationalBadge}
+          ${countryBadgeHtml(item)}
           ${item.pinned ? '<span class="hn-card__pin">📌 À la une</span>' : ""}
         </div>
         <h3 class="hn-card__title">${escHtml(item.title)}</h3>
@@ -764,15 +885,95 @@ const SAC_HOME_NEWS = (function () {
     const filtersId = config.filtersId || "homeNewsFilters";
     const emptyId = config.emptyId || "homeNewsEmpty";
     const uniSelectId = config.uniSelectId || "homeNewsUni";
+    const countrySelectId = config.countrySelectId || "homeNewsCountry";
+    const countryHintId = config.countryHintId || "homeNewsCountryHint";
 
     const feed = document.getElementById(feedId);
     const filtersEl = document.getElementById(filtersId);
     const emptyEl = document.getElementById(emptyId);
     const uniSelect = document.getElementById(uniSelectId);
+    const countrySelect = document.getElementById(countrySelectId);
+    const countryHint = document.getElementById(countryHintId);
     if (!feed) return;
 
     let currentCategory = "all";
     let currentUni = "all";
+    let currentCountry =
+      typeof SAC_AFRICA_COUNTRIES !== "undefined"
+        ? SAC_AFRICA_COUNTRIES.getStoredCountry()
+        : "CD";
+
+    function countryLabel(code) {
+      if (typeof SAC_AFRICA_COUNTRIES === "undefined") return code;
+      if (code === SAC_AFRICA_COUNTRIES.ALL) return "Toute l'Afrique";
+      return SAC_AFRICA_COUNTRIES.label(code);
+    }
+
+    function rebuildUniSelect() {
+      if (!uniSelect || typeof SAC_UNIVERSITIES === "undefined") return;
+      const published = getPublished({ country: currentCountry });
+      let uniIds = [...new Set(published.map((n) => n.universite))].filter(
+        (id) => id && id !== MINISTRY_CODE && id !== NATIONAL_CODE
+      );
+      if (currentCountry !== "all" && typeof SAC_AFRICA_COUNTRIES !== "undefined") {
+        uniIds = uniIds.filter((id) => {
+          const cc =
+            typeof SAC_UNIVERSITIES !== "undefined" && SAC_UNIVERSITIES.getCountryCode
+              ? SAC_UNIVERSITIES.getCountryCode(id)
+              : SAC_AFRICA_COUNTRIES.getCountryForUniversite(id);
+          return SAC_AFRICA_COUNTRIES.matchesFilter(cc, currentCountry);
+        });
+      }
+      const prev = currentUni;
+      uniSelect.innerHTML =
+        '<option value="all">🏛️ Tous les établissements du pays</option>' +
+        uniIds
+          .map((id) => {
+            const name =
+              SAC_UNIVERSITIES.NAMES[id] ||
+              published.find((n) => n.universite === id)?.universityName ||
+              id;
+            return `<option value="${id}">${escHtml(name)}</option>`;
+          })
+          .join("");
+      if (prev !== "all" && uniIds.includes(prev)) {
+        uniSelect.value = prev;
+      } else {
+        currentUni = "all";
+        uniSelect.value = "all";
+      }
+    }
+
+    if (countrySelect && typeof SAC_AFRICA_COUNTRIES !== "undefined") {
+      countrySelect.innerHTML = SAC_AFRICA_COUNTRIES.buildSelectOptions(currentCountry, {
+        includeAll: true,
+        includePanAfrica: false,
+      });
+      countrySelect.value = currentCountry;
+      countrySelect.addEventListener("change", () => {
+        currentCountry = countrySelect.value;
+        SAC_AFRICA_COUNTRIES.setStoredCountry(currentCountry);
+        currentUni = "all";
+        if (countryHint) {
+          countryHint.textContent =
+            currentCountry === SAC_AFRICA_COUNTRIES.ALL
+              ? "Affichage de toutes les publications africaines classées par catégorie."
+              : "Informations locales pour " +
+                countryLabel(currentCountry) +
+                " uniquement — ministère, concours, bourses et campus du pays.";
+        }
+        rebuildUniSelect();
+        paint();
+      });
+      if (countryHint) {
+        countryHint.textContent =
+          currentCountry === SAC_AFRICA_COUNTRIES.ALL
+            ? "Affichage de toutes les publications africaines classées par catégorie."
+            : "Informations locales pour " +
+              countryLabel(currentCountry) +
+              " uniquement — ministère, concours, bourses et campus du pays.";
+      }
+    }
 
     if (uniSelect) {
       uniSelect.addEventListener("change", () => {
@@ -802,11 +1003,20 @@ const SAC_HOME_NEWS = (function () {
       const items = getPublished({
         category: currentCategory,
         universite: currentUni,
+        country: currentCountry,
         publicSite: true,
       });
       if (!items.length) {
         feed.innerHTML = "";
-        if (emptyEl) emptyEl.style.display = "block";
+        if (emptyEl) {
+          emptyEl.style.display = "block";
+          emptyEl.textContent =
+            currentCountry === "all"
+              ? "Aucune publication pour le moment. Les ministères et universités partenaires publient depuis leurs portails."
+              : "Aucune publication locale pour " +
+                countryLabel(currentCountry) +
+                " pour le moment. Essayez « Toute l'Afrique » ou un autre pays.";
+        }
         return;
       }
       if (emptyEl) emptyEl.style.display = "none";
@@ -831,21 +1041,7 @@ const SAC_HOME_NEWS = (function () {
 
     async function boot() {
       await ensureSynced();
-      if (uniSelect && typeof SAC_UNIVERSITIES !== "undefined") {
-        const published = getPublished();
-        const uniIds = [...new Set(published.map((n) => n.universite))].filter(Boolean);
-        uniSelect.innerHTML =
-          '<option value="all">🌍 Espace régional uniquement</option>' +
-          uniIds
-            .map((id) => {
-              const name =
-                SAC_UNIVERSITIES.NAMES[id] ||
-                published.find((n) => n.universite === id)?.universityName ||
-                id;
-              return `<option value="${id}">${escHtml(name)}</option>`;
-            })
-            .join("");
-      }
+      rebuildUniSelect();
       paint();
     }
 
@@ -896,6 +1092,22 @@ const SAC_HOME_NEWS = (function () {
           ? "Publier à l'espace régional"
           : "Publier pour mon université");
 
+    const sessionCountry =
+      typeof SAC_AFRICA_COUNTRIES !== "undefined"
+        ? SAC_AFRICA_COUNTRIES.getCountryForUniversite(getUniCode(session))
+        : "CD";
+    const showCountryPick = isMinistry || isNational;
+    const countryFieldHtml = showCountryPick
+      ? `<div class="fg">
+              <label>Pays ciblé * <small>(publication locale sur la page d'accueil)</small></label>
+              <select class="fi" data-hn-country required>${
+                typeof SAC_AFRICA_COUNTRIES !== "undefined"
+                  ? SAC_AFRICA_COUNTRIES.buildPublisherOptions(sessionCountry, sessionCountry)
+                  : '<option value="CD">🇨🇩 RD Congo</option>'
+              }</select>
+            </div>`
+      : `<input type="hidden" data-hn-country value="${escHtml(sessionCountry)}" />`;
+
     let editingId = null;
     let currentMedia = { mediaUrl: "", mediaType: "", mediaName: "", attachments: [] };
     let clearMedia = false;
@@ -921,6 +1133,7 @@ const SAC_HOME_NEWS = (function () {
                 <input type="date" class="fi" data-hn-valid-until />
               </div>
             </div>
+            ${countryFieldHtml}
             <div class="fg">
               <label>Titre *</label>
               <input type="text" class="fi" data-hn-title required maxlength="200" placeholder="Ex. Appel à candidatures — bourses Master" />
@@ -1074,6 +1287,9 @@ const SAC_HOME_NEWS = (function () {
       };
       q("[data-hn-form-title]").textContent = "Modifier la publication";
       q("[data-hn-category]").value = item.category;
+      if (q("[data-hn-country]")) {
+        q("[data-hn-country]").value = item.countryCode || sessionCountry;
+      }
       q("[data-hn-title]").value = item.title;
       q("[data-hn-excerpt]").value = item.excerpt;
       q("[data-hn-body]").value = item.body || "";
@@ -1113,6 +1329,11 @@ const SAC_HOME_NEWS = (function () {
                 ${scopeTag}
               </div>
               <strong>${escHtml(item.title)}</strong>
+              <small style="display:block;color:var(--muted);">${
+                typeof SAC_AFRICA_COUNTRIES !== "undefined"
+                  ? SAC_AFRICA_COUNTRIES.label(resolveCountryCode(item))
+                  : item.countryCode || "—"
+              }</small>
               ${item.mediaUrl ? `<small style="display:block;color:var(--muted);">📎 ${escHtml(item.mediaName || "Fichier joint")}</small>` : ""}
               <p style="font-size:0.88rem;color:var(--muted);margin:0.35rem 0;">${escHtml(item.excerpt)}</p>
               <small style="color:var(--muted);">${formatDate(item.createdAt)}</small>
@@ -1153,6 +1374,7 @@ const SAC_HOME_NEWS = (function () {
       e.preventDefault();
       const payload = {
         category: q("[data-hn-category]").value,
+        countryCode: q("[data-hn-country]")?.value || sessionCountry,
         title: q("[data-hn-title]").value,
         excerpt: q("[data-hn-excerpt]").value,
         body: q("[data-hn-body]").value,
@@ -1300,6 +1522,7 @@ const SAC_HOME_NEWS = (function () {
     AUTHOR_ROLES,
     categoryLabel,
     categoryMeta,
+    resolveCountryCode,
     getAll,
     getPublished,
     getNationalPublished,
