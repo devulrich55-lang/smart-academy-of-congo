@@ -1,5 +1,5 @@
 /**
- * Pays africains — filtrage local (page publique, actualités, campus)
+ * Pays partenaires Evo-smartUni — 18 pays prioritaires (francophones compatibles)
  */
 const SAC_AFRICA_COUNTRIES = (function () {
   const PAN = "PAN";
@@ -11,69 +11,33 @@ const SAC_AFRICA_COUNTRIES = (function () {
     central: "Afrique centrale",
     west: "Afrique de l'Ouest",
     east: "Afrique de l'Est",
-    north: "Afrique du Nord",
-    south: "Afrique australe",
     indian: "Océan Indien",
   };
 
   const LIST = [
-    { code: "DZ", name: "Algérie", flag: "🇩🇿", region: "north" },
-    { code: "AO", name: "Angola", flag: "🇦🇴", region: "central" },
-    { code: "BJ", name: "Bénin", flag: "🇧🇯", region: "west" },
-    { code: "BW", name: "Botswana", flag: "🇧🇼", region: "south" },
-    { code: "BF", name: "Burkina Faso", flag: "🇧🇫", region: "west" },
-    { code: "BI", name: "Burundi", flag: "🇧🇮", region: "east" },
-    { code: "CM", name: "Cameroun", flag: "🇨🇲", region: "central" },
-    { code: "CV", name: "Cap-Vert", flag: "🇨🇻", region: "west" },
-    { code: "CF", name: "Centrafrique", flag: "🇨🇫", region: "central" },
-    { code: "TD", name: "Tchad", flag: "🇹🇩", region: "central" },
-    { code: "KM", name: "Comores", flag: "🇰🇲", region: "indian" },
-    { code: "CG", name: "Congo", flag: "🇨🇬", region: "central" },
     { code: "CD", name: "RD Congo", flag: "🇨🇩", region: "central" },
-    { code: "CI", name: "Côte d'Ivoire", flag: "🇨🇮", region: "west" },
-    { code: "DJ", name: "Djibouti", flag: "🇩🇯", region: "east" },
-    { code: "EG", name: "Égypte", flag: "🇪🇬", region: "north" },
-    { code: "GQ", name: "Guinée équatoriale", flag: "🇬🇶", region: "central" },
-    { code: "ER", name: "Érythrée", flag: "🇪🇷", region: "east" },
-    { code: "SZ", name: "Eswatini", flag: "🇸🇿", region: "south" },
-    { code: "ET", name: "Éthiopie", flag: "🇪🇹", region: "east" },
+    { code: "CG", name: "Congo (Brazzaville)", flag: "🇨🇬", region: "central" },
     { code: "GA", name: "Gabon", flag: "🇬🇦", region: "central" },
-    { code: "GM", name: "Gambie", flag: "🇬🇲", region: "west" },
-    { code: "GH", name: "Ghana", flag: "🇬🇭", region: "west" },
-    { code: "GN", name: "Guinée", flag: "🇬🇳", region: "west" },
-    { code: "GW", name: "Guinée-Bissau", flag: "🇬🇼", region: "west" },
-    { code: "KE", name: "Kenya", flag: "🇰🇪", region: "east" },
-    { code: "LS", name: "Lesotho", flag: "🇱🇸", region: "south" },
-    { code: "LR", name: "Liberia", flag: "🇱🇷", region: "west" },
-    { code: "LY", name: "Libye", flag: "🇱🇾", region: "north" },
-    { code: "MG", name: "Madagascar", flag: "🇲🇬", region: "indian" },
-    { code: "MW", name: "Malawi", flag: "🇲🇼", region: "south" },
-    { code: "ML", name: "Mali", flag: "🇲🇱", region: "west" },
-    { code: "MR", name: "Mauritanie", flag: "🇲🇷", region: "west" },
-    { code: "MU", name: "Maurice", flag: "🇲🇺", region: "indian" },
-    { code: "MA", name: "Maroc", flag: "🇲🇦", region: "north" },
-    { code: "MZ", name: "Mozambique", flag: "🇲🇿", region: "south" },
-    { code: "NA", name: "Namibie", flag: "🇳🇦", region: "south" },
-    { code: "NE", name: "Niger", flag: "🇳🇪", region: "west" },
-    { code: "NG", name: "Nigeria", flag: "🇳🇬", region: "west" },
-    { code: "RW", name: "Rwanda", flag: "🇷🇼", region: "east" },
+    { code: "CM", name: "Cameroun", flag: "🇨🇲", region: "central" },
+    { code: "TD", name: "Tchad", flag: "🇹🇩", region: "central" },
+    { code: "CF", name: "Centrafrique", flag: "🇨🇫", region: "central" },
+    { code: "GQ", name: "Guinée équatoriale", flag: "🇬🇶", region: "central" },
     { code: "ST", name: "São Tomé-et-Príncipe", flag: "🇸🇹", region: "central" },
+    { code: "BI", name: "Burundi", flag: "🇧🇮", region: "east" },
+    { code: "DJ", name: "Djibouti", flag: "🇩🇯", region: "east" },
     { code: "SN", name: "Sénégal", flag: "🇸🇳", region: "west" },
-    { code: "SC", name: "Seychelles", flag: "🇸🇨", region: "indian" },
-    { code: "SL", name: "Sierra Leone", flag: "🇸🇱", region: "west" },
-    { code: "SO", name: "Somalie", flag: "🇸🇴", region: "east" },
-    { code: "ZA", name: "Afrique du Sud", flag: "🇿🇦", region: "south" },
-    { code: "SS", name: "Soudan du Sud", flag: "🇸🇸", region: "east" },
-    { code: "SD", name: "Soudan", flag: "🇸🇩", region: "north" },
-    { code: "TZ", name: "Tanzanie", flag: "🇹🇿", region: "east" },
+    { code: "CI", name: "Côte d'Ivoire", flag: "🇨🇮", region: "west" },
+    { code: "BJ", name: "Bénin", flag: "🇧🇯", region: "west" },
     { code: "TG", name: "Togo", flag: "🇹🇬", region: "west" },
-    { code: "TN", name: "Tunisie", flag: "🇹🇳", region: "north" },
-    { code: "UG", name: "Ouganda", flag: "🇺🇬", region: "east" },
-    { code: "ZM", name: "Zambie", flag: "🇿🇲", region: "south" },
-    { code: "ZW", name: "Zimbabwe", flag: "🇿🇼", region: "south" },
+    { code: "BF", name: "Burkina Faso", flag: "🇧🇫", region: "west" },
+    { code: "NE", name: "Niger", flag: "🇳🇪", region: "west" },
+    { code: "ML", name: "Mali", flag: "🇲🇱", region: "west" },
+    { code: "MG", name: "Madagascar", flag: "🇲🇬", region: "indian" },
   ];
 
   const BY_CODE = Object.fromEntries(LIST.map((c) => [c.code, c]));
+
+  const PRIORITY_CODES = new Set(LIST.map((c) => c.code));
 
   /** Campus partenaires actuels — RD Congo */
   const UNIVERSITY_COUNTRY = {
@@ -107,6 +71,12 @@ const SAC_AFRICA_COUNTRIES = (function () {
     ministere: PAN,
     national: PAN,
   };
+
+  function normalizeCountryCode(code) {
+    const cc = String(code || "").toUpperCase();
+    if (cc === ALL || cc === PAN) return cc;
+    return PRIORITY_CODES.has(cc) ? cc : "CD";
+  }
 
   function get(code) {
     return BY_CODE[String(code || "").toUpperCase()] || null;
@@ -149,7 +119,7 @@ const SAC_AFRICA_COUNTRIES = (function () {
 
   function getStoredCountry() {
     try {
-      return localStorage.getItem(STORAGE_KEY) || "CD";
+      return normalizeCountryCode(localStorage.getItem(STORAGE_KEY) || "CD");
     } catch {
       return "CD";
     }
@@ -157,7 +127,7 @@ const SAC_AFRICA_COUNTRIES = (function () {
 
   function setStoredCountry(code) {
     try {
-      localStorage.setItem(STORAGE_KEY, code);
+      localStorage.setItem(STORAGE_KEY, normalizeCountryCode(code));
     } catch {
       /* ignore */
     }
@@ -173,7 +143,7 @@ const SAC_AFRICA_COUNTRIES = (function () {
         ALL +
         '"' +
         (sel === ALL ? " selected" : "") +
-        ">🌍 Toute l'Afrique</option>";
+        ">🌍 Tous les pays</option>";
     }
     if (opts.includePanAfrica) {
       html +=
@@ -181,7 +151,7 @@ const SAC_AFRICA_COUNTRIES = (function () {
         PAN +
         '"' +
         (sel === PAN ? " selected" : "") +
-        ">🌐 Pan-africain (continent)</option>";
+        ">🌐 Pan-africain (tous pays)</option>";
     }
     const regions = {};
     LIST.forEach((c) => {
@@ -215,7 +185,7 @@ const SAC_AFRICA_COUNTRIES = (function () {
       if (!raw) return getStoredCountry();
       const data = JSON.parse(raw);
       const key = portalId || "default";
-      return String(data[key] || data.default || getStoredCountry()).toUpperCase();
+      return normalizeCountryCode(data[key] || data.default || getStoredCountry());
     } catch {
       return getStoredCountry();
     }
@@ -226,7 +196,7 @@ const SAC_AFRICA_COUNTRIES = (function () {
       const raw = localStorage.getItem(PORTAL_STORAGE_KEY);
       const data = raw ? JSON.parse(raw) : {};
       const key = portalId || "default";
-      data[key] = String(code || "CD").toUpperCase();
+      data[key] = normalizeCountryCode(code);
       localStorage.setItem(PORTAL_STORAGE_KEY, JSON.stringify(data));
     } catch {
       /* ignore */
@@ -271,7 +241,7 @@ const SAC_AFRICA_COUNTRIES = (function () {
       PAN +
       '"' +
       (sel === PAN ? " selected" : "") +
-      ">🌐 Pan-africain — visible sur « Toute l'Afrique »</option>";
+      ">🌐 Pan-africain — visible sur « Tous les pays »</option>";
     html += buildSelectOptions(sel, { includeAll: false, includePanAfrica: false });
     return html;
   }
@@ -285,6 +255,8 @@ const SAC_AFRICA_COUNTRIES = (function () {
     ALL,
     STORAGE_KEY,
     PORTAL_STORAGE_KEY,
+    PRIORITY_CODES,
+    normalizeCountryCode,
     REGIONS,
     LIST,
     get,

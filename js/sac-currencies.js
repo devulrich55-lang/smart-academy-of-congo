@@ -4,25 +4,12 @@
 const SAC_CURRENCIES = (function () {
   const LIST = [
     { code: "USD", label: "Dollar américain", flag: "🌐", region: "International", decimals: 2, unit: "USD", fixedRate: 1 },
-    { code: "CDF", label: "Franc congolais", flag: "🇨🇩", region: "Afrique centrale", decimals: 0, unit: "FC", dynamic: "cdf" },
+    { code: "CDF", label: "Franc congolais", flag: "🇨🇩", region: "RD Congo", decimals: 0, unit: "FC", dynamic: "cdf" },
     { code: "XAF", label: "Franc CFA (CEMAC)", flag: "🌍", region: "Afrique centrale", decimals: 0, unit: "FCFA", fixedRate: 600 },
     { code: "XOF", label: "Franc CFA (UEMOA)", flag: "🌍", region: "Afrique de l'Ouest", decimals: 0, unit: "FCFA", fixedRate: 600 },
-    { code: "AOA", label: "Kwanza angolais", flag: "🇦🇴", region: "Afrique centrale", decimals: 2, unit: "Kz", fixedRate: 830 },
-    { code: "KES", label: "Shilling kenyan", flag: "🇰🇪", region: "Afrique de l'Est", decimals: 0, unit: "KSh", fixedRate: 130 },
-    { code: "UGX", label: "Shilling ougandais", flag: "🇺🇬", region: "Afrique de l'Est", decimals: 0, unit: "USh", fixedRate: 3700 },
-    { code: "TZS", label: "Shilling tanzanien", flag: "🇹🇿", region: "Afrique de l'Est", decimals: 0, unit: "TSh", fixedRate: 2600 },
-    { code: "RWF", label: "Franc rwandais", flag: "🇷🇼", region: "Afrique de l'Est", decimals: 0, unit: "FRw", fixedRate: 1300 },
-    { code: "BIF", label: "Franc burundais", flag: "🇧🇮", region: "Afrique de l'Est", decimals: 0, unit: "FBu", fixedRate: 2900 },
-    { code: "ZAR", label: "Rand sud-africain", flag: "🇿🇦", region: "Afrique australe", decimals: 2, unit: "R", fixedRate: 18.5 },
-    { code: "MZN", label: "Metical mozambicain", flag: "🇲🇿", region: "Afrique australe", decimals: 2, unit: "MT", fixedRate: 64 },
-    { code: "ZMW", label: "Kwacha zambien", flag: "🇿🇲", region: "Afrique australe", decimals: 2, unit: "ZK", fixedRate: 27 },
-    { code: "GHS", label: "Cedi ghanéen", flag: "🇬🇭", region: "Afrique de l'Ouest", decimals: 2, unit: "GH₵", fixedRate: 15 },
-    { code: "NGN", label: "Naira nigérian", flag: "🇳🇬", region: "Afrique de l'Ouest", decimals: 0, unit: "₦", fixedRate: 1550 },
-    { code: "MGA", label: "Ariary malgache", flag: "🇲🇬", region: "Océan Indien", decimals: 0, unit: "Ar", fixedRate: 4500 },
-    { code: "EGP", label: "Livre égyptienne", flag: "🇪🇬", region: "Afrique du Nord", decimals: 2, unit: "E£", fixedRate: 48 },
-    { code: "MAD", label: "Dirham marocain", flag: "🇲🇦", region: "Afrique du Nord", decimals: 2, unit: "DH", fixedRate: 10 },
-    { code: "TND", label: "Dinar tunisien", flag: "🇹🇳", region: "Afrique du Nord", decimals: 3, unit: "DT", fixedRate: 3.1 },
-    { code: "DZD", label: "Dinar algérien", flag: "🇩🇿", region: "Afrique du Nord", decimals: 2, unit: "DA", fixedRate: 134 },
+    { code: "BIF", label: "Franc burundais", flag: "🇧🇮", region: "Burundi", decimals: 0, unit: "FBu", fixedRate: 2900 },
+    { code: "DJF", label: "Franc djiboutien", flag: "🇩🇯", region: "Djibouti", decimals: 0, unit: "Fdj", fixedRate: 178 },
+    { code: "MGA", label: "Ariary malgache", flag: "🇲🇬", region: "Madagascar", decimals: 0, unit: "Ar", fixedRate: 4500 },
   ];
 
   function get(code) {

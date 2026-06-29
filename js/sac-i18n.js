@@ -97,7 +97,7 @@
       "news.empty.all":
         "Aucune publication pour le moment. Les ministères et universités partenaires publient depuis leurs portails.",
       "news.empty.local":
-        "Aucune publication locale pour {country} pour le moment. Essayez « Toute l'Afrique » ou un autre pays.",
+        "Aucune publication locale pour {country} pour le moment. Essayez « Tous les pays » ou un autre pays.",
       "news.cat.officiel": "Information officielle",
       "news.cat.gouvernemental": "Gouvernement",
       "news.cat.concours": "Concours",
@@ -292,7 +292,7 @@
       "news.empty.all":
         "No publications yet. Ministries and partner universities publish from their portals.",
       "news.empty.local":
-        "No local publications for {country} yet. Try « All Africa » or another country.",
+        "No local publications for {country} yet. Try « All countries » or another country.",
       "news.cat.officiel": "Official information",
       "news.cat.gouvernemental": "Government",
       "news.cat.concours": "Competitions",
@@ -487,7 +487,7 @@
       "news.empty.all":
         "لا توجد منشورات حالياً. الوزارات والجامعات الشريكة تنشر من بواباتها.",
       "news.empty.local":
-        "لا توجد منشورات محلية لـ {country} حالياً. جرّب « كل أفريقيا » أو بلداً آخر.",
+        "لا توجد منشورات محلية لـ {country} حالياً. جرّب « جميع البلدان » أو بلداً آخر.",
       "news.cat.officiel": "معلومات رسمية",
       "news.cat.gouvernemental": "حكومة",
       "news.cat.concours": "مسابقات",
@@ -682,7 +682,7 @@
       "news.empty.all":
         "Sem publicações por agora. Ministérios e universidades parceiras publicam nos respetivos portais.",
       "news.empty.local":
-        "Sem publicações locais para {country} por agora. Tente « Toda a África » ou outro país.",
+        "Sem publicações locais para {country} por agora. Tente « Todos os países » ou outro país.",
       "news.cat.officiel": "Informação oficial",
       "news.cat.gouvernemental": "Governo",
       "news.cat.concours": "Concursos",
@@ -877,7 +877,7 @@
       "news.empty.all":
         "Sin publicaciones por ahora. Ministerios y universidades asociadas publican desde sus portales.",
       "news.empty.local":
-        "Sin publicaciones locales para {country} por ahora. Prueba « Toda África » u otro país.",
+        "Sin publicaciones locales para {country} por ahora. Prueba « Todos los países » u otro país.",
       "news.cat.officiel": "Información oficial",
       "news.cat.gouvernemental": "Gobierno",
       "news.cat.concours": "Concursos",

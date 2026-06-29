@@ -216,18 +216,18 @@ const SAC_HOME_NEWS = (function () {
       countryCode: "CD",
     },
     {
-      id: "hn-demo-ke",
+      id: "hn-demo-cm",
       scope: SCOPES.national,
       authorRole: AUTHOR_ROLES.ministry,
       universite: MINISTRY_CODE,
-      universityName: "Ministère de l'Enseignement Supérieur — Kenya",
-      authorId: "admin@mesu.ke",
-      authorName: "MESU Kenya",
+      universityName: "Ministère de l'Enseignement Supérieur — Cameroun",
+      authorId: "admin@mesu.cm",
+      authorName: "MESU Cameroun",
       category: "bourse",
-      title: "Bourses régionales — mobilité étudiante EAC 2025",
+      title: "Bourses régionales CEMAC — mobilité universitaire 2025",
       excerpt:
-        "Programme de mobilité pour étudiants des pays de la Communauté d'Afrique de l'Est : semestre d'échange et frais partiels.",
-      body: "Candidatures ouvertes jusqu'au 31 janvier. Dossier : relevé de notes, lettre de motivation, passeport ou carte nationale.",
+        "Programme de mobilité pour étudiants des pays CEMAC : semestre d'échange et frais partiels.",
+      body: "Candidatures ouvertes jusqu'au 31 janvier. Dossier : relevé de notes, lettre de motivation, pièce d'identité.",
       linkUrl: "",
       linkLabel: "Détails",
       published: true,
@@ -235,7 +235,7 @@ const SAC_HOME_NEWS = (function () {
       validUntil: "2026-01-31",
       createdAt: "2025-10-10T08:00:00.000Z",
       updatedAt: "2025-10-10T08:00:00.000Z",
-      countryCode: "KE",
+      countryCode: "CM",
     },
     {
       id: "hn-demo-sn",
@@ -259,17 +259,17 @@ const SAC_HOME_NEWS = (function () {
       countryCode: "SN",
     },
     {
-      id: "hn-demo-ng",
+      id: "hn-demo-ci",
       scope: SCOPES.national,
       authorRole: AUTHOR_ROLES.university,
       universite: "national",
-      universityName: "Réseau universitaire — Nigeria",
-      authorId: "admin@uni.ng",
-      authorName: "Plateforme partenaire NG",
+      universityName: "Réseau universitaire — Côte d'Ivoire",
+      authorId: "admin@uni.ci",
+      authorName: "Plateforme partenaire CI",
       category: "opportunite",
-      title: "Stages tech — Lagos & Abuja (partenaires industriels)",
-      excerpt: "40 places pour étudiants L3/Master en informatique et data. Durée 4 à 6 mois.",
-      body: "Postuler via la plateforme avec CV et portfolio. Entretien en ligne en anglais ou français.",
+      title: "Stages — Abidjan & Bouaké (partenaires industriels)",
+      excerpt: "40 places pour étudiants L3/Master en informatique et gestion. Durée 4 à 6 mois.",
+      body: "Postuler via la plateforme avec CV et lettre de motivation. Entretien en ligne.",
       linkUrl: "",
       linkLabel: "Candidater",
       published: true,
@@ -277,7 +277,7 @@ const SAC_HOME_NEWS = (function () {
       validUntil: "",
       createdAt: "2025-09-01T12:00:00.000Z",
       updatedAt: "2025-09-01T12:00:00.000Z",
-      countryCode: "NG",
+      countryCode: "CI",
     },
   ];
 
@@ -915,7 +915,7 @@ const SAC_HOME_NEWS = (function () {
 
     function countryLabel(code) {
       if (typeof SAC_AFRICA_COUNTRIES === "undefined") return code;
-      if (code === SAC_AFRICA_COUNTRIES.ALL) return "Toute l'Afrique";
+      if (code === SAC_AFRICA_COUNTRIES.ALL) return "Tous les pays";
       return SAC_AFRICA_COUNTRIES.label(code);
     }
 
