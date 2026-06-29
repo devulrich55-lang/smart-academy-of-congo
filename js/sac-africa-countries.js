@@ -5,6 +5,7 @@ const SAC_AFRICA_COUNTRIES = (function () {
   const PAN = "PAN";
   const ALL = "all";
   const STORAGE_KEY = "sac_public_country";
+  const PORTAL_STORAGE_KEY = "sac_portal_country";
 
   const REGIONS = {
     central: "Afrique centrale",
@@ -208,6 +209,61 @@ const SAC_AFRICA_COUNTRIES = (function () {
     return html;
   }
 
+  function getPortalCountry(portalId) {
+    try {
+      const raw = localStorage.getItem(PORTAL_STORAGE_KEY);
+      if (!raw) return getStoredCountry();
+      const data = JSON.parse(raw);
+      const key = portalId || "default";
+      return String(data[key] || data.default || getStoredCountry()).toUpperCase();
+    } catch {
+      return getStoredCountry();
+    }
+  }
+
+  function setPortalCountry(portalId, code) {
+    try {
+      const raw = localStorage.getItem(PORTAL_STORAGE_KEY);
+      const data = raw ? JSON.parse(raw) : {};
+      const key = portalId || "default";
+      data[key] = String(code || "CD").toUpperCase();
+      localStorage.setItem(PORTAL_STORAGE_KEY, JSON.stringify(data));
+    } catch {
+      /* ignore */
+    }
+  }
+
+  function buildInstitutionCountrySelect(selected) {
+    return buildSelectOptions(selected, { includeAll: false, includePanAfrica: false });
+  }
+
+  function bookCountryCode(item) {
+    if (!item) return PAN;
+    const raw = item.countryCode || item.country_code;
+    if (raw) return String(raw).toUpperCase();
+    return "CD";
+  }
+
+  /** Bibliothèque : un pays = ses livres (+ contenu pan-africain si filtre « all »). */
+  function matchesLibraryCountry(item, filterCountry) {
+    const filter = String(filterCountry || getStoredCountry()).toUpperCase();
+    const itemC = bookCountryCode(item);
+    if (filter === ALL) return true;
+    if (filter === PAN) return itemC === PAN;
+    return itemC === filter || itemC === PAN;
+  }
+
+  function adminCountryCode(admin) {
+    if (!admin) return "";
+    if (admin.countryCode || admin.country_code) {
+      return String(admin.countryCode || admin.country_code).toUpperCase();
+    }
+    if (admin.role === "universite" && admin.universite) {
+      return getCountryForUniversite(admin.universite);
+    }
+    return "";
+  }
+
   function buildPublisherOptions(selected, sessionCountry) {
     const sel = String(selected || sessionCountry || "CD").toUpperCase();
     let html =
@@ -228,6 +284,7 @@ const SAC_AFRICA_COUNTRIES = (function () {
     PAN,
     ALL,
     STORAGE_KEY,
+    PORTAL_STORAGE_KEY,
     REGIONS,
     LIST,
     get,
@@ -235,9 +292,15 @@ const SAC_AFRICA_COUNTRIES = (function () {
     getCountryForUniversite,
     inferFromNewsItem,
     matchesFilter,
+    matchesLibraryCountry,
+    bookCountryCode,
+    adminCountryCode,
     getStoredCountry,
     setStoredCountry,
+    getPortalCountry,
+    setPortalCountry,
     buildSelectOptions,
+    buildInstitutionCountrySelect,
     buildPublisherOptions,
     countriesInRegion,
   };

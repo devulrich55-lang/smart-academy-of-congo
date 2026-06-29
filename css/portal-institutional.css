@@ -190,7 +190,9 @@
   margin-bottom: 0.35rem;
 }
 
-.portal-field input {
+.portal-field input,
+.portal-field select,
+.portal-input {
   width: 100%;
   padding: 0.65rem 0.75rem;
   border: 1px solid var(--border, #cbd5e1);
@@ -201,7 +203,9 @@
   color: var(--text, #1a2b3c);
 }
 
-.portal-field input:focus {
+.portal-field input:focus,
+.portal-field select:focus,
+.portal-input:focus {
   outline: 2px solid color-mix(in srgb, var(--portal-accent) 35%, white);
   border-color: var(--portal-accent);
 }

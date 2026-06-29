@@ -332,12 +332,34 @@ const SAC_ADMIN_DASHBOARD = (function () {
     return admins.filter((a) => {
       if (roleFilter && a.role !== roleFilter) return false;
       if (!q) return true;
-      const hay = [a.email, a.displayName, a.nomUniversite, a.responsable, a.sigle, a.ville]
+      const cc =
+        typeof SAC_AFRICA_COUNTRIES !== "undefined"
+          ? SAC_AFRICA_COUNTRIES.adminCountryCode(a)
+          : a.countryCode || "";
+      const hay = [a.email, a.displayName, a.nomUniversite, a.responsable, a.sigle, a.ville, cc]
         .filter(Boolean)
         .join(" ")
         .toLowerCase();
       return hay.includes(q);
     });
+  }
+
+  function scopeAdminsForSession(admins, session) {
+    if (!session || session.role === "superadmin") return admins;
+    if (session.role !== "ministere") return admins;
+    const cc = String(session.countryCode || "").toUpperCase();
+    if (!cc || typeof SAC_AFRICA_COUNTRIES === "undefined") return admins;
+    return admins.filter((a) => {
+      const ac = SAC_AFRICA_COUNTRIES.adminCountryCode(a);
+      if (a.role === "ministere" || a.role === "universite") return ac === cc;
+      return false;
+    });
+  }
+
+  function countryCell(admin) {
+    if (typeof SAC_AFRICA_COUNTRIES === "undefined") return admin.countryCode || "—";
+    const cc = SAC_AFRICA_COUNTRIES.adminCountryCode(admin);
+    return cc ? SAC_AFRICA_COUNTRIES.label(cc) : "—";
   }
 
   function formatPresenceTime(iso) {
@@ -489,7 +511,7 @@ const SAC_ADMIN_DASHBOARD = (function () {
     if (!body) return;
     if (!admins.length) {
       body.innerHTML =
-        '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:2rem;">Aucun administrateur trouvé.</td></tr>';
+        '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:2rem;">Aucun administrateur trouvé.</td></tr>';
       return;
     }
     body.innerHTML = admins
@@ -511,6 +533,7 @@ const SAC_ADMIN_DASHBOARD = (function () {
             </div>
           </td>
           <td>${a.email}</td>
+          <td>${countryCell(a)}</td>
           <td>${campus}</td>
           <td class="col-actions" style="${isSuper ? "" : "display:none"}">${actions}</td>
         </tr>`;
@@ -539,7 +562,8 @@ const SAC_ADMIN_DASHBOARD = (function () {
     renderKpis(summary);
     const q = document.getElementById("searchAdmins")?.value.trim().toLowerCase() || "";
     const roleFilter = document.getElementById("filterRole")?.value || "";
-    const filtered = filterAdmins(admins, q, roleFilter);
+    const scoped = scopeAdminsForSession(admins, session);
+    const filtered = filterAdmins(scoped, q, roleFilter);
     renderTable(filtered, session, isSuper);
     renderPreviewCards(admins, 5);
     const countEl = document.getElementById("tableCount");
@@ -601,7 +625,23 @@ const SAC_ADMIN_DASHBOARD = (function () {
       document.getElementById("tabCreate")?.setAttribute("hidden", "hidden");
       document.querySelector('#filterRole option[value="superadmin"]')?.remove();
       const hint = document.getElementById("listHint");
-      if (hint) hint.textContent = "En tant que Ministère, consultation des administrateurs (lecture seule).";
+      if (hint) {
+        const countryLabel =
+          session.countryCode && typeof SAC_AFRICA_COUNTRIES !== "undefined"
+            ? SAC_AFRICA_COUNTRIES.label(session.countryCode)
+            : "";
+        hint.textContent = countryLabel
+          ? "Ministère — " + countryLabel + " : comptes et campus de votre pays uniquement (lecture seule)."
+          : "En tant que Ministère, consultation des administrateurs de votre pays (lecture seule).";
+      }
+    }
+
+    if (isMinistere && session.countryCode && typeof SAC_AFRICA_COUNTRIES !== "undefined") {
+      const profileMeta = document.getElementById("profileMeta");
+      if (profileMeta) {
+        profileMeta.textContent =
+          session.identifiant + " · " + SAC_AFRICA_COUNTRIES.label(session.countryCode);
+      }
     }
 
     if (isMinistere) {
@@ -725,10 +765,10 @@ const SAC_ADMIN_DASHBOARD = (function () {
           }
         });
       });
-      setFieldRequired(["minEmail", "minPassword", "minNomComplet"], role === "ministere");
+      setFieldRequired(["minEmail", "minPassword", "minNomComplet", "minCountry"], role === "ministere");
       setFieldRequired(["saEmail", "saPassword", "saNomComplet"], role === "superadmin");
       setFieldRequired(
-        ["newEmail", "newPassword", "newPrenom", "newNom", "newTel", "newResponsable", "newCampusCatalog"],
+        ["newEmail", "newPassword", "newPrenom", "newNom", "newTel", "newResponsable", "newCampusCatalog", "newCountry"],
         role === "universite"
       );
       const logoInput = document.getElementById("newLogoUniversite");
@@ -751,7 +791,7 @@ const SAC_ADMIN_DASHBOARD = (function () {
       const submitBtn = document.getElementById("btnCreateAdminSubmit");
       const copy = {
         ministere: {
-          desc: "Compte portail MESU — e-mail, mot de passe et responsable habilité.",
+          desc: "Compte portail ministère par pays — e-mail, mot de passe, pays et responsable habilité.",
           title: "Nouveau compte Ministère",
           submit: "Créer le compte Ministère",
         },
@@ -884,8 +924,30 @@ const SAC_ADMIN_DASHBOARD = (function () {
 
     document.getElementById("newCampusCatalog")?.addEventListener("change", fillAdminCampusFromCatalog);
 
+    if (typeof SAC_AFRICA_COUNTRIES !== "undefined") {
+      const minCountry = document.getElementById("minCountry");
+      const newCountry = document.getElementById("newCountry");
+      if (minCountry) {
+        minCountry.innerHTML = SAC_AFRICA_COUNTRIES.buildInstitutionCountrySelect("CD");
+      }
+      if (newCountry) {
+        newCountry.innerHTML = SAC_AFRICA_COUNTRIES.buildInstitutionCountrySelect("CD");
+        newCountry.addEventListener("change", () => {
+          if (typeof SAC_UNIVERSITIES !== "undefined") {
+            SAC_UNIVERSITIES.populateForCountry("#newCampusCatalog", newCountry.value);
+          }
+          fillAdminCampusFromCatalog();
+        });
+      }
+    }
+
     if (typeof SAC_UNIVERSITIES !== "undefined") {
-      SAC_UNIVERSITIES.populateAll("#newCampusCatalog");
+      const bootCountry = document.getElementById("newCountry")?.value || "CD";
+      if (typeof SAC_UNIVERSITIES.populateForCountry === "function") {
+        SAC_UNIVERSITIES.populateForCountry("#newCampusCatalog", bootCountry);
+      } else {
+        SAC_UNIVERSITIES.populateAll("#newCampusCatalog");
+      }
     }
 
     if (typeof SAC_UNIVERSITY_LOGO !== "undefined") {
@@ -918,6 +980,11 @@ const SAC_ADMIN_DASHBOARD = (function () {
           alert("Indiquez le nom complet du responsable.");
           return;
         }
+        const countryCode = document.getElementById("minCountry")?.value?.trim() || "";
+        if (!countryCode) {
+          alert("Choisissez le pays du ministère.");
+          return;
+        }
         payload = {
           role,
           email: document.getElementById("minEmail")?.value.trim() || "",
@@ -926,6 +993,7 @@ const SAC_ADMIN_DASHBOARD = (function () {
           nom,
           telephone: "",
           fonction: document.getElementById("minFonction")?.value.trim() || "",
+          countryCode,
         };
       } else if (role === "superadmin") {
         if (getSuperadminCount() >= MAX_SUPERADMIN_ACCOUNTS) {
@@ -963,9 +1031,21 @@ const SAC_ADMIN_DASHBOARD = (function () {
       if (!validateInstitutionalCreate(role, payload)) return;
       if (role === "universite") {
         const catalogId = document.getElementById("newCampusCatalog")?.value;
+        const uniCountry = document.getElementById("newCountry")?.value?.trim() || "";
+        if (!uniCountry) {
+          alert("Choisissez le pays de l'établissement.");
+          return;
+        }
         if (!catalogId) {
           alert("Choisissez l'établissement dans le catalogue SAC.");
           return;
+        }
+        if (typeof SAC_UNIVERSITIES !== "undefined") {
+          const campusCountry = SAC_UNIVERSITIES.getCountryCode(catalogId);
+          if (campusCountry && campusCountry !== uniCountry) {
+            alert("L'établissement sélectionné n'appartient pas au pays choisi.");
+            return;
+          }
         }
         if (!validateAdminFacultySections()) {
           document.getElementById("adminFacultySectionsError")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
@@ -976,7 +1056,7 @@ const SAC_ADMIN_DASHBOARD = (function () {
           catalogId,
           document.getElementById("newResponsable").value.trim()
         );
-        Object.assign(payload, campus, { facultySections });
+        Object.assign(payload, campus, { facultySections, countryCode: uniCountry || campus.countryCode });
         const logoFile = document.getElementById("newLogoUniversite")?.files?.[0];
         if (!logoFile) {
           alert("Importez le logo de l'université.");

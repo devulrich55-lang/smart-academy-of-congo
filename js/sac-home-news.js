@@ -1128,9 +1128,11 @@ const SAC_HOME_NEWS = (function () {
 
     const sessionCountry =
       typeof SAC_AFRICA_COUNTRIES !== "undefined"
-        ? SAC_AFRICA_COUNTRIES.getCountryForUniversite(getUniCode(session))
+        ? session?.role === "ministere" && session?.countryCode
+          ? String(session.countryCode).toUpperCase()
+          : SAC_AFRICA_COUNTRIES.getCountryForUniversite(getUniCode(session))
         : "CD";
-    const showCountryPick = isMinistry || isNational;
+    const showCountryPick = (isNational || (isMinistry && !session?.countryCode));
     const countryFieldHtml = showCountryPick
       ? `<div class="fg">
               <label>Pays ciblé * <small>(publication locale sur la page d'accueil)</small></label>
@@ -1140,7 +1142,16 @@ const SAC_HOME_NEWS = (function () {
                   : '<option value="CD">🇨🇩 RD Congo</option>'
               }</select>
             </div>`
-      : `<input type="hidden" data-hn-country value="${escHtml(sessionCountry)}" />`;
+      : isMinistry && session?.countryCode
+        ? `<input type="hidden" data-hn-country value="${escHtml(sessionCountry)}" />
+           <p class="hn-country-lock" style="grid-column:1/-1;margin:0 0 0.5rem;font-size:0.88rem;color:var(--muted);">
+             Pays : <strong>${
+               typeof SAC_AFRICA_COUNTRIES !== "undefined"
+                 ? escHtml(SAC_AFRICA_COUNTRIES.label(sessionCountry))
+                 : escHtml(sessionCountry)
+             }</strong> — publication nationale uniquement.
+           </p>`
+        : `<input type="hidden" data-hn-country value="${escHtml(sessionCountry)}" />`;
 
     let editingId = null;
     let currentMedia = { mediaUrl: "", mediaType: "", mediaName: "", attachments: [] };

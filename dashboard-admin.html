@@ -208,12 +208,13 @@
                   <th>Rôle</th>
                   <th>Identité</th>
                   <th>E-mail</th>
+                  <th>Pays</th>
                   <th>Établissement</th>
                   <th class="col-actions" style="display:none;">Actions</th>
                 </tr>
               </thead>
               <tbody id="adminsBody">
-                <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:2rem;">Chargement…</td></tr>
+                <tr><td colspan="6" style="text-align:center;color:var(--muted);padding:2rem;">Chargement…</td></tr>
               </tbody>
             </table>
           </div>
@@ -337,6 +338,13 @@
               </p>
               <div class="ws-form-grid ws-form-grid--compact">
                 <div class="fg" style="grid-column:1/-1;">
+                  <label for="minCountry">Pays du ministère *</label>
+                  <select class="fi" id="minCountry" required aria-label="Pays du ministère">
+                    <option value="CD">🇨🇩 RD Congo</option>
+                  </select>
+                  <p class="ws-field-hint">Un compte ministère par pays — bibliothèque et actualités nationales isolées.</p>
+                </div>
+                <div class="fg" style="grid-column:1/-1;">
                   <label for="minEmail">E-mail institutionnel *</label>
                   <input type="email" class="fi" id="minEmail" placeholder="agent@mesu.gouv.cd" autocomplete="off" />
                 </div>
@@ -411,6 +419,12 @@
                 </div>
               </div>
               <div class="ws-form-grid" style="margin-top:0.85rem;">
+              <div class="fg" style="grid-column:1/-1;">
+                <label for="newCountry">Pays de l'établissement *</label>
+                <select class="fi" id="newCountry" required aria-label="Pays du campus">
+                  <option value="CD">🇨🇩 RD Congo</option>
+                </select>
+              </div>
               <div class="fg" style="grid-column:1/-1;">
                 <label for="newCampusCatalog">Établissement (catalogue SAC) *</label>
                 <select class="fi" id="newCampusCatalog" data-sac-universities data-empty-label="— Choisir l'université —"></select>

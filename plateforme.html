@@ -355,7 +355,13 @@
 
       <section id="panel-library" class="panel-card">
         <h3 style="margin:0 0 0.45rem;">Recommandé pour vous</h3>
-        <p style="margin:0;color:var(--muted);font-size:0.9rem">Livres, guides et documents académiques.</p>
+        <p style="margin:0;color:var(--muted);font-size:0.9rem">Livres, guides et documents académiques — filtrés par pays.</p>
+        <div id="libraryCountryFilter" class="lib-cat-filter" style="margin-top:0.75rem;">
+          <span class="lib-cat-filter__label">Pays :</span>
+          <select id="libraryCountrySelect" class="lib-cat-select" aria-label="Filtrer par pays">
+            <option value="CD">🇨🇩 RD Congo</option>
+          </select>
+        </div>
         <div id="libraryCategoryFilter" class="lib-cat-filter">
           <span class="lib-cat-filter__label">Rubrique :</span>
           <select id="libraryCategorySelect" class="lib-cat-select" aria-label="Filtrer par rubrique">
@@ -401,6 +407,7 @@
     </main>
   </div>
 
+  <script src="js/sac-africa-countries.js?v=20260625c"></script>
   <script src="js/sac-session.js"></script>
   <script src="js/sac-identity.js"></script>
   <script src="js/sac-api.js?v=20260629a"></script>
@@ -568,6 +575,33 @@
 
       let allBooks = [];
       let activeCategory = "all";
+      let activeLibraryCountry = "CD";
+
+      function resolveLibraryCountry() {
+        if (session?.countryCode) return String(session.countryCode).toUpperCase();
+        if (
+          session?.universite &&
+          typeof SAC_UNIVERSITIES !== "undefined" &&
+          SAC_UNIVERSITIES.getCountryCode
+        ) {
+          return SAC_UNIVERSITIES.getCountryCode(session.universite);
+        }
+        if (typeof SAC_AFRICA_COUNTRIES !== "undefined") {
+          return SAC_AFRICA_COUNTRIES.getStoredCountry();
+        }
+        return "CD";
+      }
+
+      function initLibraryCountryFilter() {
+        const select = document.getElementById("libraryCountrySelect");
+        if (!select || typeof SAC_AFRICA_COUNTRIES === "undefined") return;
+        activeLibraryCountry = resolveLibraryCountry();
+        select.innerHTML = SAC_AFRICA_COUNTRIES.buildSelectOptions(activeLibraryCountry, {
+          includeAll: false,
+          includePanAfrica: true,
+        });
+        select.value = activeLibraryCountry;
+      }
 
       function categoryText(item) {
         if (typeof SAC_LIBRARY !== "undefined" && SAC_LIBRARY.categoryLabel) {
@@ -593,6 +627,13 @@
       function applyLibraryFilters() {
         const q = (document.getElementById("globalSearch")?.value || "").trim().toLowerCase();
         let items = allBooks.slice();
+        if (typeof SAC_LIBRARY !== "undefined" && SAC_LIBRARY.filterByCountry) {
+          items = SAC_LIBRARY.filterByCountry(items, activeLibraryCountry);
+        } else if (typeof SAC_AFRICA_COUNTRIES !== "undefined") {
+          items = items.filter((item) =>
+            SAC_AFRICA_COUNTRIES.matchesLibraryCountry(item, activeLibraryCountry)
+          );
+        }
         if (activeCategory !== "all") {
           items = items.filter((item) => item.category === activeCategory);
         }
@@ -682,9 +723,11 @@
       }
 
       async function renderLibrary() {
+        activeLibraryCountry = resolveLibraryCountry();
+        initLibraryCountryFilter();
         try {
           if (typeof SAC_LIBRARY !== "undefined" && SAC_LIBRARY.listPublished) {
-            allBooks = await SAC_LIBRARY.listPublished();
+            allBooks = await SAC_LIBRARY.listPublished(activeLibraryCountry);
           } else if (typeof SAC_PLATFORM !== "undefined" && SAC_PLATFORM.getLibrary) {
             allBooks = await SAC_PLATFORM.getLibrary();
           }
@@ -693,6 +736,17 @@
         }
         buildCategoryFilter();
         applyLibraryFilters();
+      }
+
+      const libraryCountrySelect = document.getElementById("libraryCountrySelect");
+      if (libraryCountrySelect) {
+        libraryCountrySelect.addEventListener("change", async () => {
+          activeLibraryCountry = libraryCountrySelect.value || activeLibraryCountry;
+          if (typeof SAC_AFRICA_COUNTRIES !== "undefined") {
+            SAC_AFRICA_COUNTRIES.setStoredCountry(activeLibraryCountry);
+          }
+          await renderLibrary();
+        });
       }
 
       const globalSearch = document.getElementById("globalSearch");

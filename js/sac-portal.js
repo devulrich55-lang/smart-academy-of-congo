@@ -28,6 +28,7 @@ const SAC_PORTAL = (function () {
       notice: "Accès réservé aux agents habilités du Ministère. Compte créé par le Super Admin SAC.",
       dashboard: "dashboard-admin.html",
       adminPortal: true,
+      requiresCountry: true,
       logoFile: "../" + PLATFORM_LOGO,
     },
     superadmin: {
@@ -71,6 +72,7 @@ const SAC_PORTAL = (function () {
       dashboard: "dashboard-universite.html",
       adminPortal: false,
       showCodeUni: true,
+      requiresCountry: true,
       logoFile: "../" + PLATFORM_LOGO,
     },
   };

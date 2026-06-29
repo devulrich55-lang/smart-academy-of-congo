@@ -132,10 +132,55 @@ const SAC_UNIVERSITIES = (function () {
         const sel = selectedId ?? el.dataset.selected ?? el.value;
         const includeAutre = el.dataset.includeAutre === "true";
         const emptyLabel = el.dataset.emptyLabel || "— Choisir —";
+        const countryFilter = el.dataset.countryFilter || "";
+        if (countryFilter) {
+          el.innerHTML = optionsHtmlForCountry(countryFilter, sel, {
+            emptyLabel,
+            includeAutre,
+          });
+          return;
+        }
         el.innerHTML = optionsHtml(sel, { emptyLabel, includeAutre });
       });
     };
     return hydrateFromApi().finally(run);
+  }
+
+  function optionsHtmlForCountry(countryCode, selectedId, opts = {}) {
+    const cc = String(countryCode || "").toUpperCase();
+    const filtered = cc
+      ? LIST.filter((u) => getCountryCode(u.id) === cc)
+      : LIST.slice();
+    const emptyLabel = opts.emptyLabel || "— Choisir —";
+    let html = `<option value="">${emptyLabel}</option>`;
+    const unis = filtered.filter((u) => u.type === "universite");
+    const institutes = filtered.filter((u) => u.type !== "universite");
+    if (unis.length) {
+      html += `<optgroup label="Universités">${optionsForGroup(unis, selectedId)}</optgroup>`;
+    }
+    if (institutes.length) {
+      html +=
+        '<optgroup label="Instituts supérieurs & académies">' +
+        optionsForGroup(institutes, selectedId) +
+        "</optgroup>";
+    }
+    if (!unis.length && !institutes.length) {
+      html += '<option value="" disabled>— Aucun établissement pour ce pays —</option>';
+    }
+    if (opts.includeAutre) {
+      html += `<option value="autre"${selectedId === "autre" ? " selected" : ""}>Autre établissement partenaire</option>`;
+    }
+    return html;
+  }
+
+  function populateForCountry(selector, countryCode, selectedId) {
+    document.querySelectorAll(selector).forEach((el) => {
+      el.dataset.countryFilter = String(countryCode || "").toUpperCase();
+      const sel = selectedId ?? el.value;
+      el.innerHTML = optionsHtmlForCountry(countryCode, sel, {
+        emptyLabel: el.dataset.emptyLabel || "— Choisir —",
+      });
+    });
   }
 
   function normKey(value) {
@@ -181,6 +226,7 @@ const SAC_UNIVERSITIES = (function () {
       universiteLocked: u.id,
       nomUniversite: u.name,
       sigle: u.sigle,
+      countryCode: getCountryCode(u.id),
       codeUni: "SAC-" + u.sigle + "-" + year,
       responsable: (responsable || "").trim(),
     };
@@ -235,6 +281,8 @@ const SAC_UNIVERSITIES = (function () {
     sameCampus,
     buildAdminCampusPayload,
     normalizeProfileCampus,
+    optionsHtmlForCountry,
+    populateForCountry,
     normKey,
   };
 })();

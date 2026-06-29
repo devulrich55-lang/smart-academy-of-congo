@@ -121,13 +121,35 @@ const SAC_LIBRARY = (function () {
     return url;
   }
 
-  async function listPublished() {
+  function filterByCountry(items, countryCode) {
+    if (!Array.isArray(items)) return [];
+    if (typeof SAC_AFRICA_COUNTRIES === "undefined") return items;
+    const cc = countryCode ? String(countryCode).toUpperCase() : "";
+    if (!cc) return items;
+    return items.filter((item) => SAC_AFRICA_COUNTRIES.matchesLibraryCountry(item, cc));
+  }
+
+  function sessionCountryCode(session) {
+    if (!session) return "";
+    if (session.countryCode) return String(session.countryCode).toUpperCase();
+    if (session.role === "ministere") return String(session.countryCode || "CD").toUpperCase();
+    if (session.role === "universite" && session.universite && typeof SAC_UNIVERSITIES !== "undefined") {
+      return SAC_UNIVERSITIES.getCountryCode(session.universite);
+    }
+    return "";
+  }
+
+  async function listPublished(countryCode) {
+    const cc =
+      countryCode ||
+      (typeof SAC_AFRICA_COUNTRIES !== "undefined" ? SAC_AFRICA_COUNTRIES.getStoredCountry() : "");
     if (typeof SAC_API !== "undefined" && SAC_API.listDigitalLibrary) {
       try {
         const online = await SAC_API.ensureOnline();
         if (online) {
-          const data = await SAC_API.listDigitalLibrary();
-          const items = data?.items || [];
+          const data = await SAC_API.listDigitalLibrary(cc);
+          let items = data?.items || [];
+          items = filterByCountry(items, cc);
           if (items.length) {
             cacheItems(items);
             return items;
@@ -137,11 +159,11 @@ const SAC_LIBRARY = (function () {
         /* fallback */
       }
     }
-    const cached = readCache();
+    const cached = filterByCountry(readCache(), cc);
     if (cached.length) return cached;
     if (typeof SAC_PLATFORM !== "undefined" && SAC_PLATFORM.getLibrary) {
       try {
-        return await SAC_PLATFORM.getLibrary();
+        return filterByCountry(await SAC_PLATFORM.getLibrary(), cc);
       } catch {
         return [];
       }
@@ -149,10 +171,12 @@ const SAC_LIBRARY = (function () {
     return [];
   }
 
-  async function listManage() {
+  async function listManage(session) {
+    const cc = sessionCountryCode(session);
     if (typeof SAC_API !== "undefined" && SAC_API.listDigitalLibraryManage) {
-      const data = await SAC_API.listDigitalLibraryManage();
-      return data?.items || [];
+      const data = await SAC_API.listDigitalLibraryManage(cc);
+      const items = data?.items || [];
+      return filterByCountry(items, cc);
     }
     return [];
   }
@@ -200,6 +224,11 @@ const SAC_LIBRARY = (function () {
 
     const onChange = typeof options?.onChange === "function" ? options.onChange : null;
     const showList = options?.showList !== false;
+    const countryCode = sessionCountryCode(session) || "CD";
+    const countryLabel =
+      typeof SAC_AFRICA_COUNTRIES !== "undefined"
+        ? SAC_AFRICA_COUNTRIES.label(countryCode)
+        : countryCode;
     let editingId = null;
 
     const listPanel = showList
@@ -211,6 +240,9 @@ const SAC_LIBRARY = (function () {
       '<div class="panel panel--ws lib-form-panel" style="margin-bottom:1rem;">' +
       '<div class="panel__head"><h2 class="lib-form-title">Publier un livre numérique</h2></div>' +
       '<div class="panel__body">' +
+      '<p class="lib-form-intro" style="margin:0 0 0.75rem;color:var(--muted);font-size:0.88rem;">Bibliothèque nationale — <strong>' +
+      esc(countryLabel) +
+      "</strong>. Les ouvrages publiés ici sont visibles pour les utilisateurs de ce pays.</p>" +
       '<form class="lib-publish-form ws-form-grid">' +
       '<p class="lib-form-intro" style="grid-column:1/-1;margin:0 0 0.35rem;color:var(--muted);font-size:0.88rem;">Renseignez les informations du livre, ajoutez une couverture et téléversez le fichier (PDF, EPUB, DOC).</p>' +
       '<div class="fg" style="grid-column:1/-1;"><label>Titre du livre *</label><input class="fi lib-title" required minlength="3" placeholder="Ex: Mathématiques — Terminale" /></div>' +
@@ -229,7 +261,9 @@ const SAC_LIBRARY = (function () {
       "</div></div>" +
       '<div class="fg" style="grid-column:1/-1;"><label>Fichier du livre (PDF, EPUB, DOC…) *</label><input type="file" class="fi lib-file" accept=".pdf,.epub,.doc,.docx" /></div>' +
       '<div class="fg" style="grid-column:1/-1;"><label>Ou lien direct du livre (URL)</label><input class="fi lib-url" placeholder="https://…" /></div>' +
-      '<div class="fg" style="grid-column:1/-1;"><label class="chk"><input type="checkbox" class="lib-published" checked /> Publier immédiatement dans la bibliothèque nationale</label></div>' +
+      '<div class="fg" style="grid-column:1/-1;"><label class="chk"><input type="checkbox" class="lib-published" checked /> Publier immédiatement dans la bibliothèque de ' +
+      esc(countryLabel) +
+      "</label></div>" +
       '<div class="fg" style="grid-column:1/-1;display:flex;gap:0.5rem;flex-wrap:wrap;">' +
       '<button type="submit" class="btn btn--role lib-submit">Publier le livre</button>' +
       '<button type="button" class="btn btn--ghost lib-cancel" style="display:none;">Annuler</button>' +
@@ -277,7 +311,7 @@ const SAC_LIBRARY = (function () {
       const listEl = root.querySelector(".lib-manage-list");
       if (!listEl) return;
       try {
-        const items = await listManage();
+        const items = await listManage(session);
         if (!items.length) {
           listEl.innerHTML = '<p style="color:var(--muted);margin:0;">Aucun livre publié pour le moment.</p>';
           return;
@@ -388,6 +422,7 @@ const SAC_LIBRARY = (function () {
         fileUrl: q(".lib-url").value.trim(),
         coverUrl: q(".lib-cover-url").value.trim(),
         published: q(".lib-published").checked,
+        countryCode: countryCode,
       };
 
       const coverFile = q(".lib-cover-file")?.files?.[0];
@@ -424,7 +459,7 @@ const SAC_LIBRARY = (function () {
         resetForm();
         await renderManage();
         if (onChange) onChange();
-        alert(wasEdit ? "Livre mis à jour." : "Livre publié dans la bibliothèque nationale.");
+        alert(wasEdit ? "Livre mis à jour." : "Livre publié dans la bibliothèque de " + countryLabel + ".");
       } catch (err) {
         alert(err.message || "Publication impossible.");
       }
@@ -440,6 +475,8 @@ const SAC_LIBRARY = (function () {
     categoryLabel,
     listPublished,
     listManage,
+    filterByCountry,
+    sessionCountryCode,
     createBook,
     updateBook,
     deleteBook,

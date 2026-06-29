@@ -50,6 +50,15 @@
         <h2>Connexion administrateur</h2>
         <p class="subtitle">DG, recteur ou délégué habilité</p>
         <form id="portalLoginForm" novalidate>
+          <div class="portal-field" id="portalCountryWrap" hidden>
+            <label for="portalCountry">Pays du campus *</label>
+            <select id="portalCountry" class="portal-input" required aria-label="Choisir le pays">
+              <option value="CD">🇨🇩 RD Congo</option>
+            </select>
+            <p class="portal-field-hint" style="font-size:0.82rem;color:var(--text-muted);margin:0.35rem 0 0;">
+              Choisissez le pays de votre établissement avant de vous connecter.
+            </p>
+          </div>
           <div class="portal-field">
             <label for="portalEmail">E-mail administrateur</label>
             <input type="email" id="portalEmail" name="email" required autocomplete="username" placeholder="admin@universite.cd" />
@@ -87,6 +96,7 @@
     <span>Portail Admin Université — Gestion de campus</span>
   </footer>
 
+  <script src="../js/sac-africa-countries.js"></script>
   <script src="../js/sac-identity.js"></script>
   <script src="../js/sac-session.js"></script>
   <script src="../js/sac-api.js"></script>

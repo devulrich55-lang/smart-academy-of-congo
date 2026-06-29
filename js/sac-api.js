@@ -66,6 +66,16 @@ const SAC_API = (function () {
       authSource: "api",
       connectedAt: session.connectedAt || new Date().toISOString(),
     };
+    if (tagged.countryCode) {
+      tagged.countryCode = String(tagged.countryCode).toUpperCase();
+    } else if (
+      tagged.role === "universite" &&
+      tagged.universite &&
+      typeof SAC_UNIVERSITIES !== "undefined" &&
+      SAC_UNIVERSITIES.getCountryCode
+    ) {
+      tagged.countryCode = SAC_UNIVERSITIES.getCountryCode(tagged.universite);
+    }
     if (
       tagged.logoUrl &&
       tagged.role === "universite" &&
@@ -751,6 +761,7 @@ const SAC_API = (function () {
         role,
         universite: extra.universite || null,
         codeUni: extra.codeUni || null,
+        countryCode: extra.countryCode || null,
         adminPortal: !!extra.adminPortal,
       }),
     });
@@ -1413,8 +1424,10 @@ const SAC_API = (function () {
     return data.items || [];
   }
 
-  async function listDigitalLibrary() {
-    return platformRequest("/platform/library", { auth: false });
+  async function listDigitalLibrary(countryCode) {
+    const cc = countryCode ? String(countryCode).toUpperCase() : "";
+    const q = cc ? "?country=" + encodeURIComponent(cc) : "";
+    return platformRequest("/platform/library" + q, { auth: false });
   }
 
   async function lookupDictionary(word, lang) {
@@ -1436,8 +1449,10 @@ const SAC_API = (function () {
     return data.languages || [];
   }
 
-  async function listDigitalLibraryManage() {
-    return request("/platform/library/manage");
+  async function listDigitalLibraryManage(countryCode) {
+    const cc = countryCode ? String(countryCode).toUpperCase() : "";
+    const q = cc ? "?country=" + encodeURIComponent(cc) : "";
+    return request("/platform/library/manage" + q);
   }
 
   async function createDigitalLibraryBook(payload) {

@@ -40,16 +40,25 @@
           <img src="../evo-uni.jpeg" alt="Evo-smartUni" class="portal-hero__logo" data-portal-logo />
         </div>
         <p class="portal-hero__institution"><span aria-hidden="true">🏛️</span> Ministère de l'Enseignement Supérieur</p>
-        <h1>Supervision nationale</h1>
+        <h1>Supervision par pays</h1>
         <p>
-          Espace sécurisé du Ministère pour suivre les administrateurs institutionnels
-          et les établissements connectés à la plateforme SAC.
+          Espace sécurisé du Ministère pour votre pays : administrateurs institutionnels,
+          bibliothèque nationale et établissements connectés à Evo-smartUni.
         </p>
       </aside>
       <section class="portal-card">
         <h2>Connexion Ministère</h2>
         <p class="subtitle">Réservé aux agents habilités</p>
         <form id="portalLoginForm" novalidate>
+          <div class="portal-field" id="portalCountryWrap" hidden>
+            <label for="portalCountry">Pays *</label>
+            <select id="portalCountry" class="portal-input" required aria-label="Choisir le pays">
+              <option value="CD">🇨🇩 RD Congo</option>
+            </select>
+            <p class="portal-field-hint" style="font-size:0.82rem;color:var(--text-muted);margin:0.35rem 0 0;">
+              Sélectionnez le pays de votre ministère avant la connexion.
+            </p>
+          </div>
           <div class="portal-field">
             <label for="portalEmail">E-mail institutionnel</label>
             <input type="email" id="portalEmail" name="email" required autocomplete="username" placeholder="admin@ministere.cd" />
@@ -87,6 +96,7 @@
     <span>Portail Ministère — Enseignement supérieur (multi-pays)</span>
   </footer>
 
+  <script src="../js/sac-africa-countries.js"></script>
   <script src="../js/sac-identity.js"></script>
   <script src="../js/sac-session.js"></script>
   <script src="../js/sac-api.js"></script>
