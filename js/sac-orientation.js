@@ -107,7 +107,7 @@ const SAC_ORIENTATION = (function () {
       ").</div></div></div>" +
       '<form id="orientationForm" class="ori-compose">' +
       '<input class="fi ori-input" id="orientationInterests" autocomplete="off" ' +
-      'placeholder="Ex. je veux travailler en cybersécurité à Kinshasa…" />' +
+      'placeholder="Ex. je veux travailler en cybersécurité dans ma ville…" />' +
       '<button type="submit" class="btn btn--role ori-send" aria-label="Envoyer">➤</button>' +
       "</form></div></div>";
 

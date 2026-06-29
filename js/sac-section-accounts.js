@@ -128,7 +128,7 @@ const SAC_SECTION_ACCOUNTS = (function () {
     if (!phoneCheck.ok) {
       throw new Error(
         phoneCheck.message ||
-          "Numéro de téléphone recteur invalide. Saisissez un mobile congolais (9 chiffres, ex. 085 184 8859)."
+          "Numéro de téléphone recteur invalide. Choisissez l'indicatif pays et saisissez un mobile valide.",
       );
     }
     const names = splitResponsableName(

@@ -280,7 +280,7 @@ const SAC_CAREERS = (function () {
       "</select></div>" +
       '<div class="fg"><label>Titre du poste / stage *</label><input class="fi" id="jobTitle" required minlength="3" placeholder="Stage développeur web" /></div>' +
       '<div class="fg"><label>Organisation *</label><input class="fi" id="jobOrg" required placeholder="Entreprise ou institution" /></div>' +
-      '<div class="fg"><label>Lieu</label><input class="fi" id="jobLocation" placeholder="Kinshasa, Lubumbashi…" /></div>' +
+      '<div class="fg"><label>Lieu</label><input class="fi" id="jobLocation" placeholder="Capitale, ville principale…" /></div>' +
       '<div class="fg"><label>Filière cible (optionnel)</label><input class="fi" id="jobFiliere" placeholder="Informatique, Droit…" /></div>' +
       '<div class="fg"><label>Niveau (optionnel)</label><input class="fi" id="jobNiveau" placeholder="L3, Master…" /></div>' +
       '<div class="fg" style="grid-column:1/-1;"><label>Description *</label><textarea class="fi" id="jobDesc" rows="3" required placeholder="Missions, durée, profil recherché…"></textarea></div>' +
@@ -311,7 +311,7 @@ const SAC_CAREERS = (function () {
                 esc(o.title) +
                 "</strong> · " +
                 esc(typeLabel(o.type)) +
-                (o.scope === "national" ? " · 🇨🇩 National" : " · Campus") +
+                (o.scope === "national" ? " · 🌍 Régional" : " · Campus") +
                 "<br/><span style='font-size:0.84rem;color:var(--muted);'>" +
                 esc(o.organization) +
                 (o.location ? " · " + esc(o.location) : "") +

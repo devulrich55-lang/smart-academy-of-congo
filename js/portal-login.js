@@ -8,7 +8,7 @@
 
     SAC_PORTAL.applyTheme(def);
     SAC_PORTAL.applyBranding(def);
-    document.title = def.title + " — RDC";
+    document.title = def.title + " — Evo-smartUni";
 
     if (typeof SAC_THEME !== "undefined" && SAC_THEME.reinject) {
       SAC_THEME.reinject();

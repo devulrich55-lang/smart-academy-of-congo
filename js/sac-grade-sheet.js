@@ -14,11 +14,11 @@ const SAC_GRADE_SHEET = (function () {
     "s2-2024": "Semestre 2 — 2023-2024",
   };
 
-  /** Emblème officiel RDC — relevé / fiche officiels */
-  const RDC_CARTE_SRC = "logo_pro.png";
+  /** Emblème institutionnel — relevé / fiche officiels */
+  const OFFICIAL_EMBLEM_SRC = "logo_pro.png";
 
-  function rdcCarteImgHtml() {
-    return `<img src="${RDC_CARTE_SRC}" class="releve-header__map" alt="Emblème de la République Démocratique du Congo" width="88" height="100" />`;
+  function officialEmblemImgHtml() {
+    return `<img src="${OFFICIAL_EMBLEM_SRC}" class="releve-header__map" alt="Emblème institutionnel" width="88" height="100" />`;
   }
 
   function uid(prefix) {
@@ -468,7 +468,7 @@ const SAC_GRADE_SHEET = (function () {
       typeof SAC_UNIVERSITIES !== "undefined" ? SAC_UNIVERSITIES.getById(universiteId) : null;
     const name = (u?.name || universiteId || "Établissement partenaire").toUpperCase();
     const sigle = (u?.sigle || "").toUpperCase();
-    const city = (UNI_CITIES[universiteId] || "KINSHASA").toUpperCase();
+    const city = (UNI_CITIES[universiteId] || "VILLE DU CAMPUS").toUpperCase();
     return { name, sigle, city, cityTitle: city.charAt(0) + city.slice(1).toLowerCase() };
   }
 
@@ -515,8 +515,8 @@ const SAC_GRADE_SHEET = (function () {
   function renderOfficialHeaderHtml(universiteId) {
     const inst = getInstitutionHeader(universiteId);
     const sigleLine = inst.sigle
-      ? `${inst.sigle} — CONGO - ${inst.city}`
-      : `CONGO - ${inst.city}`;
+      ? `${inst.sigle} — ${inst.city}`
+      : inst.city;
     const logoLeft =
       typeof SAC_UNIVERSITY_LOGO !== "undefined"
         ? SAC_UNIVERSITY_LOGO.buildHeaderLogoHtml(universiteId, esc)
@@ -524,13 +524,12 @@ const SAC_GRADE_SHEET = (function () {
     return `<header class="releve-header">
       <div class="releve-header__side releve-header__side--left">${logoLeft}</div>
       <div class="releve-header__center">
-        <p>RÉPUBLIQUE DÉMOCRATIQUE DU CONGO</p>
         <p>MINISTÈRE DE L'ENSEIGNEMENT SUPÉRIEUR ET UNIVERSITAIRE</p>
         <p class="releve-header__institution">${esc(inst.name)}</p>
         <p class="releve-header__sigle">${esc(sigleLine)}</p>
       </div>
       <div class="releve-header__side releve-header__side--right">
-        ${rdcCarteImgHtml()}
+        ${officialEmblemImgHtml()}
       </div>
     </header>`;
   }

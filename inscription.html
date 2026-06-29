@@ -638,6 +638,25 @@
       background: var(--surface);
     }
 
+    .pay-currency-group {
+      margin-bottom: 1rem;
+    }
+
+    .pay-currency-group label {
+      display: block;
+      font-size: 0.88rem;
+      font-weight: 600;
+      margin-bottom: 0.35rem;
+      color: var(--text);
+    }
+
+    .pay-currency-equiv {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin: 0.4rem 0 0;
+      line-height: 1.45;
+    }
+
     .pay-panel { display: none; }
     .pay-panel.active { display: block; }
 
@@ -1126,6 +1145,7 @@
     }
   </style>
   <link rel="stylesheet" href="css/theme.css" />
+  <link rel="stylesheet" href="css/phone-input.css?v=20260625b" />
   <link rel="stylesheet" href="css/mobile.css" />
   <meta name="theme-color" content="#0c3d6e" />
 </head>
@@ -1157,7 +1177,7 @@
         <p class="pricing-box__note" id="pricingSidebarNote">≈ 2 300 FC · paiement unique</p>
       </div>
       <p class="pricing-box__note" style="margin-bottom:0.75rem;">
-        <strong>Inscription</strong> : USD → UBA · CDF → First Bank · Orange · M-Pesa
+        <strong>Inscription</strong> : choisissez une devise africaine · USD → UBA · CDF → First Bank · Orange · M-Pesa
       </p>
       <ul class="pricing-tiers" id="pricingTiers">
         <li data-tier="etudiant"><span>🎓 Étudiant</span><span>1 USD</span></li>
@@ -1349,7 +1369,7 @@
           <div class="field-section" data-role="universite" id="sectionUniversite">
             <div class="form-group full">
               <label for="nomUniversite">Nom de l'université <span class="hint">*</span></label>
-              <input type="text" class="form-input" id="nomUniversite" name="nomUniversite" placeholder="Ex. Université de Kinshasa" />
+              <input type="text" class="form-input" id="nomUniversite" name="nomUniversite" placeholder="Ex. Université nationale de votre pays" />
               <span class="field-error" data-for="nomUniversite">Nom requis</span>
             </div>
             <div class="form-group">
@@ -1359,7 +1379,7 @@
             </div>
             <div class="form-group">
               <label for="ville">Ville du campus principal <span class="hint">*</span></label>
-              <input type="text" class="form-input" id="ville" name="ville" placeholder="Ex. Kinshasa" />
+              <input type="text" class="form-input" id="ville" name="ville" placeholder="Ex. capitale ou ville du campus" />
               <span class="field-error" data-for="ville">Ville requise</span>
             </div>
             <div class="form-group full">
@@ -1399,8 +1419,8 @@
                 </div>
                 <div class="form-group">
                   <label for="recteurTelephone">Téléphone mobile recteur <span class="hint">*</span></label>
-                  <input type="tel" class="form-input" id="recteurTelephone" name="recteurTelephone" placeholder="Ex. 085 184 8859" autocomplete="tel" />
-                  <span class="field-error" data-for="recteurTelephone">Mobile congolais valide requis (9 chiffres, ex. 085 184 8859)</span>
+                  <input type="tel" class="form-input" id="recteurTelephone" name="recteurTelephone" placeholder="Numéro sans indicatif" autocomplete="tel" />
+                  <span class="field-error" data-for="recteurTelephone">Choisissez l'indicatif pays, puis le numéro mobile du recteur</span>
                 </div>
                 <div class="form-group">
                   <label for="recteurPassword">Mot de passe recteur <span class="hint">*</span></label>
@@ -1441,8 +1461,8 @@
           </div>
           <div class="form-group" id="grpTel">
             <label for="telephone">Téléphone <span class="hint">*</span></label>
-            <input type="tel" class="form-input" id="telephone" name="telephone" placeholder="+243 XXX XXX XXX" required />
-            <span class="field-error" data-for="telephone">Numéro mobile congolais valide requis (ex. 085 184 8859)</span>
+            <input type="tel" class="form-input" id="telephone" name="telephone" placeholder="Numéro sans indicatif" required autocomplete="tel" />
+            <span class="field-error" data-for="telephone">Choisissez l'indicatif pays, puis saisissez votre numéro mobile</span>
           </div>
 
           <div class="form-group">
@@ -1512,9 +1532,15 @@
         <p style="font-size:0.88rem;color:var(--text-muted);margin-bottom:0.75rem;" id="paySummaryEmail"></p>
 
         <p class="bank-notice">
-          <strong>Tous les paiements</strong> sont versés sur les comptes officiels ci-dessous :
-          <strong>UBA</strong> (USD), <strong>First Bank</strong> (CDF), <strong>Orange Money</strong> ou <strong>M-Pesa</strong>.
+          <strong>Tous les paiements</strong> sont versés sur les comptes officiels ci-dessous.
+          Choisissez votre <strong>devise africaine</strong>, puis le canal : <strong>UBA</strong> (USD), <strong>First Bank</strong> (CDF), <strong>Orange Money</strong> ou <strong>M-Pesa</strong>.
         </p>
+
+        <div class="form-group pay-currency-group">
+          <label for="payCurrency">Devise de paiement</label>
+          <select class="form-input" id="payCurrency" aria-label="Choisir la devise de paiement"></select>
+          <p class="pay-currency-equiv" id="payCurrencyEquiv"></p>
+        </div>
 
         <div class="pay-methods" id="payMethodsBar">
           <button type="button" class="pay-method active" data-method="usd">💵 UBA (USD)</button>
@@ -1526,7 +1552,7 @@
         <div id="mobilePayerSection">
           <div class="form-group" style="margin-bottom:0.75rem;">
             <label for="payerPhone" id="payerPhoneLabel">Votre numéro de paiement <span class="hint">*</span></label>
-            <input type="tel" class="form-input" id="payerPhone" placeholder="Ex. 085 184 8859 (Orange) ou 083 247 9012 (M-Pesa)" />
+            <input type="tel" class="form-input" id="payerPhone" placeholder="Numéro sans indicatif" />
             <span class="field-error" id="payerPhoneError" data-for="payerPhone">Entrez le numéro depuis lequel vous payez</span>
           </div>
           <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:0.65rem;" id="mobilePayHint">
@@ -1670,12 +1696,15 @@
     })();
   </script>
   <script src="js/sac-universities.js"></script>
+  <script src="js/sac-phone-countries.js?v=20260625b"></script>
   <script src="js/sac-identity.js"></script>
+  <script src="js/sac-phone-input.js?v=20260625b"></script>
   <script src="js/sac-session.js?v=20260617d"></script>
   <script src="js/sac-api.js?v=20260630h"></script>
   <script src="js/sac-account-registry.js?v=20260630a"></script>
   <script src="js/sac-mobile-money.js?v=20260629c"></script>
   <script src="js/sac-tariffs.js?v=20260623b"></script>
+  <script src="js/sac-currencies.js?v=20260625a"></script>
   <script src="js/sac-sections.js"></script>
   <script src="js/sac-section-accounts.js"></script>
   <script src="js/sac-section-approval.js"></script>
@@ -1694,7 +1723,7 @@
         currency: "CDF",
         accountDisplay: "5644 1309 0100 9439 797",
         accountRaw: "5644130901009439797",
-        note: "Francs congolais (CDF) uniquement",
+        note: "Francs congolais (CDF) — devise locale",
       },
       beneficiary: "Evo-smartUni",
     };
@@ -1812,6 +1841,8 @@
     let pendingProfile = null;
     let pendingTxId = null;
     let bordereauPaused = false;
+    let selectedPayCurrency = "USD";
+    let payCurrencySelectReady = false;
 
     const tabs = document.querySelectorAll(".role-tab");
     const roleBadge = document.getElementById("roleBadge");
@@ -1833,6 +1864,86 @@
     const paymentPaidText = document.getElementById("paymentPaidText");
     const btnConfirmPay = document.getElementById("btnConfirmPay");
 
+    function getSelectedPayCurrency() {
+      const sel = document.getElementById("payCurrency");
+      return sel?.value || selectedPayCurrency || "USD";
+    }
+
+    function initPayCurrencySelect() {
+      const sel = document.getElementById("payCurrency");
+      if (!sel || typeof SAC_CURRENCIES === "undefined") return;
+      if (!payCurrencySelectReady) {
+        sel.innerHTML = SAC_CURRENCIES.buildSelectOptions(selectedPayCurrency);
+        sel.addEventListener("change", onPayCurrencyChange);
+        payCurrencySelectReady = true;
+      } else {
+        sel.value = selectedPayCurrency;
+      }
+    }
+
+    function onPayCurrencyChange() {
+      selectedPayCurrency = getSelectedPayCurrency();
+      updatePayMethodVisibility();
+      updatePricingUI(pendingProfile?.role || currentRole);
+    }
+
+    function updatePayMethodVisibility() {
+      const code = getSelectedPayCurrency();
+      const mobileOk = typeof SAC_CURRENCIES !== "undefined" && SAC_CURRENCIES.mobileMoneyAvailable(code);
+      let needSwitch = false;
+      document.querySelectorAll(".pay-method").forEach((btn) => {
+        const m = btn.dataset.method;
+        const isMobile = m === "orange" || m === "mpesa";
+        const hidden = isMobile && !mobileOk;
+        btn.style.display = hidden ? "none" : "";
+        btn.toggleAttribute("disabled", hidden);
+        if (hidden && btn.classList.contains("active")) needSwitch = true;
+      });
+      if (needSwitch) {
+        const fallback = document.querySelector('.pay-method[data-method="' + (code === "CDF" ? "cdf" : "usd") + '"]');
+        fallback?.click();
+      }
+    }
+
+    function amountInSelectedCurrency(fee) {
+      if (typeof SAC_CURRENCIES === "undefined") {
+        return { code: "USD", amount: fee.amount, label: formatUsd(fee.amount) };
+      }
+      const code = getSelectedPayCurrency();
+      const amount = SAC_CURRENCIES.convertFromUsd(fee.amount, code);
+      return { code, amount, label: SAC_CURRENCIES.formatWithCode(amount, code) };
+    }
+
+    function equivHintForCurrency(fee) {
+      if (typeof SAC_CURRENCIES === "undefined") return "";
+      const code = getSelectedPayCurrency();
+      const usd = formatUsd(fee.amount);
+      if (code === "USD") {
+        const cdf = SAC_CURRENCIES.format(SAC_CURRENCIES.convertFromUsd(fee.amount, "CDF"), "CDF");
+        return "Référence : " + usd + " · ≈ " + cdf + " (taux indicatif)";
+      }
+      const rate = SAC_CURRENCIES.getRate(code);
+      return (
+        "Référence : " +
+        usd +
+        " · taux indicatif 1 USD ≈ " +
+        SAC_CURRENCIES.formatNumber(rate, code) +
+        " " +
+        SAC_CURRENCIES.get(code).unit
+      );
+    }
+
+    function nativeChannelLabel(kind, fee) {
+      if (kind === "usd") return formatUsd(fee.amount);
+      const cdfAmt = fee.cdf != null ? fee.cdf : SAC_CURRENCIES?.convertFromUsd(fee.amount, "CDF");
+      const cdfLabel = Number(cdfAmt).toLocaleString("fr-FR") + " CDF";
+      const cur = getSelectedPayCurrency();
+      if (cur === "CDF" || kind === "orange" || kind === "mpesa") return cdfLabel;
+      if (typeof SAC_CURRENCIES === "undefined") return cdfLabel;
+      const equiv = SAC_CURRENCIES.formatWithCode(SAC_CURRENCIES.convertFromUsd(fee.amount, cur), cur);
+      return cdfLabel + " (≈ " + equiv + ")";
+    }
+
     function bordereauLine(key, value, extraClass) {
       const cls = extraClass ? ' class="bordereau-line__v ' + extraClass + '"' : ' class="bordereau-line__v"';
       return (
@@ -1853,6 +1964,13 @@
         year: "numeric",
       });
       const motif = "Inscription Evo-smartUni — " + roleLabel;
+      const payCur = getSelectedPayCurrency();
+      const payCurMeta = typeof SAC_CURRENCIES !== "undefined" ? SAC_CURRENCIES.get(payCur) : null;
+      const payCurLabel = payCurMeta ? payCurMeta.flag + " " + payCur + " — " + payCurMeta.label : payCur;
+      const selectedAmt =
+        typeof SAC_CURRENCIES !== "undefined"
+          ? SAC_CURRENCIES.formatWithCode(SAC_CURRENCIES.convertFromUsd(fee.amount, payCur), payCur)
+          : formatUsd(fee.amount);
       const cdfLabel = fee.cdf.toLocaleString("fr-FR") + " CDF";
 
       const head =
@@ -1864,13 +1982,15 @@
       if (kind === "usd") {
         return (
           head +
+          bordereauLine("Devise choisie", payCurLabel) +
           bordereauLine("Type d'opération", "Virement bancaire international / local") +
           bordereauLine("Banque bénéficiaire", "UBA BANK") +
-          bordereauLine("Pays", "République Démocratique du Congo") +
+          bordereauLine("Pays", "Selon pays du campus / établissement") +
           bordereauLine("Bénéficiaire", "Evo-smartUni") +
           bordereauLine("N° de compte", "4035 2512 8823 8967", "bordereau-line__v--mono") +
-          bordereauLine("Devise du compte", "USD — Dollars américains uniquement") +
+          bordereauLine("Devise du compte", "USD — Dollars américains") +
           bordereauLine("Montant exact à virer", formatUsd(fee.amount), "bordereau-line__v--amount") +
+          (payCur !== "USD" ? bordereauLine("Équivalent indicatif", selectedAmt) : "") +
           bordereauLine("Motif / libellé", motif) +
           bordereauLine("E-mail inscrit", email) +
           bordereauLine("Référence SAC", ref, "bordereau-line__v--mono") +
@@ -1882,13 +2002,15 @@
       if (kind === "cdf") {
         return (
           head +
+          bordereauLine("Devise choisie", payCurLabel) +
           bordereauLine("Type d'opération", "Virement bancaire") +
           bordereauLine("Banque bénéficiaire", "FIRST BANK") +
-          bordereauLine("Pays", "République Démocratique du Congo") +
+          bordereauLine("Pays", "Selon pays du campus / établissement") +
           bordereauLine("Bénéficiaire", "Evo-smartUni") +
           bordereauLine("N° de compte", "5644 1309 0100 9439 797", "bordereau-line__v--mono") +
-          bordereauLine("Devise du compte", "CDF — Francs congolais uniquement") +
+          bordereauLine("Devise du compte", "CDF — Franc congolais") +
           bordereauLine("Montant exact à virer", cdfLabel, "bordereau-line__v--amount") +
+          (payCur !== "CDF" ? bordereauLine("Équivalent indicatif", selectedAmt) : "") +
           bordereauLine("Motif / libellé", motif) +
           bordereauLine("E-mail inscrit", email) +
           bordereauLine("Référence SAC", ref, "bordereau-line__v--mono") +
@@ -1900,12 +2022,14 @@
       if (kind === "orange") {
         return (
           head +
+          bordereauLine("Devise choisie", payCurLabel) +
           bordereauLine("Type d'opération", "Transfert Orange Money") +
-          bordereauLine("Opérateur", "Orange RDC") +
+          bordereauLine("Opérateur", "Orange Money") +
           bordereauLine("Bénéficiaire", "Evo-smartUni") +
           bordereauLine("Numéro marchand", "+243 85 184 8859", "bordereau-line__v--mono") +
-          bordereauLine("Devise", "CDF — Francs congolais") +
+          bordereauLine("Devise", "CDF — Franc congolais") +
           bordereauLine("Montant exact", cdfLabel, "bordereau-line__v--amount") +
+          (payCur !== "CDF" ? bordereauLine("Équivalent indicatif", selectedAmt) : "") +
           bordereauLine("Motif", motif) +
           bordereauLine("E-mail inscrit", email) +
           bordereauLine("Référence SAC", ref, "bordereau-line__v--mono") +
@@ -1916,12 +2040,14 @@
       }
       return (
         head +
+        bordereauLine("Devise choisie", payCurLabel) +
         bordereauLine("Type d'opération", "Transfert M-Pesa") +
         bordereauLine("Opérateur", "Vodacom M-Pesa") +
         bordereauLine("Bénéficiaire", "Evo-smartUni") +
         bordereauLine("Numéro marchand", "+243 83 247 9012", "bordereau-line__v--mono") +
-        bordereauLine("Devise", "CDF — Francs congolais") +
+        bordereauLine("Devise", "CDF — Franc congolais") +
         bordereauLine("Montant exact", cdfLabel, "bordereau-line__v--amount") +
+        (payCur !== "CDF" ? bordereauLine("Équivalent indicatif", selectedAmt) : "") +
         bordereauLine("Motif", motif) +
         bordereauLine("E-mail inscrit", email) +
         bordereauLine("Référence SAC", ref, "bordereau-line__v--mono") +
@@ -1984,14 +2110,23 @@
 
     function updatePricingUI(role) {
       const fee = getFee(role);
-      const amountHtml = formatAmountHtml(fee.amount);
+      const selected = amountInSelectedCurrency(fee);
+      const amountHtml =
+        selected.code === "USD"
+          ? formatAmountHtml(fee.amount)
+          : SAC_CURRENCIES.formatNumber(selected.amount, selected.code) +
+            ' <span>' +
+            selected.code +
+            "</span>";
 
       document.getElementById("pricingSidebarAmount").innerHTML = amountHtml;
       document.getElementById("pricingFormAmount").innerHTML = amountHtml;
-      document.getElementById("modalAmount").textContent = formatUsd(fee.amount);
+      document.getElementById("modalAmount").textContent = selected.label;
 
-      const note = "≈ " + fee.cdf.toLocaleString("fr-FR") + " FC · paiement unique";
-      document.getElementById("pricingSidebarNote").textContent = note;
+      const equiv = equivHintForCurrency(fee);
+      document.getElementById("pricingSidebarNote").textContent = equiv + " · paiement unique";
+      const equivEl = document.getElementById("payCurrencyEquiv");
+      if (equivEl) equivEl.textContent = equiv;
 
       const uni = getUniversiteForRole(role);
       const campusNote =
@@ -2003,30 +2138,40 @@
             ")."
           : "";
       document.getElementById("pricingFormNote").textContent =
-        "Paiement unique · ≈ " +
-        fee.cdf.toLocaleString("fr-FR") +
-        " FC · USD → UBA · CDF → First Bank, Orange Money ou M-Pesa." +
+        "Paiement unique · " +
+        equiv +
+        " · choisissez votre devise et le canal (UBA, First Bank, Orange Money, M-Pesa)." +
         campusNote;
 
-      btnSubmit.textContent = "Continuer — Payer " + fee.amount + " USD";
+      btnSubmit.textContent =
+        "Continuer — Payer " +
+        (selected.code === "USD" ? fee.amount + " USD" : selected.label);
       btnConfirmPay.textContent = "Confirmer mon paiement";
 
-      const cdfLabel = fee.cdf.toLocaleString("fr-FR") + " FC";
+      const usdDue = "Montant à virer : " + formatUsd(fee.amount);
+      const cdfDue = "Montant à virer : " + nativeChannelLabel("cdf", fee);
+      const orangeDue = "Montant à envoyer : " + nativeChannelLabel("orange", fee);
+      const mpesaDue = "Montant à envoyer : " + nativeChannelLabel("mpesa", fee);
       const amountUsdEl = document.getElementById("amountDueUsd");
       const amountCdfEl = document.getElementById("amountDueCdf");
       const amountOrangeEl = document.getElementById("amountDueOrange");
       const amountMpesaEl = document.getElementById("amountDueMpesa");
-      if (amountUsdEl) amountUsdEl.textContent = "Montant à virer : " + formatUsd(fee.amount);
-      if (amountCdfEl) amountCdfEl.textContent = "Montant à virer : " + cdfLabel;
-      if (amountOrangeEl) amountOrangeEl.textContent = "Montant à envoyer : " + cdfLabel;
-      if (amountMpesaEl) amountMpesaEl.textContent = "Montant à envoyer : " + cdfLabel;
+      if (amountUsdEl) amountUsdEl.textContent = usdDue;
+      if (amountCdfEl) amountCdfEl.textContent = cdfDue;
+      if (amountOrangeEl) amountOrangeEl.textContent = orangeDue;
+      if (amountMpesaEl) amountMpesaEl.textContent = mpesaDue;
 
       document.querySelectorAll(".pricing-tiers li").forEach((li) => {
         const isActive = li.dataset.tier === role;
         li.classList.toggle("active-tier", isActive);
         if (isActive) {
           const priceEl = li.querySelector("span:last-child");
-          if (priceEl) priceEl.textContent = fee.amount + " USD";
+          if (priceEl) {
+            const tierFee = getFee(li.dataset.tier);
+            const tierSel = amountInSelectedCurrency(tierFee);
+            priceEl.textContent =
+              tierSel.code === "USD" ? tierFee.amount + " USD" : tierSel.label;
+          }
         }
       });
 
@@ -2445,7 +2590,12 @@
       }
       const fee = getFee(profile.role);
       document.getElementById("paySummaryEmail").textContent =
-        "Compte : " + profile.email + " · " + ROLES[profile.role].badge + " · " + formatUsd(fee.amount);
+        "Compte : " +
+        profile.email +
+        " · " +
+        ROLES[profile.role].badge +
+        " · " +
+        amountInSelectedCurrency(fee).label;
       document.getElementById("modalSubtitle").textContent =
         "Frais d'inscription " + fee.label;
 
@@ -2460,8 +2610,16 @@
 
       document.getElementById("bankRef").value = "";
       document.getElementById("bankConfirm").checked = false;
-      const telForm = document.getElementById("telephone").value.trim();
-      document.getElementById("payerPhone").value = telForm.length >= 9 ? telForm : "";
+      const telForm = SAC_IDENTITY.readPhone("telephone");
+      const payerEl = document.getElementById("payerPhone");
+      if (telForm && payerEl) {
+        if (typeof SAC_PHONE_INPUT !== "undefined") SAC_PHONE_INPUT.setValue(payerEl, telForm);
+        else payerEl.value = telForm;
+      } else if (payerEl) {
+        payerEl.value = "";
+      }
+      initPayCurrencySelect();
+      updatePayMethodVisibility();
       resetMobilePayUI();
       updatePricingUI(profile.role);
       renderAllBorderaux();
@@ -2489,16 +2647,23 @@
     }
 
     function formatPayerPhoneDisplay(raw) {
-      const d = raw.replace(/\D/g, "");
+      const full =
+        typeof SAC_PHONE_COUNTRIES !== "undefined"
+          ? SAC_PHONE_COUNTRIES.normalizePhone(raw)
+          : raw.replace(/\D/g, "");
+      if (full && typeof SAC_IDENTITY !== "undefined") {
+        return SAC_IDENTITY.formatPhoneDisplay(full);
+      }
+      const d = String(raw || "").replace(/\D/g, "");
       if (d.length >= 9) {
         const local = d.slice(-9);
-        return "+243 " + local.slice(0, 3) + " " + local.slice(3, 6) + " " + local.slice(6);
+        return "+? " + local.slice(0, 3) + " " + local.slice(3, 6) + " " + local.slice(6);
       }
       return raw;
     }
 
     function validatePayerPhone() {
-      const check = SAC_IDENTITY.validatePhone(document.getElementById("payerPhone").value);
+      const check = SAC_IDENTITY.validatePhoneElement(document.getElementById("payerPhone"));
       const ok = check.ok;
       document.getElementById("payerPhone").classList.toggle("error", !ok);
       const errEl = document.getElementById("payerPhoneError");
@@ -2552,7 +2717,7 @@
         try {
           const tx = await mobileMoneyConfirmPin(activeMobileTxId, pin);
           markPaymentPaid(method, tx.id, {
-            payerPhone: document.getElementById("payerPhone").value.trim(),
+            payerPhone: SAC_IDENTITY.readPhone("payerPhone"),
             status: "completed",
             mobileTransactionId: tx.id,
           });
@@ -2581,12 +2746,12 @@
         btnStart.textContent = "Recevoir l'alerte Orange Money";
         btnStart.classList.remove("mpesa-style");
         payerLabel.innerHTML = 'Votre numéro Orange Money <span class="hint">*</span>';
-        document.getElementById("payerPhone").placeholder = "Ex. 085 184 8859";
+        document.getElementById("payerPhone").placeholder = "Numéro sans indicatif";
       } else if (method === "mpesa") {
         btnStart.textContent = "Recevoir l'alerte M-Pesa";
         btnStart.classList.add("mpesa-style");
         payerLabel.innerHTML = 'Votre numéro M-Pesa <span class="hint">*</span>';
-        document.getElementById("payerPhone").placeholder = "Ex. 083 247 9012";
+        document.getElementById("payerPhone").placeholder = "Numéro sans indicatif";
       }
 
       const texts = {
@@ -2600,9 +2765,11 @@
         document.getElementById("mobilePayerSection").classList.add("visible");
         document.getElementById("bankPayFlow").classList.add("hidden");
         document.getElementById("secureNoteMobile").style.display = "";
-        const tel = document.getElementById("telephone").value.trim();
-        if (tel.length >= 9 && !document.getElementById("payerPhone").value) {
-          document.getElementById("payerPhone").value = tel;
+        const tel = SAC_IDENTITY.readPhone("telephone");
+        const payerEl = document.getElementById("payerPhone");
+        if (tel && payerEl && !SAC_IDENTITY.readPhone(payerEl)) {
+          if (typeof SAC_PHONE_INPUT !== "undefined") SAC_PHONE_INPUT.setValue(payerEl, tel);
+          else payerEl.value = tel;
         }
         if (!skipMobileAutoStart) {
           setTimeout(() => {
@@ -2668,9 +2835,17 @@
 
       activeMobileMethod = method;
       const fee = getFee(pendingProfile?.role || currentRole);
-      const payerPhone = document.getElementById("payerPhone").value.trim();
+      const payerPhone = SAC_IDENTITY.readPhone("payerPhone");
       const provider = method === "orange" ? MOBILE_MONEY.orange : MOBILE_MONEY.mpesa;
       const cdfLabel = fee.cdf.toLocaleString("fr-FR") + " CDF";
+      const cur = getSelectedPayCurrency();
+      const alertAmt =
+        cur === "CDF" && typeof SAC_CURRENCIES !== "undefined"
+          ? SAC_CURRENCIES.formatWithCode(fee.cdf, "CDF")
+          : cdfLabel +
+            (cur !== "CDF" && typeof SAC_CURRENCIES !== "undefined"
+              ? " (≈ " + SAC_CURRENCIES.formatWithCode(SAC_CURRENCIES.convertFromUsd(fee.amount, cur), cur) + ")"
+              : "");
 
       document.getElementById("payMethodsBar").style.display = "none";
       document.getElementById("payPanelsWrap").classList.add("hidden");
@@ -2720,7 +2895,7 @@
         document.getElementById("alertPhoneDisplay").textContent = formatPayerPhoneDisplay(payerPhone);
         document.getElementById("alertProviderIcon").textContent = method === "orange" ? "🟠" : "📱";
         document.getElementById("alertProviderName").textContent = provider.name;
-        document.getElementById("alertAmount").textContent = cdfLabel;
+        document.getElementById("alertAmount").textContent = alertAmt;
         document.getElementById("alertMerchantPhone").textContent = tx.merchantPhone || provider.phone;
         document.getElementById("mobilePin").value = "";
         updateSubmitPinButton();
@@ -2970,10 +3145,17 @@
       const role = pendingProfile?.role || currentRole;
       const fee = getFee(role);
       const txId = pendingTxId || generateTransactionId();
+      const payCur = getSelectedPayCurrency();
+      const payCurAmount =
+        typeof SAC_CURRENCIES !== "undefined"
+          ? SAC_CURRENCIES.convertFromUsd(fee.amount, payCur)
+          : fee.amount;
 
       let payment = {
         amountUsd: fee.amount,
         amountCdf: fee.cdf,
+        payCurrency: payCur,
+        payCurrencyAmount: payCurAmount,
         role,
         paymentReference: paymentReference,
         transactionId: txId,
@@ -3148,7 +3330,7 @@
       const prenom = document.getElementById("prenom").value.trim();
       const nom = document.getElementById("nom").value.trim();
       const email = document.getElementById("email").value.trim();
-      const tel = document.getElementById("telephone").value.trim();
+      const tel = SAC_IDENTITY.readPhone("telephone");
       const pwd = document.getElementById("password").value;
       const pwd2 = document.getElementById("passwordConfirm").value;
       const terms = document.getElementById("terms").checked;
@@ -3159,7 +3341,7 @@
       }
       const em = SAC_IDENTITY.validateEmail(email);
       valid = showError("email", !em.ok, em.message) && valid;
-      const ph = SAC_IDENTITY.validatePhone(tel);
+      const ph = SAC_IDENTITY.validatePhoneElement("telephone");
       valid = showError("telephone", !ph.ok, ph.message) && valid;
       const pw = SAC_IDENTITY.validatePassword(pwd);
       valid = showError("password", !pw.ok, pw.message) && valid;
@@ -3175,7 +3357,7 @@
         prenom: currentRole !== "universite" ? prenom : null,
         nom: currentRole === "universite" ? "" : nom,
         email,
-        telephone: tel,
+        telephone: ph.ok ? ph.value : tel,
         password: pwd,
         createdAt: new Date().toISOString(),
       };
@@ -3270,10 +3452,10 @@
         valid = showError("responsable", resp.length < 3) && valid;
         const recteurEmail = document.getElementById("recteurEmail").value.trim();
         const recteurPassword = document.getElementById("recteurPassword").value;
-        const recteurTelephone = document.getElementById("recteurTelephone").value.trim();
+        const recteurTelephone = SAC_IDENTITY.readPhone("recteurTelephone");
         const recteurEm = SAC_IDENTITY.validateEmail(recteurEmail);
         valid = showError("recteurEmail", !recteurEm.ok, recteurEm.message) && valid;
-        const recteurPh = SAC_IDENTITY.validatePhone(recteurTelephone);
+        const recteurPh = SAC_IDENTITY.validatePhoneElement("recteurTelephone");
         valid = showError("recteurTelephone", !recteurPh.ok, recteurPh.message) && valid;
         const recteurPw = SAC_IDENTITY.validatePassword(recteurPassword);
         valid = showError("recteurPassword", !recteurPw.ok, recteurPw.message) && valid;
@@ -3337,7 +3519,7 @@
           const r = SAC_IDENTITY.validateEmail(el.value);
           showError("email", !r.ok, r.message);
         } else {
-          const r = SAC_IDENTITY.validatePhone(el.value);
+          const r = SAC_IDENTITY.validatePhoneElement(el);
           showError("telephone", !r.ok, r.message);
         }
       });
@@ -3350,6 +3532,7 @@
         await SAC_TARIFFS.ensurePlatformSettings();
         SAC_TARIFFS.syncPricingTierLabels();
       }
+      initPayCurrencySelect();
       const params = new URLSearchParams(window.location.search);
       const roleParam = params.get("role");
       if (roleParam === "universite") {

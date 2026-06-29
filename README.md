@@ -1,6 +1,6 @@
 # Evo-smartUni
 
-Plateforme éducative nationale pour les universités congolaises : inscription, notes, relevés officiels, réclamations, cours en direct et vérification de diplômes.
+Plateforme éducative pour les universités et instituts partenaires en Afrique centrale et dans la région : inscription, notes, relevés officiels, réclamations, cours en direct et vérification de diplômes.
 
 ## Démarrage local
 
@@ -49,7 +49,7 @@ npm run check:health https://smart-academy-of-congo-dbfm.onrender.com
 ├── render.yaml          Config frontend Render
 ├── dashboard-*.html     Espaces par rôle (étudiant, prof, assistant, section, université)
 ├── plateforme.html      Portail unifié (10 piliers)
-└── bulletin-semestre.html   Relevé de notes officiel RDC
+└── bulletin-semestre.html   Relevé de notes officiel
 ```
 
 ## Rôles

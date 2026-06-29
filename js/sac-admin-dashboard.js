@@ -956,7 +956,7 @@ const SAC_ADMIN_DASHBOARD = (function () {
           email: document.getElementById("newEmail").value.trim(),
           prenom: document.getElementById("newPrenom").value.trim(),
           nom: document.getElementById("newNom").value.trim(),
-          telephone: document.getElementById("newTel").value.trim(),
+          telephone: SAC_IDENTITY.readPhone("newTel"),
           password: document.getElementById("newPassword").value,
         };
       }

@@ -1,0 +1,37 @@
+/* Champ téléphone — indicatif pays + numéro local */
+.sac-phone-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: stretch;
+  width: 100%;
+}
+
+.sac-phone-dial {
+  flex: 0 0 auto;
+  min-width: 9.5rem;
+  max-width: 42%;
+  font-size: 0.82rem;
+  padding: 0.55rem 0.45rem;
+  cursor: pointer;
+}
+
+.sac-phone-local {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.sac-phone-group .sac-phone-row {
+  margin-top: 0;
+}
+
+@media (max-width: 480px) {
+  .sac-phone-row {
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+
+  .sac-phone-dial {
+    max-width: 100%;
+    width: 100%;
+  }
+}

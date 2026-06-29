@@ -74,8 +74,11 @@ const SAC_IDENTITY = (function () {
     return { ok: true, value: e };
   }
 
-  /** Téléphone RDC : 9 chiffres locaux → 243XXXXXXXXX */
-  function normalizePhone(phone) {
+  /** Téléphone mobile — indicatif pays africain + numéro local */
+  function normalizePhone(phone, preferredDial) {
+    if (typeof SAC_PHONE_COUNTRIES !== "undefined") {
+      return SAC_PHONE_COUNTRIES.normalizePhone(phone, preferredDial);
+    }
     let d = String(phone || "").replace(/\D/g, "");
     if (d.startsWith("243") && d.length >= 12) d = d.slice(0, 12);
     else if (d.startsWith("00243")) d = d.slice(2, 14);
@@ -86,17 +89,43 @@ const SAC_IDENTITY = (function () {
   }
 
   function formatPhoneDisplay(normalized) {
+    if (typeof SAC_PHONE_COUNTRIES !== "undefined") {
+      return SAC_PHONE_COUNTRIES.formatPhoneDisplay(normalized);
+    }
     if (!normalized || normalized.length !== 12) return "";
     const local = normalized.slice(3);
     return "+243 " + local.slice(0, 3) + " " + local.slice(3, 6) + " " + local.slice(6);
   }
 
-  function validatePhone(phone) {
-    const n = normalizePhone(phone);
+  function readPhone(inputOrId) {
+    if (typeof SAC_PHONE_INPUT !== "undefined") {
+      return SAC_PHONE_INPUT.getValue(inputOrId) || "";
+    }
+    const el =
+      typeof inputOrId === "string" ? document.getElementById(inputOrId) : inputOrId;
+    return el ? String(el.value || "").trim() : "";
+  }
+
+  function validatePhoneElement(inputOrId) {
+    const el =
+      typeof inputOrId === "string" ? document.getElementById(inputOrId) : inputOrId;
+    const dial =
+      typeof SAC_PHONE_INPUT !== "undefined" && el
+        ? SAC_PHONE_INPUT.getDialCode(el)
+        : undefined;
+    return validatePhone(readPhone(el), { dialCode: dial });
+  }
+
+  function validatePhone(phone, options) {
+    const preferredDial = options?.dialCode || options?.preferredDial;
+    if (typeof SAC_PHONE_COUNTRIES !== "undefined") {
+      return SAC_PHONE_COUNTRIES.validatePhone(phone, preferredDial);
+    }
+    const n = normalizePhone(phone, preferredDial);
     if (!n) {
       return {
         ok: false,
-        message: "Numéro invalide. Saisissez un mobile congolais (9 chiffres, ex. 085 184 8859).",
+        message: "Numéro invalide. Saisissez un mobile valide (format international, ex. +243 85 184 8859).",
       };
     }
     const local = n.slice(3);
@@ -104,7 +133,7 @@ const SAC_IDENTITY = (function () {
       return {
         ok: false,
         message:
-          "Numéro non reconnu. Utilisez un numéro mobile RDC valide (commence par 08 ou 09).",
+          "Numéro non reconnu. Utilisez un mobile valide (ex. +243, commence par 08 ou 09 en local).",
       };
     }
     if (/^(\d)\1{8}$/.test(local)) {
@@ -548,6 +577,8 @@ const SAC_IDENTITY = (function () {
     normalizeEmail,
     normalizePhone,
     formatPhoneDisplay,
+    readPhone,
+    validatePhoneElement,
     validateEmail,
     validatePhone,
     validatePassword,

@@ -1,7 +1,7 @@
 /**
  * Informations officielles — panneau public (index.html)
  * Ministère : publications nationales par catégorie (officiel, gouvernement, concours…)
- * Université : panneau campus (profil étudiants) + espace national
+ * Université : panneau campus (profil étudiants) + espace régional
  */
 const SAC_HOME_NEWS = (function () {
   const STORAGE_KEY = "sac_home_news";
@@ -89,7 +89,7 @@ const SAC_HOME_NEWS = (function () {
 
   const CATEGORIES = [
     { id: "officiel", label: "Information officielle", icon: "🏛️", color: "#0c3d6e" },
-    { id: "gouvernemental", label: "Gouvernement", icon: "🇨🇩", color: "#1e40af" },
+    { id: "gouvernemental", label: "Gouvernement", icon: "🏛️", color: "#1e40af" },
     { id: "concours", label: "Concours", icon: "📝", color: "#7c2d12" },
     { id: "opportunite", label: "Opportunité", icon: "💼", color: "#0d7a4a" },
     { id: "bourse", label: "Bourse d'études", icon: "🎓", color: "#b45309" },
@@ -107,8 +107,8 @@ const SAC_HOME_NEWS = (function () {
       category: "officiel",
       title: "Communiqué officiel — rentrée académique 2025-2026",
       excerpt:
-        "Le Ministère confirme le calendrier national de la rentrée universitaire et les directives pour l'inscription des étudiants dans les établissements agréés.",
-      body: "Toutes les universités partenaires SAC doivent publier leurs listes d'admission avant le 15 septembre. Consultez la circulaire complète sur le portail national.",
+        "Le Ministère confirme le calendrier académique partagé de la rentrée universitaire et les directives pour l'inscription des étudiants dans les établissements agréés.",
+      body: "Toutes les universités partenaires SAC doivent publier leurs listes d'admission avant le 15 septembre. Consultez la circulaire complète sur le portail régional.",
       linkUrl: "",
       linkLabel: "Lire le communiqué",
       published: true,
@@ -126,7 +126,7 @@ const SAC_HOME_NEWS = (function () {
       authorId: "admin@unikin.cd",
       authorName: "Administration UNIKIN",
       category: "gouvernemental",
-      title: "Calendrier national des examens d'État — session 2025",
+      title: "Calendrier régional des examens d'État — session 2025",
       excerpt:
         "Le Ministère de l'Enseignement Supérieur confirme les dates de dépôt des dossiers et les épreuves écrites pour les filières scientifiques et littéraires.",
       body: "Les universités partenaires sont invitées à transmettre les listes définitives des candidats avant le 15 juin. Consultez le communiqué complet sur le portail du MESU.",
@@ -188,7 +188,7 @@ const SAC_HOME_NEWS = (function () {
       authorId: "admin@unikin.cd",
       authorName: "Administration UNIKIN",
       category: "opportunite",
-      title: "Stage rémunéré — partenariat entreprises (Kinshasa)",
+      title: "Stage rémunéré — partenariat entreprises (régional)",
       excerpt:
         "20 places pour étudiants L2/L3 en Gestion et Informatique. Durée : 3 mois, indemnité mensuelle.",
       body: "Contact : Direction des relations entreprises. CV et lettre de motivation à envoyer via votre espace étudiant ou par e-mail au secrétariat.",
@@ -506,7 +506,7 @@ const SAC_HOME_NEWS = (function () {
       universite: scope === SCOPES.national ? NATIONAL_CODE : code,
       universityName:
         scope === SCOPES.national
-          ? getUniDisplayName(session) + " — Espace national"
+          ? getUniDisplayName(session) + " — Espace régional"
           : getUniDisplayName(session),
       authorId: session.identifiant || session.userId || "",
       authorName: session.nom || "Administration",
@@ -735,7 +735,7 @@ const SAC_HOME_NEWS = (function () {
       item.scope === SCOPES.national
         ? isMinistryItem(item)
           ? '<span class="hn-card__pin" style="background:#0c3d6e;color:#fff;">🏛️ Ministère</span>'
-          : '<span class="hn-card__pin" style="background:#1e40af;color:#fff;">🇨🇩 Espace national</span>'
+          : '<span class="hn-card__pin" style="background:#1e40af;color:#fff;">🌍 Espace régional</span>'
         : "";
     return `
       <article class="hn-card ${item.pinned ? "hn-card--pinned" : ""}" data-hn-id="${escHtml(item.id)}" data-category="${item.category}" data-uni="${item.universite}" data-scope="${item.scope || SCOPES.university}">
@@ -835,7 +835,7 @@ const SAC_HOME_NEWS = (function () {
         const published = getPublished();
         const uniIds = [...new Set(published.map((n) => n.universite))].filter(Boolean);
         uniSelect.innerHTML =
-          '<option value="all">🇨🇩 Espace national uniquement</option>' +
+          '<option value="all">🌍 Espace régional uniquement</option>' +
           uniIds
             .map((id) => {
               const name =
@@ -870,30 +870,30 @@ const SAC_HOME_NEWS = (function () {
     const pageTitle =
       opts.pageTitle ||
       (isMinistry
-        ? "Panneau public national"
+        ? "Panneau public régional"
         : isNational
-          ? "Espace national"
+          ? "Espace régional"
           : "Annonces de mon université");
     const pageDesc =
       opts.pageDesc ||
       (isMinistry
-        ? "Publiez des informations officielles par <strong>catégorie</strong> (gouvernement, concours, bourses…). Elles apparaissent sur la <strong>page d'accueil publique</strong> et dans l'espace national de tous les étudiants."
+        ? "Publiez des informations officielles par <strong>catégorie</strong> (gouvernement, concours, bourses…). Elles apparaissent sur la <strong>page d'accueil publique</strong> et dans l'espace régional de tous les étudiants."
         : isNational
-          ? "Publiez des informations visibles par <strong>toutes les universités</strong> partenaires et sur la page d'accueil du site (fil national)."
+          ? "Publiez des informations visibles par <strong>toutes les universités</strong> partenaires et sur la page d'accueil du site (fil régional)."
           : `Annonces officielles de <strong>${escHtml(getUniDisplayName(session))}</strong> — visibles sur le <strong>profil de vos étudiants</strong> uniquement.`);
     const listTitle =
       opts.listTitle ||
       (isMinistry
         ? "Mes publications — Ministère"
         : isNational
-          ? "Mes publications — espace national"
+          ? "Mes publications — espace régional"
           : "Mes annonces (mon université)");
     const submitLabel =
       opts.submitLabel ||
       (isMinistry
         ? "Publier sur le panneau public"
         : isNational
-          ? "Publier à l'espace national"
+          ? "Publier à l'espace régional"
           : "Publier pour mon université");
 
     let editingId = null;
@@ -1179,9 +1179,9 @@ const SAC_HOME_NEWS = (function () {
           wasEdit
             ? "Publication mise à jour."
             : isMinistry
-              ? "Publication enregistrée sur le panneau public national (par catégorie)."
+              ? "Publication enregistrée sur le panneau public régional (par catégorie)."
               : isNational
-                ? "Publication enregistrée dans l'espace national (site + tous les étudiants)."
+                ? "Publication enregistrée dans l'espace régional (site + tous les étudiants)."
                 : "Publication enregistrée pour votre université (visible sur le profil de vos étudiants uniquement)."
         );
       } catch (err) {
@@ -1256,11 +1256,11 @@ const SAC_HOME_NEWS = (function () {
     const items = getNationalPublished();
     if (!items.length) {
       root.innerHTML =
-        '<p style="color:var(--muted);font-size:0.88rem;margin:0;">Aucune publication nationale pour le moment.</p>';
+        '<p style="color:var(--muted);font-size:0.88rem;margin:0;">Aucune publication régionale pour le moment.</p>';
       return;
     }
     root.innerHTML =
-      '<h3 style="font-size:1rem;margin:0 0 0.75rem;color:var(--primary);">Fil national — Ministère et universités</h3>' +
+      '<h3 style="font-size:1rem;margin:0 0 0.75rem;color:var(--primary);">Fil régional — Ministère et universités</h3>' +
       '<div class="hn-readonly-feed">' +
       items.map(renderCard).join("") +
       "</div>";
@@ -1283,11 +1283,11 @@ const SAC_HOME_NEWS = (function () {
     initUniversityPublisher(session, "nationalPublisherRoot", {
       embedded: true,
       scope: SCOPES.national,
-      pageTitle: "Espace national",
+      pageTitle: "Espace régional",
       pageDesc:
-        "Informations destinées à <strong>toutes les universités</strong> partenaires : visibles sur la page d'accueil nationale et consultables par chaque établissement inscrit.",
-      listTitle: "Mes publications — espace national",
-      submitLabel: "Publier à l'espace national",
+        "Informations destinées à <strong>toutes les universités</strong> partenaires : visibles sur la page d'accueil publique et consultables par chaque établissement inscrit.",
+      listTitle: "Mes publications — espace régional",
+      submitLabel: "Publier à l'espace régional",
       borderColor: "#1e40af",
     });
   }

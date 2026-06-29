@@ -1,5 +1,5 @@
 /**
- * Établissements d'enseignement supérieur — RDC (universités & instituts)
+ * Établissements d'enseignement supérieur — universités & instituts partenaires (Afrique centrale et régionale)
  */
 const SAC_UNIVERSITIES = (function () {
   let UNIVERSITIES = [
