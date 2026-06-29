@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="description" content="Réinitialisation du mot de passe — Evo-smartUni" />
-  <title>Nouveau mot de passe — Evo-smartUni</title>
+  <title data-i18n="meta.reset.title">Nouveau mot de passe — Evo-smartUni</title>
   <script src="js/sac-config.js"></script>
   <script src="js/sac-portal.js"></script>
   <script src="js/sac-theme.js"></script>
@@ -32,31 +32,31 @@
         <img src="evo-uni.jpeg" alt="Evo-smartUni" class="logo__img" width="48" height="48" />
         <span class="logo__text">Evo-smartUni</span>
       </a>
-      <a href="connexion.html" class="header__link" id="backToLogin">← Retour à la connexion</a>
+      <a href="connexion.html" class="header__link" id="backToLogin" data-i18n="common.back.login">← Retour à la connexion</a>
     </div>
   </header>
 
   <main class="page">
     <section class="auth-card">
       <img src="evo-uni.jpeg" alt="" class="auth-card__logo" width="72" height="72" aria-hidden="true" />
-      <h1 class="auth-card__title">Nouveau mot de passe</h1>
-      <p class="auth-card__subtitle">Utilisez le lien reçu par e-mail ou le code à 6 chiffres envoyé par Gmail.</p>
+      <h1 class="auth-card__title" data-i18n="auth.reset.title">Nouveau mot de passe</h1>
+      <p class="auth-card__subtitle" data-i18n="auth.reset.subtitle">Utilisez le lien reçu par e-mail ou le code à 6 chiffres envoyé par Gmail.</p>
 
       <div id="alertBox" hidden></div>
 
       <div class="reset-tabs" id="resetTabs">
-        <button type="button" id="tabLink" class="is-active">Via le lien</button>
-        <button type="button" id="tabCode">Via le code e-mail</button>
+        <button type="button" id="tabLink" class="is-active" data-i18n="auth.reset.via.link">Via le lien</button>
+        <button type="button" id="tabCode" data-i18n="auth.reset.via.code">Via le code e-mail</button>
       </div>
 
       <form id="resetFormLink" novalidate>
         <div class="form-group">
-          <label for="password">Nouveau mot de passe</label>
+          <label for="password" data-i18n="auth.reset.password">Nouveau mot de passe</label>
           <input type="password" class="form-input" id="password" name="password" placeholder="••••••••" required autocomplete="new-password" minlength="8" />
-          <p class="password-hint">Minimum 8 caractères, au moins une lettre et un chiffre, sans espace.</p>
+          <p class="password-hint" data-i18n="auth.reset.hint">Minimum 8 caractères, au moins une lettre et un chiffre, sans espace.</p>
         </div>
         <div class="form-group">
-          <label for="passwordConfirm">Confirmer le mot de passe</label>
+          <label for="passwordConfirm" data-i18n="auth.reset.confirm">Confirmer le mot de passe</label>
           <input type="password" class="form-input" id="passwordConfirm" name="passwordConfirm" placeholder="••••••••" required autocomplete="new-password" minlength="8" />
         </div>
         <button type="submit" class="btn-submit" id="btnSubmitLink">Enregistrer le nouveau mot de passe</button>

@@ -10,6 +10,12 @@ const SAC_AUTH_UI = (function () {
     section: "🏫",
   };
 
+  let lastMountOptions = null;
+
+  function tx(key, fallback) {
+    return typeof SAC_I18N !== "undefined" ? SAC_I18N.t(key) : fallback;
+  }
+
   function initials(session) {
     const name =
       (typeof SAC_IDENTITY !== "undefined" && SAC_IDENTITY.getDisplayName(session)) ||
@@ -24,16 +30,16 @@ const SAC_AUTH_UI = (function () {
   }
 
   function roleLabel(role) {
-    if (typeof SAC_IDENTITY !== "undefined" && SAC_IDENTITY.ROLE_LABELS[role]) {
-      return SAC_IDENTITY.ROLE_LABELS[role];
+    if (typeof SAC_IDENTITY !== "undefined" && typeof SAC_IDENTITY.roleLabelText === "function") {
+      return SAC_IDENTITY.roleLabelText(role);
     }
     return role || "utilisateur";
   }
 
   function guestHtml() {
     return (
-      '<a href="connexion.html" class="btn btn--ghost">Connexion</a>' +
-      '<a href="inscription.html" class="btn btn--primary">S\'inscrire</a>'
+      '<a href="connexion.html" class="btn btn--ghost">' + tx("nav.login", "Connexion") + "</a>" +
+      '<a href="inscription.html" class="btn btn--primary">' + tx("nav.signup", "S'inscrire") + "</a>"
     );
   }
 
@@ -54,23 +60,23 @@ const SAC_AUTH_UI = (function () {
         '<span class="auth-user__name">' + escapeHtml(name) + "</span>" +
         '<span class="auth-user__role">' + icon + " " + escapeHtml(roleLabel(session.role)) + "</span>" +
         "</span></div>" +
-        '<a href="' + dash + '" class="btn btn--primary btn--sm">Mon espace</a>' +
-        '<button type="button" class="btn btn--ghost btn--sm" data-sac-logout>Déconnexion</button>' +
+        '<a href="' + dash + '" class="btn btn--primary btn--sm">' + tx("nav.myspace", "Mon espace") + "</a>" +
+        '<button type="button" class="btn btn--ghost btn--sm" data-sac-logout>' + tx("nav.logout", "Déconnexion") + "</button>" +
         "</div>"
       );
     }
 
     return (
       '<div class="auth-shell auth-user">' +
-      '<span class="auth-user__status">Connecté</span>' +
+      '<span class="auth-user__status">' + tx("auth.connected", "Connecté") + "</span>" +
       '<div class="auth-user__chip">' +
       '<span class="auth-user__avatar" aria-hidden="true">' + initials(session) + "</span>" +
       '<span class="auth-user__meta">' +
       '<span class="auth-user__name">' + escapeHtml(name) + "</span>" +
       '<span class="auth-user__role">' + icon + " " + escapeHtml(roleLabel(session.role)) + "</span>" +
       "</span></div>" +
-      '<a href="' + dash + '" class="btn btn--primary btn--sm">Mon espace</a>' +
-      '<button type="button" class="btn btn--ghost btn--sm" data-sac-logout>Déconnexion</button>' +
+      '<a href="' + dash + '" class="btn btn--primary btn--sm">' + tx("nav.myspace", "Mon espace") + "</a>" +
+      '<button type="button" class="btn btn--ghost btn--sm" data-sac-logout>' + tx("nav.logout", "Déconnexion") + "</button>" +
       "</div>"
     );
   }
@@ -106,25 +112,29 @@ const SAC_AUTH_UI = (function () {
       const dash = SAC_SESSION.dashboardUrl(session.role);
       if (primary) {
         primary.href = dash;
-        primary.textContent = "Mon espace";
+        primary.textContent = tx("nav.myspace", "Mon espace");
         primary.classList.remove("btn--accent");
         primary.classList.add("btn--accent");
       }
       if (authBtn) {
         authBtn.outerHTML =
-          '<button type="button" class="btn btn--logout-light btn--lg" data-sac-logout id="ctaAuthBtn">Déconnexion</button>';
+          '<button type="button" class="btn btn--logout-light btn--lg" data-sac-logout id="ctaAuthBtn">' +
+          tx("nav.logout", "Déconnexion") +
+          "</button>";
       }
     } else {
       if (primary) {
         primary.href = "inscription.html";
-        primary.textContent = "S'inscrire";
+        primary.textContent = tx("nav.signup", "S'inscrire");
       }
       if (authBtn && authBtn.tagName === "BUTTON") {
         authBtn.outerHTML =
-          '<a href="connexion.html" class="btn btn--outline-light btn--lg" id="ctaAuthBtn">Se connecter</a>';
+          '<a href="connexion.html" class="btn btn--outline-light btn--lg" id="ctaAuthBtn">' +
+          tx("hero.connect", "Se connecter") +
+          "</a>";
       } else if (authBtn) {
         authBtn.href = "connexion.html";
-        authBtn.textContent = "Se connecter";
+        authBtn.textContent = tx("hero.connect", "Se connecter");
         authBtn.className = "btn btn--outline-light btn--lg";
       }
     }
@@ -141,20 +151,24 @@ const SAC_AUTH_UI = (function () {
 
     if (welcomeEl) {
       welcomeEl.hidden = false;
-      welcomeEl.innerHTML =
-        'Bon retour, <strong>' + escapeHtml(name.split(" ")[0] || name) + "</strong> — session active";
+      welcomeEl.innerHTML = tx("auth.welcome.back", "Bon retour, <strong>{name}</strong> — session active").replace(
+        "{name}",
+        escapeHtml(name.split(" ")[0] || name)
+      );
     }
 
     if (heroCtaEl) {
       const loginBtn = heroCtaEl.querySelector('a[href="connexion.html"]');
       if (loginBtn) {
         loginBtn.outerHTML =
-          '<button type="button" class="btn btn--ghost btn--lg" data-sac-logout>Se déconnecter</button>';
+          '<button type="button" class="btn btn--ghost btn--lg" data-sac-logout>' +
+          tx("auth.logout.action", "Se déconnecter") +
+          "</button>";
       }
       const createBtn = heroCtaEl.querySelector('a[href="inscription.html"]');
       if (createBtn) {
         createBtn.href = dash;
-        createBtn.textContent = "Mon espace";
+        createBtn.textContent = tx("nav.myspace", "Mon espace");
       }
     }
   }
@@ -178,6 +192,7 @@ const SAC_AUTH_UI = (function () {
    * @param {string} [options.ctaId] — bandeau « Rejoignez »
    */
   async function mount(options) {
+    lastMountOptions = options || {};
     bindLogout();
 
     const desktop = document.getElementById(options.desktopId || "navAuthDesktop");
@@ -206,6 +221,10 @@ const SAC_AUTH_UI = (function () {
 
     return session;
   }
+
+  window.addEventListener("sac:lang-change", () => {
+    if (lastMountOptions) mount(lastMountOptions);
+  });
 
   return { mount, renderContainer, renderHero, renderCtaBand };
 })();

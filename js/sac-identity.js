@@ -20,12 +20,18 @@ const SAC_IDENTITY = (function () {
   const FAKE_EMAIL_LOCAL = /^(test|fake|faux|demo|admin|noreply|no-reply|xxx|null|asdf|qwerty|123|user|email)$/i;
 
   const ROLE_LABELS = {
-    etudiant: "étudiant",
-    professeur: "professeur",
-    assistant: "assistant",
-    universite: "université",
-    section: "chef de section",
+    etudiant: "role.etudiant",
+    professeur: "role.professeur",
+    assistant: "role.assistant",
+    universite: "role.universite",
+    section: "role.section",
   };
+
+  function roleLabelText(role) {
+    const key = ROLE_LABELS[role];
+    if (key && typeof SAC_I18N !== "undefined") return SAC_I18N.t(key);
+    return role || "utilisateur";
+  }
 
   function norm(s) {
     return (s || "")
@@ -221,7 +227,7 @@ const SAC_IDENTITY = (function () {
           code: "EMAIL_OTHER_ROLE",
           message:
             "Cet e-mail est déjà utilisé pour un compte " +
-            (ROLE_LABELS[u.role] || u.role) +
+            (roleLabelText(u.role) || u.role) +
             ". Une seule inscription par personne : vous ne pouvez pas créer un second profil.",
         };
       }
@@ -589,6 +595,7 @@ const SAC_IDENTITY = (function () {
     getLocalUsers,
     personKey,
     ROLE_LABELS,
+    roleLabelText,
     hashPassword,
     verifyPassword,
     getRegisteredUniversite,

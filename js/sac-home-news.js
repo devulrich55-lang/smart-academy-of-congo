@@ -14,6 +14,16 @@ const SAC_HOME_NEWS = (function () {
   const AUTHOR_ROLES = { ministry: "ministere", university: "universite" };
   let memoryList = null;
   let syncPromise = null;
+  let homepageLangBound = false;
+
+  function i18n(key, fallback, vars) {
+    if (typeof SAC_I18N === "undefined") return fallback;
+    return SAC_I18N.t(key, vars);
+  }
+
+  function categoryLabel(cat) {
+    return i18n("news.cat." + cat.id, cat.label);
+  }
 
   function useApi() {
     return typeof SAC_API !== "undefined" && typeof SAC_API.listHomeNews === "function";
@@ -860,7 +870,7 @@ const SAC_HOME_NEWS = (function () {
     return `
       <article class="hn-card ${item.pinned ? "hn-card--pinned" : ""}" data-hn-id="${escHtml(item.id)}" data-category="${item.category}" data-uni="${item.universite}" data-scope="${item.scope || SCOPES.university}">
         <div class="hn-card__top">
-          <span class="hn-card__badge" style="background:${cat.color}">${cat.icon} ${escHtml(cat.label)}</span>
+          <span class="hn-card__badge" style="background:${cat.color}">${cat.icon} ${escHtml(categoryLabel(cat))}</span>
           ${nationalBadge}
           ${countryBadgeHtml(item)}
           ${item.pinned ? '<span class="hn-card__pin">📌 À la une</span>' : ""}
@@ -909,6 +919,39 @@ const SAC_HOME_NEWS = (function () {
       return SAC_AFRICA_COUNTRIES.label(code);
     }
 
+    function updateCountryHint() {
+      if (!countryHint) return;
+      countryHint.textContent =
+        currentCountry === SAC_AFRICA_COUNTRIES.ALL
+          ? i18n("news.hint.all", "Affichage de toutes les publications africaines classées par catégorie.")
+          : i18n(
+              "news.hint.local",
+              "Informations locales pour " + countryLabel(currentCountry) + " uniquement — ministère, concours, bourses et campus du pays.",
+              { country: countryLabel(currentCountry) }
+            );
+    }
+
+    function rebuildFilters() {
+      if (!filtersEl) return;
+      const active = currentCategory;
+      filtersEl.innerHTML =
+        `<button type="button" class="hn-filter${active === "all" ? " active" : ""}" data-cat="all">` +
+        i18n("news.all", "Toutes") +
+        "</button>" +
+        CATEGORIES.map(
+          (c) =>
+            `<button type="button" class="hn-filter${active === c.id ? " active" : ""}" data-cat="${c.id}" style="--hn-color:${c.color}">${c.icon} ${escHtml(categoryLabel(c))}</button>`
+        ).join("");
+      filtersEl.querySelectorAll(".hn-filter").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          filtersEl.querySelectorAll(".hn-filter").forEach((b) => b.classList.remove("active"));
+          btn.classList.add("active");
+          currentCategory = btn.dataset.cat;
+          paint();
+        });
+      });
+    }
+
     function rebuildUniSelect() {
       if (!uniSelect || typeof SAC_UNIVERSITIES === "undefined") return;
       const published = getPublished({ country: currentCountry });
@@ -926,7 +969,7 @@ const SAC_HOME_NEWS = (function () {
       }
       const prev = currentUni;
       uniSelect.innerHTML =
-        '<option value="all">🏛️ Tous les établissements du pays</option>' +
+        '<option value="all">' + i18n("news.uni.all", "🏛️ Tous les établissements du pays") + "</option>" +
         uniIds
           .map((id) => {
             const name =
@@ -954,25 +997,11 @@ const SAC_HOME_NEWS = (function () {
         currentCountry = countrySelect.value;
         SAC_AFRICA_COUNTRIES.setStoredCountry(currentCountry);
         currentUni = "all";
-        if (countryHint) {
-          countryHint.textContent =
-            currentCountry === SAC_AFRICA_COUNTRIES.ALL
-              ? "Affichage de toutes les publications africaines classées par catégorie."
-              : "Informations locales pour " +
-                countryLabel(currentCountry) +
-                " uniquement — ministère, concours, bourses et campus du pays.";
-        }
+        if (countryHint) updateCountryHint();
         rebuildUniSelect();
         paint();
       });
-      if (countryHint) {
-        countryHint.textContent =
-          currentCountry === SAC_AFRICA_COUNTRIES.ALL
-            ? "Affichage de toutes les publications africaines classées par catégorie."
-            : "Informations locales pour " +
-              countryLabel(currentCountry) +
-              " uniquement — ministère, concours, bourses et campus du pays.";
-      }
+      updateCountryHint();
     }
 
     if (uniSelect) {
@@ -982,22 +1011,7 @@ const SAC_HOME_NEWS = (function () {
       });
     }
 
-    if (filtersEl) {
-      filtersEl.innerHTML =
-        `<button type="button" class="hn-filter active" data-cat="all">Toutes</button>` +
-        CATEGORIES.map(
-          (c) =>
-            `<button type="button" class="hn-filter" data-cat="${c.id}" style="--hn-color:${c.color}">${c.icon} ${escHtml(c.label)}</button>`
-        ).join("");
-      filtersEl.querySelectorAll(".hn-filter").forEach((btn) => {
-        btn.addEventListener("click", () => {
-          filtersEl.querySelectorAll(".hn-filter").forEach((b) => b.classList.remove("active"));
-          btn.classList.add("active");
-          currentCategory = btn.dataset.cat;
-          paint();
-        });
-      });
-    }
+    rebuildFilters();
 
     function paint() {
       const items = getPublished({
@@ -1010,12 +1024,21 @@ const SAC_HOME_NEWS = (function () {
         feed.innerHTML = "";
         if (emptyEl) {
           emptyEl.style.display = "block";
-          emptyEl.textContent =
-            currentCountry === "all"
-              ? "Aucune publication pour le moment. Les ministères et universités partenaires publient depuis leurs portails."
-              : "Aucune publication locale pour " +
-                countryLabel(currentCountry) +
-                " pour le moment. Essayez « Toute l'Afrique » ou un autre pays.";
+          if (emptyEl.hasAttribute("data-i18n")) {
+            emptyEl.textContent = i18n(emptyEl.getAttribute("data-i18n"), emptyEl.textContent);
+          } else {
+            emptyEl.textContent =
+              currentCountry === "all"
+                ? i18n(
+                    "news.empty.all",
+                    "Aucune publication pour le moment. Les ministères et universités partenaires publient depuis leurs portails."
+                  )
+                : i18n(
+                    "news.empty.local",
+                    "Aucune publication locale pour " + countryLabel(currentCountry) + " pour le moment.",
+                    { country: countryLabel(currentCountry) }
+                  );
+          }
         }
         return;
       }
@@ -1027,7 +1050,7 @@ const SAC_HOME_NEWS = (function () {
           return `
             <div class="hn-category-block" style="grid-column:1/-1;">
               <h3 class="hn-category-block__title" style="--hn-color:${cat.color}">
-                ${cat.icon} ${escHtml(cat.label)}
+                ${cat.icon} ${escHtml(categoryLabel(cat))}
                 <span class="hn-category-block__count">${catItems.length}</span>
               </h3>
               <div class="hn-category-block__grid">${catItems.map(renderCard).join("")}</div>
@@ -1042,10 +1065,21 @@ const SAC_HOME_NEWS = (function () {
     async function boot() {
       await ensureSynced();
       rebuildUniSelect();
+      rebuildFilters();
       paint();
     }
 
     boot();
+
+    if (!homepageLangBound) {
+      homepageLangBound = true;
+      window.addEventListener("sac:lang-change", () => {
+        updateCountryHint();
+        rebuildUniSelect();
+        rebuildFilters();
+        paint();
+      });
+    }
   }
 
   function initPublisher(session, rootId, opts = {}) {

@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <meta name="description" content="Evo-smartUni — Plateforme académique fiable pour universités, étudiants et professeurs." />
-  <title>Evo-smartUni</title>
+  <meta name="description" content="Evo-smartUni — Plateforme académique fiable pour universités, étudiants et professeurs." data-i18n="meta.index.desc" />
+  <title data-i18n="meta.index.title">Evo-smartUni</title>
   <script src="js/sac-config.js?v=20260629a"></script>
   <script src="js/sac-theme.js"></script>
   <link rel="icon" href="evo-uni.jpeg" type="image/jpeg" />
@@ -780,36 +780,36 @@
       </a>
       <nav class="nav">
         <ul class="nav__links">
-          <li><a href="#accueil">Accueil</a></li>
-          <li><a href="#actualites">Actualités</a></li>
-          <li><a href="#roles">Qui utilise ?</a></li>
-          <li><a href="plateforme.html">Bibliothèque Numérique</a></li>
-          <li><a href="verifier-diplome.html">Vérifier diplôme</a></li>
-          <li><a href="#fonctionnalites">Fonctionnalités</a></li>
-          <li><a href="#contact">Contact</a></li>
+          <li><a href="#accueil" data-i18n="nav.home">Accueil</a></li>
+          <li><a href="#actualites" data-i18n="nav.news">Actualités</a></li>
+          <li><a href="#roles" data-i18n="nav.roles">Qui utilise ?</a></li>
+          <li><a href="plateforme.html" data-i18n="nav.library">Bibliothèque Numérique</a></li>
+          <li><a href="verifier-diplome.html" data-i18n="nav.verify">Vérifier diplôme</a></li>
+          <li><a href="#fonctionnalites" data-i18n="nav.features">Fonctionnalités</a></li>
+          <li><a href="#contact" data-i18n="nav.contact">Contact</a></li>
         </ul>
         <div class="nav__actions" id="navAuthDesktop">
-          <a href="connexion.html" class="btn btn--ghost">Connexion</a>
-          <a href="inscription.html" class="btn btn--primary">S'inscrire</a>
+          <a href="connexion.html" class="btn btn--ghost" data-i18n="nav.login">Connexion</a>
+          <a href="inscription.html" class="btn btn--primary" data-i18n="nav.signup">S'inscrire</a>
         </div>
       </nav>
-      <button class="menu-toggle" id="menuToggle" aria-label="Ouvrir le menu" aria-expanded="false">
+      <button class="menu-toggle" id="menuToggle" data-i18n-aria="nav.menu" aria-label="Ouvrir le menu" aria-expanded="false">
         <span></span><span></span><span></span>
       </button>
     </div>
   </header>
 
   <nav class="mobile-nav" id="mobileNav" aria-hidden="true">
-    <a href="#accueil">Accueil</a>
-    <a href="#actualites">Actualités</a>
-    <a href="#roles">Qui utilise ?</a>
-    <a href="plateforme.html">Bibliothèque Numérique</a>
-    <a href="verifier-diplome.html">Vérifier diplôme</a>
-    <a href="#fonctionnalites">Fonctionnalités</a>
-    <a href="#contact">Contact</a>
+    <a href="#accueil" data-i18n="nav.home">Accueil</a>
+    <a href="#actualites" data-i18n="nav.news">Actualités</a>
+    <a href="#roles" data-i18n="nav.roles">Qui utilise ?</a>
+    <a href="plateforme.html" data-i18n="nav.library">Bibliothèque Numérique</a>
+    <a href="verifier-diplome.html" data-i18n="nav.verify">Vérifier diplôme</a>
+    <a href="#fonctionnalites" data-i18n="nav.features">Fonctionnalités</a>
+    <a href="#contact" data-i18n="nav.contact">Contact</a>
     <div class="nav__actions" id="navAuthMobile" data-auth-mobile="true" data-auth-compact="true">
-      <a href="connexion.html" class="btn btn--ghost">Connexion</a>
-      <a href="inscription.html" class="btn btn--primary">S'inscrire</a>
+      <a href="connexion.html" class="btn btn--ghost" data-i18n="nav.login">Connexion</a>
+      <a href="inscription.html" class="btn btn--primary" data-i18n="nav.signup">S'inscrire</a>
     </div>
   </nav>
 
@@ -819,36 +819,36 @@
         <div class="hero__logo-wrap">
           <img src="evo-uni.jpeg" alt="Evo-smartUni" class="hero__logo" width="110" height="110" />
         </div>
-        <span class="hero__badge">Écosystème académique unifié — Afrique centrale et au-delà</span>
-        <h1>Un seul système pour toutes les <span>universités</span> et instituts partenaires</h1>
-        <p class="hero__text">
+        <span class="hero__badge" data-i18n="hero.badge">Écosystème académique unifié — Afrique centrale et au-delà</span>
+        <h1 data-i18n-html="hero.title">Un seul système pour toutes les <span>universités</span> et instituts partenaires</h1>
+        <p class="hero__text" data-i18n="hero.text">
           Inscription en ligne, résultats, paiement des frais, bibliothèque numérique, orientation IA, stages & emplois, réseau étudiant, cours en ligne et vérification officielle des diplômes — avec sécurité par campus et par rôle.
         </p>
         <p class="hero__welcome" id="heroWelcome" hidden></p>
         <div class="hero__cta" id="heroAuthCta">
-          <a href="inscription.html" class="btn btn--primary btn--lg">Créer un compte</a>
-          <a href="plateforme.html" class="btn btn--ghost btn--lg">Bibliothèque Numérique</a>
-          <a href="connexion.html" class="btn btn--ghost btn--lg">Se connecter</a>
+          <a href="inscription.html" class="btn btn--primary btn--lg" data-i18n="hero.create">Créer un compte</a>
+          <a href="plateforme.html" class="btn btn--ghost btn--lg" data-i18n="nav.library">Bibliothèque Numérique</a>
+          <a href="connexion.html" class="btn btn--ghost btn--lg" data-i18n="hero.connect">Se connecter</a>
         </div>
         <div class="hero__stats">
           <div class="stat">
             <strong>50+</strong>
-            <span>Universités partenaires</span>
+            <span data-i18n="hero.stat.unis">Universités partenaires</span>
           </div>
           <div class="stat">
             <strong>100k+</strong>
-            <span>Étudiants inscrits</span>
+            <span data-i18n="hero.stat.students">Étudiants inscrits</span>
           </div>
           <div class="stat">
             <strong>24/7</strong>
-            <span>Accès à vos données</span>
+            <span data-i18n="hero.stat.access">Accès à vos données</span>
           </div>
         </div>
       </div>
 
       <div class="hero__visual">
-        <span class="floating-badge floating-badge--1">🔴 Cours en direct</span>
-        <span class="floating-badge floating-badge--2">🎥 Réunions vidéo</span>
+        <span class="floating-badge floating-badge--1" data-i18n="hero.badge.live">🔴 Cours en direct</span>
+        <span class="floating-badge floating-badge--2" data-i18n="hero.badge.video">🎥 Réunions vidéo</span>
         <img
           src="image1.png"
           alt="Cours en ligne international — visioconférence multi-pays sur Evo-smartUni"
@@ -867,11 +867,11 @@
           </div>
           <div class="dashboard-preview"> 
             <div class="preview-row">
-              <span class="label">Moyenne générale</span>
+              <span class="label" data-i18n="hero.card.avg">Moyenne générale</span>
               <span class="value">14,5 / 20</span>
             </div>
             <div class="preview-row">
-              <span class="label">Frais payés</span>
+              <span class="label" data-i18n="hero.card.fees">Frais payés</span>
               <span class="value value--success">200 $ / 350 $</span>
             </div>
             <div class="progress-bar"><div class="progress-bar__fill"></div></div>
@@ -882,67 +882,67 @@
 
     <section class="home-showcase" id="cours-live">
       <div class="home-showcase__inner">
-        <span class="section__label">Enseignement connecté</span>
-        <h2 class="section__title">Cours en direct & réunions institutionnelles</h2>
-        <p class="section__desc">
+        <span class="section__label" data-i18n="showcase.label">Enseignement connecté</span>
+        <h2 class="section__title" data-i18n="showcase.title">Cours en direct & réunions institutionnelles</h2>
+        <p class="section__desc" data-i18n="showcase.desc">
           Vidéo live, partage d'écran, chat, enregistrements et comptes rendus IA — pour les cours, les réunions de section et les conseils de faculté.
         </p>
         <div class="home-showcase__grid">
           <article class="showcase-card">
             <img src="image3.png" alt="Professeur en cours en direct avec casque" class="showcase-card__img" width="400" height="200" loading="lazy" />
             <div class="showcase-card__body">
-              <span class="showcase-card__tag">Cours en direct</span>
-              <h3>Enseignement live</h3>
-              <p>Le professeur anime sa session en vidéo. Les étudiants rejoignent, posent des questions et revoient l'enregistrement.</p>
+              <span class="showcase-card__tag" data-i18n="showcase.c1.tag">Cours en direct</span>
+              <h3 data-i18n="showcase.c1.title">Enseignement live</h3>
+              <p data-i18n="showcase.c1.text">Le professeur anime sa session en vidéo. Les étudiants rejoignent, posent des questions et revoient l'enregistrement.</p>
             </div>
           </article>
           <article class="showcase-card">
             <img src="image2.png" alt="Participant en visioconférence" class="showcase-card__img" width="400" height="200" loading="lazy" />
             <div class="showcase-card__body">
-              <span class="showcase-card__tag">Réunions</span>
-              <h3>Visioconférence</h3>
-              <p>Chef de section, professeurs et direction se réunissent en ligne — votes, documents et synthèse IA.</p>
+              <span class="showcase-card__tag" data-i18n="showcase.c2.tag">Réunions</span>
+              <h3 data-i18n="showcase.c2.title">Visioconférence</h3>
+              <p data-i18n="showcase.c2.text">Chef de section, professeurs et direction se réunissent en ligne — votes, documents et synthèse IA.</p>
             </div>
           </article>
           <article class="showcase-card">
             <img src="image1.png" alt="Classe internationale connectée" class="showcase-card__img" width="400" height="200" loading="lazy" />
             <div class="showcase-card__body">
-              <span class="showcase-card__tag">Collaboration</span>
-              <h3>Classe internationale</h3>
-              <p>Échanges multi-pays, statistiques académiques et gouvernance connectée sur un même écosystème.</p>
+              <span class="showcase-card__tag" data-i18n="showcase.c3.tag">Collaboration</span>
+              <h3 data-i18n="showcase.c3.title">Classe internationale</h3>
+              <p data-i18n="showcase.c3.text">Échanges multi-pays, statistiques académiques et gouvernance connectée sur un même écosystème.</p>
             </div>
           </article>
         </div>
         <p style="text-align:center;margin-top:1.75rem">
-          <a href="plateforme.html" class="btn btn--primary btn--lg">Accéder à la Bibliothèque Numérique</a>
+          <a href="plateforme.html" class="btn btn--primary btn--lg" data-i18n="showcase.cta">Accéder à la Bibliothèque Numérique</a>
         </p>
       </div>
     </section>
 
     <section class="home-news" id="actualites">
       <div class="home-news__inner">
-        <span class="section__label" style="display:block;text-align:center;margin-bottom:0.5rem;color:var(--primary);font-weight:600;font-size:0.85rem;text-transform:uppercase;letter-spacing:0.06em;">Informations officielles</span>
-        <h2 class="section__title" style="text-align:center;margin-bottom:0.5rem;">Actualités, concours, bourses & opportunités</h2>
-        <p class="section__desc" style="text-align:center;max-width:720px;margin:0 auto 1.5rem;color:var(--text-muted);">
+        <span class="section__label" style="display:block;text-align:center;margin-bottom:0.5rem;color:var(--primary);font-weight:600;font-size:0.85rem;text-transform:uppercase;letter-spacing:0.06em;" data-i18n="news.label">Informations officielles</span>
+        <h2 class="section__title" style="text-align:center;margin-bottom:0.5rem;" data-i18n="news.title">Actualités, concours, bourses & opportunités</h2>
+        <p class="section__desc" style="text-align:center;max-width:720px;margin:0 auto 1.5rem;color:var(--text-muted);" data-i18n-html="news.desc">
           Choisissez votre <strong>pays</strong> pour afficher uniquement les informations locales : ministère, concours, bourses, opportunités et annonces des campus du pays.
           Filtrez aussi par <strong>catégorie</strong> et par <strong>établissement</strong>.
         </p>
         <div class="home-news__country-bar">
-          <label class="home-news__country-label" for="homeNewsCountry">Pays / territoire</label>
-          <select class="home-news__country-select" id="homeNewsCountry" aria-label="Choisir un pays africain"></select>
+          <label class="home-news__country-label" for="homeNewsCountry" data-i18n="news.country">Pays / territoire</label>
+          <select class="home-news__country-select" id="homeNewsCountry" data-i18n-aria="news.country.aria" aria-label="Choisir un pays africain"></select>
           <p class="home-news__country-hint" id="homeNewsCountryHint"></p>
         </div>
         <div class="home-news__toolbar">
-          <div class="home-news__filters" id="homeNewsFilters" aria-label="Filtrer par catégorie"></div>
-          <select class="home-news__uni-select" id="homeNewsUni" aria-label="Filtrer par établissement">
-            <option value="all">🏛️ Tous les établissements du pays</option>
+          <div class="home-news__filters" id="homeNewsFilters" data-i18n-aria="news.filter.aria" aria-label="Filtrer par catégorie"></div>
+          <select class="home-news__uni-select" id="homeNewsUni" data-i18n-aria="news.uni.aria" aria-label="Filtrer par établissement">
+            <option value="all" data-i18n="news.uni.all">🏛️ Tous les établissements du pays</option>
           </select>
         </div>
         <div class="home-news__grid" id="homeNewsFeed"></div>
-        <p class="home-news__empty" id="homeNewsEmpty" style="display:none;">
+        <p class="home-news__empty" id="homeNewsEmpty" style="display:none;" data-i18n="news.empty">
           Aucune publication pour le moment. Le Ministère et les universités partenaires publient depuis leurs portails respectifs.
         </p>
-        <p style="text-align:center;margin-top:1.5rem;font-size:0.88rem;color:var(--text-muted);">
+        <p style="text-align:center;margin-top:1.5rem;font-size:0.88rem;color:var(--text-muted);" data-i18n-html="news.portals">
           Ministère : <a href="ministere/" style="color:var(--primary);font-weight:600;">Portail MESU</a>
           · Université : <a href="admin-uni/" style="color:var(--primary);font-weight:600;">Portail campus</a>
         </p>
@@ -951,56 +951,56 @@
 
     <section class="roles" id="roles">
       <div class="section__inner">
-        <span class="section__label">Pour qui ?</span>
-        <h2 class="section__title">Une plateforme pour toute la communauté universitaire</h2>
-        <p class="section__desc">
+        <span class="section__label" data-i18n="roles.label">Pour qui ?</span>
+        <h2 class="section__title" data-i18n="roles.title">Une plateforme pour toute la communauté universitaire</h2>
+        <p class="section__desc" data-i18n="roles.desc">
           Chaque acteur accède à un espace dédié avec des informations vérifiées par l'université, pour plus de transparence et moins de paperasse.
         </p>
         <div class="roles__grid">
           <article class="role-card role-card--student">
             <div class="role-card__icon">🎓</div>
-            <h3>Étudiants</h3>
-            <p>Consultez votre parcours académique et administratif depuis votre compte personnel.</p>
+            <h3 data-i18n="roles.student.title">Étudiants</h3>
+            <p data-i18n="roles.student.desc">Consultez votre parcours académique et administratif depuis votre compte personnel.</p>
             <ul>
-              <li>Notes et relevés de cotes</li>
-              <li>Frais payés et factures en attente</li>
-              <li>Emploi du temps et examens</li>
-              <li>Documents officiels (attestations, certificats)</li>
+              <li data-i18n="roles.student.l1">Notes et relevés de cotes</li>
+              <li data-i18n="roles.student.l2">Frais payés et factures en attente</li>
+              <li data-i18n="roles.student.l3">Emploi du temps et examens</li>
+              <li data-i18n="roles.student.l4">Documents officiels (attestations, certificats)</li>
             </ul>
           </article>
           <article class="role-card role-card--prof">
             <div class="role-card__icon">📚</div>
-            <h3>Professeurs</h3>
-            <p>Gérez vos cours et communiquez avec vos étudiants et l'administration.</p>
+            <h3 data-i18n="roles.prof.title">Professeurs</h3>
+            <p data-i18n="roles.prof.desc">Gérez vos cours et communiquez avec vos étudiants et l'administration.</p>
             <ul>
-              <li>Saisie et publication des notes</li>
-              <li>Liste des étudiants par cours</li>
-              <li>Calendrier des évaluations</li>
-              <li>Messages de la faculté</li>
+              <li data-i18n="roles.prof.l1">Saisie et publication des notes</li>
+              <li data-i18n="roles.prof.l2">Liste des étudiants par cours</li>
+              <li data-i18n="roles.prof.l3">Calendrier des évaluations</li>
+              <li data-i18n="roles.prof.l4">Messages de la faculté</li>
             </ul>
           </article>
           <article class="role-card role-card--assistant">
             <div class="role-card__icon">📋</div>
-            <h3>Assistants</h3>
-            <p>Appuyez l'administration universitaire et facilitez le parcours des étudiants au quotidien.</p>
+            <h3 data-i18n="roles.assistant.title">Assistants</h3>
+            <p data-i18n="roles.assistant.desc">Appuyez l'administration universitaire et facilitez le parcours des étudiants au quotidien.</p>
             <ul>
-              <li>Traitement des dossiers et inscriptions</li>
-              <li>Suivi des frais et paiements étudiants</li>
-              <li>Édition d'attestations et documents</li>
-              <li>Accueil et orientation sur le campus</li>
+              <li data-i18n="roles.assistant.l1">Traitement des dossiers et inscriptions</li>
+              <li data-i18n="roles.assistant.l2">Suivi des frais et paiements étudiants</li>
+              <li data-i18n="roles.assistant.l3">Édition d'attestations et documents</li>
+              <li data-i18n="roles.assistant.l4">Accueil et orientation sur le campus</li>
             </ul>
           </article>
           <article class="role-card role-card--uni">
             <div class="role-card__icon">🏛️</div>
-            <h3>Universités</h3>
-            <p>Pilotez votre campus et diffusez des informations fiables à toute la communauté.</p>
+            <h3 data-i18n="roles.uni.title">Universités</h3>
+            <p data-i18n="roles.uni.desc">Pilotez votre campus et diffusez des informations fiables à toute la communauté.</p>
             <ul>
-              <li>Gestion des inscriptions et frais</li>
-              <li>Tableau de bord administratif</li>
-              <li>Annonces et actualités du campus</li>
-              <li>Statistiques et rapports</li>
+              <li data-i18n="roles.uni.l1">Gestion des inscriptions et frais</li>
+              <li data-i18n="roles.uni.l2">Tableau de bord administratif</li>
+              <li data-i18n="roles.uni.l3">Annonces et actualités du campus</li>
+              <li data-i18n="roles.uni.l4">Statistiques et rapports</li>
             </ul>
-            <p style="margin-top:1rem;"><a href="admin-uni/" class="btn btn--primary btn--sm" style="display:inline-block;padding:0.5rem 1rem;border-radius:8px;background:var(--primary);color:#fff;font-weight:600;text-decoration:none;">Portail admin campus</a></p>
+            <p style="margin-top:1rem;"><a href="admin-uni/" class="btn btn--primary btn--sm" style="display:inline-block;padding:0.5rem 1rem;border-radius:8px;background:var(--primary);color:#fff;font-weight:600;text-decoration:none;" data-i18n="roles.uni.cta">Portail admin campus</a></p>
           </article>
         </div>
       </div>
@@ -1008,44 +1008,44 @@
 
     <section class="features" id="fonctionnalites">
       <div class="section__inner">
-        <span class="section__label">Écosystème complet</span>
-        <h2 class="section__title">10 piliers pour nous différencier des autres plateformes</h2>
-        <p class="section__desc">
+        <span class="section__label" data-i18n="features.label">Écosystème complet</span>
+        <h2 class="section__title" data-i18n="features.title">10 piliers pour nous différencier des autres plateformes</h2>
+        <p class="section__desc" data-i18n="features.desc">
           Un réseau national unifié avec contrôle d'accès JWT, journal d'audit, filtrage par université et vérification cryptographique des diplômes.
         </p>
         <div class="features__grid--10">
-          <article class="feature-pillar"><div class="feature-pillar__icon">🌐</div><h4>Système unifié multi-universités</h4><p>Un portail national : chaque campus garde son autonomie tout en partageant standards, tarifs et annonces nationales.</p><span class="feature-pillar__tag">Réseau SAC</span></article>
-          <article class="feature-pillar"><div class="feature-pillar__icon">📝</div><h4>Inscription en ligne</h4><p>Dossier numérique, choix d'établissement, sections et paiement initial avec validation assistant / université.</p><span class="feature-pillar__tag">Sécurisé</span></article>
-          <article class="feature-pillar"><div class="feature-pillar__icon">📊</div><h4>Résultats académiques</h4><p>Cotes par semestre saisies par les professeurs, moyennes calculées et statuts Validé / Rattrapage.</p><span class="feature-pillar__tag">Disponible</span></article>
-          <article class="feature-pillar"><div class="feature-pillar__icon">💳</div><h4>Paiement des frais</h4><p>Virement bancaire partenaire, suivi des trimestres et validation assistant / université avant accès complet.</p><span class="feature-pillar__tag">Banque · USD/CDF</span></article>
-          <article class="feature-pillar"><div class="feature-pillar__icon">📚</div><h4>Bibliothèque numérique</h4><p>Livres officiels publiés par le Ministère, consultation en ligne pour les utilisateurs connectés.</p><span class="feature-pillar__tag">National</span></article>
-          <article class="feature-pillar"><div class="feature-pillar__icon">🤖</div><h4>IA orientation académique</h4><p>Conseils de parcours, compétences et stages selon filière et niveau (complément au service orientation).</p><span class="feature-pillar__tag">Disponible</span></article>
-          <article class="feature-pillar"><div class="feature-pillar__icon">💼</div><h4>Stages & emplois</h4><p>Offres campus et nationales publiées par universités et partenaires.</p><span class="feature-pillar__tag">Disponible</span></article>
-          <article class="feature-pillar"><div class="feature-pillar__icon">👥</div><h4>Réseau social étudiant</h4><p>Fil campus modéré, likes et audience par filière — sans quitter l'écosystème officiel.</p><span class="feature-pillar__tag">Disponible</span></article>
+          <article class="feature-pillar"><div class="feature-pillar__icon">🌐</div><h4 data-i18n="features.p1.title">Système unifié multi-universités</h4><p data-i18n="features.p1.text">Un portail national : chaque campus garde son autonomie tout en partageant standards, tarifs et annonces nationales.</p><span class="feature-pillar__tag" data-i18n="features.p1.tag">Réseau SAC</span></article>
+          <article class="feature-pillar"><div class="feature-pillar__icon">📝</div><h4 data-i18n="features.p2.title">Inscription en ligne</h4><p data-i18n="features.p2.text">Dossier numérique, choix d'établissement, sections et paiement initial avec validation assistant / université.</p><span class="feature-pillar__tag" data-i18n="features.p2.tag">Sécurisé</span></article>
+          <article class="feature-pillar"><div class="feature-pillar__icon">📊</div><h4 data-i18n="features.p3.title">Résultats académiques</h4><p data-i18n="features.p3.text">Cotes par semestre saisies par les professeurs, moyennes calculées et statuts Validé / Rattrapage.</p><span class="feature-pillar__tag" data-i18n="features.p3.tag">Disponible</span></article>
+          <article class="feature-pillar"><div class="feature-pillar__icon">💳</div><h4 data-i18n="features.p4.title">Paiement des frais</h4><p data-i18n="features.p4.text">Virement bancaire partenaire, suivi des trimestres et validation assistant / université avant accès complet.</p><span class="feature-pillar__tag" data-i18n="features.p4.tag">Banque · USD/CDF</span></article>
+          <article class="feature-pillar"><div class="feature-pillar__icon">📚</div><h4 data-i18n="features.p5.title">Bibliothèque numérique</h4><p data-i18n="features.p5.text">Livres officiels publiés par le Ministère, consultation en ligne pour les utilisateurs connectés.</p><span class="feature-pillar__tag" data-i18n="features.p5.tag">National</span></article>
+          <article class="feature-pillar"><div class="feature-pillar__icon">🤖</div><h4 data-i18n="features.p6.title">IA orientation académique</h4><p data-i18n="features.p6.text">Conseils de parcours, compétences et stages selon filière et niveau (complément au service orientation).</p><span class="feature-pillar__tag" data-i18n="features.p6.tag">Disponible</span></article>
+          <article class="feature-pillar"><div class="feature-pillar__icon">💼</div><h4 data-i18n="features.p7.title">Stages & emplois</h4><p data-i18n="features.p7.text">Offres campus et nationales publiées par universités et partenaires.</p><span class="feature-pillar__tag" data-i18n="features.p7.tag">Disponible</span></article>
+          <article class="feature-pillar"><div class="feature-pillar__icon">👥</div><h4 data-i18n="features.p8.title">Réseau social étudiant</h4><p data-i18n="features.p8.text">Fil campus modéré, likes et audience par filière — sans quitter l'écosystème officiel.</p><span class="feature-pillar__tag" data-i18n="features.p8.tag">Disponible</span></article>
           <article class="feature-pillar">
             <img src="image2.png" alt="" class="feature-pillar__thumb" loading="lazy" />
-            <div class="feature-pillar__icon">🎥</div><h4>Réunions institutionnelles</h4><p>Chef de section ↔ professeurs, doyen ↔ chefs de section — vidéo, votes, documents et compte rendu IA.</p><span class="feature-pillar__tag">Gouvernance</span></article>
+            <div class="feature-pillar__icon">🎥</div><h4 data-i18n="features.p9.title">Réunions institutionnelles</h4><p data-i18n="features.p9.text">Chef de section ↔ professeurs, doyen ↔ chefs de section — vidéo, votes, documents et compte rendu IA.</p><span class="feature-pillar__tag" data-i18n="features.p9.tag">Gouvernance</span></article>
           <article class="feature-pillar">
             <img src="image3.png" alt="" class="feature-pillar__thumb" loading="lazy" />
-            <div class="feature-pillar__icon">🎓</div><h4>Cours en ligne & direct</h4><p>Catalogue MOOC campus, inscription en ligne et sessions live (vidéo, chat, partage d'écran).</p><span class="feature-pillar__tag">Disponible</span></article>
-          <article class="feature-pillar"><div class="feature-pillar__icon">🛡️</div><h4>Vérification officielle des diplômes</h4><p>Numéro unique, code de vérification et signature HMAC — page publique pour employeurs.</p><span class="feature-pillar__tag">Disponible</span><a href="verifier-diplome.html" style="font-size:0.82rem;font-weight:600;margin-top:0.35rem;display:inline-block">Vérifier un diplôme →</a></article>
+            <div class="feature-pillar__icon">🎓</div><h4 data-i18n="features.p10.title">Cours en ligne & direct</h4><p data-i18n="features.p10.text">Catalogue MOOC campus, inscription en ligne et sessions live (vidéo, chat, partage d'écran).</p><span class="feature-pillar__tag" data-i18n="features.p10.tag">Disponible</span></article>
+          <article class="feature-pillar"><div class="feature-pillar__icon">🛡️</div><h4 data-i18n="features.p11.title">Vérification officielle des diplômes</h4><p data-i18n="features.p11.text">Numéro unique, code de vérification et signature HMAC — page publique pour employeurs.</p><span class="feature-pillar__tag" data-i18n="features.p11.tag">Disponible</span><a href="verifier-diplome.html" style="font-size:0.82rem;font-weight:600;margin-top:0.35rem;display:inline-block" data-i18n="features.p11.link">Vérifier un diplôme →</a></article>
         </div>
         <p style="text-align:center;margin-top:2rem">
-          <a href="plateforme.html" class="btn btn--primary" style="display:inline-block;padding:0.75rem 1.5rem;border-radius:10px;background:var(--primary);color:#fff;font-weight:600">Accéder à la Bibliothèque Numérique</a>
+          <a href="plateforme.html" class="btn btn--primary" style="display:inline-block;padding:0.75rem 1.5rem;border-radius:10px;background:var(--primary);color:#fff;font-weight:600" data-i18n="showcase.cta">Accéder à la Bibliothèque Numérique</a>
         </p>
       </div>
     </section>
 
     <section class="cta" id="contact">
       <div class="cta__box">
-        <h2>Rejoignez Evo-smartUni</h2>
-        <p>Inscrivez-vous en tant qu'étudiant, professeur ou assistant pour accéder à toutes vos informations en ligne.</p>
+        <h2 data-i18n="cta.title">Rejoignez Evo-smartUni</h2>
+        <p data-i18n="cta.desc">Inscrivez-vous en tant qu'étudiant, professeur ou assistant pour accéder à toutes vos informations en ligne.</p>
         <div class="cta__actions" id="ctaAuthActions">
-          <a href="inscription.html" class="btn btn--accent btn--lg" id="ctaPrimaryBtn">S'inscrire</a>
-          <a href="connexion.html" class="btn btn--outline-light btn--lg" id="ctaAuthBtn">Se connecter</a>
+          <a href="inscription.html" class="btn btn--accent btn--lg" id="ctaPrimaryBtn" data-i18n="nav.signup">S'inscrire</a>
+          <a href="connexion.html" class="btn btn--outline-light btn--lg" id="ctaAuthBtn" data-i18n="hero.connect">Se connecter</a>
         </div>
         <p style="margin-top:1rem;font-size:0.9rem;opacity:0.85;position:relative;" id="homeFeeLine" data-banks-html="<br /><strong>UBA</strong> · <strong>First Bank</strong> · <strong>Orange Money</strong> · <strong>M-Pesa</strong>">Étudiant <strong>…</strong> · Assistant <strong>…</strong> · Professeur <strong>…</strong></p>
-        <p style="margin-top:0.75rem;font-size:0.88rem;opacity:0.9;position:relative;">Université partenaire ? <a href="admin-uni/" style="color:#fff;font-weight:600;text-decoration:underline;">Portail admin campus</a></p>
+        <p style="margin-top:0.75rem;font-size:0.88rem;opacity:0.9;position:relative;" data-i18n-html="cta.partner">Université partenaire ? <a href="admin-uni/" style="color:#fff;font-weight:600;text-decoration:underline;">Portail admin campus</a></p>
       </div>
     </section>
   </main>
@@ -1057,31 +1057,31 @@
           <img src="evo-uni.jpeg" alt="Evo-smartUni" class="logo__img" width="56" height="56" />
           <span class="logo__text">Evo-smartUni</span>
         </a>
-        <p>Plateforme de gestion académique et administrative pour les universités et instituts partenaires en Afrique centrale et dans la région.</p>
+        <p data-i18n="footer.brand">Plateforme de gestion académique et administrative pour les universités et instituts partenaires en Afrique centrale et dans la région.</p>
       </div>
       <div>
-        <h4>Plateforme</h4>
+        <h4 data-i18n="footer.platform">Plateforme</h4>
         <ul>
-          <li><a href="#actualites">Actualités officielles</a></li>
-          <li><a href="plateforme.html">Bibliothèque Numérique</a></li>
-          <li><a href="verifier-diplome.html">Vérifier diplôme</a></li>
-          <li><a href="#fonctionnalites">Fonctionnalités</a></li>
-          <li><a href="#roles">Étudiants</a></li>
-          <li><a href="#roles">Professeurs</a></li>
-          <li><a href="#roles">Assistants</a></li>
-          <li><a href="admin-uni/">Universités (portail admin)</a></li>
+          <li><a href="#actualites" data-i18n="footer.official">Actualités officielles</a></li>
+          <li><a href="plateforme.html" data-i18n="nav.library">Bibliothèque Numérique</a></li>
+          <li><a href="verifier-diplome.html" data-i18n="nav.verify">Vérifier diplôme</a></li>
+          <li><a href="#fonctionnalites" data-i18n="nav.features">Fonctionnalités</a></li>
+          <li><a href="#roles" data-i18n="roles.student.title">Étudiants</a></li>
+          <li><a href="#roles" data-i18n="roles.prof.title">Professeurs</a></li>
+          <li><a href="#roles" data-i18n="roles.assistant.title">Assistants</a></li>
+          <li><a href="admin-uni/" data-i18n="footer.universities">Universités (portail admin)</a></li>
         </ul>
       </div>
       <div>
-        <h4>Compte</h4>
+        <h4 data-i18n="footer.account">Compte</h4>
         <ul>
-          <li><a href="connexion.html">Connexion</a></li>
-          <li><a href="inscription.html">Inscription</a></li>
-          <li><a href="mot-de-passe-oublie.html">Mot de passe oublié</a></li>
+          <li><a href="connexion.html" data-i18n="nav.login">Connexion</a></li>
+          <li><a href="inscription.html" data-i18n="nav.signup">Inscription</a></li>
+          <li><a href="mot-de-passe-oublie.html" data-i18n="footer.forgot">Mot de passe oublié</a></li>
         </ul>
       </div>
       <div>
-        <h4>Paiements</h4>
+        <h4 data-i18n="footer.payments">Paiements</h4>
         <ul style="font-size:0.88rem;line-height:1.7;">
           <li><strong style="color:var(--accent);">USD</strong> — UBA<br />4035 2512 8823 8967</li>
           <li style="margin-top:0.35rem;"><strong style="color:var(--accent);">CDF</strong> — First Bank<br />5644 1309 0100 9439 797</li>
@@ -1090,17 +1090,17 @@
         </ul>
       </div>
       <div>
-        <h4>Contact</h4>
+        <h4 data-i18n="footer.contact">Contact</h4>
         <ul>
           <li><a href="mailto:contact@smartacademy.cd">contact@smartacademy.cd</a></li>
           <li><a href="tel:+243000000000">+243 XXX XXX XXX</a></li>
-          <li><a href="#">Afrique centrale · Multi-pays</a></li>
+          <li><a href="#" data-i18n="footer.region">Afrique centrale · Multi-pays</a></li>
         </ul>
       </div>
     </div>
     <div class="footer__bottom">
-      <span>© 2026 Evo-smartUni. Tous droits réservés.</span>
-      <span>Confidentialité · Conditions d'utilisation</span>
+      <span data-i18n="footer.rights">© 2026 Evo-smartUni. Tous droits réservés.</span>
+      <span data-i18n="footer.legal">Confidentialité · Conditions d'utilisation</span>
     </div>
   </footer>
 

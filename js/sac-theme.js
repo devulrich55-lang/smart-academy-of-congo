@@ -114,10 +114,47 @@
     });
   }
 
+  function assetBase() {
+    const scripts = document.getElementsByTagName("script");
+    for (let i = 0; i < scripts.length; i++) {
+      const src = scripts[i].getAttribute("src") || "";
+      if (src.indexOf("sac-theme.js") !== -1 || src.indexOf("sac-config.js") !== -1) {
+        return src.replace(/js\/[^/]+\.js.*$/, "");
+      }
+    }
+    return "";
+  }
+
+  function loadI18n() {
+    if (window.SAC_I18N) {
+      SAC_I18N.init();
+      return;
+    }
+    const base = assetBase();
+    if (!document.querySelector('link[href*="lang-switcher.css"]')) {
+      const link = document.createElement("link");
+      link.rel = "stylesheet";
+      link.href = base + "css/lang-switcher.css?v=20260625e";
+      document.head.appendChild(link);
+    }
+    const s = document.createElement("script");
+    s.src = base + "js/sac-i18n.js?v=20260625e";
+    s.onload = function () {
+      const ext = document.createElement("script");
+      ext.src = base + "js/sac-i18n-platform.js?v=20260625e";
+      ext.onload = function () {
+        if (window.SAC_I18N) SAC_I18N.init();
+      };
+      document.head.appendChild(ext);
+    };
+    document.head.appendChild(s);
+  }
+
   apply(getPreferred());
 
   function init() {
     setupLogos();
+    loadI18n();
     injectAllToggles();
     observeDynamicHeaders();
     window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", (e) => {

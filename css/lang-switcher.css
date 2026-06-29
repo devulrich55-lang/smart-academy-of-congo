@@ -1,0 +1,112 @@
+/* Sélecteur de langue — discret, coin inférieur gauche */
+.lang-switcher {
+  position: fixed;
+  bottom: 1.15rem;
+  left: 1.15rem;
+  z-index: 9998;
+  font-family: "DM Sans", system-ui, sans-serif;
+}
+
+.lang-switcher__btn {
+  width: 2.65rem;
+  height: 2.65rem;
+  border-radius: 50%;
+  border: 2px solid var(--border, #e2e8f0);
+  background: var(--surface, #fff);
+  box-shadow: 0 4px 18px rgba(12, 61, 110, 0.15);
+  cursor: pointer;
+  font-size: 1.15rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+}
+
+.lang-switcher__btn:hover,
+.lang-switcher.is-open .lang-switcher__btn {
+  transform: scale(1.05);
+  border-color: var(--primary, #0c3d6e);
+  box-shadow: 0 6px 22px rgba(12, 61, 110, 0.22);
+}
+
+.lang-switcher__panel {
+  position: absolute;
+  bottom: calc(100% + 0.5rem);
+  left: 0;
+  min-width: 11.5rem;
+  background: var(--surface, #fff);
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 12px;
+  box-shadow: 0 12px 36px rgba(12, 61, 110, 0.18);
+  padding: 0.35rem;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(8px) scale(0.96);
+  transition: opacity 0.2s, transform 0.2s, visibility 0.2s;
+  pointer-events: none;
+}
+
+.lang-switcher.is-open .lang-switcher__panel {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+
+.lang-switcher__title {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted, #5a6d7e);
+  padding: 0.35rem 0.55rem 0.25rem;
+}
+
+.lang-switcher__option {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  width: 100%;
+  padding: 0.5rem 0.6rem;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  font-family: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text, #1a2b3c);
+  cursor: pointer;
+  text-align: left;
+}
+
+.lang-switcher__option:hover {
+  background: rgba(12, 61, 110, 0.06);
+}
+
+.lang-switcher__option.is-active {
+  background: rgba(12, 61, 110, 0.1);
+  color: var(--primary, #0c3d6e);
+}
+
+.lang-switcher__flag {
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+html[dir="rtl"] .lang-switcher {
+  left: auto;
+  right: 1.15rem;
+}
+
+html[dir="rtl"] .lang-switcher__panel {
+  left: auto;
+  right: 0;
+}
+
+@media (max-width: 480px) {
+  .lang-switcher {
+    bottom: 0.85rem;
+    left: 0.85rem;
+  }
+}

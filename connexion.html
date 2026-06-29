@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="description" content="Connexion sécurisée — Evo-smartUni. Étudiant, professeur, assistant ou chef de section." />
-  <title>Connexion — Evo-smartUni</title>
+  <title data-i18n="meta.login.title">Connexion — Evo-smartUni</title>
   <script src="js/sac-config.js?v=20260629b"></script>
   <script src="js/sac-theme.js"></script>
   <link rel="icon" href="evo-uni.jpeg" type="image/jpeg" />
@@ -28,7 +28,7 @@
       </a>
       <a href="index.html" class="auth-header__link">
         <span aria-hidden="true">←</span>
-        <span>Retour à l'accueil</span>
+        <span data-i18n="auth.back">Retour à l'accueil</span>
       </a>
     </div>
   </header>
@@ -42,30 +42,30 @@
           <img src="evo-uni.jpeg" alt="Evo-smartUni" class="logo__img" width="88" height="88" />
           <span class="auth-hero__brand-name">Evo-smartUni</span>
         </div>
-        <h1>Connectez-vous à votre espace</h1>
-        <p class="auth-hero__lead">
+        <h1 data-i18n="auth.hero.title">Connectez-vous à votre espace</h1>
+        <p class="auth-hero__lead" data-i18n="auth.hero.lead">
           Choisissez d'abord votre profil — étudiant, professeur, assistant ou chef de section — puis saisissez vos identifiants pour accéder à vos informations officielles.
         </p>
         <ol class="auth-steps">
           <li>
             <span class="auth-step-num active" id="step1">1</span>
             <div>
-              <strong>Sélectionnez votre profil</strong>
-              <span>Étudiant, professeur, assistant ou section</span>
+              <strong data-i18n="auth.step1.title">Sélectionnez votre profil</strong>
+              <span data-i18n="auth.step1.desc">Étudiant, professeur, assistant ou section</span>
             </div>
           </li>
           <li>
             <span class="auth-step-num" id="step2">2</span>
             <div>
-              <strong>Renseignez vos identifiants</strong>
-              <span>Matricule ou e-mail institutionnel</span>
+              <strong data-i18n="auth.step2.title">Renseignez vos identifiants</strong>
+              <span data-i18n="auth.step2.desc">Matricule ou e-mail institutionnel</span>
             </div>
           </li>
           <li>
             <span class="auth-step-num" id="step3">3</span>
             <div>
-              <strong>Accédez à votre tableau de bord</strong>
-              <span>Notes, frais, cours ou administration du campus</span>
+              <strong data-i18n="auth.step3.title">Accédez à votre tableau de bord</strong>
+              <span data-i18n="auth.step3.desc">Notes, frais, cours ou administration du campus</span>
             </div>
           </li>
         </ol>
@@ -77,35 +77,35 @@
         <div class="auth-card__logo-wrap">
           <img src="evo-uni.jpeg" alt="" class="login-card__logo" width="80" height="80" />
         </div>
-        <h2 class="auth-card__title">Connexion</h2>
-        <p class="auth-card__subtitle">Sélectionnez votre type de compte pour continuer</p>
+        <h2 class="auth-card__title" data-i18n="auth.card.title">Connexion</h2>
+        <p class="auth-card__subtitle" data-i18n="auth.card.subtitle">Sélectionnez votre type de compte pour continuer</p>
       </div>
 
-      <span class="auth-role-label">Je me connecte en tant que</span>
+      <span class="auth-role-label" data-i18n="auth.role.label">Je me connecte en tant que</span>
       <div class="auth-role-scroll">
         <div class="auth-role-tabs" role="tablist" aria-label="Type de compte">
           <button type="button" class="auth-role-tab role-tab active" data-role="etudiant" role="tab" aria-selected="true" id="tab-etudiant">
             <span class="auth-role-tab__icon role-tab__icon" aria-hidden="true">🎓</span>
-            Étudiant
+            <span data-i18n="auth.role.student">Étudiant</span>
           </button>
           <button type="button" class="auth-role-tab role-tab" data-role="professeur" role="tab" aria-selected="false" id="tab-professeur">
             <span class="auth-role-tab__icon role-tab__icon" aria-hidden="true">📚</span>
-            Professeur
+            <span data-i18n="auth.role.prof">Professeur</span>
           </button>
           <button type="button" class="auth-role-tab role-tab" data-role="assistant" role="tab" aria-selected="false" id="tab-assistant">
             <span class="auth-role-tab__icon role-tab__icon" aria-hidden="true">📋</span>
-            Assistant
+            <span data-i18n="auth.role.assistant">Assistant</span>
           </button>
           <button type="button" class="auth-role-tab role-tab" data-role="section" role="tab" aria-selected="false" id="tab-section">
             <span class="auth-role-tab__icon role-tab__icon" aria-hidden="true">🏫</span>
-            Section
+            <span data-i18n="auth.role.section">Section</span>
           </button>
         </div>
       </div>
 
       <div class="auth-role-badge role-badge" id="roleBadge" data-role="etudiant">
         <span id="roleBadgeIcon">🎓</span>
-        <span id="roleBadgeText">Espace étudiant</span>
+        <span id="roleBadgeText" data-i18n="auth.role.badge.student">Espace étudiant</span>
       </div>
 
       <div class="auth-notice alert-demo" id="sessionSwitchHint" style="display:none;flex-wrap:wrap;align-items:center;gap:0.5rem;margin-bottom:1rem;">
@@ -203,6 +203,17 @@
     })();
   </script>
   <script>
+    function tx(key, fallback) {
+      return typeof SAC_I18N !== "undefined" ? SAC_I18N.t(key) : fallback;
+    }
+
+    const ROLE_BADGE_KEYS = {
+      etudiant: "auth.role.badge.student",
+      professeur: "auth.role.badge.prof",
+      assistant: "auth.role.badge.assistant",
+      section: "auth.role.badge.section",
+    };
+
     const ROLES = {
       etudiant: {
         badge: "Espace étudiant",
@@ -361,7 +372,7 @@
 
       roleBadge.dataset.role = role;
       roleBadgeIcon.textContent = config.icon;
-      roleBadgeText.textContent = config.badge;
+      roleBadgeText.textContent = tx(ROLE_BADGE_KEYS[role], config.badge);
 
       labelIdentifiant.textContent = config.labelIdentifiant;
       identifiant.type = config.typeIdentifiant;
@@ -818,6 +829,8 @@
         });
       }
     })();
+
+    window.addEventListener("sac:lang-change", () => setRole(currentRole));
 
     const params = new URLSearchParams(window.location.search);
     const roleParam = params.get("role");

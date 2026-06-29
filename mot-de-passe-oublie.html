@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="description" content="Mot de passe oublié — Evo-smartUni" />
-  <title>Mot de passe oublié — Evo-smartUni</title>
+  <title data-i18n="meta.forgot.title">Mot de passe oublié — Evo-smartUni</title>
   <script src="js/sac-config.js"></script>
   <script src="js/sac-portal.js"></script>
   <script src="js/sac-theme.js"></script>
@@ -23,15 +23,15 @@
         <img src="evo-uni.jpeg" alt="Evo-smartUni" class="logo__img" width="48" height="48" />
         <span class="logo__text">Evo-smartUni</span>
       </a>
-      <a href="connexion.html" class="header__link" id="backToLogin">← Retour à la connexion</a>
+      <a href="connexion.html" class="header__link" id="backToLogin" data-i18n="common.back.login">← Retour à la connexion</a>
     </div>
   </header>
 
   <main class="page">
     <section class="auth-card">
       <img src="evo-uni.jpeg" alt="" class="auth-card__logo" width="72" height="72" aria-hidden="true" />
-      <h1 class="auth-card__title">Mot de passe oublié</h1>
-      <p class="auth-card__subtitle">
+      <h1 class="auth-card__title" data-i18n="auth.forgot.title">Mot de passe oublié</h1>
+      <p class="auth-card__subtitle" data-i18n="auth.forgot.subtitle">
         Saisissez l'<strong>e-mail</strong> de votre compte. Un <strong>code à 6 chiffres</strong> vous sera envoyé par <strong>e-mail via Gmail</strong> (expéditeur Evo-smartUni).
       </p>
 
@@ -39,16 +39,16 @@
 
       <form id="forgotForm" novalidate>
         <div class="form-group">
-          <label for="email">Adresse e-mail</label>
+          <label for="email" data-i18n="auth.forgot.email">Adresse e-mail</label>
           <input type="email" class="form-input" id="email" name="email" placeholder="Ex. etudiant@unikin.cd" required autocomplete="email" />
         </div>
 
-        <button type="submit" class="btn-submit" id="btnSubmit">Envoyer le code par e-mail</button>
+        <button type="submit" class="btn-submit" id="btnSubmit" data-i18n="auth.forgot.submit">Envoyer le code par e-mail</button>
       </form>
 
       <p class="form-footer">
-        Vous vous souvenez de votre mot de passe ?
-        <a href="connexion.html" id="footerLoginLink">Se connecter</a>
+        <span data-i18n="auth.forgot.remember">Vous vous souvenez de votre mot de passe ?</span>
+        <a href="connexion.html" id="footerLoginLink" data-i18n="hero.connect">Se connecter</a>
       </p>
     </section>
   </main>
@@ -64,7 +64,8 @@
     const footerLoginLink = document.getElementById("footerLoginLink");
     if (portalParam && backLink) {
       backLink.href = portalLoginUrl;
-      backLink.textContent = "← Retour au portail";
+      backLink.setAttribute("data-i18n", "common.back.portal");
+      if (typeof SAC_I18N !== "undefined") SAC_I18N.apply();
     }
     if (footerLoginLink) footerLoginLink.href = portalLoginUrl;
 

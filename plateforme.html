@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>Plateforme SAC — Bibliothèque, orientation, stages & réseau</title>
+  <title data-i18n="meta.platform.title">Plateforme SAC — Bibliothèque, orientation, stages & réseau</title>
   <script src="js/sac-config.js?v=20260629a"></script>
   <script src="js/sac-theme.js"></script>
   <link rel="icon" href="evo-uni.jpeg" type="image/jpeg" />
@@ -483,28 +483,54 @@
       let orientationMounted = false;
       let socialMounted = false;
 
-      const HERO_COPY = {
-        library: {
-          title: "Bibliothèque Numérique",
-          desc: "Consultez les livres et documents publiés officiellement, et recherchez des définitions dans le dictionnaire intégré.",
-        },
-        dictionary: {
-          title: "Dictionnaire intégré",
-          desc: "Définitions multilingues — choisissez votre langue puis recherchez un mot.",
-        },
-        orientation: {
-          title: "Orientation IA",
-          desc: "Obtenez des conseils personnalisés sur votre parcours académique, les filières et les stages adaptés à votre profil.",
-        },
-        stages: {
-          title: "Stages & emplois",
-          desc: "Parcourez les offres campus et nationales, ou publiez une opportunité pour votre communauté.",
-        },
-        reseau: {
-          title: "Réseau social campus",
-          desc: "Fil de votre université — partagez des infos, posez des questions et interagissez avec la communauté.",
-        },
+      const HERO_KEYS = {
+        library: ["platform.hero.library.title", "platform.hero.library.desc"],
+        dictionary: ["platform.hero.dictionary.title", "platform.hero.dictionary.desc"],
+        orientation: ["platform.hero.orientation.title", "platform.hero.orientation.desc"],
+        stages: ["platform.hero.careers.title", "platform.hero.careers.desc"],
+        reseau: ["platform.hero.social.title", "platform.hero.social.desc"],
       };
+
+      function ptx(key, fallback) {
+        return typeof SAC_I18N !== "undefined" ? SAC_I18N.t(key) : fallback;
+      }
+
+      function heroCopy(tabId) {
+        const keys = HERO_KEYS[tabId] || HERO_KEYS.library;
+        return {
+          title: ptx(keys[0], "Bibliothèque Numérique"),
+          desc: ptx(
+            keys[1],
+            "Consultez les livres et documents publiés officiellement, et recherchez des définitions dans le dictionnaire intégré."
+          ),
+        };
+      }
+
+      let currentPlatformTab = "library";
+
+      function showTab(tabId) {
+        currentPlatformTab = tabId;
+        tabs.forEach((b) => b.classList.toggle("active", b.dataset.tab === tabId));
+        if (panelLibrary) panelLibrary.style.display = tabId === "library" ? "block" : "none";
+        if (panelDictionary) panelDictionary.style.display = tabId === "dictionary" ? "block" : "none";
+        if (panelOrientation) panelOrientation.style.display = tabId === "orientation" ? "block" : "none";
+        if (panelStages) panelStages.style.display = tabId === "stages" ? "block" : "none";
+        if (panelReseau) panelReseau.style.display = tabId === "reseau" ? "block" : "none";
+        const copy = heroCopy(tabId);
+        if (heroTitle) heroTitle.textContent = copy.title;
+        if (heroDesc) heroDesc.textContent = copy.desc;
+        const search = document.getElementById("globalSearch");
+        if (search) {
+          search.style.display = tabId === "library" ? "" : "none";
+          search.placeholder = ptx(
+            "platform.search.placeholder",
+            "Rechercher un livre, un auteur, une catégorie…"
+          );
+        }
+        mountPlatformModule(tabId);
+      }
+
+      window.addEventListener("sac:lang-change", () => showTab(currentPlatformTab));
 
       function mountPlatformModule(tabId) {
         if (tabId === "orientation" && !orientationMounted && typeof SAC_ORIENTATION !== "undefined") {
@@ -527,27 +553,6 @@
           const root = document.getElementById("platformSocialRoot");
           if (root) SAC_SOCIAL.mountFeedUI(root, session);
         }
-      }
-
-      function showTab(tabId) {
-        tabs.forEach((b) => b.classList.toggle("active", b.dataset.tab === tabId));
-        if (panelLibrary) panelLibrary.style.display = tabId === "library" ? "block" : "none";
-        if (panelDictionary) panelDictionary.style.display = tabId === "dictionary" ? "block" : "none";
-        if (panelOrientation) panelOrientation.style.display = tabId === "orientation" ? "block" : "none";
-        if (panelStages) panelStages.style.display = tabId === "stages" ? "block" : "none";
-        if (panelReseau) panelReseau.style.display = tabId === "reseau" ? "block" : "none";
-        const copy = HERO_COPY[tabId] || HERO_COPY.library;
-        if (heroTitle) heroTitle.textContent = copy.title;
-        if (heroDesc) heroDesc.textContent = copy.desc;
-        const search = document.getElementById("globalSearch");
-        if (search) {
-          search.style.display = tabId === "library" ? "" : "none";
-          search.placeholder =
-            tabId === "library"
-              ? "Rechercher un livre, un auteur, une catégorie…"
-              : "Recherche disponible dans la bibliothèque";
-        }
-        mountPlatformModule(tabId);
       }
 
       tabs.forEach((btn) => {
