@@ -773,12 +773,27 @@ const SAC_TARIFFS = (function () {
   /** Met à jour l'affichage des paliers sur inscription.html */
   function syncPricingTierLabels() {
     const defs = getDefaultFees();
+    const tierLabels = {
+      etudiant: { icon: "🎓", key: "auth.role.student", fb: "Étudiant" },
+      assistant: { icon: "📋", key: "auth.role.assistant", fb: "Assistant" },
+      professeur: { icon: "📚", key: "auth.role.prof", fb: "Professeur" },
+    };
     document.querySelectorAll(".pricing-tiers li[data-tier]").forEach((li) => {
       const role = li.dataset.tier;
       const fee = defs[role];
+      const tier = tierLabels[role];
+      const labelEl = li.querySelector("span:first-child");
       const priceEl = li.querySelector("span:last-child");
+      if (tier && labelEl) {
+        labelEl.textContent =
+          tier.icon + " " + tariffTx(tier.key, tier.fb);
+      }
       if (fee && priceEl) priceEl.textContent = fee.amount + " USD";
     });
+  }
+
+  function tariffTx(key, fallback, vars) {
+    return typeof SAC_I18N !== "undefined" ? SAC_I18N.t(key, vars) : fallback;
   }
 
   /** Ligne tarifs publique (accueil, etc.) */
@@ -787,15 +802,23 @@ const SAC_TARIFFS = (function () {
     if (!el) return;
     const defs = getDefaultFees();
     const banks = el.dataset.banksHtml || "";
-    el.innerHTML =
+    el.innerHTML = tariffTx(
+      "tariffs.public.line",
       "Étudiant <strong>" +
-      defs.etudiant.amount +
-      " USD</strong> · Assistant <strong>" +
-      defs.assistant.amount +
-      " USD</strong> · Professeur <strong>" +
-      defs.professeur.amount +
-      " USD</strong>" +
-      banks;
+        defs.etudiant.amount +
+        " USD</strong> · Assistant <strong>" +
+        defs.assistant.amount +
+        " USD</strong> · Professeur <strong>" +
+        defs.professeur.amount +
+        " USD</strong>" +
+        banks,
+      {
+        student: defs.etudiant.amount + " USD",
+        assistant: defs.assistant.amount + " USD",
+        prof: defs.professeur.amount + " USD",
+        banks: banks,
+      }
+    );
   }
 
   function startStudentFeesSyncPolling(intervalMs) {
@@ -871,4 +894,8 @@ if (typeof SAC_TARIFFS !== "undefined") {
   } catch {
     /* ignore */
   }
+  window.addEventListener("sac:lang-change", () => {
+    SAC_TARIFFS.syncPricingTierLabels();
+    SAC_TARIFFS.syncPublicFeeLine("homeFeeLine");
+  });
 }

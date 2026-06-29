@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="description" content="Inscription — Evo-smartUni. Étudiant, professeur ou assistant." />
-  <title>Inscription — Evo-smartUni</title>
+  <title data-i18n="meta.signup.title">Inscription — Evo-smartUni</title>
   <script src="js/sac-config.js"></script>
   <script src="js/sac-theme.js"></script>
   <link rel="icon" href="evo-uni.jpeg" type="image/jpeg" />
@@ -1157,7 +1157,7 @@
         <img src="evo-uni.jpeg" alt="Evo-smartUni" class="logo__img" width="48" height="48" />
         <span class="logo__text">Evo-smartUni</span>
       </a>
-      <a href="connexion.html" class="header__link">Déjà inscrit ? Se connecter</a>
+      <a href="connexion.html" class="header__link" data-i18n="signup.already">Déjà inscrit ? Se connecter</a>
     </div>
   </header>
 
@@ -1167,17 +1167,17 @@
         <img src="evo-uni.jpeg" alt="Evo-smartUni" class="logo__img" width="100" height="100" />
         <p class="logo__caption">Evo-smartUni</p>
       </div>
-      <h1>Rejoignez Evo-smartUni</h1>
-      <p>Créez votre compte selon votre profil pour accéder aux informations officielles de votre campus.</p>
+      <h1 data-i18n="cta.title">Rejoignez Evo-smartUni</h1>
+      <p data-i18n="signup.intro">Créez votre compte selon votre profil pour accéder aux informations officielles de votre campus.</p>
       <div class="pricing-box" style="margin-bottom: 0.75rem;">
         <div class="pricing-box__row">
-          <span class="pricing-box__label">Frais d'ouverture de compte</span>
+          <span class="pricing-box__label" data-i18n="signup.fee.label">Frais d'ouverture de compte</span>
           <div class="pricing-box__amount" id="pricingSidebarAmount">1,00 <span>USD</span></div>
         </div>
         <p class="pricing-box__note" id="pricingSidebarNote">≈ 2 300 FC · paiement unique</p>
       </div>
-      <p class="pricing-box__note" style="margin-bottom:0.75rem;">
-        <strong>Inscription</strong> : choisissez une devise africaine · USD → UBA · CDF → First Bank · Orange · M-Pesa
+      <p class="pricing-box__note" style="margin-bottom:0.75rem;" data-i18n="signup.currency.hint">
+        Inscription : choisissez une devise africaine · USD → UBA · CDF → First Bank · Orange · M-Pesa
       </p>
       <ul class="pricing-tiers" id="pricingTiers">
         <li data-tier="etudiant"><span>🎓 Étudiant</span><span>1 USD</span></li>
@@ -1195,19 +1195,19 @@
     <section class="register-card">
       <div class="success-banner" id="successBanner"></div>
 
-      <h2 class="register-card__title">Inscription</h2>
-      <p class="register-card__subtitle">Choisissez votre profil et complétez le formulaire</p>
+      <h2 class="register-card__title" data-i18n="signup.title">Inscription</h2>
+      <p class="register-card__subtitle" data-i18n="signup.subtitle">Choisissez votre profil et complétez le formulaire</p>
 
-      <span class="role-label">Je m'inscris en tant que</span>
+      <span class="role-label" data-i18n="signup.role.label">Je m'inscris en tant que</span>
       <div class="role-tabs" role="tablist">
         <button type="button" class="role-tab active" data-role="etudiant" aria-selected="true">
-          <span class="role-tab__icon">🎓</span> Étudiant
+          <span class="role-tab__icon">🎓</span> <span data-i18n="auth.role.student">Étudiant</span>
         </button>
         <button type="button" class="role-tab" data-role="professeur" aria-selected="false">
-          <span class="role-tab__icon">📚</span> Professeur
+          <span class="role-tab__icon">📚</span> <span data-i18n="auth.role.prof">Professeur</span>
         </button>
         <button type="button" class="role-tab" data-role="assistant" aria-selected="false">
-          <span class="role-tab__icon">📋</span> Assistant
+          <span class="role-tab__icon">📋</span> <span data-i18n="auth.role.assistant">Assistant</span>
         </button>
       </div>
 
@@ -1477,29 +1477,27 @@
           </div>
         </div>
 
-        <p class="bank-notice" style="margin-bottom:1rem;">
-          <strong>Sécurité :</strong> une seule inscription par personne — même e-mail, même téléphone et cumul de rôles interdits.
-          <strong>Conservez votre mot de passe et votre université :</strong> ils seront exigés à chaque connexion (aucun autre établissement ni mot de passe différent).
+        <p class="bank-notice" style="margin-bottom:1rem;" data-i18n="signup.security">
+          Sécurité : une seule inscription par personne — même e-mail, même téléphone et cumul de rôles interdits. Conservez votre mot de passe et votre université : ils seront exigés à chaque connexion.
         </p>
 
         <label class="checkbox-terms">
           <input type="checkbox" id="terms" name="terms" required />
-          <span>
-            J'accepte les <a href="#">conditions d'utilisation</a> et la
-            <a href="#">politique de confidentialité</a> de Evo-smartUni.
+          <span data-i18n="signup.terms">
+            J'accepte les conditions d'utilisation et la politique de confidentialité de Evo-smartUni.
           </span>
         </label>
 
         <div class="pricing-box" style="margin-bottom:1rem;">
           <div class="pricing-box__row">
-            <span class="pricing-box__label">Total à payer maintenant</span>
+            <span class="pricing-box__label" data-i18n="signup.pricing.total">Total à payer maintenant</span>
             <div class="pricing-box__amount" id="pricingFormAmount">1,00 <span>USD</span></div>
           </div>
           <p class="pricing-box__note" id="pricingFormNote">Paiement unique · USD → UBA · CDF → First Bank, Orange Money ou M-Pesa.</p>
         </div>
 
         <div class="payment-paid" id="paymentPaid">
-          ✓ <span id="paymentPaidText">Paiement confirmé</span> — <span id="paymentRef"></span>
+          ✓ <span id="paymentPaidText" data-i18n="signup.pay.paid">Paiement confirmé</span> — <span id="paymentRef"></span>
         </div>
 
         <button type="submit" class="btn-submit" id="btnSubmit" data-role="etudiant">
@@ -1508,12 +1506,12 @@
       </form>
 
       <p class="form-footer">
-        Vous avez déjà un compte ?
-        <a href="connexion.html" id="connexionLink">Se connecter</a>
+        <span data-i18n="signup.footer.hasAccount">Vous avez déjà un compte ?</span>
+        <a href="connexion.html" id="connexionLink" data-i18n="hero.connect">Se connecter</a>
       </p>
       <p class="form-footer" style="margin-top:0.5rem;font-size:0.85rem;color:var(--text-muted);">
-        Vous représentez une université ?
-        <a href="admin-uni/" style="font-weight:600;color:var(--primary);">Portail admin campus</a>
+        <span data-i18n="signup.footer.university">Vous représentez une université ?</span>
+        <a href="admin-uni/" style="font-weight:600;color:var(--primary);" data-i18n="signup.footer.portal">Portail admin campus</a>
         — compte créé par le Super Admin SAC.
       </p>
     </section>
@@ -1524,20 +1522,19 @@
     <div class="modal" role="dialog" aria-labelledby="modalTitle">
       <div class="modal__header">
         <img src="evo-uni.jpeg" alt="" width="56" height="56" style="display:block;margin:0 auto 0.75rem;object-fit:contain;" aria-hidden="true" />
-        <h3 id="modalTitle">Finaliser l'inscription</h3>
-        <p id="modalSubtitle">Frais d'ouverture de compte Evo-smartUni</p>
+        <h3 id="modalTitle" data-i18n="signup.pay.modal.title">Finaliser l'inscription</h3>
+        <p id="modalSubtitle" data-i18n="signup.pay.modal.subtitle">Frais d'ouverture de compte Evo-smartUni</p>
         <div class="modal__amount" id="modalAmount">1,00 USD</div>
       </div>
       <div class="modal__body">
         <p style="font-size:0.88rem;color:var(--text-muted);margin-bottom:0.75rem;" id="paySummaryEmail"></p>
 
-        <p class="bank-notice">
-          <strong>Tous les paiements</strong> sont versés sur les comptes officiels ci-dessous.
-          Choisissez votre <strong>devise africaine</strong>, puis le canal : <strong>UBA</strong> (USD), <strong>First Bank</strong> (CDF), <strong>Orange Money</strong> ou <strong>M-Pesa</strong>.
+        <p class="bank-notice" data-i18n="signup.pay.bankNotice">
+          Tous les paiements sont versés sur les comptes officiels ci-dessous. Choisissez votre devise africaine, puis le canal : UBA (USD), First Bank (CDF), Orange Money ou M-Pesa.
         </p>
 
         <div class="form-group pay-currency-group">
-          <label for="payCurrency">Devise de paiement</label>
+          <label for="payCurrency" data-i18n="signup.pay.currency">Devise de paiement</label>
           <select class="form-input" id="payCurrency" aria-label="Choisir la devise de paiement"></select>
           <p class="pay-currency-equiv" id="payCurrencyEquiv"></p>
         </div>
@@ -1675,8 +1672,8 @@
         </label>
 
         <div class="modal__actions">
-          <button type="button" class="btn-pay" id="btnConfirmPay">Confirmer mon paiement</button>
-          <button type="button" class="btn-cancel" id="btnCancelPay">Annuler</button>
+          <button type="button" class="btn-pay" id="btnConfirmPay" data-i18n="signup.pay.confirm">Confirmer mon paiement</button>
+          <button type="button" class="btn-cancel" id="btnCancelPay" data-i18n="signup.pay.cancel">Annuler</button>
         </div>
         <p class="secure-note" id="secureNoteBank">🏦 Inscription activée après vérification du virement</p>
         </div>
@@ -1709,6 +1706,10 @@
   <script src="js/sac-section-accounts.js"></script>
   <script src="js/sac-section-approval.js"></script>
   <script>
+    function rtx(key, fallback, vars) {
+      return typeof SAC_I18N !== "undefined" ? SAC_I18N.t(key, vars) : fallback;
+    }
+
     /* Comptes officiels — tous les paiements de la plateforme */
     const BANK_ACCOUNTS = {
       usd: {
@@ -1779,57 +1780,93 @@
 
     const ROLES = {
       etudiant: {
+        badgeKey: "signup.badge.etudiant",
         badge: "Inscription étudiant",
+        noteKey: "signup.note.etudiant",
         icon: "🎓",
         note: "Après votre paiement, présentez-vous à la section de votre filière avec votre dossier complet sous 24 h. L'accès à votre espace sera ouvert après validation par le chef de section.",
+        benefitKeys: [
+          "signup.benefit.etudiant.1",
+          "signup.benefit.etudiant.2",
+          "signup.benefit.etudiant.3",
+          "signup.benefit.etudiant.4",
+        ],
         benefits: [
           "Consultez vos notes et relevés de cotes en ligne",
           "Documents, images et audio de vos professeurs (votre classe uniquement)",
           "Suivez vos frais payés et les factures en attente",
           "Réagissez aux publications de vos enseignants",
         ],
+        labelNomKey: "signup.label.lastname",
         labelNom: "Nom de famille",
         hidePrenomNomSplit: false,
         connexionParam: "etudiant",
       },
       professeur: {
+        badgeKey: "signup.badge.professeur",
         badge: "Inscription professeur",
+        noteKey: "signup.note.professeur",
         icon: "📚",
         note: "Votre inscription sera validée par le chef de section de votre filière sous 24 h. Attendez l'activation de votre compte — aucune présentation de dossier n'est requise.",
+        benefitKeys: [
+          "signup.benefit.professeur.1",
+          "signup.benefit.professeur.2",
+          "signup.benefit.professeur.3",
+          "signup.benefit.professeur.4",
+        ],
         benefits: [
           "Déclarez vos cours et classes à l'inscription",
           "Publiez infos, PDF, images et audio pour votre classe",
           "Gérez vos listes d'étudiants par matière",
           "Recevez les réactions des étudiants",
         ],
+        labelNomKey: "signup.label.lastname",
         labelNom: "Nom de famille",
         hidePrenomNomSplit: false,
         connexionParam: "professeur",
       },
       assistant: {
+        badgeKey: "signup.badge.assistant",
         badge: "Inscription assistant",
+        noteKey: "signup.note.assistant",
         icon: "📋",
         note: "Votre compte sera activé par l'administration de votre université sous 24 h. Attendez l'ouverture de votre espace — aucune démarche supplémentaire n'est demandée.",
+        benefitKeys: [
+          "signup.benefit.assistant.1",
+          "signup.benefit.assistant.2",
+          "signup.benefit.assistant.3",
+          "signup.benefit.assistant.4",
+        ],
         benefits: [
           "Déclarez les classes que vous accompagnez",
           "Publiez informations et documents pour une classe précise",
           "Traitez inscriptions et dossiers étudiants",
           "Suivez les paiements des frais",
         ],
+        labelNomKey: "signup.label.lastname",
         labelNom: "Nom de famille",
         hidePrenomNomSplit: false,
         connexionParam: "assistant",
       },
       universite: {
+        badgeKey: "signup.badge.universite",
         badge: "Inscription établissement",
+        noteKey: "signup.note.universite",
         icon: "🏛️",
         note: "Un conseiller Evo-smartUni vous contactera sous 48 h pour valider le partenariat et activer le portail de votre campus.",
+        benefitKeys: [
+          "signup.benefit.universite.1",
+          "signup.benefit.universite.2",
+          "signup.benefit.universite.3",
+          "signup.benefit.universite.4",
+        ],
         benefits: [
           "Enregistrez toutes les sections / facultés de votre campus à l'inscription",
           "Publiez par section : seuls les étudiants concernés voient le message",
           "Gérez réclamations, frais et dossiers étudiants",
           "Tableau de bord administratif centralisé",
         ],
+        labelNomKey: "signup.label.institution",
         labelNom: "Nom de l'institution",
         hidePrenomNomSplit: true,
         connexionParam: "universite",
@@ -2124,29 +2161,36 @@
       document.getElementById("modalAmount").textContent = selected.label;
 
       const equiv = equivHintForCurrency(fee);
-      document.getElementById("pricingSidebarNote").textContent = equiv + " · paiement unique";
+      document.getElementById("pricingSidebarNote").textContent =
+        equiv + " · " + rtx("signup.pricing.onetime", "paiement unique");
       const equivEl = document.getElementById("payCurrencyEquiv");
       if (equivEl) equivEl.textContent = equiv;
 
       const uni = getUniversiteForRole(role);
       const campusNote =
         uni && role !== "universite"
-          ? " Tarif défini par votre université (" +
-            (typeof SAC_UNIVERSITIES !== "undefined"
-              ? SAC_UNIVERSITIES.getLabel(uni)
-              : uni) +
-            ")."
+          ? rtx("signup.pricing.campus", " Tarif défini par votre université ({uni}).", {
+              uni:
+                typeof SAC_UNIVERSITIES !== "undefined"
+                  ? SAC_UNIVERSITIES.getLabel(uni)
+                  : uni,
+            })
           : "";
-      document.getElementById("pricingFormNote").textContent =
+      document.getElementById("pricingFormNote").textContent = rtx(
+        "signup.pricing.formNote",
         "Paiement unique · " +
-        equiv +
-        " · choisissez votre devise et le canal (UBA, First Bank, Orange Money, M-Pesa)." +
-        campusNote;
+          equiv +
+          " · choisissez votre devise et le canal (UBA, First Bank, Orange Money, M-Pesa)." +
+          campusNote,
+        { equiv: equiv, campus: campusNote }
+      );
 
-      btnSubmit.textContent =
-        "Continuer — Payer " +
-        (selected.code === "USD" ? fee.amount + " USD" : selected.label);
-      btnConfirmPay.textContent = "Confirmer mon paiement";
+      const payAmount =
+        selected.code === "USD" ? fee.amount + " USD" : selected.label;
+      btnSubmit.textContent = rtx("signup.pricing.continue", "Continuer — Payer " + payAmount, {
+        amount: payAmount,
+      });
+      btnConfirmPay.textContent = rtx("signup.pay.confirm", "Confirmer mon paiement");
 
       const usdDue = "Montant à virer : " + formatUsd(fee.amount);
       const cdfDue = "Montant à virer : " + nativeChannelLabel("cdf", fee);
@@ -2205,14 +2249,14 @@
 
       roleBadge.dataset.role = role;
       roleBadgeIcon.textContent = config.icon;
-      roleBadgeText.textContent = config.badge;
-      roleNote.textContent = config.note;
+      roleBadgeText.textContent = rtx(config.badgeKey, config.badge);
+      roleNote.textContent = rtx(config.noteKey, config.note);
       btnSubmit.dataset.role = role;
       connexionLink.href = `connexion.html?role=${config.connexionParam}`;
       refreshPricing(role);
 
-      benefitsList.innerHTML = config.benefits
-        .map((b) => `<li>${b}</li>`)
+      benefitsList.innerHTML = (config.benefitKeys || [])
+        .map((key, i) => `<li>${rtx(key, config.benefits[i])}</li>`)
         .join("");
 
       sections.forEach((sec) => {
@@ -2223,7 +2267,8 @@
       grpPrenom.style.display = isUni ? "none" : "";
       grpNom.style.display = isUni ? "none" : "";
       if (!isUni) {
-        labelNom.innerHTML = `${config.labelNom} <span class="hint">*</span>`;
+        labelNom.innerHTML =
+          `${rtx(config.labelNomKey, config.labelNom)} <span class="hint">*</span>`;
         document.getElementById("nom").placeholder = "";
       }
       if (role === "professeur") ensureCoursList("coursClasseListProf");
@@ -2589,15 +2634,25 @@
         activeFee = SAC_TARIFFS.defaultFor(profile.role);
       }
       const fee = getFee(profile.role);
-      document.getElementById("paySummaryEmail").textContent =
+      document.getElementById("paySummaryEmail").textContent = rtx(
+        "signup.pay.summary",
         "Compte : " +
-        profile.email +
-        " · " +
-        ROLES[profile.role].badge +
-        " · " +
-        amountInSelectedCurrency(fee).label;
-      document.getElementById("modalSubtitle").textContent =
-        "Frais d'inscription " + fee.label;
+          profile.email +
+          " · " +
+          ROLES[profile.role].badge +
+          " · " +
+          amountInSelectedCurrency(fee).label,
+        {
+          email: profile.email,
+          role: rtx(ROLES[profile.role].badgeKey, ROLES[profile.role].badge),
+          amount: amountInSelectedCurrency(fee).label,
+        }
+      );
+      document.getElementById("modalSubtitle").textContent = rtx(
+        "signup.pay.feeSubtitle",
+        "Frais d'inscription " + fee.label,
+        { amount: fee.label }
+      );
 
       const stripeLink = STRIPE_PAYMENT_LINKS[profile.role];
       if (stripeLink) {
@@ -3586,6 +3641,28 @@
     if (bootUniProf && currentRole === "professeur") {
       populateProfessorDepartments(bootUniProf);
     }
+
+    window.addEventListener("sac:lang-change", () => {
+      if (typeof SAC_I18N !== "undefined") SAC_I18N.apply();
+      setRole(currentRole);
+      if (typeof SAC_TARIFFS !== "undefined") SAC_TARIFFS.syncPricingTierLabels();
+      if (paymentModal.classList.contains("open")) {
+        const method = document.querySelector(".pay-method.active")?.dataset.method;
+        if (method) switchPayPanel(method);
+        if (pendingProfile) {
+          const fee = getFee(pendingProfile.role);
+          document.getElementById("paySummaryEmail").textContent = rtx(
+            "signup.pay.summary",
+            "Compte : " + pendingProfile.email,
+            {
+              email: pendingProfile.email,
+              role: rtx(ROLES[pendingProfile.role].badgeKey, ROLES[pendingProfile.role].badge),
+              amount: amountInSelectedCurrency(fee).label,
+            }
+          );
+        }
+      }
+    });
   </script>
   <script src="js/sac-mobile.js" defer></script>
 </body>

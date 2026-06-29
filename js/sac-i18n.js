@@ -1011,6 +1011,25 @@
     if (switcherEl) apply();
   }
 
+  function labelCoreText(el) {
+    const clone = el.cloneNode(true);
+    clone.querySelectorAll(".hint").forEach((h) => h.remove());
+    return clone.textContent.trim().replace(/\s+/g, " ");
+  }
+
+  function setAutoTranslatedText(el, translated) {
+    if (el.tagName === "LABEL" && el.querySelector(".hint")) {
+      const hint = el.querySelector(".hint");
+      while (el.firstChild && el.firstChild !== hint) {
+        el.removeChild(el.firstChild);
+      }
+      el.insertBefore(document.createTextNode(translated + " "), hint);
+      return;
+    }
+    if (el.querySelector("[data-i18n], [data-i18n-html]")) return;
+    el.textContent = translated;
+  }
+
   function applyAutoTranslate() {
     const skip = "script, style, noscript, .lang-switcher";
     const selectors =
@@ -1021,16 +1040,24 @@
       if (el.hasAttribute("data-i18n") || el.hasAttribute("data-i18n-html")) return;
       if (el.id === "userName" || el.id === "profileFullName" || el.id === "platformHeroTitle" || el.id === "platformHeroDesc") return;
       if (el.closest("#headerActions")) return;
+      if (el.querySelector("[data-i18n], [data-i18n-html]")) return;
 
       let key = el.getAttribute("data-i18n-auto");
       if (!key) {
-        const text = el.textContent.trim().replace(/\s+/g, " ");
+        const text =
+          el.tagName === "LABEL" && el.querySelector(".hint")
+            ? labelCoreText(el)
+            : el.textContent.trim().replace(/\s+/g, " ");
         key = autoTextMap[text];
         if (!key) return;
         el.setAttribute("data-i18n-auto", key);
       }
       const translated = t(key);
-      if (el.textContent.trim() !== translated) el.textContent = translated;
+      const current =
+        el.tagName === "LABEL" && el.querySelector(".hint")
+          ? labelCoreText(el)
+          : el.textContent.trim().replace(/\s+/g, " ");
+      if (current !== translated) setAutoTranslatedText(el, translated);
     });
 
     document.querySelectorAll("[placeholder]").forEach((el) => {
