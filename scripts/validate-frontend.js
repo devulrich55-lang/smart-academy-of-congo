@@ -54,6 +54,9 @@ for (const file of htmlFiles) {
 // Chargés dynamiquement par sac-mobile.js
 referenced.add("js/sac-floating-back.js");
 referenced.add("css/floating-back.css");
+referenced.add("js/sac-pwa.js");
+referenced.add("sw.js");
+referenced.add("manifest.webmanifest");
 
 const jsDir = path.join(ROOT, "js");
 const allJs = fs.existsSync(jsDir)

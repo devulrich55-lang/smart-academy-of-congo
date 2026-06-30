@@ -41,6 +41,13 @@ app.use(
       if (/\.(html|js|css)$/i.test(filePath)) {
         res.setHeader("Cache-Control", "public, max-age=0, must-revalidate");
       }
+      if (/\.webmanifest$/i.test(filePath)) {
+        res.setHeader("Content-Type", "application/manifest+json");
+      }
+      if (/sw\.js$/i.test(filePath)) {
+        res.setHeader("Service-Worker-Allowed", "/");
+        res.setHeader("Cache-Control", "no-cache");
+      }
     },
   })
 );
