@@ -909,7 +909,15 @@ const SAC_LIVE = (function () {
         }
       },
     }).catch((err) => {
-      alert(err.message || "Impossible d'ouvrir la salle live SAC.");
+      const msg = String(err?.message || "");
+      if (/permission denied/i.test(msg) || /refusé/i.test(msg)) {
+        alert(
+          "Impossible d'ouvrir la salle : autorisez le micro/caméra si vous animez le cours.\n\n" +
+            "En tant qu'étudiant, le live doit s'ouvrir en mode spectateur — actualisez la page (Ctrl+F5) si l'erreur persiste."
+        );
+      } else {
+        alert(msg || "Impossible d'ouvrir la salle live SAC.");
+      }
       if (typeof onLeave === "function") onLeave();
     });
   }

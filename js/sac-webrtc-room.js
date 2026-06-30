@@ -35,12 +35,58 @@ const SAC_WEBRTC_ROOM = (function () {
     channelCount: { ideal: 1 },
   };
 
+  const AUDIO_CONSTRAINTS_BASIC = {
+    echoCancellation: true,
+    noiseSuppression: true,
+    autoGainControl: true,
+  };
+
   const VIDEO_CONSTRAINTS = {
     width: { ideal: 1280, max: 1920 },
     height: { ideal: 720, max: 1080 },
     frameRate: { ideal: 30, max: 30 },
     facingMode: "user",
   };
+
+  async function requestUserMedia(wantAudio, wantVideo) {
+    const attempts = [];
+    if (wantAudio && wantVideo) {
+      attempts.push({ audio: AUDIO_CONSTRAINTS, video: VIDEO_CONSTRAINTS });
+      attempts.push({ audio: AUDIO_CONSTRAINTS_BASIC, video: VIDEO_CONSTRAINTS });
+      attempts.push({ audio: true, video: { facingMode: "user" } });
+    } else if (wantAudio) {
+      attempts.push({ audio: AUDIO_CONSTRAINTS, video: false });
+      attempts.push({ audio: AUDIO_CONSTRAINTS_BASIC, video: false });
+      attempts.push({ audio: true, video: false });
+    } else if (wantVideo) {
+      attempts.push({ audio: false, video: VIDEO_CONSTRAINTS });
+      attempts.push({ audio: false, video: { facingMode: "user" } });
+    }
+    let lastErr = null;
+    for (const constraints of attempts) {
+      try {
+        return await navigator.mediaDevices.getUserMedia(constraints);
+      } catch (err) {
+        lastErr = err;
+      }
+    }
+    throw lastErr || new Error("Accès caméra/micro refusé");
+  }
+
+  function mediaErrorMessage(err) {
+    const name = String(err?.name || "");
+    const msg = String(err?.message || err || "");
+    if (name === "NotAllowedError" || /permission denied/i.test(msg)) {
+      return "Accès caméra/micro refusé — autorisez le micro dans la barre d'adresse du navigateur, puis réessayez.";
+    }
+    if (name === "NotFoundError") {
+      return "Aucune caméra ou micro détecté sur cet appareil.";
+    }
+    if (name === "NotReadableError") {
+      return "Caméra ou micro déjà utilisé par une autre application.";
+    }
+    return msg || "Impossible d'accéder à la caméra ou au micro.";
+  }
 
   function enhanceAudioStream(micStream) {
     if (!micStream || typeof AudioContext === "undefined") {
@@ -235,50 +281,7 @@ const SAC_WEBRTC_ROOM = (function () {
           }
         }
       }
-      try {
-        this.rawMicStream = await navigator.mediaDevices.getUserMedia({
-          audio: AUDIO_CONSTRAINTS,
-          video: VIDEO_CONSTRAINTS,
-        });
-      } catch (err) {
-        try {
-          this.rawMicStream = await navigator.mediaDevices.getUserMedia({
-            audio: AUDIO_CONSTRAINTS,
-            video: false,
-          });
-          if (!this.isAudience) {
-            this.setStatus("Micro actif — appuyez sur Caméra pour activer la vidéo");
-          }
-        } catch (err2) {
-          this.setStatus("Caméra/micro inaccessible : " + (err2.message || err2));
-          throw err2;
-        }
-      }
-      this.localStream = this.buildLocalStream(this.rawMicStream);
-      const audioTrack = this.localStream.getAudioTracks()[0];
-      if (audioTrack?.applyConstraints) {
-        audioTrack.applyConstraints(AUDIO_CONSTRAINTS).catch(() => {});
-      }
-      if (this.isAudience) {
-        this.localStream.getAudioTracks().forEach((t) => {
-          t.enabled = false;
-        });
-        this.localStream.getVideoTracks().forEach((t) => {
-          t.enabled = false;
-        });
-        this.container.querySelector("#sacWrtcMic")?.classList.add("sac-webrtc__btn--off");
-        this.container.querySelector("#sacWrtcCam")?.classList.add("sac-webrtc__btn--off");
-      } else {
-        this.micOn = true;
-        this.camOn = true;
-        this.localStream.getAudioTracks().forEach((t) => {
-          t.enabled = true;
-        });
-        this.localStream.getVideoTracks().forEach((t) => {
-          t.enabled = true;
-        });
-      }
-      this.addLocalTile();
+      await this.setupLocalMedia();
       this.participants = [
         {
           peerId: "local",
@@ -303,7 +306,88 @@ const SAC_WEBRTC_ROOM = (function () {
       }
     }
 
+    async setupLocalMedia() {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        if (this.isAudience) {
+          this.localStream = new MediaStream();
+          this.micOn = false;
+          this.camOn = false;
+          this.setStatus("Mode spectateur — en attente du flux professeur");
+          return;
+        }
+        throw new Error("Votre navigateur ne prend pas en charge la vidéo en direct.");
+      }
+
+      if (this.isAudience) {
+        try {
+          this.rawMicStream = await requestUserMedia(true, false);
+          this.localStream = this.buildLocalStream(this.rawMicStream);
+          this.localStream.getAudioTracks().forEach((t) => {
+            t.enabled = false;
+          });
+          this.localStream.getVideoTracks().forEach((t) => {
+            t.enabled = false;
+          });
+          this.micOn = false;
+          this.camOn = false;
+          this.container.querySelector("#sacWrtcMic")?.classList.add("sac-webrtc__btn--off");
+          this.container.querySelector("#sacWrtcCam")?.classList.add("sac-webrtc__btn--off");
+          this.addLocalTile();
+          this.setStatus("Mode spectateur — touchez l'écran si le son ne démarre pas");
+        } catch {
+          this.rawMicStream = null;
+          this.localStream = new MediaStream();
+          this.micOn = false;
+          this.camOn = false;
+          this.container.querySelector("#sacWrtcMic")?.classList.add("sac-webrtc__btn--off");
+          this.container.querySelector("#sacWrtcCam")?.classList.add("sac-webrtc__btn--off");
+          this.setStatus("Mode spectateur — vous regardez le cours sans caméra ni micro");
+        }
+        this.hideAudienceHostControls();
+        return;
+      }
+
+      try {
+        this.rawMicStream = await requestUserMedia(true, true);
+      } catch {
+        try {
+          this.rawMicStream = await requestUserMedia(true, false);
+          this.setStatus("Micro actif — appuyez sur Caméra pour activer la vidéo");
+        } catch (err2) {
+          this.setStatus(mediaErrorMessage(err2));
+          throw new Error(mediaErrorMessage(err2));
+        }
+      }
+      this.localStream = this.buildLocalStream(this.rawMicStream);
+      const audioTrack = this.localStream.getAudioTracks()[0];
+      if (audioTrack?.applyConstraints) {
+        audioTrack.applyConstraints(AUDIO_CONSTRAINTS_BASIC).catch(() => {});
+      }
+      this.micOn = !!this.localStream.getAudioTracks().length;
+      this.camOn = !!this.localStream.getVideoTracks().length;
+      this.localStream.getAudioTracks().forEach((t) => {
+        t.enabled = this.micOn;
+      });
+      this.localStream.getVideoTracks().forEach((t) => {
+        t.enabled = this.camOn;
+      });
+      if (!this.camOn) {
+        this.container.querySelector("#sacWrtcCam")?.classList.add("sac-webrtc__btn--off");
+      }
+      if (!this.micOn) {
+        this.container.querySelector("#sacWrtcMic")?.classList.add("sac-webrtc__btn--off");
+      }
+      this.addLocalTile();
+    }
+
+    hideAudienceHostControls() {
+      ["#sacWrtcScreen", "#sacWrtcRecord", "#sacWrtcNoise"].forEach((sel) => {
+        this.container.querySelector(sel)?.style.setProperty("display", "none");
+      });
+    }
+
     buildLocalStream(rawStream) {
+      if (!rawStream) return new MediaStream();
       if (this.audioEnhancer?.cleanup) this.audioEnhancer.cleanup();
       const audioOnly = new MediaStream(rawStream.getAudioTracks());
       if (this.noiseCancelOn) {
@@ -403,6 +487,7 @@ const SAC_WEBRTC_ROOM = (function () {
     }
 
     addLocalTile() {
+      if (!this.localStream?.getTracks?.().length) return;
       const tile = document.createElement("div");
       tile.className = "sac-webrtc__tile sac-webrtc__tile--local";
       tile.dataset.peer = "local";
@@ -706,7 +791,7 @@ const SAC_WEBRTC_ROOM = (function () {
 
     getSendStream() {
       if (this.screenStream) return this.screenStream;
-      return this.localStream;
+      return this.localStream || new MediaStream();
     }
 
     bindRemoteStream(remote, ev, role) {
@@ -953,26 +1038,32 @@ const SAC_WEBRTC_ROOM = (function () {
     }
 
     async acquireVideoTrack() {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: false,
-        video: VIDEO_CONSTRAINTS,
-      });
-      const track = stream.getVideoTracks()[0];
-      if (!track) return;
-      const old = this.localStream.getVideoTracks()[0];
-      if (old) {
-        old.stop();
-        this.localStream.removeTrack(old);
-      }
-      this.localStream.addTrack(track);
-      track.enabled = this.camOn;
-      if (this.localVideo) {
-        this.localVideo.srcObject = this.localStream;
-        this.localVideo.style.opacity = this.camOn ? "1" : "0";
-      }
-      this.replaceTracksOnPeers(this.localStream);
-      for (const remote of this.peers.values()) {
-        await this.renegotiatePeer(remote);
+      try {
+        const stream = await requestUserMedia(false, true);
+        const track = stream.getVideoTracks()[0];
+        if (!track) return;
+        if (!this.localStream) this.localStream = new MediaStream();
+        const old = this.localStream.getVideoTracks()[0];
+        if (old) {
+          old.stop();
+          this.localStream.removeTrack(old);
+        }
+        this.localStream.addTrack(track);
+        track.enabled = this.camOn;
+        if (!this.localVideo) this.addLocalTile();
+        if (this.localVideo) {
+          this.localVideo.srcObject = this.localStream;
+          this.localVideo.style.opacity = this.camOn ? "1" : "0";
+        }
+        this.replaceTracksOnPeers(this.localStream);
+        for (const remote of this.peers.values()) {
+          await this.renegotiatePeer(remote);
+        }
+      } catch (err) {
+        this.camOn = false;
+        this.container.querySelector("#sacWrtcCam")?.classList.add("sac-webrtc__btn--off");
+        this.setStatus(mediaErrorMessage(err));
+        throw new Error(mediaErrorMessage(err));
       }
     }
 
@@ -1056,11 +1147,29 @@ const SAC_WEBRTC_ROOM = (function () {
     }
 
     toggleMic() {
+      const tracks = this.localStream?.getAudioTracks?.() || [];
+      if (!tracks.length && !this.micOn) {
+        requestUserMedia(true, false)
+          .then((stream) => {
+            this.rawMicStream = stream;
+            this.localStream = this.buildLocalStream(stream);
+            this.micOn = true;
+            this.container.querySelector("#sacWrtcMic")?.classList.remove("sac-webrtc__btn--off");
+            if (!this.localVideo) this.addLocalTile();
+            if (this.isAudience) this.ensureAudienceSenders().catch(() => {});
+            this.sendMicState();
+          })
+          .catch((err) => {
+            this.setStatus(mediaErrorMessage(err));
+          });
+        return;
+      }
+      if (!tracks.length) return;
       this.micOn = !this.micOn;
-      this.localStream.getAudioTracks().forEach((t) => {
+      tracks.forEach((t) => {
         t.enabled = this.micOn;
       });
-      this.container.querySelector("#sacWrtcMic").classList.toggle("sac-webrtc__btn--off", !this.micOn);
+      this.container.querySelector("#sacWrtcMic")?.classList.toggle("sac-webrtc__btn--off", !this.micOn);
       if (this.isAudience && this.micOn) {
         this.ensureAudienceSenders().catch(() => {});
       }
@@ -1069,16 +1178,17 @@ const SAC_WEBRTC_ROOM = (function () {
 
     toggleCam() {
       this.camOn = !this.camOn;
+      if (!this.localStream) this.localStream = new MediaStream();
       const videoTracks = this.localStream.getVideoTracks();
       if (videoTracks.length) {
         videoTracks.forEach((t) => {
           t.enabled = this.camOn;
         });
-      } else if (this.camOn && !this.isAudience) {
+      } else if (this.camOn) {
         this.acquireVideoTrack().catch(() => {
           this.camOn = false;
-          this.setStatus("Impossible d'activer la caméra");
         });
+        return;
       }
       if (this.localVideo) {
         this.localVideo.style.opacity = this.camOn ? "1" : "0";
