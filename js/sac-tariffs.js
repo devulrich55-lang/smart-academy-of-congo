@@ -17,6 +17,7 @@ const SAC_TARIFFS = (function () {
 
   const CAMPUS_ROLES = ["etudiant", "professeur", "assistant"];
   const FALLBACK_ACADEMIC_TRIMESTRE = 150;
+  const ACADEMIC_INSTALLMENTS = 2;
   const FEE_CATEGORY_DEFS = [
     { key: "frais_academiques", label: "Frais académiques", term: "Année académique", icon: "🎓", defaultAmount: 150 },
     { key: "enrolement", label: "Frais d'enrôlement", term: "Année académique", icon: "📋", defaultAmount: 80 },
@@ -319,6 +320,31 @@ const SAC_TARIFFS = (function () {
     return fallback;
   }
 
+  function sumCategoryFeesTotal(categories) {
+    if (!categories) return 0;
+    return FEE_CATEGORY_DEFS.reduce((sum, def) => {
+      const amt = Number(categories[def.key]?.amount);
+      return sum + (Number.isFinite(amt) && amt > 0 ? amt : 0);
+    }, 0);
+  }
+
+  function perAcademicTranche(totalAnnual, acad) {
+    const installments = acad?.installments || ACADEMIC_INSTALLMENTS;
+    if (!Number.isFinite(totalAnnual) || totalAnnual <= 0) {
+      const trim = Number(acad?.trimestre?.amount ?? acad?.t1?.amount);
+      if (Number.isFinite(trim) && trim > 0) return trim;
+      return FALLBACK_ACADEMIC_TRIMESTRE;
+    }
+    return Math.round((totalAnnual / installments) * 100) / 100;
+  }
+
+  function academicTrancheDefs() {
+    return [
+      { key: "t1", label: "Frais académiques — Tranche 1", term: "1re tranche · semestre 1" },
+      { key: "t2", label: "Frais académiques — Tranche 2", term: "2e tranche · semestre 2" },
+    ];
+  }
+
   function normalizeAcademicFees(raw, legacyCampusTariffs) {
     const src = raw || {};
     let legacyAmount = legacyCampusTariffs?.etudiant?.amount;
@@ -330,24 +356,26 @@ const SAC_TARIFFS = (function () {
       Number.isFinite(trimVal) && trimVal > 0 ? trimVal : FALLBACK_ACADEMIC_TRIMESTRE;
     const t1 = Number(src.t1?.amount);
     const t2 = Number(src.t2?.amount);
-    const t3 = Number(src.t3?.amount);
     const srcCats = src.categories && typeof src.categories === "object" ? src.categories : {};
     const categories = {};
     FEE_CATEGORY_DEFS.forEach((def) => {
       const entry = srcCats[def.key] || {};
       let amount = normalizeCategoryAmount(entry.amount, def.defaultAmount);
       if (!srcCats[def.key] && def.key === "frais_academiques" && trim > 0 && !src.categories) {
-        amount = trim;
+        amount = trim * ACADEMIC_INSTALLMENTS;
       } else if (!srcCats[def.key] && def.key === "minerval" && trim > 0 && !src.categories) {
-        amount = trim;
+        amount = trim * ACADEMIC_INSTALLMENTS;
       }
       categories[def.key] = { amount, currency: entry.currency || "USD", label: def.label };
     });
+    const annualTotal = sumCategoryFeesTotal(categories);
+    const perTranche = perAcademicTranche(annualTotal, { trimestre: { amount: trim }, t1: src.t1, installments: ACADEMIC_INSTALLMENTS });
     return {
-      trimestre: { amount: trim, currency: "USD" },
-      t1: { amount: Number.isFinite(t1) && t1 > 0 ? t1 : trim, currency: "USD" },
-      t2: { amount: Number.isFinite(t2) && t2 > 0 ? t2 : trim, currency: "USD" },
-      t3: { amount: Number.isFinite(t3) && t3 > 0 ? t3 : trim, currency: "USD" },
+      trimestre: { amount: perTranche, currency: "USD" },
+      installments: ACADEMIC_INSTALLMENTS,
+      t1: { amount: Number.isFinite(t1) && t1 > 0 ? t1 : perTranche, currency: "USD" },
+      t2: { amount: Number.isFinite(t2) && t2 > 0 ? t2 : perTranche, currency: "USD" },
+      t3: { amount: 0, currency: "USD" },
       categories,
       useCategories: !!src.categories || !src.t1,
     };
@@ -460,32 +488,26 @@ const SAC_TARIFFS = (function () {
         feeKey: "inscription",
       },
     ];
-    if (acad.categories && (acad.useCategories !== false)) {
-      FEE_CATEGORY_DEFS.forEach((def) => {
-        const cat = acad.categories[def.key] || {};
-        const amt = Number(cat.amount);
-        if (!Number.isFinite(amt) || amt <= 0) return;
+    if (acad.categories && acad.useCategories !== false) {
+      const annualTotal = sumCategoryFeesTotal(acad.categories);
+      const fallback = perAcademicTranche(annualTotal, acad);
+      academicTrancheDefs().forEach((t) => {
+        const amt = Number(acad[t.key]?.amount) || fallback;
         rows.push({
-          label: cat.label || def.label,
-          term: def.term,
+          label: t.label,
+          term: t.term,
           amount: amt,
           amountCdf: toCdf(amt),
-          currency: cat.currency || "USD",
+          currency: "USD",
           status: "En attente",
           date: "—",
           source: "campus_academic",
-          feeKey: def.key,
-          categoryKey: def.key,
+          feeKey: t.key,
         });
       });
       return rows;
     }
-    const trimesters = [
-      { key: "t1", label: "Frais académiques T1", term: "Trimestre 1" },
-      { key: "t2", label: "Frais académiques T2", term: "Trimestre 2" },
-      { key: "t3", label: "Frais académiques T3", term: "Trimestre 3" },
-    ];
-    for (const t of trimesters) {
+    academicTrancheDefs().forEach((t) => {
       const amt = Number(acad[t.key]?.amount) || acad.trimestre.amount;
       rows.push({
         label: t.label,
@@ -498,7 +520,7 @@ const SAC_TARIFFS = (function () {
         source: "campus_academic",
         feeKey: t.key,
       });
-    }
+    });
     return rows;
   }
 
@@ -872,6 +894,10 @@ const SAC_TARIFFS = (function () {
     fetchCampusAcademicFees,
     normalizeAcademicFees,
     FEE_CATEGORY_DEFS,
+    ACADEMIC_INSTALLMENTS,
+    sumCategoryFeesTotal,
+    perAcademicTranche,
+    academicTrancheDefs,
     applyCampusTariffsOnRegister,
     refreshStudentFeesFromCampus,
     buildUniversityFeesForStudent,

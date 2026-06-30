@@ -1095,7 +1095,7 @@
   <script src="js/sac-section-approval.js"></script>
   <script src="js/sac-session.js?v=20260617d"></script>
   <script src="js/sac-api.js?v=20260630f"></script>
-  <script src="js/sac-tariffs.js?v=20260624c"></script>
+  <script src="js/sac-tariffs.js?v=20260702a"></script>
   <script src="js/sac-payments.js?v=20260622f"></script>
   <script src="js/sac-mobile-money.js?v=20260626c"></script>
   <script src="js/sac-payment-receipt.js"></script>
@@ -1132,9 +1132,8 @@
 
     const DEFAULT_FEES = [
       { label: "Frais d'inscription", term: "Année 2024-2025", amount: 200, status: "Payé", date: "2024-09-05" },
-      { label: "Frais académiques T1", term: "Trimestre 1", amount: 150, status: "Payé", date: "2024-10-12" },
-      { label: "Frais académiques T2", term: "Trimestre 2", amount: 150, status: "Payé", date: "2025-01-20" },
-      { label: "Frais académiques T3", term: "Trimestre 3", amount: 150, status: "En attente", date: "—" },
+      { label: "Frais académiques — Tranche 1", term: "1re tranche · semestre 1", amount: 150, status: "Payé", date: "2024-10-12" },
+      { label: "Frais académiques — Tranche 2", term: "2e tranche · semestre 2", amount: 150, status: "En attente", date: "—" },
     ];
 
     const SOURCE_LABELS = {
@@ -1680,8 +1679,15 @@
       const tarifSacHtml = tarifSac
         ? `<div class="info-row"><span>Inscription Evo-smartUni</span><span><strong>${tarifSac.amount} USD</strong> · ~${(tarifSac.cdf || 0).toLocaleString("fr-FR")} CDF</span></div>`
         : "";
-      const tarifAcadHtml = acad?.trimestre
-        ? `<div class="info-row"><span>Frais académiques campus</span><span><strong>${acad.trimestre.amount} USD</strong> / trimestre · ~${(typeof SAC_TARIFFS !== "undefined" ? SAC_TARIFFS.toCdf(acad.trimestre.amount) : 0).toLocaleString("fr-FR")} CDF</span></div>`
+      const tarifAcadHtml = acad?.t1
+        ? (() => {
+            const per = acad.t1?.amount || acad.trimestre?.amount || 0;
+            const total =
+              typeof SAC_TARIFFS !== "undefined"
+                ? SAC_TARIFFS.sumCategoryFeesTotal(acad.categories) || per * (acad.installments || 2)
+                : per * 2;
+            return `<div class="info-row"><span>Frais académiques campus</span><span><strong>${total} USD</strong> / an · <strong>${per} USD</strong> / tranche (×2) · ~${(typeof SAC_TARIFFS !== "undefined" ? SAC_TARIFFS.toCdf(per) : 0).toLocaleString("fr-FR")} CDF / tranche</span></div>`;
+          })()
         : `<div class="info-row"><span>Frais académiques campus</span><span style="color:var(--muted);">Définis par votre université</span></div>`;
 
       document.getElementById("profileAcademic").innerHTML = `
