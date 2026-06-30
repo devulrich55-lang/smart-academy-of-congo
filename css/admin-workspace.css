@@ -328,6 +328,25 @@ body[data-ws-role="universite"] {
   background: linear-gradient(135deg, rgba(13, 122, 74, 0.06), transparent);
 }
 
+.ws-country-panel {
+  margin: 0 0 1rem;
+  padding: 0.85rem 1rem;
+  border-radius: 10px;
+  border: 1px solid rgba(12, 61, 110, 0.18);
+  background: rgba(12, 61, 110, 0.04);
+}
+
+.ws-country-panel label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.4rem;
+  color: var(--primary, #0c3d6e);
+}
+
+.ws-country-panel .fi {
+  max-width: 420px;
+}
+
 .ws-role-intro {
   margin: 0 0 0.85rem;
   font-size: 0.86rem;

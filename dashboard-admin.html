@@ -336,14 +336,14 @@
               <p class="ws-role-intro">
                 Portail national MESU — identifiants de connexion et responsable habilité uniquement.
               </p>
+              <div class="ws-country-panel">
+                <label for="minCountry">Pays du ministère *</label>
+                <select class="fi" id="minCountry" required aria-label="Pays du ministère">
+                  <option value="CD">🇨🇩 RD Congo</option>
+                </select>
+                <p class="ws-field-hint">Un compte ministère par pays — bibliothèque, actualités et portail isolés par pays.</p>
+              </div>
               <div class="ws-form-grid ws-form-grid--compact">
-                <div class="fg" style="grid-column:1/-1;">
-                  <label for="minCountry">Pays du ministère *</label>
-                  <select class="fi" id="minCountry" required aria-label="Pays du ministère">
-                    <option value="CD">🇨🇩 RD Congo</option>
-                  </select>
-                  <p class="ws-field-hint">Un compte ministère par pays — bibliothèque et actualités nationales isolées.</p>
-                </div>
                 <div class="fg" style="grid-column:1/-1;">
                   <label for="minEmail">E-mail institutionnel *</label>
                   <input type="email" class="fi" id="minEmail" placeholder="agent@mesu.gouv.cd" autocomplete="off" />
@@ -396,6 +396,13 @@
               <p class="ws-role-intro">
                 Directeur général ou recteur — établissement, sections faculté, logo et coordonnées du campus.
               </p>
+              <div class="ws-country-panel">
+                <label for="newCountry">Pays de l'établissement *</label>
+                <select class="fi" id="newCountry" required aria-label="Pays du campus">
+                  <option value="CD">🇨🇩 RD Congo</option>
+                </select>
+                <p class="ws-field-hint">Choisissez d'abord le pays — la liste des universités du catalogue sera filtrée automatiquement.</p>
+              </div>
               <div class="ws-form-grid">
                 <div class="fg">
                   <label for="newEmail">E-mail de connexion *</label>
@@ -419,12 +426,6 @@
                 </div>
               </div>
               <div class="ws-form-grid" style="margin-top:0.85rem;">
-              <div class="fg" style="grid-column:1/-1;">
-                <label for="newCountry">Pays de l'établissement *</label>
-                <select class="fi" id="newCountry" required aria-label="Pays du campus">
-                  <option value="CD">🇨🇩 RD Congo</option>
-                </select>
-              </div>
               <div class="fg" style="grid-column:1/-1;">
                 <label for="newCampusCatalog">Établissement (catalogue SAC) *</label>
                 <select class="fi" id="newCampusCatalog" data-sac-universities data-empty-label="— Choisir l'université —"></select>
@@ -646,7 +647,7 @@
   <script src="js/sac-platform-registry.js"></script>
   <script src="js/sac-tariffs.js?v=20260623b"></script>
   <script src="js/sac-admin-activities.js"></script>
-  <script src="js/sac-admin-dashboard.js?v=20260624f"></script>
+  <script src="js/sac-admin-dashboard.js?v=20260626c"></script>
   <script>
     SAC_ADMIN_DASHBOARD.init();
   </script>

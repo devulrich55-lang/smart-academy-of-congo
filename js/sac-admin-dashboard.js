@@ -801,7 +801,7 @@ const SAC_ADMIN_DASHBOARD = (function () {
           submit: "Créer le compte Super Admin",
         },
         universite: {
-          desc: "Compte DG / recteur — campus, sections faculté, logo et coordonnées.",
+          desc: "Compte DG / recteur — pays, campus, sections faculté, logo et coordonnées.",
           title: "Nouveau compte Admin université",
           submit: "Créer le compte campus",
         },
@@ -812,8 +812,13 @@ const SAC_ADMIN_DASHBOARD = (function () {
       if (submitBtn) submitBtn.textContent = c.submit;
 
       if (role === "universite") {
+        const country = document.getElementById("newCountry")?.value || "CD";
         if (typeof SAC_UNIVERSITIES !== "undefined") {
-          SAC_UNIVERSITIES.populateAll("#newCampusCatalog");
+          if (typeof SAC_UNIVERSITIES.populateForCountry === "function") {
+            SAC_UNIVERSITIES.populateForCountry("#newCampusCatalog", country);
+          } else {
+            SAC_UNIVERSITIES.populateAll("#newCampusCatalog");
+          }
         }
         ensureAdminFacultySectionsList();
       } else {
@@ -922,24 +927,29 @@ const SAC_ADMIN_DASHBOARD = (function () {
       document.getElementById("newCodeUni").value = "SAC-" + u.sigle + "-" + year;
     }
 
-    document.getElementById("newCampusCatalog")?.addEventListener("change", fillAdminCampusFromCatalog);
-
-    if (typeof SAC_AFRICA_COUNTRIES !== "undefined") {
+    function initInstitutionCountrySelects() {
+      if (typeof SAC_AFRICA_COUNTRIES === "undefined") return;
       const minCountry = document.getElementById("minCountry");
       const newCountry = document.getElementById("newCountry");
-      if (minCountry) {
+      if (minCountry && !minCountry.dataset.sacReady) {
         minCountry.innerHTML = SAC_AFRICA_COUNTRIES.buildInstitutionCountrySelect("CD");
+        minCountry.dataset.sacReady = "1";
       }
-      if (newCountry) {
+      if (newCountry && !newCountry.dataset.sacReady) {
         newCountry.innerHTML = SAC_AFRICA_COUNTRIES.buildInstitutionCountrySelect("CD");
+        newCountry.dataset.sacReady = "1";
         newCountry.addEventListener("change", () => {
-          if (typeof SAC_UNIVERSITIES !== "undefined") {
+          if (typeof SAC_UNIVERSITIES !== "undefined" && typeof SAC_UNIVERSITIES.populateForCountry === "function") {
             SAC_UNIVERSITIES.populateForCountry("#newCampusCatalog", newCountry.value);
           }
           fillAdminCampusFromCatalog();
         });
       }
     }
+
+    document.getElementById("newCampusCatalog")?.addEventListener("change", fillAdminCampusFromCatalog);
+
+    initInstitutionCountrySelects();
 
     if (typeof SAC_UNIVERSITIES !== "undefined") {
       const bootCountry = document.getElementById("newCountry")?.value || "CD";
