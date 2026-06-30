@@ -308,10 +308,79 @@ const SAC_ADMIN_DASHBOARD = (function () {
     }
   }
 
+  function renderInstitutionalUnavailable(message) {
+    const msg =
+      message ||
+      "Connexion au serveur en cours… Réessayez dans un instant ou vérifiez votre réseau.";
+    const recent = document.getElementById("recentAdmins");
+    if (recent && /Chargement/i.test(recent.textContent)) {
+      recent.innerHTML = '<p class="empty" style="text-align:center;color:var(--muted);">' + msg + "</p>";
+    }
+    const body = document.getElementById("adminsBody");
+    if (body && /Chargement/i.test(body.textContent)) {
+      body.innerHTML =
+        '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:2rem;">' +
+        msg +
+        "</td></tr>";
+    }
+  }
+
+  function renderPresenceUnavailable(message) {
+    const body = document.getElementById("onlineUsersBody");
+    if (!body) return;
+    body.innerHTML =
+      '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:2rem;">' +
+      (message || "Présence indisponible pour le moment.") +
+      "</td></tr>";
+  }
+
+  async function loadDashboardData(session, isSuper) {
+    try {
+      await Promise.all([refresh(session, isSuper), reloadActivities()]);
+      if (
+        typeof SAC_ADMIN_ACTIVITIES !== "undefined" &&
+        !SAC_ADMIN_ACTIVITIES.getActivities().length
+      ) {
+        await reloadActivities();
+      }
+    } catch (err) {
+      console.warn("[SAC_ADMIN_DASHBOARD] load:", err.message || err);
+      renderInstitutionalUnavailable(
+        "Impossible de charger les données : " + (err.message || "erreur réseau") + "."
+      );
+    }
+  }
+
+  function renderActivitiesUnavailable(message, containerIds) {
+    const html =
+      '<p class="empty" style="padding:1.5rem;text-align:center;color:var(--muted);">' +
+      message +
+      "</p>";
+    (containerIds || []).forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) el.innerHTML = html;
+    });
+  }
+
   async function reloadActivities() {
     if (typeof SAC_ADMIN_ACTIVITIES === "undefined") return;
-    const { activities, summary } = await SAC_ADMIN_ACTIVITIES.load();
+    const { activities, summary, offline, error } = await SAC_ADMIN_ACTIVITIES.load();
     SAC_ADMIN_ACTIVITIES.renderSummary(summary, "act");
+    const previewIds = ["recentActivitiesPreview"];
+    if (offline && !activities.length) {
+      renderActivitiesUnavailable(
+        "Connexion au serveur en cours… Les activités s'afficheront dès que l'API sera disponible.",
+        previewIds.concat(["activitiesTimeline"])
+      );
+      return;
+    }
+    if (error && !activities.length) {
+      renderActivitiesUnavailable(
+        "Impossible de charger le journal : " + error + ". Réessayez dans un instant.",
+        previewIds.concat(["activitiesTimeline"])
+      );
+      return;
+    }
     SAC_ADMIN_ACTIVITIES.renderTimeline(activities, "activitiesTimeline", {
       selectable: true,
       toolbar: {
@@ -435,15 +504,26 @@ const SAC_ADMIN_DASHBOARD = (function () {
 
   async function reloadPresence() {
     if (typeof SAC_API === "undefined" || typeof SAC_API.getAdminPresenceSummary !== "function") {
+      renderPresenceUnavailable("Service de présence indisponible.");
       return;
     }
     try {
-      const online = await SAC_API.ensureOnline();
-      if (!online) return;
+      const online = await SAC_API.ensureOnline(false, { maxWaitMs: 15000 });
+      const hasTokens =
+        typeof SAC_API.hasAuthTokens === "function" && SAC_API.hasAuthTokens();
+      if (!online && !hasTokens) {
+        renderPresenceUnavailable(
+          "Serveur en réveil… La présence s'affichera dès que l'API sera disponible."
+        );
+        return;
+      }
       const summary = await SAC_API.getAdminPresenceSummary();
       renderPresenceSummary(summary);
     } catch (err) {
       console.warn("[SAC_ADMIN_PRESENCE]", err.message || err);
+      renderPresenceUnavailable(
+        "Impossible de charger la présence : " + (err.message || "erreur réseau") + "."
+      );
     }
   }
 
@@ -557,18 +637,28 @@ const SAC_ADMIN_DASHBOARD = (function () {
   }
 
   async function refresh(session, isSuper) {
-    const { summary, admins } = await SAC_INSTITUTIONAL.load(session);
-    institutionalSummaryCache = summary;
-    renderKpis(summary);
-    const q = document.getElementById("searchAdmins")?.value.trim().toLowerCase() || "";
-    const roleFilter = document.getElementById("filterRole")?.value || "";
-    const scoped = scopeAdminsForSession(admins, session);
-    const filtered = filterAdmins(scoped, q, roleFilter);
-    renderTable(filtered, session, isSuper);
-    renderPreviewCards(admins, 5);
-    const countEl = document.getElementById("tableCount");
-    if (countEl) countEl.textContent = filtered.length + " compte(s)";
-    applySuperadminCreateLimit();
+    try {
+      const { summary, admins, offline, error } = await SAC_INSTITUTIONAL.load(session);
+      institutionalSummaryCache = summary;
+      renderKpis(summary);
+      const q = document.getElementById("searchAdmins")?.value.trim().toLowerCase() || "";
+      const roleFilter = document.getElementById("filterRole")?.value || "";
+      const scoped = scopeAdminsForSession(admins || [], session);
+      const filtered = filterAdmins(scoped, q, roleFilter);
+      renderTable(filtered, session, isSuper);
+      renderPreviewCards(admins || [], 5);
+      const countEl = document.getElementById("tableCount");
+      if (countEl) countEl.textContent = filtered.length + " compte(s)";
+      applySuperadminCreateLimit();
+      if (offline && !(admins || []).length && !summary) {
+        renderInstitutionalUnavailable();
+      } else if (error && !(admins || []).length) {
+        renderInstitutionalUnavailable("Erreur serveur : " + error + ".");
+      }
+    } catch (err) {
+      console.warn("[SAC_ADMIN_DASHBOARD] refresh:", err.message || err);
+      renderInstitutionalUnavailable("Erreur : " + (err.message || "chargement impossible") + ".");
+    }
   }
 
   async function init() {
@@ -607,6 +697,9 @@ const SAC_ADMIN_DASHBOARD = (function () {
       month: "long",
       year: "numeric",
     });
+
+    const dashboardDataReady = loadDashboardData(session, isSuper);
+    if (isSuper) startPresencePolling();
 
     if (isSuper) {
       document.getElementById("tabCreate")?.removeAttribute("hidden");
@@ -670,6 +763,10 @@ const SAC_ADMIN_DASHBOARD = (function () {
     document.querySelectorAll("[data-goto]").forEach((btn) => {
       btn.addEventListener("click", () => showSection(btn.dataset.goto));
     });
+
+    if (isSuper && typeof SAC_PLATFORM_REGISTRY !== "undefined") {
+      SAC_PLATFORM_REGISTRY.bindUnlock(session, showSection, toast);
+    }
 
     const onFilter = () => refresh(session, isSuper);
     document.getElementById("searchAdmins")?.addEventListener("input", onFilter);
@@ -1171,8 +1268,7 @@ const SAC_ADMIN_DASHBOARD = (function () {
       }
     });
 
-    await refresh(session, isSuper);
-    await reloadActivities();
+    await dashboardDataReady;
 
     SAC_ADMIN_ACTIVITIES.bindToolbar({
       timelineId: "activitiesTimeline",
@@ -1185,7 +1281,6 @@ const SAC_ADMIN_DASHBOARD = (function () {
     });
 
     if (isSuper) {
-      startPresencePolling();
       loadPlatformTariffForm(session);
       if (typeof SAC_UNIVERSITIES !== "undefined") {
         SAC_UNIVERSITIES.populateAll("#validCampusFilter");
@@ -1197,10 +1292,6 @@ const SAC_ADMIN_DASHBOARD = (function () {
         if (document.hidden) stopPresencePolling();
         else startPresencePolling();
       });
-    }
-
-    if (isSuper && typeof SAC_PLATFORM_REGISTRY !== "undefined") {
-      SAC_PLATFORM_REGISTRY.bindUnlock(session, showSection, toast);
     }
 
     return session;

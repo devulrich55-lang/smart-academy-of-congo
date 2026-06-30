@@ -334,13 +334,13 @@
       </nav>
       <div class="side-note">
         Connexion requise. Bibliothèque, dictionnaire, orientation IA, offres de stage et fil social campus selon votre rôle.
-      </div>
+  </div>
     </aside>
     <main class="main">
       <div class="topbar">
         <input id="globalSearch" class="search" type="search" placeholder="Rechercher un livre, un auteur, une catégorie…" />
         <div id="headerActions"></div>
-      </div>
+  </div>
 
       <section class="hero">
         <h1 id="platformHeroTitle">Bibliothèque Numérique</h1>
@@ -437,9 +437,9 @@
       let session = null;
       try {
         if (typeof SAC_SESSION !== "undefined" && SAC_SESSION.resolveNavigationSession) {
-          session = await SAC_SESSION.resolveNavigationSession();
+        session = await SAC_SESSION.resolveNavigationSession();
         } else if (typeof SAC_SESSION !== "undefined" && SAC_SESSION.getSession) {
-          session = SAC_SESSION.getSession();
+        session = SAC_SESSION.getSession();
         }
       } catch {
         session = null;
@@ -451,21 +451,21 @@
       }
 
       if (headerActions) {
-        const dash = {
-          etudiant: "dashboard-etudiant.html",
-          professeur: "dashboard-professeur.html",
-          assistant: "dashboard-assistant.html",
-          universite: "dashboard-universite.html",
-          section: "dashboard-section.html",
+      const dash = {
+        etudiant: "dashboard-etudiant.html",
+        professeur: "dashboard-professeur.html",
+        assistant: "dashboard-assistant.html",
+        universite: "dashboard-universite.html",
+        section: "dashboard-section.html",
           ministere: "dashboard-admin.html",
           superadmin: "dashboard-admin.html",
-        }[session.role] || "index.html";
+      }[session.role] || "index.html";
         const displayName =
           typeof SAC_IDENTITY !== "undefined" && SAC_IDENTITY.getDisplayName
             ? SAC_IDENTITY.getDisplayName(session)
             : session.email || session.identifiant || "Connecté";
 
-        headerActions.innerHTML =
+      headerActions.innerHTML =
           '<span class="session-pill">● Session active</span>' +
           '<span style="font-size:0.86rem;color:var(--text-muted);margin-right:0.35rem;">' +
           esc(displayName) +
@@ -474,7 +474,7 @@
           dash +
           '" class="btn btn--ghost">Mon tableau de bord</a> ' +
           '<button type="button" class="btn btn--primary" id="btnLogout">Déconnexion</button>';
-        document.getElementById("btnLogout")?.addEventListener("click", () => {
+      document.getElementById("btnLogout")?.addEventListener("click", () => {
           if (typeof SAC_SESSION !== "undefined" && SAC_SESSION.logout) SAC_SESSION.logout("connexion.html");
         });
       }
@@ -713,7 +713,7 @@
               " · " +
               esc(categoryText(item)) +
               (item.language ? " · " + esc(item.language) : "") +
-              "</p>" +
+                  "</p>" +
               (item.description ? '<p style="margin-top:0.35rem;">' + esc(item.description) + "</p>" : "") +
               openBtn +
               "</div></article>"

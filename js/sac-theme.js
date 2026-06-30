@@ -126,26 +126,50 @@
   }
 
   function loadI18n() {
-    if (window.SAC_I18N) {
-      SAC_I18N.init();
+    const base = assetBase();
+    const v = "20260701a";
+
+    function finishI18n() {
+      window.__sacI18nReady = true;
+      if (window.SAC_I18N) SAC_I18N.init();
+    }
+
+    function loadPlatformScript() {
+      if (window.__sacI18nPlatformMerged) {
+        finishI18n();
+        return;
+      }
+      const ext = document.createElement("script");
+      ext.src = base + "js/sac-i18n-platform.js?v=" + v;
+      ext.onload = finishI18n;
+      ext.onerror = function () {
+        console.error("[SAC] sac-i18n-platform.js failed to load");
+        finishI18n();
+      };
+      document.head.appendChild(ext);
+    }
+
+    if (window.__sacI18nReady) {
+      finishI18n();
       return;
     }
-    const base = assetBase();
+
+    if (window.SAC_I18N) {
+      loadPlatformScript();
+      return;
+    }
+
     if (!document.querySelector('link[href*="lang-switcher.css"]')) {
       const link = document.createElement("link");
       link.rel = "stylesheet";
-      link.href = base + "css/lang-switcher.css?v=20260625e";
+      link.href = base + "css/lang-switcher.css?v=" + v;
       document.head.appendChild(link);
     }
     const s = document.createElement("script");
-    s.src = base + "js/sac-i18n.js?v=20260625e";
-    s.onload = function () {
-      const ext = document.createElement("script");
-      ext.src = base + "js/sac-i18n-platform.js?v=20260625e";
-      ext.onload = function () {
-        if (window.SAC_I18N) SAC_I18N.init();
-      };
-      document.head.appendChild(ext);
+    s.src = base + "js/sac-i18n.js?v=" + v;
+    s.onload = loadPlatformScript;
+    s.onerror = function () {
+      console.error("[SAC] sac-i18n.js failed to load");
     };
     document.head.appendChild(s);
   }

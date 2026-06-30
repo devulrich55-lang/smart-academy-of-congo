@@ -1,8 +1,8 @@
 /* Sélecteur de langue — discret, coin inférieur gauche */
 .lang-switcher {
   position: fixed;
-  bottom: 1.15rem;
-  left: 1.15rem;
+  bottom: max(1.15rem, env(safe-area-inset-bottom));
+  left: max(1.15rem, env(safe-area-inset-left));
   z-index: 9998;
   font-family: "DM Sans", system-ui, sans-serif;
 }
@@ -106,7 +106,7 @@ html[dir="rtl"] .lang-switcher__panel {
 
 @media (max-width: 480px) {
   .lang-switcher {
-    bottom: 0.85rem;
-    left: 0.85rem;
+    bottom: max(0.85rem, env(safe-area-inset-bottom));
+    left: max(0.85rem, env(safe-area-inset-left));
   }
 }

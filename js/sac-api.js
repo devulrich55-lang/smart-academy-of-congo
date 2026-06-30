@@ -349,6 +349,7 @@ const SAC_API = (function () {
   }
 
   let online = null;
+  let ensureOnlineInFlight = null;
   let sessionCache = null;
 
   function fetchWithTimeout(url, options, ms) {
@@ -569,12 +570,37 @@ const SAC_API = (function () {
     return ping(Object.assign({}, wakeDefaults(true), options || {}));
   }
 
-  async function ensureOnline(force) {
-    if (isCrossOriginApi()) {
-      return wakeServer(wakeDefaults(force));
+  async function ensureOnline(force, options = {}) {
+    const maxWaitMs = options && options.maxWaitMs;
+
+    const run = async () => {
+      if (isCrossOriginApi()) {
+        return wakeServer(wakeDefaults(!!force));
+      }
+      if (force || online === null) await ping(force ? { attempts: 5, timeoutMs: 45000 } : undefined);
+      return online;
+    };
+
+    let pending;
+    if (force) {
+      pending = run();
+    } else if (ensureOnlineInFlight) {
+      pending = ensureOnlineInFlight;
+    } else {
+      ensureOnlineInFlight = run().finally(() => {
+        ensureOnlineInFlight = null;
+      });
+      pending = ensureOnlineInFlight;
     }
-    if (force || online === null) await ping(force ? { attempts: 5, timeoutMs: 45000 } : undefined);
-    return online;
+
+    if (!maxWaitMs) return pending;
+
+    return Promise.race([
+      pending,
+      new Promise((resolve) => {
+        setTimeout(() => resolve(online === true), maxWaitMs);
+      }),
+    ]);
   }
 
   const REGISTER_FIELDS = [
@@ -1853,16 +1879,26 @@ const SAC_API = (function () {
     const useAuth = options.auth !== false;
     const opts = { ...options };
     delete opts.auth;
+    if (isRenderFrontend() && !baseResolved) await resolveApiBase();
+    if (!BASE) {
+      const err = new Error("API indisponible — réessayez dans un instant.");
+      err.code = "NO_API_BASE";
+      throw err;
+    }
     if (!useAuth) {
-      const res = await fetch(`${BASE}/api${path}`, {
-        ...opts,
-        credentials: apiCredentials(),
-        headers: {
-          Accept: "application/json",
-          "Content-Type": "application/json",
-          ...opts.headers,
+      const res = await fetchWithTimeout(
+        `${BASE}/api${path}`,
+        {
+          ...opts,
+          credentials: apiCredentials(),
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+            ...opts.headers,
+          },
         },
-      });
+        opts.timeoutMs || 18000
+      );
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         const err = new Error(data.message || data.error || "API_ERROR");

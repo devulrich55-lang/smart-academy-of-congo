@@ -78,21 +78,28 @@ const SAC_ADMIN_ACTIVITIES = (function () {
 
   async function load() {
     if (typeof SAC_API === "undefined" || !SAC_API.listAdminActivities) {
-      return { activities: [], summary: null };
+      return { activities: [], summary: null, offline: true };
     }
     try {
-      const online = await SAC_API.ensureOnline();
-      if (!online) return { activities: cache, summary: summaryCache };
+      const online = await SAC_API.ensureOnline(false, { maxWaitMs: 18000 });
+      const hasTokens =
+        typeof SAC_API.hasAuthTokens === "function" && SAC_API.hasAuthTokens();
+      if (!online && !hasTokens) return { activities: cache, summary: summaryCache, offline: true };
       const [summary, activities] = await Promise.all([
         SAC_API.getAdminActivitiesSummary(),
         SAC_API.listAdminActivities(),
       ]);
       summaryCache = summary;
       cache = Array.isArray(activities) ? activities : [];
-      return { activities: cache, summary: summaryCache };
+      return { activities: cache, summary: summaryCache, offline: false };
     } catch (err) {
       console.warn("[SAC_ADMIN_ACTIVITIES]", err.message || err);
-      return { activities: cache, summary: summaryCache };
+      return {
+        activities: cache,
+        summary: summaryCache,
+        offline: false,
+        error: err.message || String(err),
+      };
     }
   }
 

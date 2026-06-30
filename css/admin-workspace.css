@@ -847,7 +847,8 @@ body[data-ws-role="universite"] {
   font-size: 0.85rem;
 }
 
-body[data-ws-role="superadmin"] #statTotal {
+body[data-ws-role="superadmin"] #statTotal,
+body[data-ws-role="superadmin"] .ws-kpi:has(#statTotal) {
   cursor: pointer;
 }
 

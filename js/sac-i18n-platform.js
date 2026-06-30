@@ -1323,6 +1323,7 @@
       pt: "Universidade de afetação",
       es: "Universidad de destino",
     },
+    "wait.back.login": {
       fr: "Retour à la connexion",
       en: "Back to login",
       ar: "العودة لتسجيل الدخول",

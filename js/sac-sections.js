@@ -573,7 +573,10 @@ const SAC_SECTIONS = (function () {
 
     if (typeof SAC_API !== "undefined" && SAC_API.listCampusSectionsPublic) {
       try {
-        const data = await SAC_API.listCampusSectionsPublic(code);
+        const data = await Promise.race([
+          SAC_API.listCampusSectionsPublic(code),
+          new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), 8000)),
+        ]);
         if (Array.isArray(data?.sections) && data.sections.length) {
           mergeSectionsIntoCache(
             data.sections.map((s) => ({

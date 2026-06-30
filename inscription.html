@@ -42,6 +42,13 @@
       color: var(--text);
       line-height: 1.6;
       min-height: 100vh;
+      overflow-x: hidden;
+      max-width: 100%;
+    }
+
+    html {
+      overflow-x: hidden;
+      max-width: 100%;
     }
 
     h1, h2 { font-family: "Playfair Display", Georgia, serif; line-height: 1.25; }
@@ -81,11 +88,13 @@
     .page {
       max-width: 1140px;
       margin: 0 auto;
-      padding: 2rem 1.5rem 4rem;
+      padding: 2rem max(1rem, env(safe-area-inset-right)) 4rem max(1rem, env(safe-area-inset-left));
       display: grid;
       grid-template-columns: 0.9fr 1.2fr;
       gap: 2.5rem;
       align-items: start;
+      width: 100%;
+      min-width: 0;
     }
 
     .intro h1 {
@@ -393,6 +402,11 @@
       color: var(--text-muted);
       margin: 1.25rem 0;
       cursor: pointer;
+      min-height: 3rem;
+    }
+
+    .bank-notice[data-i18n="signup.security"] {
+      min-height: 4.5rem;
     }
 
     .checkbox-terms input {
@@ -421,6 +435,7 @@
       cursor: pointer;
       transition: background 0.2s, transform 0.15s;
       box-shadow: 0 4px 14px rgba(12, 61, 110, 0.25);
+      min-height: 3rem;
     }
 
     .btn-submit:hover { background: var(--primary-light); }
@@ -488,6 +503,7 @@
       font-size: 1.75rem;
       font-weight: 700;
       color: var(--primary);
+      min-height: 2.25rem;
     }
 
     .pricing-box__amount span {
@@ -550,7 +566,7 @@
       position: fixed;
       inset: 0;
       background: rgba(26, 43, 60, 0.55);
-      z-index: 200;
+      z-index: 10080;
       align-items: flex-start;
       justify-content: center;
       padding: 1.25rem 1rem;
@@ -1258,6 +1274,14 @@
               </p>
               <span class="field-error" data-for="sectionFiliereEtu">Sélectionnez le domaine de votre section (ex. Informatique)</span>
             </div>
+            <div class="form-group full" id="wrapFiliereManual" hidden>
+              <label for="filiereManual">Domaine / filière <span class="hint">*</span></label>
+              <input type="text" class="form-input" id="filiereManual" name="filiereManual" placeholder="Ex. Informatique, Gestion, Droit…" autocomplete="off" />
+              <p style="font-size:0.85rem;color:var(--text-muted);margin:0.35rem 0 0;">
+                Aucune section n'est encore listée pour cette université — indiquez votre domaine d'études. Le chef de section validera votre inscription.
+              </p>
+              <span class="field-error" data-for="filiereManual">Indiquez votre domaine ou filière (minimum 2 caractères)</span>
+            </div>
             <div class="form-group">
               <label for="niveau">Niveau d'études</label>
               <select class="form-input" id="niveau" name="niveau">
@@ -1697,17 +1721,19 @@
   <script src="js/sac-identity.js"></script>
   <script src="js/sac-phone-input.js?v=20260625b"></script>
   <script src="js/sac-session.js?v=20260617d"></script>
-  <script src="js/sac-api.js?v=20260630h"></script>
+  <script src="js/sac-api.js?v=20260630i"></script>
   <script src="js/sac-account-registry.js?v=20260630a"></script>
   <script src="js/sac-mobile-money.js?v=20260629c"></script>
-  <script src="js/sac-tariffs.js?v=20260623b"></script>
+  <script src="js/sac-tariffs.js?v=20260630a"></script>
   <script src="js/sac-currencies.js?v=20260625a"></script>
-  <script src="js/sac-sections.js"></script>
+  <script src="js/sac-sections.js?v=20260630a"></script>
   <script src="js/sac-section-accounts.js"></script>
   <script src="js/sac-section-approval.js"></script>
   <script>
     function rtx(key, fallback, vars) {
-      return typeof SAC_I18N !== "undefined" ? SAC_I18N.t(key, vars) : fallback;
+      if (typeof SAC_I18N === "undefined") return fallback != null ? fallback : key;
+      const out = SAC_I18N.t(key, vars);
+      return out === key && fallback != null ? fallback : out;
     }
 
     /* Comptes officiels — tous les paiements de la plateforme */
@@ -1773,8 +1799,14 @@
 
     async function refreshPricing(role) {
       role = role || currentRole;
-      await SAC_TARIFFS.ensurePlatformSettings();
-      activeFee = SAC_TARIFFS.defaultFor(role);
+      try {
+        if (typeof SAC_TARIFFS !== "undefined") {
+          await SAC_TARIFFS.ensurePlatformSettings();
+          activeFee = SAC_TARIFFS.defaultFor(role);
+        }
+      } catch (err) {
+        console.warn("[inscription] refreshPricing:", err);
+      }
       updatePricingUI(role);
     }
 
@@ -2146,23 +2178,44 @@
     }
 
     function updatePricingUI(role) {
-      const fee = getFee(role);
-      const selected = amountInSelectedCurrency(fee);
+      const fee = getFee(role) || { amount: 1, label: "1 USD", cdf: 2300 };
+      const amount = Number(fee.amount);
+      if (!Number.isFinite(amount) || amount <= 0) fee.amount = 1;
+
+      let selected;
+      try {
+        selected = amountInSelectedCurrency(fee);
+      } catch (err) {
+        console.warn("[inscription] pricing:", err);
+        selected = { code: "USD", amount: fee.amount, label: formatUsd(fee.amount) };
+      }
+
       const amountHtml =
         selected.code === "USD"
           ? formatAmountHtml(fee.amount)
-          : SAC_CURRENCIES.formatNumber(selected.amount, selected.code) +
+          : (typeof SAC_CURRENCIES !== "undefined"
+              ? SAC_CURRENCIES.formatNumber(selected.amount, selected.code)
+              : String(selected.amount)) +
             ' <span>' +
             selected.code +
             "</span>";
 
-      document.getElementById("pricingSidebarAmount").innerHTML = amountHtml;
-      document.getElementById("pricingFormAmount").innerHTML = amountHtml;
-      document.getElementById("modalAmount").textContent = selected.label;
+      const sidebarAmt = document.getElementById("pricingSidebarAmount");
+      const formAmt = document.getElementById("pricingFormAmount");
+      const modalAmt = document.getElementById("modalAmount");
+      const sidebarNote = document.getElementById("pricingSidebarNote");
+      const formNote = document.getElementById("pricingFormNote");
+      if (sidebarAmt) sidebarAmt.innerHTML = amountHtml;
+      if (formAmt) formAmt.innerHTML = amountHtml;
+      if (modalAmt) modalAmt.textContent = selected.label;
 
-      const equiv = equivHintForCurrency(fee);
-      document.getElementById("pricingSidebarNote").textContent =
-        equiv + " · " + rtx("signup.pricing.onetime", "paiement unique");
+      let equiv = "";
+      try {
+        equiv = equivHintForCurrency(fee);
+      } catch {
+        equiv = formatUsd(fee.amount);
+      }
+      if (sidebarNote) sidebarNote.textContent = equiv + " · " + rtx("signup.pricing.onetime", "paiement unique");
       const equivEl = document.getElementById("payCurrencyEquiv");
       if (equivEl) equivEl.textContent = equiv;
 
@@ -2176,21 +2229,27 @@
                   : uni,
             })
           : "";
-      document.getElementById("pricingFormNote").textContent = rtx(
-        "signup.pricing.formNote",
-        "Paiement unique · " +
-          equiv +
-          " · choisissez votre devise et le canal (UBA, First Bank, Orange Money, M-Pesa)." +
-          campusNote,
-        { equiv: equiv, campus: campusNote }
-      );
+      if (formNote) {
+        formNote.textContent = rtx(
+          "signup.pricing.formNote",
+          "Paiement unique · " +
+            equiv +
+            " · choisissez votre devise et le canal (UBA, First Bank, Orange Money, M-Pesa)." +
+            campusNote,
+          { equiv: equiv, campus: campusNote }
+        );
+      }
 
       const payAmount =
         selected.code === "USD" ? fee.amount + " USD" : selected.label;
-      btnSubmit.textContent = rtx("signup.pricing.continue", "Continuer — Payer " + payAmount, {
-        amount: payAmount,
-      });
-      btnConfirmPay.textContent = rtx("signup.pay.confirm", "Confirmer mon paiement");
+      if (btnSubmit) {
+        btnSubmit.textContent = rtx("signup.pricing.continue", "Continuer — Payer " + payAmount, {
+          amount: payAmount,
+        });
+      }
+      if (btnConfirmPay) {
+        btnConfirmPay.textContent = rtx("signup.pay.confirm", "Confirmer mon paiement");
+      }
 
       const usdDue = "Montant à virer : " + formatUsd(fee.amount);
       const cdfDue = "Montant à virer : " + nativeChannelLabel("cdf", fee);
@@ -2211,7 +2270,7 @@
         if (isActive) {
           const priceEl = li.querySelector("span:last-child");
           if (priceEl) {
-            const tierFee = getFee(li.dataset.tier);
+            const tierFee = getFee(li.dataset.tier) || fee;
             const tierSel = amountInSelectedCurrency(tierFee);
             priceEl.textContent =
               tierSel.code === "USD" ? tierFee.amount + " USD" : tierSel.label;
@@ -2219,7 +2278,11 @@
         }
       });
 
-      renderAllBorderaux();
+      try {
+        renderAllBorderaux();
+      } catch (err) {
+        console.warn("[inscription] bordereau:", err);
+      }
     }
 
     function resetPayment() {
@@ -2457,20 +2520,28 @@
       return populateStudentSectionsAsync(universiteCode);
     }
 
+    let studentSectionsPickRequired = false;
+
     async function populateStudentSectionsAsync(universiteCode) {
       const wrap = document.getElementById("wrapSectionFiliereEtu");
+      const manualWrap = document.getElementById("wrapFiliereManual");
       const select = document.getElementById("sectionFiliereEtu");
       const filiereInput = document.getElementById("filiere");
       const sectionIdInput = document.getElementById("sectionIdEtu");
+      const manualInput = document.getElementById("filiereManual");
       const hint = document.getElementById("sectionFiliereHint");
       if (!wrap || !select) return;
 
       filiereInput.value = "";
       sectionIdInput.value = "";
+      if (manualInput) manualInput.value = "";
       showError("sectionFiliereEtu", false);
+      showError("filiereManual", false);
+      studentSectionsPickRequired = false;
 
       if (!universiteCode || currentRole !== "etudiant") {
         wrap.hidden = true;
+        if (manualWrap) manualWrap.hidden = true;
         select.disabled = true;
         select.innerHTML = '<option value="">— Choisissez d\'abord votre université —</option>';
         if (hint) hint.style.display = "none";
@@ -2478,6 +2549,7 @@
       }
 
       wrap.hidden = false;
+      if (manualWrap) manualWrap.hidden = true;
       select.disabled = true;
       select.innerHTML = '<option value="">Chargement des sections…</option>';
 
@@ -2494,10 +2566,14 @@
 
       if (!sections.length) {
         select.disabled = true;
-        if (hint) hint.style.display = "block";
+        wrap.hidden = true;
+        if (manualWrap) manualWrap.hidden = false;
+        studentSectionsPickRequired = false;
+        if (hint) hint.style.display = "none";
         return;
       }
 
+      studentSectionsPickRequired = true;
       select.disabled = false;
       if (hint) hint.style.display = "none";
     }
@@ -2624,35 +2700,8 @@
     }
 
     async function openPaymentModal(profile) {
-      pendingProfile = { ...profile, _pwd: profile.password };
+      pendingProfile = { ...profile, _pwd: profile.password || profile._pwd };
       pendingTxId = generateTransactionId();
-      const uni = profile.universite || getUniversiteForRole(profile.role);
-      if (profile.role !== "universite" && uni) {
-        SAC_TARIFFS.clearCache();
-        activeFee = await SAC_TARIFFS.resolve(profile.role, uni);
-      } else {
-        activeFee = SAC_TARIFFS.defaultFor(profile.role);
-      }
-      const fee = getFee(profile.role);
-      document.getElementById("paySummaryEmail").textContent = rtx(
-        "signup.pay.summary",
-        "Compte : " +
-          profile.email +
-          " · " +
-          ROLES[profile.role].badge +
-          " · " +
-          amountInSelectedCurrency(fee).label,
-        {
-          email: profile.email,
-          role: rtx(ROLES[profile.role].badgeKey, ROLES[profile.role].badge),
-          amount: amountInSelectedCurrency(fee).label,
-        }
-      );
-      document.getElementById("modalSubtitle").textContent = rtx(
-        "signup.pay.feeSubtitle",
-        "Frais d'inscription " + fee.label,
-        { amount: fee.label }
-      );
 
       const stripeLink = STRIPE_PAYMENT_LINKS[profile.role];
       if (stripeLink) {
@@ -2663,26 +2712,80 @@
         return;
       }
 
-      document.getElementById("bankRef").value = "";
-      document.getElementById("bankConfirm").checked = false;
-      const telForm = SAC_IDENTITY.readPhone("telephone");
-      const payerEl = document.getElementById("payerPhone");
-      if (telForm && payerEl) {
-        if (typeof SAC_PHONE_INPUT !== "undefined") SAC_PHONE_INPUT.setValue(payerEl, telForm);
-        else payerEl.value = telForm;
-      } else if (payerEl) {
-        payerEl.value = "";
+      activeFee = SAC_TARIFFS.defaultFor(profile.role);
+
+      function fillPaymentModal() {
+        try {
+          const fee = getFee(profile.role) || { amount: 1, label: "1 USD" };
+          const summaryEl = document.getElementById("paySummaryEmail");
+          if (summaryEl) {
+            summaryEl.textContent = rtx(
+              "signup.pay.summary",
+              "Compte : " +
+                profile.email +
+                " · " +
+                ROLES[profile.role].badge +
+                " · " +
+                amountInSelectedCurrency(fee).label,
+              {
+                email: profile.email,
+                role: rtx(ROLES[profile.role].badgeKey, ROLES[profile.role].badge),
+                amount: amountInSelectedCurrency(fee).label,
+              }
+            );
+          }
+          const subtitleEl = document.getElementById("modalSubtitle");
+          if (subtitleEl) {
+            subtitleEl.textContent = rtx(
+              "signup.pay.feeSubtitle",
+              "Frais d'inscription " + fee.label,
+              { amount: fee.label }
+            );
+          }
+          const bankRef = document.getElementById("bankRef");
+          const bankConfirm = document.getElementById("bankConfirm");
+          if (bankRef) bankRef.value = "";
+          if (bankConfirm) bankConfirm.checked = false;
+          const telForm = SAC_IDENTITY.readPhone("telephone");
+          const payerEl = document.getElementById("payerPhone");
+          if (telForm && payerEl) {
+            if (typeof SAC_PHONE_INPUT !== "undefined") SAC_PHONE_INPUT.setValue(payerEl, telForm);
+            else payerEl.value = telForm;
+          } else if (payerEl) {
+            payerEl.value = "";
+          }
+          initPayCurrencySelect();
+          updatePayMethodVisibility();
+          resetMobilePayUI();
+          updatePricingUI(profile.role);
+          renderAllBorderaux();
+          setTimeout(refreshActiveBordereauScroll, 100);
+        } catch (err) {
+          console.error("[inscription] fillPaymentModal:", err);
+          const modalAmt = document.getElementById("modalAmount");
+          if (modalAmt) modalAmt.textContent = "1,00 USD";
+        }
       }
-      initPayCurrencySelect();
-      updatePayMethodVisibility();
-      resetMobilePayUI();
-      updatePricingUI(profile.role);
-      renderAllBorderaux();
-      setTimeout(refreshActiveBordereauScroll, 100);
 
       paymentModal.classList.add("open");
       paymentModal.setAttribute("aria-hidden", "false");
       document.body.style.overflow = "hidden";
+      paymentModal.scrollTop = 0;
+      fillPaymentModal();
+
+      const uni = profile.universite || getUniversiteForRole(profile.role);
+      if (profile.role !== "universite" && uni) {
+        SAC_TARIFFS.clearCache();
+        try {
+          activeFee = await Promise.race([
+            SAC_TARIFFS.resolve(profile.role, uni),
+            new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), 8000)),
+          ]);
+          fillPaymentModal();
+        } catch (err) {
+          console.warn("[inscription] tariff:", err.message || err);
+        }
+      }
     }
 
     function closePaymentModal() {
@@ -3403,6 +3506,7 @@
       valid = showError("passwordConfirm", pwd !== pwd2, "Les mots de passe ne correspondent pas") && valid;
 
       if (!terms) {
+        alert("Veuillez accepter les conditions d'utilisation pour continuer.");
         document.getElementById("terms").focus();
         return;
       }
@@ -3422,19 +3526,27 @@
         const sectionSel = document.getElementById("sectionFiliereEtu");
         const sectionId = sectionSel?.value || "";
         const opt = sectionSel?.selectedOptions?.[0];
-        const filiere =
+        let filiere =
           document.getElementById("filiere").value.trim() || opt?.dataset?.filiere?.trim() || "";
+        const manualFiliere = document.getElementById("filiereManual")?.value?.trim() || "";
         const sectionName = opt?.dataset?.name?.trim() || "";
         const classe = document.getElementById("classe").value.trim();
         const niveau = document.getElementById("niveau").value;
         valid = showError("universiteEtu", !uni) && valid;
-        valid = showError("sectionFiliereEtu", !sectionId || filiere.length < 2) && valid;
+        if (studentSectionsPickRequired) {
+          valid = showError("sectionFiliereEtu", !sectionId || filiere.length < 2) && valid;
+          showError("filiereManual", false);
+        } else {
+          filiere = manualFiliere || filiere;
+          valid = showError("filiereManual", filiere.length < 2) && valid;
+          showError("sectionFiliereEtu", false);
+        }
         valid = showError("classe", classe.length < 2) && valid;
         Object.assign(profile, {
           universite: uni,
           filiere,
-          sectionId: sectionId.startsWith("fac-") ? null : sectionId,
-          sectionName,
+          sectionId: sectionId && !sectionId.startsWith("fac-") ? sectionId : null,
+          sectionName: sectionName || filiere,
           niveau,
           classe,
           dateNaissance: document.getElementById("dateNaissance").value,
@@ -3545,7 +3657,19 @@
         });
       }
 
-      if (!valid) return;
+      if (!valid) {
+        const firstErr = registerForm.querySelector(".field-error.visible");
+        if (firstErr) {
+          const fieldId = firstErr.getAttribute("data-for");
+          const field = fieldId ? document.getElementById(fieldId) : null;
+          field?.scrollIntoView({ behavior: "smooth", block: "center" });
+          field?.focus();
+          alert(firstErr.textContent || "Veuillez corriger les champs indiqués en rouge.");
+        } else {
+          alert("Veuillez remplir correctement tous les champs obligatoires.");
+        }
+        return;
+      }
 
       if (typeof SAC_UNIVERSITIES !== "undefined" && SAC_UNIVERSITIES.normalizeProfileCampus) {
         SAC_UNIVERSITIES.normalizeProfileCampus(profile);
@@ -3563,7 +3687,18 @@
       delete profile.password;
       profile._pwd = pwd;
 
-      await openPaymentModal({ ...profile, password: pwd, _pwd: pwd });
+      const prevLabel = btnSubmit.textContent;
+      btnSubmit.disabled = true;
+      btnSubmit.textContent = rtx("common.loading", "Chargement…");
+      try {
+        await openPaymentModal({ ...profile, password: pwd, _pwd: pwd });
+      } catch (err) {
+        console.error("[inscription] payment modal:", err);
+        alert(err?.message || "Impossible d'ouvrir le paiement. Vérifiez votre connexion et réessayez.");
+      } finally {
+        btnSubmit.disabled = false;
+        btnSubmit.textContent = prevLabel;
+      }
     });
 
     ["email", "telephone"].forEach((id) => {
@@ -3583,21 +3718,29 @@
     SAC_UNIVERSITIES.populateAll("[data-sac-universities]");
 
     (async function bootstrapPricing() {
-      if (typeof SAC_TARIFFS !== "undefined") {
-        await SAC_TARIFFS.ensurePlatformSettings();
-        SAC_TARIFFS.syncPricingTierLabels();
-      }
       initPayCurrencySelect();
       const params = new URLSearchParams(window.location.search);
       const roleParam = params.get("role");
       if (roleParam === "universite") {
         window.location.replace("admin-uni/");
-      } else if (roleParam === "section") {
+        return;
+      }
+      if (roleParam === "section") {
         window.location.replace("connexion.html?role=section");
-      } else if (roleParam && ROLES[roleParam]) {
+        return;
+      }
+      if (roleParam && ROLES[roleParam]) {
         setRole(roleParam);
       } else {
         setRole("etudiant");
+      }
+      if (typeof SAC_TARIFFS !== "undefined") {
+        SAC_TARIFFS.ensurePlatformSettings()
+          .then(() => {
+            SAC_TARIFFS.syncPricingTierLabels();
+            refreshPricing(currentRole);
+          })
+          .catch((err) => console.warn("[inscription] tariffs:", err));
       }
       if (params.get("paid") === "1" && roleParam) {
         pendingProfile = { role: roleParam, email: "stripe@return", nom: "Utilisateur" };
@@ -3642,10 +3785,26 @@
       populateProfessorDepartments(bootUniProf);
     }
 
-    window.addEventListener("sac:lang-change", () => {
-      if (typeof SAC_I18N !== "undefined") SAC_I18N.apply();
+    function refreshSignupI18n() {
+      if (typeof SAC_I18N === "undefined") return;
+      SAC_I18N.apply();
       setRole(currentRole);
       if (typeof SAC_TARIFFS !== "undefined") SAC_TARIFFS.syncPricingTierLabels();
+    }
+
+    if (window.__sacI18nReady) {
+      refreshSignupI18n();
+    } else {
+      const i18nPoll = setInterval(() => {
+        if (!window.__sacI18nReady) return;
+        clearInterval(i18nPoll);
+        refreshSignupI18n();
+      }, 40);
+      setTimeout(() => clearInterval(i18nPoll), 15000);
+    }
+
+    window.addEventListener("sac:lang-change", () => {
+      refreshSignupI18n();
       if (paymentModal.classList.contains("open")) {
         const method = document.querySelector(".pay-method.active")?.dataset.method;
         if (method) switchPayPanel(method);

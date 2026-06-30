@@ -34,14 +34,24 @@
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-    html { scroll-behavior: smooth; }
+    html { scroll-behavior: smooth; overflow-x: clip; max-width: 100%; }
 
     body {
       font-family: "DM Sans", system-ui, sans-serif;
       background: var(--bg);
       color: var(--text);
       line-height: 1.6;
-      overflow-x: hidden;
+      overflow-x: clip;
+      max-width: 100%;
+      width: 100%;
+    }
+
+    .header,
+    .hero,
+    section,
+    .header__inner {
+      max-width: 100%;
+      box-sizing: border-box;
     }
 
     h1, h2, h3 { font-family: "Playfair Display", Georgia, serif; line-height: 1.25; }
@@ -68,7 +78,7 @@
     .header__inner {
       max-width: 1200px;
       margin: 0 auto;
-      padding: 0.9rem 1.5rem;
+      padding: 0.9rem max(1.5rem, env(safe-area-inset-right)) 0.9rem max(1.5rem, env(safe-area-inset-left));
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -182,7 +192,7 @@
 
     /* ——— Hero ——— */
     .hero {
-      padding: 8rem 1.5rem 5rem;
+      padding: 8rem max(1rem, env(safe-area-inset-right)) 5rem max(1rem, env(safe-area-inset-left));
       max-width: 1200px;
       margin: 0 auto;
       display: grid;
@@ -190,6 +200,15 @@
       gap: 3rem;
       align-items: center;
       min-height: 90vh;
+      width: 100%;
+      min-width: 0;
+      box-sizing: border-box;
+    }
+
+    .hero__content,
+    .hero__visual {
+      min-width: 0;
+      max-width: 100%;
     }
 
     .hero__badge {
@@ -256,6 +275,7 @@
 
     .hero__visual {
       position: relative;
+      overflow: hidden;
     }
 
     .hero__photo {
@@ -428,10 +448,14 @@
       font-weight: 600;
       border: 1px solid var(--border);
       animation: float 4s ease-in-out infinite;
+      max-width: min(220px, calc(100vw - 2rem));
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
-    .floating-badge--1 { top: -12px; right: -8px; color: var(--success); }
-    .floating-badge--2 { bottom: 40px; left: -20px; color: var(--primary); animation-delay: 1s; }
+    .floating-badge--1 { top: 0; right: 0; color: var(--success); }
+    .floating-badge--2 { bottom: 1rem; left: 0; color: var(--primary); animation-delay: 1s; }
 
     @keyframes float {
       0%, 100% { transform: translateY(0); }
@@ -439,7 +463,12 @@
     }
 
     /* ——— Sections ——— */
-    section { padding: 5rem 1.5rem; }
+    section {
+      padding: 5rem max(1rem, env(safe-area-inset-right)) 5rem max(1rem, env(safe-area-inset-left));
+      max-width: 100%;
+      overflow-x: hidden;
+      box-sizing: border-box;
+    }
 
     .section__inner { max-width: 1200px; margin: 0 auto; }
 
@@ -745,11 +774,26 @@
 
     /* ——— Responsive ——— */
     @media (max-width: 992px) {
-      .hero { grid-template-columns: 1fr; text-align: center; padding-top: 7rem; }
+      .hero {
+        grid-template-columns: 1fr;
+        text-align: center;
+        padding-top: 7rem;
+        padding-left: max(1rem, env(safe-area-inset-left));
+        padding-right: max(1rem, env(safe-area-inset-right));
+        overflow-x: hidden;
+      }
+      .hero__content { max-width: 100%; overflow-x: hidden; }
       .hero__text { margin-left: auto; margin-right: auto; }
       .hero__cta, .hero__stats { justify-content: center; }
-      .hero__visual { max-width: 420px; margin: 0 auto; }
+      .hero__visual {
+        max-width: min(420px, 100%);
+        margin: 0 auto;
+        overflow: hidden;
+        padding: 0 0.25rem;
+      }
       .hero__card--overlay { position: static; max-width: none; margin-top: 1rem; }
+      .floating-badge--1 { top: 0; right: 0; }
+      .floating-badge--2 { bottom: 1rem; left: 0; }
       .home-showcase__grid { grid-template-columns: 1fr; }
       .roles__grid { grid-template-columns: repeat(2, 1fr); }
     }

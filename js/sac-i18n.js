@@ -3,6 +3,7 @@
  */
 (function () {
   const STORAGE_KEY = "sac_lang";
+  const STORAGE_CHOICE_KEY = "sac_lang_explicit";
   const LANGS = [
     { code: "fr", label: "Français", flag: "🇫🇷", dir: "ltr" },
     { code: "en", label: "English", flag: "🇬🇧", dir: "ltr" },
@@ -205,6 +206,73 @@
       "meta.index.desc":
         "Evo-smartUni — Plateforme académique fiable pour universités, étudiants et professeurs.",
       "meta.login.title": "Connexion — Evo-smartUni",
+      "meta.signup.title": "Inscription — Evo-smartUni",
+      "signup.title": "Inscription",
+      "signup.subtitle": "Choisissez votre profil et complétez le formulaire",
+      "signup.role.label": "Je m'inscris en tant que",
+      "signup.already": "Déjà inscrit ? Se connecter",
+      "signup.intro":
+        "Créez votre compte selon votre profil pour accéder aux informations officielles de votre campus.",
+      "signup.fee.label": "Frais d'ouverture de compte",
+      "signup.currency.hint":
+        "Inscription : choisissez une devise africaine · USD → UBA · CDF → First Bank · Orange · M-Pesa",
+      "signup.badge.etudiant": "Inscription étudiant",
+      "signup.badge.professeur": "Inscription professeur",
+      "signup.badge.assistant": "Inscription assistant",
+      "signup.badge.universite": "Inscription établissement",
+      "signup.note.etudiant":
+        "Après votre paiement, présentez-vous à la section de votre filière avec votre dossier complet sous 24 h. L'accès à votre espace sera ouvert après validation par le chef de section.",
+      "signup.note.professeur":
+        "Votre inscription sera validée par le chef de section de votre filière sous 24 h. Attendez l'activation de votre compte — aucune présentation de dossier n'est requise.",
+      "signup.note.assistant":
+        "Votre compte sera activé par l'administration de votre université sous 24 h. Attendez l'ouverture de votre espace — aucune démarche supplémentaire n'est demandée.",
+      "signup.note.universite":
+        "Un conseiller Evo-smartUni vous contactera sous 48 h pour valider le partenariat et activer le portail de votre campus.",
+      "signup.label.lastname": "Nom de famille",
+      "signup.label.institution": "Nom de l'institution",
+      "signup.benefit.etudiant.1": "Consultez vos notes et relevés de cotes en ligne",
+      "signup.benefit.etudiant.2":
+        "Documents, images et audio de vos professeurs (votre classe uniquement)",
+      "signup.benefit.etudiant.3": "Suivez vos frais payés et les factures en attente",
+      "signup.benefit.etudiant.4": "Réagissez aux publications de vos enseignants",
+      "signup.benefit.professeur.1": "Déclarez vos cours et classes à l'inscription",
+      "signup.benefit.professeur.2": "Publiez infos, PDF, images et audio pour votre classe",
+      "signup.benefit.professeur.3": "Gérez vos listes d'étudiants par matière",
+      "signup.benefit.professeur.4": "Recevez les réactions des étudiants",
+      "signup.benefit.assistant.1": "Déclarez les classes que vous accompagnez",
+      "signup.benefit.assistant.2": "Publiez informations et documents pour une classe précise",
+      "signup.benefit.assistant.3": "Traitez inscriptions et dossiers étudiants",
+      "signup.benefit.assistant.4": "Suivez les paiements des frais",
+      "signup.benefit.universite.1":
+        "Enregistrez toutes les sections / facultés de votre campus à l'inscription",
+      "signup.benefit.universite.2":
+        "Publiez par section : seuls les étudiants concernés voient le message",
+      "signup.benefit.universite.3": "Gérez réclamations, frais et dossiers étudiants",
+      "signup.benefit.universite.4": "Tableau de bord administratif centralisé",
+      "signup.pricing.onetime": "paiement unique",
+      "signup.pricing.formNote":
+        "Paiement unique · {equiv} · choisissez votre devise et le canal (UBA, First Bank, Orange Money, M-Pesa).{campus}",
+      "signup.pricing.campus": " Tarif défini par votre université ({uni}).",
+      "signup.pay.modal.title": "Finaliser l'inscription",
+      "signup.pay.modal.subtitle": "Frais d'ouverture de compte Evo-smartUni",
+      "signup.pay.feeSubtitle": "Frais d'inscription {amount}",
+      "signup.pay.summary": "Compte : {email} · {role} · {amount}",
+      "signup.pay.bankNotice":
+        "Tous les paiements sont versés sur les comptes officiels ci-dessous. Choisissez votre devise africaine, puis le canal : UBA (USD), First Bank (CDF), Orange Money ou M-Pesa.",
+      "signup.pay.confirm": "Confirmer mon paiement",
+      "signup.pay.cancel": "Annuler",
+      "signup.pay.currency": "Devise de paiement",
+      "signup.pay.paid": "Paiement confirmé",
+      "signup.terms":
+        "J'accepte les conditions d'utilisation et la politique de confidentialité de Evo-smartUni.",
+      "signup.security":
+        "Sécurité : une seule inscription par personne — même e-mail, même téléphone et cumul de rôles interdits. Conservez votre mot de passe et votre université : ils seront exigés à chaque connexion.",
+      "signup.pricing.total": "Total à payer maintenant",
+      "signup.pricing.continue": "Continuer — Payer {amount}",
+      "signup.footer.hasAccount": "Vous avez déjà un compte ?",
+      "signup.footer.university": "Vous représentez une université ?",
+      "signup.footer.portal": "Portail admin campus",
+      "common.loading": "Chargement…",
       "theme.toggle": "Basculer entre mode clair et mode nocturne",
     },
     en: {
@@ -400,6 +468,72 @@
       "meta.index.desc":
         "Evo-smartUni — Reliable academic platform for universities, students and professors.",
       "meta.login.title": "Log in — Evo-smartUni",
+      "meta.signup.title": "Registration — Evo-smartUni",
+      "signup.title": "Registration",
+      "signup.subtitle": "Choose your profile and complete the form",
+      "signup.role.label": "I am registering as",
+      "signup.already": "Already registered? Log in",
+      "signup.intro":
+        "Create your account according to your profile to access official campus information.",
+      "signup.fee.label": "Account opening fee",
+      "signup.currency.hint":
+        "Registration: choose an African currency · USD → UBA · CDF → First Bank · Orange · M-Pesa",
+      "signup.badge.etudiant": "Student registration",
+      "signup.badge.professeur": "Professor registration",
+      "signup.badge.assistant": "Assistant registration",
+      "signup.badge.universite": "Institution registration",
+      "signup.note.etudiant":
+        "After payment, go to your section with your complete file within 24 h. Access opens after validation by the section head.",
+      "signup.note.professeur":
+        "Your registration will be validated by your section head within 24 h. Wait for account activation — no file submission required.",
+      "signup.note.assistant":
+        "Your account will be activated by your university administration within 24 h. Wait for access — no further steps required.",
+      "signup.note.universite":
+        "An Evo-smartUni advisor will contact you within 48 h to validate the partnership and activate your campus portal.",
+      "signup.label.lastname": "Last name",
+      "signup.label.institution": "Institution name",
+      "signup.benefit.etudiant.1": "View your grades and transcripts online",
+      "signup.benefit.etudiant.2":
+        "Documents, images and audio from your professors (your class only)",
+      "signup.benefit.etudiant.3": "Track paid fees and pending invoices",
+      "signup.benefit.etudiant.4": "React to your teachers' posts",
+      "signup.benefit.professeur.1": "Declare your courses and classes at registration",
+      "signup.benefit.professeur.2": "Publish info, PDFs, images and audio for your class",
+      "signup.benefit.professeur.3": "Manage student lists per subject",
+      "signup.benefit.professeur.4": "Receive student reactions",
+      "signup.benefit.assistant.1": "Declare the classes you support",
+      "signup.benefit.assistant.2": "Publish information and documents for a specific class",
+      "signup.benefit.assistant.3": "Process registrations and student files",
+      "signup.benefit.assistant.4": "Track fee payments",
+      "signup.benefit.universite.1": "Register all campus sections / faculties at signup",
+      "signup.benefit.universite.2":
+        "Publish by section: only concerned students see messages",
+      "signup.benefit.universite.3": "Manage claims, fees and student files",
+      "signup.benefit.universite.4": "Centralized admin dashboard",
+      "signup.terms":
+        "I accept Evo-smartUni's terms of use and privacy policy.",
+      "signup.security":
+        "Security: one registration per person — same email, same phone, and multiple roles are not allowed. Keep your password and university: they are required at every login.",
+      "signup.pricing.total": "Total to pay now",
+      "signup.pricing.onetime": "one-time payment",
+      "signup.pricing.continue": "Continue — Pay {amount}",
+      "signup.pricing.formNote":
+        "One-time payment · {equiv} · choose your currency and channel (UBA, First Bank, Orange Money, M-Pesa).{campus}",
+      "signup.pricing.campus": " Fee set by your university ({uni}).",
+      "signup.footer.hasAccount": "Already have an account?",
+      "signup.footer.university": "Do you represent a university?",
+      "signup.footer.portal": "Campus admin portal",
+      "signup.pay.modal.title": "Complete registration",
+      "signup.pay.modal.subtitle": "Evo-smartUni account opening fee",
+      "signup.pay.feeSubtitle": "Registration fee {amount}",
+      "signup.pay.summary": "Account: {email} · {role} · {amount}",
+      "signup.pay.bankNotice":
+        "All payments go to the official accounts below. Choose your African currency, then the channel: UBA (USD), First Bank (CDF), Orange Money or M-Pesa.",
+      "signup.pay.confirm": "Confirm my payment",
+      "signup.pay.cancel": "Cancel",
+      "signup.pay.currency": "Payment currency",
+      "signup.pay.paid": "Payment confirmed",
+      "common.loading": "Loading…",
       "theme.toggle": "Toggle light / dark mode",
     },
     ar: {
@@ -995,6 +1129,41 @@
   let autoPlaceholderMap = {};
   let autoObserverStarted = false;
   let autoObserverTimer = null;
+  let initDone = false;
+
+  function normalizeLang(code) {
+    const c = String(code || "")
+      .trim()
+      .slice(0, 2)
+      .toLowerCase();
+    return DICT[c] ? c : null;
+  }
+
+  function readStorage(key) {
+    try {
+      return localStorage.getItem(key);
+    } catch {
+      return null;
+    }
+  }
+
+  function writeStorage(key, value) {
+    try {
+      localStorage.setItem(key, value);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  function hasExplicitChoice() {
+    return readStorage(STORAGE_CHOICE_KEY) === "1";
+  }
+
+  function lockLangChoice(code) {
+    writeStorage(STORAGE_KEY, code);
+    writeStorage(STORAGE_CHOICE_KEY, "1");
+  }
 
   function mergeDict(ext) {
     if (!ext) return;
@@ -1008,7 +1177,8 @@
     mergeDict(extDict);
     if (textMap) Object.assign(autoTextMap, textMap);
     if (placeholderMap) Object.assign(autoPlaceholderMap, placeholderMap);
-    if (switcherEl) apply();
+    window.__sacI18nPlatformMerged = true;
+    apply();
   }
 
   function labelCoreText(el) {
@@ -1088,10 +1258,14 @@
   }
 
   function getPreferred() {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved && DICT[saved]) return saved;
-    const nav = (navigator.language || "fr").slice(0, 2).toLowerCase();
-    if (DICT[nav]) return nav;
+    const saved = normalizeLang(readStorage(STORAGE_KEY));
+    if (saved) {
+      if (!hasExplicitChoice()) lockLangChoice(saved);
+      return saved;
+    }
+    if (hasExplicitChoice()) {
+      return normalizeLang(currentLang) || "fr";
+    }
     return "fr";
   }
 
@@ -1170,7 +1344,7 @@
   function setLang(code) {
     if (!DICT[code]) return;
     currentLang = code;
-    localStorage.setItem(STORAGE_KEY, code);
+    lockLangChoice(code);
     apply();
   }
 
@@ -1232,18 +1406,22 @@
     });
 
     window.addEventListener("storage", (e) => {
-      if (e.key === STORAGE_KEY && e.newValue && DICT[e.newValue]) {
-        currentLang = e.newValue;
-        apply();
-      }
+      if (e.key !== STORAGE_KEY) return;
+      const next = normalizeLang(e.newValue);
+      if (!next) return;
+      currentLang = next;
+      apply();
     });
   }
 
   function init() {
-    currentLang = getPreferred();
-    buildSwitcher();
+    if (!initDone) {
+      currentLang = getPreferred();
+      buildSwitcher();
+      startAutoObserver();
+      initDone = true;
+    }
     apply();
-    startAutoObserver();
   }
 
   window.SAC_I18N = {
@@ -1251,6 +1429,7 @@
     setLang,
     apply,
     getLang: () => currentLang,
+    hasExplicitChoice,
     init,
     LANGS,
     mergeDict,
@@ -1262,7 +1441,11 @@
       vars = fallback;
       fallback = undefined;
     }
-    if (window.SAC_I18N) return SAC_I18N.t(key, vars);
+    if (window.SAC_I18N) {
+      const out = SAC_I18N.t(key, vars);
+      if (out === key && fallback != null) return String(fallback);
+      return out;
+    }
     return fallback != null ? fallback : key;
   };
 })();

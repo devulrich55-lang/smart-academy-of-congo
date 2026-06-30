@@ -10,13 +10,17 @@ const SAC_INSTITUTIONAL = (function () {
   }
 
   async function load(session) {
-    if (!session || !isReady()) return { summary: null, admins: [] };
+    if (!session || !isReady()) return { summary: null, admins: [], offline: true };
     if (session.role !== "ministere" && session.role !== "superadmin") {
-      return { summary: null, admins: [] };
+      return { summary: null, admins: [], offline: true };
     }
     try {
-      const online = await SAC_API.ensureOnline();
-      if (!online) return { summary: summaryCache, admins: adminsCache };
+      const online = await SAC_API.ensureOnline(false, { maxWaitMs: 18000 });
+      const hasTokens =
+        typeof SAC_API.hasAuthTokens === "function" && SAC_API.hasAuthTokens();
+      if (!online && !hasTokens) {
+        return { summary: summaryCache, admins: adminsCache, offline: true };
+      }
       const [summary, admins] = await Promise.all([
         SAC_API.getInstitutionalSummary(),
         SAC_API.listInstitutionalAdmins(),
@@ -28,10 +32,15 @@ const SAC_INSTITUTIONAL = (function () {
           if (a.role === "universite" && a.logoUrl) SAC_UNIVERSITY_LOGO.registerForUniversity(a);
         });
       }
-      return { summary: summaryCache, admins: adminsCache };
+      return { summary: summaryCache, admins: adminsCache, offline: false };
     } catch (err) {
       console.warn("[SAC_INSTITUTIONAL]", err.message || err);
-      return { summary: summaryCache, admins: adminsCache };
+      return {
+        summary: summaryCache,
+        admins: adminsCache,
+        offline: false,
+        error: err.message || String(err),
+      };
     }
   }
 

@@ -107,8 +107,14 @@ const SAC_TARIFFS = (function () {
       return getPlatformSettings();
     }
     platformLoadPromise = (async () => {
-      if (typeof SAC_API !== "undefined" && (await SAC_API.ensureOnline())) {
-        try {
+      const localFallback = readStoredPlatformSettings() || normalizePlatformSettings(null);
+      if (typeof SAC_API === "undefined") {
+        platformCache = localFallback;
+        return platformCache;
+      }
+      try {
+        const online = await SAC_API.ensureOnline(false, { maxWaitMs: 8000 });
+        if (online) {
           const data = await SAC_API.getPlatformTariffs();
           if (data?.tariffs || data?.fees || data?.cdfPerUsd) {
             platformCache = normalizePlatformSettings(data);
@@ -116,11 +122,11 @@ const SAC_TARIFFS = (function () {
             clearCache();
             return platformCache;
           }
-        } catch {
-          /* repli localStorage */
         }
+      } catch {
+        /* repli localStorage */
       }
-      platformCache = readStoredPlatformSettings() || normalizePlatformSettings(null);
+      platformCache = localFallback;
       return platformCache;
     })();
     await platformLoadPromise;

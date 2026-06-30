@@ -555,14 +555,15 @@ const SAC_PLATFORM_REGISTRY = (function () {
     el.classList.add("ws-reg-toggle-target");
     let count = 0;
     let timer = null;
-    let lastTouch = 0;
 
-    const bump = () => {
+    const bump = (e) => {
+      if (e?.type === "pointerdown" && e.button !== 0) return;
+      if (e?.stopPropagation) e.stopPropagation();
       count += 1;
       clearTimeout(timer);
       timer = setTimeout(() => {
         count = 0;
-      }, 1000);
+      }, 1200);
       if (count >= 3) {
         count = 0;
         clearTimeout(timer);
@@ -570,25 +571,16 @@ const SAC_PLATFORM_REGISTRY = (function () {
       }
     };
 
-    el.addEventListener(
-      "touchend",
-      (e) => {
-        lastTouch = Date.now();
-        bump();
-        e.preventDefault();
-      },
-      { passive: false }
-    );
-    el.addEventListener("click", () => {
-      if (Date.now() - lastTouch < 500) return;
-      bump();
-    });
+    if (window.PointerEvent) {
+      el.addEventListener("pointerdown", bump);
+    } else {
+      el.addEventListener("click", bump);
+    }
   }
 
   function bindRegistryToggleTargets(session, showSectionFn, toastFn) {
     const onToggle = () => toggle(session, showSectionFn, toastFn);
-    const accueilKpi = document.getElementById("statTotal")?.closest(".ws-kpi");
-    bindTripleActivate(accueilKpi, onToggle);
+    bindTripleActivate(document.getElementById("statTotal")?.closest(".ws-kpi"), onToggle);
 
     const root = document.getElementById("platformRegistryRoot");
     if (!root) return;

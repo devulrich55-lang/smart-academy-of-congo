@@ -962,12 +962,12 @@
             <div class="pay-hero" id="payHero">
               <div class="pay-hero__ring" id="payProgressRing" style="--pct:0">
                 <div class="pay-hero__ring-inner"><span id="payProgressPct">0%</span></div>
-              </div>
+        </div>
               <div class="pay-hero__content">
                 <h2 class="pay-hero__title" id="payHeroTitle">Mon solde académique</h2>
                 <p class="pay-hero__sub" id="payHeroSub">Chargement de vos frais…</p>
                 <div id="paySettledBadge" style="display:none;" class="pay-settled-badge">✓ Soldé — tous vos frais sont payés</div>
-              </div>
+        </div>
               <button type="button" class="btn-pay-main" id="btnPayMain" disabled>PAYER MAINTENANT</button>
             </div>
             <div class="pay-stats pay-stats--inline">
@@ -983,8 +983,8 @@
                 <div class="pay-stat__label">Reste à payer</div>
                 <div class="pay-stat__value pay-stat__value--warn" id="feesDue">—</div>
               </div>
-            </div>
-          </div>
+        </div>
+      </div>
 
           <aside class="pay-dashboard__bank pay-bank-card payment-panel pay-bank-card--secure" id="partnerBankCard">
             <div class="pay-bank-card__head">
@@ -1004,18 +1004,18 @@
               <div class="fee-cards" id="feesCards"></div>
               <div class="table-wrap pay-table-wrap">
                 <table class="fee-table-compact">
-                  <thead>
-                    <tr>
+            <thead>
+              <tr>
                       <th>Frais</th>
                       <th>Période</th>
-                      <th>Montant</th>
-                      <th>Statut</th>
-                      <th>Date</th>
+                <th>Montant</th>
+                <th>Statut</th>
+                <th>Date</th>
                       <th></th>
-                    </tr>
-                  </thead>
-                  <tbody id="feesTable"></tbody>
-                </table>
+              </tr>
+            </thead>
+            <tbody id="feesTable"></tbody>
+          </table>
               </div>
             </div>
           </div>
@@ -2248,24 +2248,24 @@
           await SAC_API.ensureApiSession({ soft: true });
         }
         if (await SAC_API.ensureOnline()) {
-          try {
-            const fresh = await SAC_API.me();
-            if (fresh) {
-              session = {
-                ...session,
-                ...fresh,
-                displayName: fresh.displayName || session.displayName,
-                universite: fresh.universite || session.universite,
-                filiere: fresh.filiere || session.filiere,
-                niveau: fresh.niveau || session.niveau,
-                classe: fresh.classe || session.classe,
-                sectionId: fresh.sectionId || session.sectionId,
-              };
-              SAC_SESSION.saveSession(session);
-            }
-          } catch {
-            /* profil API indisponible */
+        try {
+          const fresh = await SAC_API.me();
+          if (fresh) {
+            session = {
+              ...session,
+              ...fresh,
+              displayName: fresh.displayName || session.displayName,
+              universite: fresh.universite || session.universite,
+              filiere: fresh.filiere || session.filiere,
+              niveau: fresh.niveau || session.niveau,
+              classe: fresh.classe || session.classe,
+              sectionId: fresh.sectionId || session.sectionId,
+            };
+            SAC_SESSION.saveSession(session);
           }
+        } catch {
+          /* profil API indisponible */
+        }
         }
       }
       startPresence(session);
