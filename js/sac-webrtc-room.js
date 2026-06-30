@@ -153,6 +153,12 @@ const SAC_WEBRTC_ROOM = (function () {
     return HOST_ROLES.includes(String(role || "").toLowerCase());
   }
 
+  function isPresenterForAudience(remote, role) {
+    const r = String(role || remote?.role || "").toLowerCase();
+    if (!r) return true;
+    return isHostRole(r);
+  }
+
   function shouldConnectToPeer(localRole, remoteRole) {
     if (isHostRole(localRole)) return true;
     if (String(localRole || "").toLowerCase() === "etudiant") {
@@ -219,6 +225,7 @@ const SAC_WEBRTC_ROOM = (function () {
       this.rawMicStream = null;
       this.audioEnhancer = null;
       this.noiseCancelOn = true;
+      this.hostWatchTimer = null;
     }
 
     emitParticipants() {
@@ -293,17 +300,66 @@ const SAC_WEBRTC_ROOM = (function () {
       this.emitParticipants();
       this.updateGridLayout();
       await this.openSocket();
-      if (this.isAudience && this.stage) {
-        this.stage.addEventListener(
-          "click",
-          () => {
-            this.peers.forEach((remote) => {
-              this.playRemoteMedia(remote, remote.role);
-            });
-          },
-          { once: true }
-        );
+      if (this.isAudience) {
+        this.startHostPlaybackWatch();
+        if (this.stage) {
+          this.stage.addEventListener("click", () => this.resumeAudiencePlayback());
+        }
       }
+    }
+
+    resumeAudiencePlayback() {
+      this.peers.forEach((remote) => {
+        if (!isPresenterForAudience(remote, remote.role)) return;
+        this.playRemoteMedia(remote, remote.role);
+      });
+      this.setStatus("Connecté · Touchez l'écran si vous n'entendez pas le professeur");
+    }
+
+    startHostPlaybackWatch() {
+      if (!this.isAudience) return;
+      if (this.hostWatchTimer) clearInterval(this.hostWatchTimer);
+      this.hostWatchTimer = setInterval(() => {
+        if (this.destroyed) return;
+        this.peers.forEach((remote) => {
+          if (!isPresenterForAudience(remote, remote.role)) return;
+          this.playRemoteMedia(remote, remote.role);
+          this.updateRemoteMediaStatus(remote);
+        });
+        this.refreshAudienceLayout();
+      }, 2500);
+    }
+
+    pickPrimaryHostPeer() {
+      const presenters = [...this.peers.values()].filter((p) =>
+        isPresenterForAudience(p, p.role)
+      );
+      return (
+        presenters.find((p) => p.role === "professeur") ||
+        presenters.find((p) => p.role === "universite") ||
+        presenters.find((p) => p.role === "section") ||
+        presenters.find((p) => p.role === "assistant") ||
+        presenters[0] ||
+        null
+      );
+    }
+
+    refreshAudienceLayout() {
+      if (!this.isAudience) return;
+      const primary = this.pickPrimaryHostPeer();
+      this.peers.forEach((remote) => {
+        if (!remote.tile) return;
+        if (!isPresenterForAudience(remote, remote.role)) return;
+        const isPrimary = !primary || remote.id === primary.id;
+        remote.tile.classList.toggle("sac-webrtc__tile--hidden", !isPrimary);
+        if (isPrimary) {
+          remote.tile.classList.add("sac-webrtc__tile--host");
+          remote.tile.classList.remove("sac-webrtc__tile--peer");
+          if (remote.tile.parentNode === this.grid) {
+            this.grid.insertBefore(remote.tile, this.grid.firstChild);
+          }
+        }
+      });
     }
 
     async setupLocalMedia() {
@@ -593,10 +649,11 @@ const SAC_WEBRTC_ROOM = (function () {
           const remote = this.peers.get(p.peerId);
           if (!remote) return;
           if (p.role) remote.role = p.role;
-          this.syncRemoteTileRole(remote, p.role);
-          this.applyRemoteAudio(p.peerId, p.role);
-          this.playRemoteMedia(remote, p.role);
+          this.syncRemoteTileRole(remote, p.role || remote.role);
+          this.applyRemoteAudio(p.peerId, p.role || remote.role);
+          this.playRemoteMedia(remote, p.role || remote.role);
         });
+        this.refreshAudienceLayout();
         if (this.isAudience) {
           (msg.list || []).forEach((p) => {
             if (!isHostRole(p.role)) return;
@@ -739,14 +796,20 @@ const SAC_WEBRTC_ROOM = (function () {
 
     syncRemoteTileRole(remote, role) {
       if (!remote?.tile) return;
+      const resolved = String(role || remote.role || "").toLowerCase();
+      if (role) remote.role = role;
       remote.tile.classList.remove("sac-webrtc__tile--host", "sac-webrtc__tile--peer", "sac-webrtc__tile--hidden");
-      if (isHostRole(role)) {
+      if (isHostRole(resolved) || (this.isAudience && resolved !== "etudiant")) {
         remote.tile.classList.add("sac-webrtc__tile--host");
+        if (remote.tile.parentNode === this.grid) {
+          this.grid.insertBefore(remote.tile, this.grid.firstChild);
+        }
       } else if (this.isAudience) {
         remote.tile.classList.add("sac-webrtc__tile--peer", "sac-webrtc__tile--hidden");
       } else {
         remote.tile.classList.add("sac-webrtc__tile--peer");
       }
+      this.refreshAudienceLayout();
     }
 
     attachRemotePlayback(remote, stream) {
@@ -779,7 +842,11 @@ const SAC_WEBRTC_ROOM = (function () {
       audioTracks.forEach((t) => {
         t.enabled = allow;
       });
-      remote.video.muted = !allow;
+      if (this.isAudience) {
+        remote.video.muted = true;
+      } else {
+        remote.video.muted = !allow;
+      }
       if (remote.audio) {
         remote.audio.muted = !allow;
         if (allow) {
@@ -795,50 +862,73 @@ const SAC_WEBRTC_ROOM = (function () {
     }
 
     bindRemoteStream(remote, ev, role) {
-      if (ev.track) {
-        ev.track.enabled = true;
-      }
       if (!remote.mediaStream) {
         remote.mediaStream = new MediaStream();
       }
-      if (ev.track) {
+
+      const attachTrack = (track) => {
+        if (!track) return;
+        track.enabled = true;
         remote.mediaStream
           .getTracks()
-          .filter((t) => t.kind === ev.track.kind)
+          .filter((t) => t.kind === track.kind)
           .forEach((t) => remote.mediaStream.removeTrack(t));
-        remote.mediaStream.addTrack(ev.track);
-        ev.track.onunmute = () => {
+        remote.mediaStream.addTrack(track);
+        track.onunmute = () => {
           this.playRemoteMedia(remote, role || remote.role);
           this.updateRemoteMediaStatus(remote);
         };
-        ev.track.onmute = () => this.updateRemoteMediaStatus(remote);
-        if (ev.track.kind === "video") {
+        track.onmute = () => this.updateRemoteMediaStatus(remote);
+        track.onended = () => this.updateRemoteMediaStatus(remote);
+        if (track.kind === "video") {
           setTimeout(() => this.updateRemoteMediaStatus(remote), 400);
           setTimeout(() => this.updateRemoteMediaStatus(remote), 2000);
         }
+      };
+
+      if (ev.streams?.[0]) {
+        ev.streams[0].getTracks().forEach((track) => attachTrack(track));
+      } else if (ev.track) {
+        attachTrack(ev.track);
       }
 
-      const isHostRemote = isHostRole(role || remote.role) || (this.isAudience && !remote.role);
       if (!remote.video) {
-        remote.tile = this.createRemoteTile(remote.id, remote.name, role || remote.role);
-        remote.video = remote.tile.querySelector("video");
-        this.updateGridLayout();
+        this.ensureRemoteTile(remote, role || remote.role);
       }
 
       this.playRemoteMedia(remote, role || remote.role);
       this.updateRemoteMediaStatus(remote);
+      this.refreshAudienceLayout();
+    }
+
+    ensureRemoteTile(remote, role) {
+      if (remote.tile) return;
+      remote.tile = this.createRemoteTile(remote.id, remote.name, role || remote.role);
+      remote.video = remote.tile.querySelector("video");
+      if (this.isAudience && isPresenterForAudience(remote, role || remote.role)) {
+        remote.tile.classList.add("sac-webrtc__tile--no-video");
+      }
+      this.updateGridLayout();
+      this.refreshAudienceLayout();
     }
 
     playRemoteMedia(remote, role) {
       if (!remote?.mediaStream || !remote.video) return;
       remote.video.srcObject = remote.mediaStream;
-      remote.video.muted = false;
+      remote.video.muted = this.isAudience;
       remote.video.playsInline = true;
       remote.video.setAttribute("playsinline", "");
       remote.video.setAttribute("webkit-playsinline", "");
       this.attachRemotePlayback(remote, remote.mediaStream);
       const playVideo = remote.video.play();
-      if (playVideo && typeof playVideo.catch === "function") playVideo.catch(() => {});
+      if (playVideo && typeof playVideo.catch === "function") {
+        playVideo.catch(() => {
+          if (this.isAudience) {
+            remote.video.muted = true;
+            remote.video.play().catch(() => {});
+          }
+        });
+      }
       if (remote.audio) {
         const playAudio = remote.audio.play();
         if (playAudio && typeof playAudio.catch === "function") playAudio.catch(() => {});
@@ -848,15 +938,17 @@ const SAC_WEBRTC_ROOM = (function () {
     }
 
     updateRemoteMediaStatus(remote) {
-      if (!remote?.mediaStream || !remote.tile) return;
-      const videoTracks = remote.mediaStream.getVideoTracks().filter((t) => t.readyState !== "ended");
+      if (!remote?.tile) return;
+      const videoTracks = (remote.mediaStream?.getVideoTracks() || []).filter(
+        (t) => t.readyState !== "ended"
+      );
       const hasVideoTrack = videoTracks.length > 0;
       const camEnabled = videoTracks.some((t) => t.enabled);
       const showNoVideo = !hasVideoTrack || !camEnabled;
       remote.tile.classList.toggle("sac-webrtc__tile--no-video", showNoVideo);
       remote.tile.classList.toggle("sac-webrtc__tile--cam-off-remote", hasVideoTrack && !camEnabled);
-      if (this.isAudience && isHostRole(remote.role)) {
-        if (!hasVideoTrack) {
+      if (this.isAudience && isPresenterForAudience(remote, remote.role)) {
+        if (!remote.mediaStream || !hasVideoTrack) {
           this.setStatus("Professeur connecté — caméra en attente…");
         } else if (!camEnabled) {
           this.setStatus("Professeur connecté — caméra désactivée");
@@ -904,11 +996,12 @@ const SAC_WEBRTC_ROOM = (function () {
           if (isHostRole(this.userRole)) {
             this.ensureHostVideoSent(remote).catch(() => {});
           }
-          if (this.isAudience && isHostRole(remote.role)) {
-            [600, 2000, 4500].forEach((ms) => {
+          if (this.isAudience && isPresenterForAudience(remote, remote.role)) {
+            [600, 2000, 4500, 8000].forEach((ms) => {
               setTimeout(() => {
                 this.updateRemoteMediaStatus(remote);
                 this.playRemoteMedia(remote, remote.role);
+                this.refreshAudienceLayout();
               }, ms);
             });
           }
@@ -916,12 +1009,18 @@ const SAC_WEBRTC_ROOM = (function () {
         if (pc.connectionState === "failed") {
           this.setStatus("Connexion vidéo échouée — réseau mobile : réessayez ou changez de connexion");
         }
-        if (pc.connectionState === "failed" || pc.connectionState === "disconnected") {
+        if (pc.connectionState === "failed") {
           setTimeout(() => {
-            if (pc.connectionState === "failed" || pc.connectionState === "disconnected") {
+            if (pc.connectionState === "failed") {
               this.removePeer(remoteId);
             }
-          }, 4000);
+          }, 6000);
+        } else if (pc.connectionState === "disconnected") {
+          setTimeout(() => {
+            if (pc.connectionState === "disconnected") {
+              this.playRemoteMedia(remote, remote.role);
+            }
+          }, 2000);
         }
       };
 
@@ -933,6 +1032,10 @@ const SAC_WEBRTC_ROOM = (function () {
 
       this.peers.set(remoteId, remote);
 
+      if (this.isAudience && isPresenterForAudience(remote, role)) {
+        this.ensureRemoteTile(remote, role);
+      }
+
       if (initiator) {
         const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true });
         await pc.setLocalDescription(offer);
@@ -943,7 +1046,8 @@ const SAC_WEBRTC_ROOM = (function () {
     createRemoteTile(id, name, role) {
       const tile = document.createElement("div");
       tile.className = "sac-webrtc__tile";
-      const showAsHost = isHostRole(role) || (this.isAudience && !role);
+      const showAsHost =
+        isHostRole(role) || (this.isAudience && String(role || "").toLowerCase() !== "etudiant");
       if (showAsHost) {
         tile.classList.add("sac-webrtc__tile--host");
       } else {
@@ -1319,6 +1423,10 @@ const SAC_WEBRTC_ROOM = (function () {
 
     destroy() {
       this.destroyed = true;
+      if (this.hostWatchTimer) {
+        clearInterval(this.hostWatchTimer);
+        this.hostWatchTimer = null;
+      }
       if (this.recorder && this.recorder.state === "recording") {
         this.recorder.stop();
       }
