@@ -20,7 +20,11 @@ const SAC_CURRENCIES = (function () {
     const c = get(code);
     if (c.code === "USD") return 1;
     if (c.dynamic === "cdf" && typeof SAC_TARIFFS !== "undefined") {
-      return SAC_TARIFFS.getCdfPerUsd();
+      if (typeof SAC_TARIFFS.getCdfPerUsd === "function") {
+        return SAC_TARIFFS.getCdfPerUsd();
+      }
+      const rate = SAC_TARIFFS.CDF_PER_USD;
+      return Number.isFinite(rate) && rate > 0 ? rate : 2300;
     }
     return Number(c.fixedRate) > 0 ? Number(c.fixedRate) : 1;
   }

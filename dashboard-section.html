@@ -16,7 +16,6 @@
   <link rel="stylesheet" href="css/webrtc-room.css" />
   <link rel="stylesheet" href="css/presence.css" />
   <link rel="stylesheet" href="css/theme.css" />
-  <link rel="stylesheet" href="css/phone-input.css?v=20260625b" />
   <link rel="stylesheet" href="css/home-news.css" />
   <link rel="stylesheet" href="css/mobile.css" />
   <style>
@@ -25,15 +24,6 @@
     .btn--role { background: var(--section); color: #fff; }
     .nav-tab--priority.active { border-bottom-color: var(--section); color: var(--section); }
     .profile-hero { background: linear-gradient(135deg, #0e7490, #0891b2); }
-    .credentials-box {
-      margin-top: 1rem;
-      padding: 0.85rem 1rem;
-      background: rgba(13,122,74,0.08);
-      border: 1px solid rgba(13,122,74,0.2);
-      border-radius: 8px;
-      font-size: 0.88rem;
-      color: var(--success);
-    }
     .comm-filter { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; }
     .comm-filter button {
       padding: 0.45rem 0.9rem; border-radius: 100px; border: 1.5px solid var(--border);
@@ -73,7 +63,6 @@
       <button type="button" class="nav-tab active" data-section="accueil">Tableau de bord</button>
       <button type="button" class="nav-tab nav-tab--priority" data-section="validations-etudiants" id="navValidationsEtudiants">🎓 Valider étudiants</button>
       <button type="button" class="nav-tab nav-tab--priority" data-section="validations-personnel" id="navValidationsPersonnel">👨‍🏫 Valider prof. &amp; assistants</button>
-      <button type="button" class="nav-tab nav-tab--priority" data-section="inscriptions" id="navInscriptions">👤 Créer des comptes étudiants</button>
       <button type="button" class="nav-tab nav-tab--priority" data-section="reclamations">📩 Réclamations</button>
       <button type="button" class="nav-tab nav-tab--priority" data-section="publications">📢 Publications</button>
       <button type="button" class="nav-tab nav-tab--priority" data-section="live">🎥 Live section</button>
@@ -113,7 +102,6 @@
           <div style="margin-top:1rem;display:flex;flex-wrap:wrap;gap:0.5rem;">
             <button type="button" class="btn btn--role" data-goto="validations-etudiants">Valider les étudiants</button>
             <button type="button" class="btn btn--ghost" data-goto="validations-personnel">Valider prof. &amp; assistants</button>
-            <button type="button" class="btn btn--ghost" data-goto="inscriptions">Créer un compte étudiant</button>
             <button type="button" class="btn btn--ghost" data-goto="reclamations">Voir les réclamations</button>
             <button type="button" class="btn btn--ghost" data-goto="publications">Publications université</button>
             <button type="button" class="btn btn--ghost" data-goto="live">Lancer un live section</button>
@@ -197,90 +185,6 @@
             </table>
           </div>
           <p class="empty" id="pendingStaffEmpty" style="display:none;">Aucun professeur ou assistant en attente pour votre section.</p>
-        </div>
-      </div>
-    </section>
-
-    <section class="page-section" id="section-inscriptions">
-      <h1 class="page-title">Créer un compte étudiant</h1>
-      <p class="page-desc">
-        Inscrivez un étudiant de votre section. Le compte sera activé immédiatement (paiement validé par délégation section).
-      </p>
-
-      <div class="panel">
-        <div class="panel__head"><h2>Nouvel étudiant</h2></div>
-        <div class="panel__body">
-          <form id="formCreateStudent" class="rec-form">
-            <div class="form-row-2">
-              <div class="fg">
-                <label>Prénom *</label>
-                <input type="text" class="fi" id="stuPrenom" required />
-              </div>
-              <div class="fg">
-                <label>Nom *</label>
-                <input type="text" class="fi" id="stuNom" required />
-              </div>
-            </div>
-            <div class="form-row-2">
-              <div class="fg">
-                <label>E-mail *</label>
-                <input type="email" class="fi" id="stuEmail" required autocomplete="off" />
-              </div>
-              <div class="fg">
-                <label>Téléphone mobile *</label>
-                <input type="tel" class="fi" id="stuTel" required placeholder="Numéro sans indicatif" />
-              </div>
-            </div>
-            <div class="form-row-2">
-              <div class="fg">
-                <label>Matricule</label>
-                <input type="text" class="fi" id="stuMatricule" placeholder="Ex. ETU-2025-00123" />
-              </div>
-              <div class="fg">
-                <label>Niveau *</label>
-                <select class="fi" id="stuNiveau" required>
-                  <option value="l1">L1</option>
-                  <option value="l2">L2</option>
-                  <option value="l3">L3</option>
-                  <option value="master1">Master 1</option>
-                  <option value="master2">Master 2</option>
-                  <option value="doctorat">Doctorat</option>
-                </select>
-              </div>
-            </div>
-            <div class="fg" id="wrapStuSection" hidden>
-              <label for="stuSectionPick">Section / filière *</label>
-              <select class="fi" id="stuSectionPick" required></select>
-              <p style="font-size:0.8rem;color:var(--muted);margin-top:0.35rem;">Recteur : choisissez la section d'affectation de l'étudiant.</p>
-            </div>
-            <div class="fg">
-              <label>Classe / groupe *</label>
-              <input type="text" class="fi" id="stuClasse" required placeholder="Ex. L2-Gestion Groupe A" />
-              <p style="font-size:0.8rem;color:var(--muted);margin-top:0.35rem;">Identique au nom de classe déclaré par les professeurs.</p>
-            </div>
-            <div class="fg">
-              <label>Mot de passe initial *</label>
-              <input type="password" class="fi" id="stuPassword" required minlength="8" autocomplete="new-password" />
-              <p style="font-size:0.8rem;color:var(--muted);margin-top:0.35rem;">Minimum 8 caractères, lettre + chiffre, sans espace. Communiquez-le à l'étudiant.</p>
-            </div>
-            <button type="submit" class="btn btn--role">Créer le compte étudiant</button>
-          </form>
-          <div id="createdCredentials" hidden class="credentials-box"></div>
-        </div>
-      </div>
-
-      <div class="panel">
-        <div class="panel__head"><h2>Étudiants de la section</h2></div>
-        <div class="panel__body">
-          <div style="overflow-x:auto;">
-            <table>
-              <thead>
-                <tr><th>Étudiant</th><th>E-mail</th><th>Matricule</th><th>Niveau</th><th>Classe</th><th>Filière / section</th></tr>
-              </thead>
-              <tbody id="studentsTable"></tbody>
-            </table>
-          </div>
-          <p class="empty" id="studentsEmpty" style="display:none;">Aucun étudiant inscrit par cette section.</p>
         </div>
       </div>
     </section>
@@ -382,14 +286,11 @@
     </section>
   </main>
 
-  <script src="js/sac-phone-countries.js?v=20260625b"></script>
   <script src="js/sac-identity.js"></script>
-  <script src="js/sac-phone-input.js?v=20260625b"></script>
   <script src="js/sac-session.js?v=20260620"></script>
   <script src="js/sac-api.js?v=20260630h"></script>
   <script src="js/sac-university-logo.js"></script>
   <script src="js/sac-sections.js?v=20260625"></script>
-  <script src="js/sac-section-accounts.js?v=20260621"></script>
   <script src="js/sac-section-approval.js?v=20260630i"></script>
   <script src="js/sac-courses.js"></script>
   <script src="js/sac-data.js?v=20260621"></script>
@@ -437,7 +338,7 @@
         if (accueilMission) {
           accueilMission.innerHTML =
             "En tant que <strong>recteur</strong>, validez les <strong>étudiants</strong> et le <strong>personnel</strong> " +
-            "de <strong>tout le campus</strong>, créez des comptes, gérez réclamations, publications et live.";
+            "de <strong>tout le campus</strong>, gérez réclamations, publications et live.";
         }
         const etuTitle = document.querySelector("#section-validations-etudiants .page-title");
         const etuDesc = document.querySelector("#section-validations-etudiants .page-desc");
@@ -512,33 +413,6 @@
         return String(u?.email || u?.identifiant || "").trim();
       }
 
-      function initRectorStudentForm() {
-        if (!isRector) return;
-        const wrapStuSection = document.getElementById("wrapStuSection");
-        const stuSectionPick = document.getElementById("stuSectionPick");
-        if (!wrapStuSection || !stuSectionPick || typeof SAC_SECTIONS === "undefined") return;
-        wrapStuSection.hidden = false;
-        const sections = SAC_SECTIONS.listCampusSections
-          ? SAC_SECTIONS.listCampusSections(session.universite)
-          : SAC_SECTIONS.getSectionsByUniversity(session);
-        stuSectionPick.innerHTML =
-          '<option value="">— Choisir la section / filière —</option>' +
-          sections
-            .map(
-              (s) =>
-                '<option value="' +
-                esc(s.id) +
-                '" data-filiere="' +
-                esc(s.filiere) +
-                '">' +
-                esc(s.name + " — " + s.filiere) +
-                "</option>"
-            )
-            .join("");
-      }
-
-      initRectorStudentForm();
-
       function showSection(id) {
         document.querySelectorAll(".nav-tab").forEach((t) => {
           t.classList.toggle("active", t.dataset.section === id);
@@ -547,7 +421,6 @@
         document.getElementById("section-" + id)?.classList.add("active");
         if (id === "validations-etudiants") renderPendingStudents();
         if (id === "validations-personnel") renderPendingStaff();
-        if (id === "inscriptions") renderStudents();
         if (id === "reclamations") refreshReclamations();
         if (id === "publications") initSectionPublications();
         if (id === "live") renderSectionLive();
@@ -578,6 +451,18 @@
         }
       }
 
+      async function countSectionStudents() {
+        if (typeof SAC_API !== "undefined" && (await SAC_API.ensureOnline())) {
+          try {
+            const list = await SAC_API.listSectionStudents();
+            return Array.isArray(list) ? list.length : 0;
+          } catch {
+            /* repli local */
+          }
+        }
+        return 0;
+      }
+
       function renderStats() {
         const loadPendingStudents = () => {
           if (typeof SAC_SECTION_APPROVAL.refreshPendingStudentsForSection === "function") {
@@ -592,8 +477,8 @@
               : Promise.resolve(
                   SAC_SECTION_APPROVAL.getPendingStaffForSection(session)
                 );
-          loadPendingStaff.then((pendingStaff) => {
-          const students = SAC_SECTION_ACCOUNTS.getStudentsForSection(session);
+          loadPendingStaff.then(async (pendingStaff) => {
+          const studentCount = await countSectionStudents();
           const recs =
             typeof SAC_SECTIONS.getReclamationsForSectionHead === "function"
               ? SAC_SECTIONS.getReclamationsForSectionHead(session)
@@ -602,7 +487,7 @@
                 : [];
           document.getElementById("statPendingStudents").textContent = pendingStudents.length;
           document.getElementById("statPendingStaff").textContent = pendingStaff.length;
-          document.getElementById("statStudents").textContent = students.length;
+          document.getElementById("statStudents").textContent = studentCount;
           document.getElementById("statRecOpen").textContent = recs.filter((r) => r.statut === "ouverte").length;
           document.getElementById("statRecTotal").textContent = recs.length;
           });
@@ -792,47 +677,6 @@
         el.textContent = String(data?.onlineCount || 0);
       }
 
-      async function renderStudents() {
-        let students = SAC_SECTION_ACCOUNTS.getStudentsForSection(session);
-        if (typeof SAC_API !== "undefined" && (await SAC_API.ensureOnline())) {
-          try {
-            const apiStudents = await SAC_API.listSectionStudents();
-            students = SAC_SECTION_ACCOUNTS.mergeStudentsByEmail(students, apiStudents);
-            students = students.filter((u) => {
-              if (typeof SAC_SECTIONS !== "undefined" && SAC_SECTIONS.studentMatchesSection) {
-                return SAC_SECTIONS.studentMatchesSection(u, session);
-              }
-              return true;
-            });
-          } catch { /* repli local */ }
-        }
-
-        const tbody = document.getElementById("studentsTable");
-        const empty = document.getElementById("studentsEmpty");
-        if (!students.length) {
-          tbody.innerHTML = "";
-          empty.style.display = "block";
-          return;
-        }
-        empty.style.display = "none";
-        tbody.innerHTML = students
-          .map((s) => {
-            const name =
-              typeof SAC_IDENTITY !== "undefined"
-                ? SAC_IDENTITY.formatFullName(s.prenom, s.nom)
-                : [s.prenom, s.nom].filter(Boolean).join(" ");
-            return `<tr>
-              <td>${esc(name || s.email)}</td>
-              <td>${esc(s.email)}</td>
-              <td>${esc(s.matricule || "—")}</td>
-              <td>${esc((s.niveau || "—").toUpperCase())}</td>
-              <td>${esc(s.classe || "—")}</td>
-              <td>${esc((s.filiere || session.filiere || "—"))} · ${esc(session.sectionName || sectionName)}</td>
-            </tr>`;
-          })
-          .join("");
-      }
-
       async function renderSectionLive() {
         const root = document.getElementById("sectionLiveRoot");
         if (!root) return;
@@ -934,46 +778,6 @@
         });
       }
 
-      document.getElementById("formCreateStudent").addEventListener("submit", async (e) => {
-        e.preventDefault();
-        const credBox = document.getElementById("createdCredentials");
-        credBox.hidden = true;
-        try {
-          if (isRector) {
-            const pick = document.getElementById("stuSectionPick")?.value;
-            if (!pick) {
-              alert("Choisissez la section / filière de l'étudiant.");
-              return;
-            }
-          }
-          const stuSectionPick = document.getElementById("stuSectionPick");
-          const sectionOpt = stuSectionPick?.selectedOptions?.[0];
-          const created = await SAC_SECTION_ACCOUNTS.createStudentAccount(session, {
-            prenom: document.getElementById("stuPrenom").value,
-            nom: document.getElementById("stuNom").value,
-            email: document.getElementById("stuEmail").value,
-            telephone: SAC_IDENTITY.readPhone("stuTel"),
-            matricule: document.getElementById("stuMatricule").value,
-            niveau: document.getElementById("stuNiveau").value,
-            classe: document.getElementById("stuClasse").value.trim(),
-            password: document.getElementById("stuPassword").value,
-            sectionId: isRector ? stuSectionPick?.value || null : null,
-            sectionPick: isRector ? stuSectionPick?.value || null : null,
-            filiere: isRector ? sectionOpt?.dataset?.filiere || null : null,
-          });
-          e.target.reset();
-          credBox.hidden = false;
-          credBox.innerHTML =
-            "<strong>Compte créé.</strong> E-mail : <code>" +
-            esc(created.email) +
-            "</code> — transmettez le mot de passe à l'étudiant.";
-          renderStudents();
-          renderStats();
-        } catch (err) {
-          alert(err.message);
-        }
-      });
-
       document.querySelectorAll(".nav-tab[data-section]").forEach((t) => {
         t.addEventListener("click", () => showSection(t.dataset.section));
       });
@@ -1003,7 +807,6 @@
       });
 
       renderStats();
-      renderStudents();
       refreshReclamations();
       renderSectionLive();
       if (typeof SAC_PRESENCE !== "undefined") {

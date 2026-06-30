@@ -847,6 +847,7 @@ const SAC_TARIFFS = (function () {
     get CDF_PER_USD() {
       return getCdfPerUsd();
     },
+    getCdfPerUsd,
     get DEFAULT_FEES() {
       return getDefaultFees();
     },
