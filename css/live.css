@@ -161,10 +161,50 @@
   position: fixed;
   inset: 0;
   z-index: 300;
-  background: rgba(0, 0, 0, 0.75);
+  background: #020617;
   display: flex;
   flex-direction: column;
-  padding: 0.75rem;
+  padding: 0;
+}
+
+.live-room-overlay--pro .live-room__head {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  padding: max(0.5rem, env(safe-area-inset-top)) max(0.75rem, env(safe-area-inset-right))
+    0.5rem max(0.75rem, env(safe-area-inset-left));
+  background: linear-gradient(180deg, rgba(2, 6, 23, 0.92) 0%, rgba(2, 6, 23, 0) 100%);
+  pointer-events: none;
+}
+
+.live-room-overlay--pro .live-room__head > * {
+  pointer-events: auto;
+}
+
+.live-room-overlay--pro .live-room__layout {
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+  gap: 0;
+}
+
+.live-room-overlay--pro .live-room__frame-wrap {
+  min-height: 0;
+  height: 100%;
+}
+
+.live-room-overlay--pro .live-room__hint {
+  display: none;
+}
+
+.live-room-overlay--theater .live-room__side {
+  display: none;
+}
+
+.live-room-overlay--theater .live-room__layout {
+  grid-template-columns: 1fr;
 }
 
 .live-room-overlay[hidden] { display: none !important; }
@@ -187,20 +227,22 @@
 
 .live-room__layout {
   display: grid;
-  grid-template-columns: 1fr 320px;
-  gap: 0.75rem;
+  grid-template-columns: 1fr 300px;
+  gap: 0;
   flex: 1;
   min-height: 0;
   overflow: hidden;
+  height: 100%;
 }
 
 .live-room__side {
   background: var(--surface, #fff);
-  border-radius: 12px;
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
   overflow: hidden;
   display: flex;
   flex-direction: column;
   min-height: 0;
+  transition: transform 0.25s ease, opacity 0.25s ease;
 }
 
 .live-side__tabs {
@@ -354,8 +396,9 @@
 .live-room__frame {
   width: 100%;
   height: 100%;
-  min-height: 70vh;
+  min-height: 0;
   border: none;
+  background: #000;
 }
 
 .live-room__hint {
@@ -410,11 +453,8 @@
 }
 
 @media (max-width: 900px) {
-  .live-room-overlay {
-    padding: max(0.35rem, env(safe-area-inset-top))
-      max(0.35rem, env(safe-area-inset-right))
-      max(0.35rem, env(safe-area-inset-bottom))
-      max(0.35rem, env(safe-area-inset-left));
+  .live-room-overlay--pro {
+    padding: 0;
   }
 
   .live-room__layout {
@@ -423,9 +463,15 @@
     min-height: 0;
   }
 
+  .live-room-overlay--theater .live-room__layout {
+    grid-template-rows: 1fr;
+  }
+
   .live-room__side {
-    max-height: 38vh;
-    min-height: 120px;
+    max-height: 36vh;
+    min-height: 100px;
+    border-left: none;
+    border-top: 1px solid var(--border, #e2e8f0);
   }
 
   .live-room__head h3 {

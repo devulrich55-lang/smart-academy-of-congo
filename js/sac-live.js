@@ -1254,7 +1254,7 @@ const SAC_LIVE = (function () {
 
       overlay.id = "sacLiveRoomOverlay";
 
-      overlay.className = "live-room-overlay";
+      overlay.className = "live-room-overlay live-room-overlay--pro";
 
       overlay.innerHTML = `
 
@@ -1268,7 +1268,10 @@ const SAC_LIVE = (function () {
 
           </div>
 
-          <button type="button" class="live-btn live-btn--ghost" id="sacLiveRoomClose" style="color:#fff;border-color:rgba(255,255,255,0.4)">✕ Quitter</button>
+          <div style="display:flex;gap:0.5rem;align-items:center;">
+            <button type="button" class="live-btn live-btn--ghost" id="sacLivePanelToggle" style="color:#fff;border-color:rgba(255,255,255,0.35)">☰ Panneau</button>
+            <button type="button" class="live-btn live-btn--ghost" id="sacLiveRoomClose" style="color:#fff;border-color:rgba(255,255,255,0.4)">✕ Quitter</button>
+          </div>
 
         </div>
 
@@ -1289,8 +1292,18 @@ const SAC_LIVE = (function () {
       document.body.appendChild(overlay);
 
       overlay.querySelector("#sacLiveRoomClose").addEventListener("click", closeRoom);
+      overlay.querySelector("#sacLivePanelToggle").addEventListener("click", () => {
+        overlay.classList.toggle("live-room-overlay--theater");
+        const btn = overlay.querySelector("#sacLivePanelToggle");
+        const hidden = overlay.classList.contains("live-room-overlay--theater");
+        if (btn) btn.textContent = hidden ? "☰ Panneau" : "◧ Vidéo seule";
+      });
 
     }
+
+
+
+    overlay.classList.add("live-room-overlay--pro");
 
 
 

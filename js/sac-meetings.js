@@ -237,7 +237,7 @@ const SAC_MEETINGS = (function () {
     if (!el) {
       el = document.createElement("div");
       el.id = "sacMtgRoom";
-      el.className = "mtg-room-overlay";
+      el.className = "mtg-room-overlay mtg-room-overlay--pro";
       el.innerHTML = `
         <div class="mtg-room__head">
           <h3 id="sacMtgRoomTitle"></h3>

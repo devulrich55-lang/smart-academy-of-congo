@@ -31,13 +31,77 @@ const SAC_WEBRTC_ROOM = (function () {
     noiseSuppression: true,
     autoGainControl: true,
     voiceIsolation: true,
+    sampleRate: { ideal: 48000 },
+    channelCount: { ideal: 1 },
   };
 
   const VIDEO_CONSTRAINTS = {
     width: { ideal: 1280, max: 1920 },
     height: { ideal: 720, max: 1080 },
+    frameRate: { ideal: 30, max: 30 },
     facingMode: "user",
   };
+
+  function enhanceAudioStream(micStream) {
+    if (!micStream || typeof AudioContext === "undefined") {
+      return { stream: micStream, cleanup: () => {} };
+    }
+    try {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      const ctx = new Ctx({ latencyHint: "interactive", sampleRate: 48000 });
+      const source = ctx.createMediaStreamSource(micStream);
+      const highpass = ctx.createBiquadFilter();
+      highpass.type = "highpass";
+      highpass.frequency.value = 110;
+      highpass.Q.value = 0.8;
+      const lowpass = ctx.createBiquadFilter();
+      lowpass.type = "lowpass";
+      lowpass.frequency.value = 14000;
+      const compressor = ctx.createDynamicsCompressor();
+      compressor.threshold.value = -26;
+      compressor.knee.value = 18;
+      compressor.ratio.value = 10;
+      compressor.attack.value = 0.004;
+      compressor.release.value = 0.18;
+      const gain = ctx.createGain();
+      gain.gain.value = 1.08;
+      const dest = ctx.createMediaStreamDestination();
+      source.connect(highpass);
+      highpass.connect(lowpass);
+      lowpass.connect(compressor);
+      compressor.connect(gain);
+      gain.connect(dest);
+      return {
+        ctx,
+        stream: dest.stream,
+        outputTrack: dest.stream.getAudioTracks()[0],
+        cleanup: () => {
+          try {
+            ctx.close();
+          } catch {
+            /* ignore */
+          }
+        },
+      };
+    } catch {
+      return { stream: micStream, cleanup: () => {} };
+    }
+  }
+
+  async function optimizeVideoSender(pc) {
+    if (!pc) return;
+    try {
+      const sender = pc.getSenders().find((s) => s.track && s.track.kind === "video");
+      if (!sender?.getParameters) return;
+      const params = sender.getParameters();
+      if (!params.encodings || !params.encodings.length) params.encodings = [{}];
+      params.encodings[0].maxBitrate = 2_500_000;
+      params.encodings[0].maxFramerate = 30;
+      await sender.setParameters(params);
+    } catch {
+      /* navigateur / réseau */
+    }
+  }
 
   function isHostRole(role) {
     return HOST_ROLES.includes(String(role || "").toLowerCase());
@@ -106,6 +170,9 @@ const SAC_WEBRTC_ROOM = (function () {
       this.reconnectAttempts = 0;
       this.destroyed = false;
       this.probeFail = null;
+      this.rawMicStream = null;
+      this.audioEnhancer = null;
+      this.noiseCancelOn = true;
     }
 
     emitParticipants() {
@@ -169,24 +236,25 @@ const SAC_WEBRTC_ROOM = (function () {
         }
       }
       try {
-        this.localStream = await navigator.mediaDevices.getUserMedia({
+        this.rawMicStream = await navigator.mediaDevices.getUserMedia({
           audio: AUDIO_CONSTRAINTS,
           video: VIDEO_CONSTRAINTS,
         });
       } catch (err) {
         try {
-          this.localStream = await navigator.mediaDevices.getUserMedia({
+          this.rawMicStream = await navigator.mediaDevices.getUserMedia({
             audio: AUDIO_CONSTRAINTS,
             video: false,
           });
           if (!this.isAudience) {
-            this.setStatus("Micro actif — appuyez sur 📷 pour activer la caméra");
+            this.setStatus("Micro actif — appuyez sur Caméra pour activer la vidéo");
           }
         } catch (err2) {
           this.setStatus("Caméra/micro inaccessible : " + (err2.message || err2));
           throw err2;
         }
       }
+      this.localStream = this.buildLocalStream(this.rawMicStream);
       const audioTrack = this.localStream.getAudioTracks()[0];
       if (audioTrack?.applyConstraints) {
         audioTrack.applyConstraints(AUDIO_CONSTRAINTS).catch(() => {});
@@ -235,24 +303,59 @@ const SAC_WEBRTC_ROOM = (function () {
       }
     }
 
+    buildLocalStream(rawStream) {
+      if (this.audioEnhancer?.cleanup) this.audioEnhancer.cleanup();
+      const audioOnly = new MediaStream(rawStream.getAudioTracks());
+      if (this.noiseCancelOn) {
+        this.audioEnhancer = enhanceAudioStream(audioOnly);
+      } else {
+        this.audioEnhancer = null;
+      }
+      const audioTrack =
+        this.audioEnhancer?.outputTrack || rawStream.getAudioTracks()[0] || null;
+      const tracks = [];
+      if (audioTrack) tracks.push(audioTrack);
+      rawStream.getVideoTracks().forEach((t) => tracks.push(t));
+      return new MediaStream(tracks);
+    }
+
     renderShell() {
       this.container.innerHTML = `
-        <div class="sac-webrtc">
+        <div class="sac-webrtc sac-webrtc--pro">
           <div class="sac-webrtc__stage" id="sacWrtcStage">
             <div class="sac-webrtc__status" id="sacWrtcStatus">Connexion…</div>
+            <div class="sac-webrtc__quality" id="sacWrtcQuality" title="Qualité HD">HD</div>
             <div class="sac-webrtc__grid" id="sacWrtcGrid"></div>
             <div class="sac-webrtc__float" id="sacWrtcFloat" aria-live="polite"></div>
-          </div>
-          <form class="sac-webrtc__comment-bar" id="sacWrtcCommentForm">
-            <input type="text" id="sacWrtcCommentInput" placeholder="Commenter le live…" maxlength="200" autocomplete="off" />
-            <button type="submit" aria-label="Envoyer">➤</button>
-          </form>
-          <div class="sac-webrtc__toolbar" role="toolbar" aria-label="Contrôles live">
-            <button type="button" class="sac-webrtc__btn" id="sacWrtcMic" title="Micro" aria-label="Micro">🎤</button>
-            <button type="button" class="sac-webrtc__btn" id="sacWrtcCam" title="Caméra" aria-label="Caméra">📷</button>
-            <button type="button" class="sac-webrtc__btn" id="sacWrtcScreen" title="Partager l'écran" aria-label="Partage écran">🖥️</button>
-            <button type="button" class="sac-webrtc__btn" id="sacWrtcRecord" title="Enregistrer" aria-label="Enregistrer">⏺️</button>
-            <button type="button" class="sac-webrtc__btn sac-webrtc__btn--leave" id="sacWrtcLeave">Quitter</button>
+            <div class="sac-webrtc__dock" id="sacWrtcDock">
+              <form class="sac-webrtc__comment-bar" id="sacWrtcCommentForm">
+                <input type="text" id="sacWrtcCommentInput" placeholder="Commenter le live…" maxlength="200" autocomplete="off" />
+                <button type="submit" aria-label="Envoyer">➤</button>
+              </form>
+              <div class="sac-webrtc__toolbar" role="toolbar" aria-label="Contrôles live">
+                <button type="button" class="sac-webrtc__btn sac-webrtc__btn--labeled" id="sacWrtcMic" title="Micro" aria-label="Micro">
+                  <span class="sac-webrtc__btn-icon">🎤</span><span class="sac-webrtc__btn-text">Micro</span>
+                </button>
+                <button type="button" class="sac-webrtc__btn sac-webrtc__btn--labeled" id="sacWrtcCam" title="Caméra" aria-label="Caméra">
+                  <span class="sac-webrtc__btn-icon">📷</span><span class="sac-webrtc__btn-text">Caméra</span>
+                </button>
+                <button type="button" class="sac-webrtc__btn sac-webrtc__btn--labeled" id="sacWrtcNoise" title="Réduction du bruit" aria-label="Réduction du bruit">
+                  <span class="sac-webrtc__btn-icon">🔇</span><span class="sac-webrtc__btn-text">Anti-bruit</span>
+                </button>
+                <button type="button" class="sac-webrtc__btn sac-webrtc__btn--labeled" id="sacWrtcScreen" title="Partager l'écran" aria-label="Partage écran">
+                  <span class="sac-webrtc__btn-icon">🖥️</span><span class="sac-webrtc__btn-text">Écran</span>
+                </button>
+                <button type="button" class="sac-webrtc__btn sac-webrtc__btn--labeled" id="sacWrtcRecord" title="Enregistrer" aria-label="Enregistrer">
+                  <span class="sac-webrtc__btn-icon">⏺️</span><span class="sac-webrtc__btn-text">Enreg.</span>
+                </button>
+                <button type="button" class="sac-webrtc__btn sac-webrtc__btn--labeled" id="sacWrtcFullscreen" title="Plein écran" aria-label="Plein écran">
+                  <span class="sac-webrtc__btn-icon">⛶</span><span class="sac-webrtc__btn-text">Plein écran</span>
+                </button>
+                <button type="button" class="sac-webrtc__btn sac-webrtc__btn--leave sac-webrtc__btn--labeled" id="sacWrtcLeave">
+                  <span class="sac-webrtc__btn-icon">✕</span><span class="sac-webrtc__btn-text">Quitter</span>
+                </button>
+              </div>
+            </div>
           </div>
         </div>`;
 
@@ -263,8 +366,10 @@ const SAC_WEBRTC_ROOM = (function () {
 
       this.container.querySelector("#sacWrtcMic").onclick = () => this.toggleMic();
       this.container.querySelector("#sacWrtcCam").onclick = () => this.toggleCam();
+      this.container.querySelector("#sacWrtcNoise").onclick = () => this.toggleNoiseCancel();
       this.container.querySelector("#sacWrtcScreen").onclick = () => this.toggleScreen();
       this.container.querySelector("#sacWrtcRecord").onclick = () => this.toggleRecord();
+      this.container.querySelector("#sacWrtcFullscreen").onclick = () => this.toggleFullscreen();
       this.container.querySelector("#sacWrtcLeave").onclick = () => {
         if (typeof this.opts.onLeave === "function") this.opts.onLeave();
         else leave();
@@ -277,6 +382,7 @@ const SAC_WEBRTC_ROOM = (function () {
         this.sendChat(text);
         input.value = "";
       };
+      this.container.querySelector("#sacWrtcNoise")?.classList.add("sac-webrtc__btn--active");
     }
 
     setStatus(text) {
@@ -708,6 +814,7 @@ const SAC_WEBRTC_ROOM = (function () {
 
       pc.onconnectionstatechange = () => {
         if (pc.connectionState === "connected") {
+          optimizeVideoSender(pc);
           this.applyRemoteAudio(remoteId, remote.role);
           if (isHostRole(this.userRole)) {
             this.ensureHostVideoSent(remote).catch(() => {});
@@ -907,6 +1014,47 @@ const SAC_WEBRTC_ROOM = (function () {
       }
     }
 
+    async replaceAudioOnPeers() {
+      const audioTrack = this.localStream?.getAudioTracks()[0];
+      if (!audioTrack) return;
+      for (const remote of this.peers.values()) {
+        const sender = remote.pc.getSenders().find((s) => s.track && s.track.kind === "audio");
+        if (sender) await sender.replaceTrack(audioTrack);
+        else remote.pc.addTrack(audioTrack, this.localStream);
+        await this.renegotiatePeer(remote);
+      }
+    }
+
+    async toggleNoiseCancel() {
+      this.noiseCancelOn = !this.noiseCancelOn;
+      const btn = this.container.querySelector("#sacWrtcNoise");
+      btn?.classList.toggle("sac-webrtc__btn--active", this.noiseCancelOn);
+      btn?.classList.toggle("sac-webrtc__btn--off", !this.noiseCancelOn);
+      if (!this.rawMicStream) return;
+      const micOn = this.micOn;
+      this.localStream = this.buildLocalStream(this.rawMicStream);
+      this.localStream.getAudioTracks().forEach((t) => {
+        t.enabled = micOn;
+      });
+      if (this.localVideo) this.localVideo.srcObject = this.getSendStream();
+      await this.replaceAudioOnPeers();
+      this.setStatus(this.noiseCancelOn ? "Anti-bruit activé" : "Anti-bruit désactivé");
+    }
+
+    toggleFullscreen() {
+      const root =
+        this.container.closest(".live-room-overlay, .mtg-room-overlay, .min-live-room") ||
+        this.stage ||
+        this.container;
+      const req = root.requestFullscreen || root.webkitRequestFullscreen;
+      const exit = document.exitFullscreen || document.webkitExitFullscreen;
+      if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+        req?.call(root);
+      } else {
+        exit?.call(document);
+      }
+    }
+
     toggleMic() {
       this.micOn = !this.micOn;
       this.localStream.getAudioTracks().forEach((t) => {
@@ -1076,7 +1224,10 @@ const SAC_WEBRTC_ROOM = (function () {
       if (this.screenStream) {
         this.screenStream.getTracks().forEach((t) => t.stop());
       }
-      if (this.localStream) {
+      if (this.audioEnhancer?.cleanup) this.audioEnhancer.cleanup();
+      if (this.rawMicStream) {
+        this.rawMicStream.getTracks().forEach((t) => t.stop());
+      } else if (this.localStream) {
         this.localStream.getTracks().forEach((t) => t.stop());
       }
       if (this.container) this.container.innerHTML = "";
