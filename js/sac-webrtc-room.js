@@ -409,9 +409,22 @@ const SAC_WEBRTC_ROOM = (function () {
         try {
           this.rawMicStream = await requestUserMedia(true, false);
           this.setStatus("Micro actif — appuyez sur Caméra pour activer la vidéo");
-        } catch (err2) {
-          this.setStatus(mediaErrorMessage(err2));
-          throw new Error(mediaErrorMessage(err2));
+        } catch {
+          try {
+            this.rawMicStream = await requestUserMedia(false, true);
+            this.setStatus("Caméra active — micro indisponible, cliquez sur 🎤 pour réessayer");
+          } catch (err2) {
+            this.rawMicStream = null;
+            this.localStream = new MediaStream();
+            this.micOn = false;
+            this.camOn = false;
+            this.container.querySelector("#sacWrtcMic")?.classList.add("sac-webrtc__btn--off");
+            this.container.querySelector("#sacWrtcCam")?.classList.add("sac-webrtc__btn--off");
+            this.setStatus(
+              "Micro/caméra refusés — cliquez sur 🎤 ou 📷 pour autoriser, ou vérifiez l'icône cadenas dans la barre d'adresse."
+            );
+            return;
+          }
         }
       }
       this.localStream = this.buildLocalStream(this.rawMicStream);
@@ -1254,14 +1267,19 @@ const SAC_WEBRTC_ROOM = (function () {
       const tracks = this.localStream?.getAudioTracks?.() || [];
       if (!tracks.length && !this.micOn) {
         requestUserMedia(true, false)
-          .then((stream) => {
+          .then(async (stream) => {
             this.rawMicStream = stream;
             this.localStream = this.buildLocalStream(stream);
             this.micOn = true;
             this.container.querySelector("#sacWrtcMic")?.classList.remove("sac-webrtc__btn--off");
             if (!this.localVideo) this.addLocalTile();
-            if (this.isAudience) this.ensureAudienceSenders().catch(() => {});
+            if (this.isAudience) {
+              await this.ensureAudienceSenders().catch(() => {});
+            } else {
+              await this.replaceAudioOnPeers().catch(() => {});
+            }
             this.sendMicState();
+            this.setStatus("Micro activé");
           })
           .catch((err) => {
             this.setStatus(mediaErrorMessage(err));

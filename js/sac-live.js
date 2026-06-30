@@ -910,11 +910,21 @@ const SAC_LIVE = (function () {
       },
     }).catch((err) => {
       const msg = String(err?.message || "");
+      const host = isHostRole(user?.role);
       if (/permission denied/i.test(msg) || /refusé/i.test(msg)) {
-        alert(
-          "Impossible d'ouvrir la salle : autorisez le micro/caméra si vous animez le cours.\n\n" +
-            "En tant qu'étudiant, le live doit s'ouvrir en mode spectateur — actualisez la page (Ctrl+F5) si l'erreur persiste."
-        );
+        if (host) {
+          alert(
+            "Micro ou caméra refusé.\n\n" +
+              "1. Cliquez sur l'icône cadenas dans la barre d'adresse\n" +
+              "2. Autorisez le micro et la caméra pour ce site\n" +
+              "3. Rouvrez le live, ou cliquez sur 🎤 / 📷 dans la barre du bas"
+          );
+        } else {
+          alert(
+            "Impossible d'ouvrir la salle live.\n\n" +
+              "Actualisez la page (Ctrl+F5) — le live étudiant s'ouvre en mode spectateur sans caméra."
+          );
+        }
       } else {
         alert(msg || "Impossible d'ouvrir la salle live SAC.");
       }
