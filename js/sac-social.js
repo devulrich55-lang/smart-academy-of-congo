@@ -300,13 +300,13 @@ const SAC_SOCIAL = (function () {
     }
 
     root.innerHTML =
-      '<div class="social-hub">' +
-      '<header class="social-hub__nav">' +
+      '<div class="social-hub social-hub--campus">' +
+      '<header class="social-hub__nav social-hub__nav--legacy">' +
       '<div class="social-hub__nav-brand"><span class="social-hub__nav-logo">💬</span><div><strong>Réseau campus</strong><small>Fil · Messages · Alertes</small></div></div>' +
       '<nav class="social-hub__nav-tabs" aria-label="Sections">' +
-      '<button type="button" class="social-hub__nav-tab social-hub__nav-tab--active" data-view="feed">📰 Fil</button>' +
+      '<button type="button" class="social-hub__nav-tab" data-view="feed">📰 Fil</button>' +
       (showMessagesNav
-        ? '<button type="button" class="social-hub__nav-tab" data-view="messages">💬 Messages<span class="social-hub__nav-badge" id="navMsgBadge" hidden>0</span></button>'
+        ? '<button type="button" class="social-hub__nav-tab social-hub__nav-tab--active" data-view="messages">💬 Messages<span class="social-hub__nav-badge" id="navMsgBadge" hidden>0</span></button>'
         : "") +
       '<button type="button" class="social-hub__nav-tab" data-view="notif">🔔 Alertes<span class="social-hub__nav-badge" id="navNotifBadge" hidden>0</span></button>' +
       "</nav></header>" +
@@ -359,51 +359,59 @@ const SAC_SOCIAL = (function () {
         : "") +
       '<div id="socialFeedList"><p class="social-hub__muted">Chargement du fil…</p></div></main></div></section>' +
       (showMessagesNav
-        ? '<section class="social-view messenger-app" id="socialViewMessages" hidden>' +
-          '<header class="messenger-app__header">' +
-          '<h1 class="messenger-app__title">messenger</h1>' +
-          '<button type="button" class="messenger-app__compose" id="messengerNewBtn" title="Nouveau message" aria-label="Nouveau message">✎</button>' +
-          "</header>" +
-          '<div class="messenger__search-wrap messenger__search-wrap--app">' +
-          '<input type="search" class="messenger__search" id="messengerSearch" placeholder="Rechercher une conversation…" autocomplete="off" /></div>' +
+        ? '<section class="social-view campus-messages" id="socialViewMessages" hidden>' +
+          '<header class="campus-messages__header">' +
+          "<div><h1>Réseau campus</h1><p>Votre espace d'échanges et de collaboration.</p></div>" +
+          '<span class="campus-messages__profile" aria-hidden="true">' +
+          esc(initials(displayName(session))) +
+          "</span></header>" +
+          '<h2 class="campus-messages__section-title">Vos conversations</h2>' +
           '<div class="messenger__stories" id="messengerStories" aria-label="Conversations récentes"></div>' +
-          '<div class="messenger messenger--dark" id="messengerRoot">' +
+          '<div class="messenger messenger--campus" id="messengerRoot">' +
           '<aside class="messenger__inbox" id="messengerInbox">' +
           '<div class="messenger__convos" id="messengerConvos"><p class="social-hub__muted">Chargement…</p></div>' +
-          '<div class="messenger__new-peer" id="messengerNewPeer" hidden>' +
-          '<input class="messenger__peer-input" id="messengerPeerEmail" placeholder="E-mail de l\'étudiant" />' +
-          '<button type="button" class="messenger__peer-start" id="messengerPeerStart">Démarrer</button></div>' +
-          "</aside>" +
+          '<div class="campus-new-message" id="messengerNewPeer">' +
+          "<h3>Nouveau message</h3>" +
+          '<div class="campus-new-message__row">' +
+          '<input class="campus-new-message__input" id="messengerPeerEmail" placeholder="E-mail de l\'étudiant" autocomplete="off" />' +
+          '<button type="button" class="campus-new-message__send" id="messengerPeerStart" aria-label="Démarrer">✈</button>' +
+          "</div></div></aside>" +
           '<div class="messenger__chat" id="messengerChat">' +
           '<div class="messenger__empty" id="messengerEmpty">' +
-          '<div class="messenger__empty-icon">💬</div>' +
+          '<div class="campus-empty-bubbles" aria-hidden="true"><span></span><span></span></div>' +
           "<h3>Vos messages</h3>" +
           "<p>Sélectionnez une conversation ou démarrez un nouveau message avec un camarade de campus.</p></div>" +
           '<div class="messenger__active" id="messengerActive" hidden>' +
           '<header class="messenger__chat-head">' +
           '<button type="button" class="messenger__back" id="messengerBack" aria-label="Retour">←</button>' +
           '<span class="messenger__avatar" id="messengerChatAvatar">?</span>' +
-          '<div class="messenger__chat-meta"><strong id="messengerChatName">—</strong><small id="messengerChatSub">En ligne sur le campus</small></div></header>' +
+          '<div class="messenger__chat-meta"><strong id="messengerChatName">—</strong><small id="messengerChatSub">Campus SAC</small></div>' +
+          '<button type="button" class="messenger-app__compose" id="messengerNewBtn" title="Nouveau message" aria-label="Nouveau message">✎</button>' +
+          "</header>" +
           '<div class="messenger__thread" id="messengerThread"></div>' +
           '<form class="messenger__composer" id="messengerForm">' +
-          '<input type="text" id="messengerInput" placeholder="Aa" maxlength="2000" autocomplete="off" />' +
-          '<button type="submit" class="messenger__send" aria-label="Envoyer">➤</button></form></div></div></div>' +
-          '<nav class="messenger-bottom-nav" aria-label="Navigation réseau">' +
-          '<button type="button" class="messenger-bottom-nav__btn messenger-bottom-nav__btn--active" data-view="messages">' +
-          '<span class="messenger-bottom-nav__icon">💬</span><span>Discussions</span>' +
-          '<span class="messenger-bottom-nav__badge" id="navMsgBadgeBottom" hidden>0</span></button>' +
-          '<button type="button" class="messenger-bottom-nav__btn" data-view="feed">' +
-          '<span class="messenger-bottom-nav__icon">📰</span><span>Fil</span></button>' +
-          '<button type="button" class="messenger-bottom-nav__btn" data-view="notif">' +
-          '<span class="messenger-bottom-nav__icon">🔔</span><span>Alertes</span>' +
-          '<span class="messenger-bottom-nav__badge messenger-bottom-nav__badge--dot" id="navNotifBadgeBottom" hidden></span></button>' +
-          "</nav></section>"
+          '<input type="text" id="messengerInput" placeholder="Écrivez un message…" maxlength="2000" autocomplete="off" />' +
+          '<button type="submit" class="messenger__send" aria-label="Envoyer">➤</button></form></div></div></div></section>'
         : "") +
       '<section class="social-view" id="socialViewNotif" hidden>' +
       '<div class="notif-center">' +
       '<h3 class="notif-center__title">Notifications</h3>' +
       '<p class="social-hub__muted notif-center__sub">Réactions, commentaires et activité sur vos publications.</p>' +
-      '<div id="notifCenterList"><p class="social-hub__muted">Chargement…</p></div></div></section></div>';
+      '<div id="notifCenterList"><p class="social-hub__muted">Chargement…</p></div></div></section>' +
+      '<nav class="campus-bottom-nav" id="campusBottomNav" aria-label="Navigation réseau campus">' +
+      (showMessagesNav
+        ? '<button type="button" class="campus-bottom-nav__btn campus-bottom-nav__btn--active" data-view="messages">' +
+          '<span class="campus-bottom-nav__icon">💬</span><span>Discussion</span>' +
+          '<span class="campus-bottom-nav__badge" id="navMsgBadgeBottom" hidden>0</span></button>'
+        : "") +
+      '<button type="button" class="campus-bottom-nav__btn' +
+      (showMessagesNav ? "" : " campus-bottom-nav__btn--active") +
+      '" data-view="feed">' +
+      '<span class="campus-bottom-nav__icon">📰</span><span>Fil</span></button>' +
+      '<button type="button" class="campus-bottom-nav__btn" data-view="notif">' +
+      '<span class="campus-bottom-nav__icon">🔔</span><span>Alerte</span>' +
+      '<span class="campus-bottom-nav__badge campus-bottom-nav__badge--dot" id="navNotifBadgeBottom" hidden></span></button>' +
+      "</nav></div>";
 
     const composer = root.querySelector("#socialComposer");
     const feedEl = root.querySelector("#socialFeedList");
@@ -549,27 +557,32 @@ const SAC_SOCIAL = (function () {
       });
     });
 
-    function syncMessengerLayout() {
+    function syncCampusLayout() {
       const section = root.closest("section[id^='section-']");
+      const sectionActive = section && section.classList.contains("active");
       const inMessages = state.view === "messages";
       const inChat = inMessages && !!state.msgPeer;
-      const sectionActive = section && section.classList.contains("active");
       root.classList.toggle("social-hub--messages", inMessages);
       root.classList.toggle("social-hub--chat-open", inChat);
       if (section) {
         section.classList.toggle("social-messages-mode", inMessages);
         section.classList.toggle("social-chat-fullscreen", inChat);
       }
-      document.body.classList.toggle("sac-messenger-mode", inMessages && sectionActive);
+      document.body.classList.toggle("sac-campus-social-mode", !!sectionActive);
       document.body.classList.toggle("sac-messenger-chat-open", inChat && sectionActive);
       const toolbar = root.querySelector(".social-hub__toolbar");
       if (toolbar) toolbar.hidden = inMessages;
+    }
+
+    function syncMessengerLayout() {
+      syncCampusLayout();
     }
 
     function switchView(view) {
       state.view = view;
       root.querySelectorAll("[data-view]").forEach((b) => {
         b.classList.toggle("social-hub__nav-tab--active", b.dataset.view === view && b.classList.contains("social-hub__nav-tab"));
+        b.classList.toggle("campus-bottom-nav__btn--active", b.dataset.view === view && b.classList.contains("campus-bottom-nav__btn"));
         b.classList.toggle("messenger-bottom-nav__btn--active", b.dataset.view === view && b.classList.contains("messenger-bottom-nav__btn"));
       });
       root.querySelector("#socialViewFeed").hidden = view !== "feed";
@@ -879,15 +892,7 @@ const SAC_SOCIAL = (function () {
           typeof SAC_API !== "undefined" && SAC_API.listSocialConversations
             ? await SAC_API.listSocialConversations()
             : [];
-        const q = (root.querySelector("#messengerSearch")?.value || "").trim().toLowerCase();
-        const filtered = q
-          ? convos.filter(
-              (c) =>
-                (c.peerName || "").toLowerCase().includes(q) ||
-                (c.peerEmail || "").toLowerCase().includes(q) ||
-                (c.lastMessage || "").toLowerCase().includes(q)
-            )
-          : convos;
+        const filtered = convos;
 
         if (!filtered.length) {
           convosEl.innerHTML =
@@ -936,7 +941,7 @@ const SAC_SOCIAL = (function () {
                 '" data-name="' +
                 esc(c.peerName) +
                 '">' +
-                (c.unread ? '<span class="messenger__unread-pip" aria-hidden="true"></span>' : "") +
+                (c.unread ? '<span class="messenger__unread-pip" aria-hidden="true"></span>' : '<span class="messenger__unread-pip messenger__unread-pip--spacer"></span>') +
                 '<span class="messenger__avatar">' +
                 esc(initials(c.peerName)) +
                 "</span>" +
@@ -950,7 +955,11 @@ const SAC_SOCIAL = (function () {
                 "</time></span>" +
                 '<span class="messenger__convo-preview">' +
                 esc((c.lastMessage || "").slice(0, 80)) +
-                "</span></span></button>"
+                "</span></span>" +
+                (c.unread
+                  ? '<span class="messenger__convo-badge">' + Math.min(c.unread, 9) + "</span>"
+                  : "") +
+                "</button>"
             )
             .join("");
           convosEl.querySelectorAll("[data-peer]").forEach((btn) => {
@@ -1006,17 +1015,16 @@ const SAC_SOCIAL = (function () {
     }
 
     root.querySelector("#messengerNewBtn")?.addEventListener("click", () => {
-      const box = root.querySelector("#messengerNewPeer");
-      if (box) box.hidden = !box.hidden;
+      const input = root.querySelector("#messengerPeerEmail");
+      if (input) {
+        input.focus();
+        input.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
     });
     root.querySelector("#messengerPeerStart")?.addEventListener("click", () => {
       const em = root.querySelector("#messengerPeerEmail")?.value.trim().toLowerCase();
-      if (em) {
-        openChat(em, em);
-        root.querySelector("#messengerNewPeer").hidden = true;
-      }
+      if (em) openChat(em, em);
     });
-    root.querySelector("#messengerSearch")?.addEventListener("input", () => paintMessenger());
     root.querySelector("#messengerBack")?.addEventListener("click", () => {
       state.msgPeer = null;
       paintMessenger();
@@ -1113,6 +1121,7 @@ const SAC_SOCIAL = (function () {
       await paintFeed();
       await paintSidebar();
       await updateBadges();
+      syncCampusLayout();
       if (options && options.defaultView) {
         switchView(options.defaultView);
       } else if (showMessagesNav) {
@@ -1124,7 +1133,7 @@ const SAC_SOCIAL = (function () {
   }
 
   function clearMessengerMode() {
-    document.body.classList.remove("sac-messenger-mode", "sac-messenger-chat-open");
+    document.body.classList.remove("sac-messenger-mode", "sac-messenger-chat-open", "sac-campus-social-mode");
   }
 
   return { mountFeedUI, listPosts, createPost, clearMessengerMode };
