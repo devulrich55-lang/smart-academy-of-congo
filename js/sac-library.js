@@ -121,6 +121,320 @@ const SAC_LIBRARY = (function () {
     return url;
   }
 
+  const PURCHASES_KEY = "sac_library_purchases";
+  const DEFAULT_BOOK_PRICE = 5;
+  const DEFAULT_BOOK_CURRENCY = "USD";
+
+  function normOwnerKey(session) {
+    const email = session?.identifiant || session?.email || "";
+    return email ? String(email).trim().toLowerCase() : "__guest__";
+  }
+
+  function isBookFree(item) {
+    if (!item) return false;
+    if (item.isFree === true || item.free === true || item.is_free === true) return true;
+    const access = String(item.accessType || item.access || "").toLowerCase();
+    return access === "free" || access === "gratuit";
+  }
+
+  function bookPrice(item) {
+    if (isBookFree(item)) return 0;
+    const price = Number(item.price ?? item.purchase_price);
+    return price > 0 ? price : DEFAULT_BOOK_PRICE;
+  }
+
+  function bookCurrency(item) {
+    return String(item.currency || DEFAULT_BOOK_CURRENCY).toUpperCase();
+  }
+
+  function formatBookPrice(item) {
+    if (isBookFree(item)) return "Gratuit";
+    return bookPrice(item) + " " + bookCurrency(item);
+  }
+
+  function readPurchasesMap() {
+    try {
+      return JSON.parse(localStorage.getItem(PURCHASES_KEY) || "{}");
+    } catch {
+      return {};
+    }
+  }
+
+  function getPurchasedBookIds(session) {
+    const map = readPurchasesMap();
+    const ids = map[normOwnerKey(session)];
+    return Array.isArray(ids) ? ids : [];
+  }
+
+  function isBookPurchased(bookId, session) {
+    if (!bookId) return false;
+    return getPurchasedBookIds(session).includes(bookId);
+  }
+
+  function hasBookAccess(item, session) {
+    if (!item) return false;
+    if (isBookFree(item)) return true;
+    return isBookPurchased(item.id, session);
+  }
+
+  function recordBookPurchase(bookId, session) {
+    if (!bookId) return;
+    const map = readPurchasesMap();
+    const key = normOwnerKey(session);
+    const list = Array.isArray(map[key]) ? map[key].slice() : [];
+    if (!list.includes(bookId)) list.push(bookId);
+    map[key] = list;
+    localStorage.setItem(PURCHASES_KEY, JSON.stringify(map));
+    window.dispatchEvent(new CustomEvent("sac-library-purchase", { detail: { bookId } }));
+  }
+
+  function bookFileUrl(item) {
+    return absUrl(item?.fileUrl || item?.file_url || "");
+  }
+
+  function openBookFile(item, session) {
+    const url = bookFileUrl(item);
+    if (!url) {
+      alert("Fichier indisponible pour ce livre.");
+      return;
+    }
+    if (!hasBookAccess(item, session)) {
+      openBookPurchaseDialog(item, session);
+      return;
+    }
+    window.open(url, "_blank", "noopener");
+  }
+
+  function ensurePurchaseModal() {
+    let modal = document.getElementById("libPurchaseModal");
+    if (modal) return modal;
+    modal = document.createElement("div");
+    modal.id = "libPurchaseModal";
+    modal.className = "lib-purchase-modal";
+    modal.hidden = true;
+    modal.innerHTML =
+      '<div class="lib-purchase-modal__backdrop" data-lib-purchase-close></div>' +
+      '<div class="lib-purchase-modal__panel" role="dialog" aria-modal="true" aria-labelledby="libPurchaseTitle">' +
+      '<button type="button" class="lib-purchase-modal__close" data-lib-purchase-close aria-label="Fermer">×</button>' +
+      '<h3 id="libPurchaseTitle">Acheter ce livre</h3>' +
+      '<p class="lib-purchase-modal__book" id="libPurchaseBook"></p>' +
+      '<p class="lib-purchase-modal__price" id="libPurchasePrice"></p>' +
+      '<p class="lib-purchase-modal__hint">Les ouvrages sont en vente par défaut. Seuls les livres publiés en accès gratuit sont téléchargeables sans paiement.</p>' +
+      '<div class="lib-purchase-modal__methods">' +
+      '<label>Mode de paiement</label>' +
+      '<div class="lib-purchase-modal__tabs">' +
+      '<button type="button" class="lib-purchase-tab lib-purchase-tab--active" data-lib-pay-method="orange">🟠 Orange Money</button>' +
+      '<button type="button" class="lib-purchase-tab" data-lib-pay-method="mpesa">📱 M-Pesa</button>' +
+      "</div></div>" +
+      '<label class="lib-purchase-field">Téléphone (Mobile Money)<input type="tel" id="libPurchasePhone" placeholder="+243…" autocomplete="tel" /></label>' +
+      '<p class="lib-purchase-modal__status" id="libPurchaseStatus" hidden></p>' +
+      '<div class="lib-purchase-modal__actions">' +
+      '<button type="button" class="btn btn--ghost" data-lib-purchase-close>Annuler</button>' +
+      '<button type="button" class="btn btn--primary" id="libPurchaseConfirm">Payer et accéder</button>' +
+      "</div></div>";
+    document.body.appendChild(modal);
+    modal.querySelectorAll("[data-lib-purchase-close]").forEach((el) => {
+      el.addEventListener("click", () => {
+        modal.hidden = true;
+      });
+    });
+    let activeMethod = "orange";
+    modal.querySelectorAll("[data-lib-pay-method]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        activeMethod = btn.dataset.libPayMethod || "orange";
+        modal.querySelectorAll("[data-lib-pay-method]").forEach((b) => {
+          b.classList.toggle("lib-purchase-tab--active", b === btn);
+        });
+      });
+    });
+    modal._getPayMethod = () => activeMethod;
+    return modal;
+  }
+
+  async function openBookPurchaseDialog(item, session) {
+    if (!item || isBookFree(item)) {
+      openBookFile(item, session);
+      return;
+    }
+    if (hasBookAccess(item, session)) {
+      openBookFile(item, session);
+      return;
+    }
+
+    const modal = ensurePurchaseModal();
+    const statusEl = modal.querySelector("#libPurchaseStatus");
+    const confirmBtn = modal.querySelector("#libPurchaseConfirm");
+    modal.querySelector("#libPurchaseBook").textContent = item.title || "Livre";
+    modal.querySelector("#libPurchasePrice").textContent = "Montant : " + formatBookPrice(item);
+    if (statusEl) {
+      statusEl.hidden = true;
+      statusEl.textContent = "";
+    }
+    modal.hidden = false;
+
+    const onConfirm = async () => {
+      const phone = modal.querySelector("#libPurchasePhone")?.value?.trim();
+      if (!phone) {
+        alert("Indiquez votre numéro Mobile Money.");
+        return;
+      }
+      confirmBtn.disabled = true;
+      if (statusEl) {
+        statusEl.hidden = false;
+        statusEl.textContent = "Traitement du paiement…";
+      }
+      try {
+        const price = bookPrice(item);
+        const currency = bookCurrency(item);
+        let paid = false;
+        if (typeof SAC_MOBILE_MONEY !== "undefined" && SAC_MOBILE_MONEY.runFlow) {
+          const online = typeof SAC_API !== "undefined" && (await SAC_API.ensureOnline());
+          if (!online) throw new Error("Connexion API requise pour le paiement.");
+          const amountCdf = currency === "CDF" ? price : Math.round(price * 2800);
+          await SAC_MOBILE_MONEY.runFlow({
+            provider: modal._getPayMethod(),
+            payerPhone: phone,
+            amountCdf,
+            amountUsd: currency === "USD" ? price : 0,
+            purpose: "library",
+            email: session?.identifiant || session?.email || "",
+            metadata: { bookId: item.id, bookTitle: item.title || "" },
+            onProcessing() {
+              if (statusEl) statusEl.textContent = "Initialisation du paiement…";
+            },
+            onWaitingOperator() {
+              if (statusEl) statusEl.textContent = "Validez le paiement sur votre téléphone…";
+            },
+            onPinPrompt() {
+              const pin = prompt("Entrez votre code PIN Mobile Money :");
+              return pin || "";
+            },
+          });
+          paid = true;
+        } else {
+          throw new Error("Paiement mobile indisponible — réessayez plus tard.");
+        }
+        if (paid) {
+          recordBookPurchase(item.id, session);
+          modal.hidden = true;
+          openBookFile(item, session);
+        }
+      } catch (err) {
+        if (statusEl) statusEl.textContent = err.message || "Paiement impossible.";
+        alert(err.message || "Paiement impossible.");
+      } finally {
+        confirmBtn.disabled = false;
+      }
+    };
+
+    confirmBtn.onclick = onConfirm;
+  }
+
+  function renderBookCard(item, options) {
+    const compact = !!options?.compact;
+    const session = options?.session || null;
+    const cover = absUrl(item.coverUrl || item.cover_url || "");
+    const free = isBookFree(item);
+    const owned = hasBookAccess(item, session);
+    const priceLabel = formatBookPrice(item);
+    const coverHtml = cover
+      ? '<div class="cover"><img src="' + esc(cover) + '" alt="" loading="lazy" /></div>'
+      : '<div class="cover">📘</div>';
+    const badge = free
+      ? '<span class="lib-access-badge lib-access-badge--free">Gratuit</span>'
+      : '<span class="lib-access-badge lib-access-badge--paid">' + esc(priceLabel) + "</span>";
+
+    let actionHtml = "";
+    if (free || owned) {
+      actionHtml =
+        '<button type="button" class="lib-glass-btn" data-lib-read="' +
+        esc(item.id) +
+        '">📖 ' +
+        (free ? "Lire gratuitement" : "Lire") +
+        "</button>";
+    } else {
+      actionHtml =
+        '<button type="button" class="lib-glass-btn lib-glass-btn--buy" data-lib-buy="' +
+        esc(item.id) +
+        '">🛒 Acheter · ' +
+        esc(priceLabel) +
+        "</button>";
+    }
+
+    if (compact) {
+      const canOpen = (free || owned) && bookFileUrl(item);
+      if (canOpen) {
+        return (
+          '<a class="lib-book-card" href="' +
+          esc(bookFileUrl(item)) +
+          '" target="_blank" rel="noopener" data-lib-read="' +
+          esc(item.id) +
+          '">' +
+          badge +
+          coverHtml +
+          '<div class="lib-meta"><strong>' +
+          esc(item.title || "Ressource") +
+          "</strong><p>" +
+          esc(item.author || "—") +
+          "</p></div></a>"
+        );
+      }
+      return (
+        '<article class="lib-book-card lib-book-card--locked" data-lib-book="' +
+        esc(item.id) +
+        '">' +
+        badge +
+        coverHtml +
+        '<div class="lib-meta"><strong>' +
+        esc(item.title || "Ressource") +
+        "</strong><p>" +
+        esc(item.author || "—") +
+        "</p>" +
+        actionHtml +
+        "</div></article>"
+      );
+    }
+
+    return (
+      '<article class="lib-item" data-lib-book="' +
+      esc(item.id) +
+      '">' +
+      badge +
+      coverHtml +
+      '<div class="lib-meta"><strong>' +
+      esc(item.title || "Ressource") +
+      "</strong><p>" +
+      esc(item.author || "—") +
+      "</p>" +
+      '<p class="lib-item-cat">' +
+      esc(categoryLabel(item.category)) +
+      "</p>" +
+      actionHtml +
+      "</div></article>"
+    );
+  }
+
+  function bindBookActions(root, getSessionFn, getBooksFn) {
+    if (!root) return;
+    root.addEventListener("click", (e) => {
+      const readBtn = e.target.closest("[data-lib-read]");
+      const buyBtn = e.target.closest("[data-lib-buy]");
+      const card = e.target.closest("[data-lib-buy], [data-lib-read]");
+      if (!readBtn && !buyBtn) return;
+      e.preventDefault();
+      const id = (readBtn || buyBtn).dataset.libRead || (buyBtn || readBtn).dataset.libBuy;
+      const books = typeof getBooksFn === "function" ? getBooksFn() : [];
+      const item = books.find((b) => b.id === id);
+      if (!item) return;
+      const session = typeof getSessionFn === "function" ? getSessionFn() : null;
+      if (buyBtn || !hasBookAccess(item, session)) {
+        openBookPurchaseDialog(item, session);
+      } else {
+        openBookFile(item, session);
+      }
+    });
+  }
+
   function filterByCountry(items, countryCode) {
     if (!Array.isArray(items)) return [];
     if (typeof SAC_AFRICA_COUNTRIES === "undefined") return items;
@@ -261,6 +575,12 @@ const SAC_LIBRARY = (function () {
       "</div></div>" +
       '<div class="fg" style="grid-column:1/-1;"><label>Fichier du livre (PDF, EPUB, DOC…) *</label><input type="file" class="fi lib-file" accept=".pdf,.epub,.doc,.docx" /></div>' +
       '<div class="fg" style="grid-column:1/-1;"><label>Ou lien direct du livre (URL)</label><input class="fi lib-url" placeholder="https://…" /></div>' +
+      '<div class="fg" style="grid-column:1/-1;border-top:1px solid var(--border);padding-top:0.75rem;">' +
+      '<label class="chk"><input type="checkbox" class="lib-free" /> Publication gratuite (accès libre sans achat)</label>' +
+      '<p style="margin:0.35rem 0 0;font-size:0.82rem;color:var(--muted);">Par défaut, les livres sont <strong>payants</strong>. Cochez cette case uniquement pour une ressource offerte gratuitement.</p>' +
+      "</div>" +
+      '<div class="fg lib-price-wrap"><label>Prix de vente *</label><input class="fi lib-price" type="number" min="0.5" step="0.5" value="5" /></div>' +
+      '<div class="fg lib-price-wrap"><label>Devise</label><select class="fi lib-currency"><option value="USD">USD</option><option value="CDF">CDF</option></select></div>' +
       '<div class="fg" style="grid-column:1/-1;"><label class="chk"><input type="checkbox" class="lib-published" checked /> Publier immédiatement dans la bibliothèque de ' +
       esc(countryLabel) +
       "</label></div>" +
@@ -276,6 +596,18 @@ const SAC_LIBRARY = (function () {
     const btnSubmit = root.querySelector(".lib-submit");
     const coverPreview = root.querySelector(".lib-cover-preview");
     const coverPreviewImg = root.querySelector(".lib-cover-preview-img");
+    const freeCheckbox = root.querySelector(".lib-free");
+    const priceWraps = root.querySelectorAll(".lib-price-wrap");
+
+    function syncPriceFields() {
+      const free = !!freeCheckbox?.checked;
+      priceWraps.forEach((el) => {
+        el.style.display = free ? "none" : "";
+      });
+    }
+
+    freeCheckbox?.addEventListener("change", syncPriceFields);
+    syncPriceFields();
 
     function q(sel) {
       return root.querySelector(sel);
@@ -340,6 +672,8 @@ const SAC_LIBRARY = (function () {
                 esc(b.author || "—") +
                 " · " +
                 (b.published ? "Publié" : "Brouillon") +
+                " · " +
+                (isBookFree(b) ? "Gratuit" : formatBookPrice(b)) +
                 "</span>" +
                 '<div style="margin-top:0.5rem;display:flex;gap:0.4rem;flex-wrap:wrap;">' +
                 '<button type="button" class="btn btn--ghost btn--sm" data-edit-lib="' +
@@ -375,6 +709,10 @@ const SAC_LIBRARY = (function () {
             if (item.coverUrl) showCoverPreview(item.coverUrl);
             else hideCoverPreview();
             q(".lib-published").checked = !!item.published;
+            if (freeCheckbox) freeCheckbox.checked = isBookFree(item);
+            if (q(".lib-price")) q(".lib-price").value = bookPrice(item);
+            if (q(".lib-currency")) q(".lib-currency").value = bookCurrency(item);
+            syncPriceFields();
             formTitle.textContent = "Modifier le livre";
             btnSubmit.textContent = "Enregistrer";
             btnCancel.style.display = "inline-block";
@@ -403,6 +741,10 @@ const SAC_LIBRARY = (function () {
       editingId = null;
       form.reset();
       q(".lib-published").checked = true;
+      if (freeCheckbox) freeCheckbox.checked = false;
+      if (q(".lib-price")) q(".lib-price").value = DEFAULT_BOOK_PRICE;
+      if (q(".lib-currency")) q(".lib-currency").value = DEFAULT_BOOK_CURRENCY;
+      syncPriceFields();
       hideCoverPreview();
       formTitle.textContent = "Publier un livre numérique";
       btnSubmit.textContent = "Publier le livre";
@@ -423,6 +765,9 @@ const SAC_LIBRARY = (function () {
         coverUrl: q(".lib-cover-url").value.trim(),
         published: q(".lib-published").checked,
         countryCode: countryCode,
+        isFree: !!freeCheckbox?.checked,
+        price: freeCheckbox?.checked ? 0 : Number(q(".lib-price")?.value) || DEFAULT_BOOK_PRICE,
+        currency: q(".lib-currency")?.value || DEFAULT_BOOK_CURRENCY,
       };
 
       const coverFile = q(".lib-cover-file")?.files?.[0];
@@ -482,5 +827,16 @@ const SAC_LIBRARY = (function () {
     deleteBook,
     initMinistryPublisher,
     absUrl,
+    isBookFree,
+    bookPrice,
+    bookCurrency,
+    formatBookPrice,
+    hasBookAccess,
+    isBookPurchased,
+    recordBookPurchase,
+    openBookFile,
+    openBookPurchaseDialog,
+    renderBookCard,
+    bindBookActions,
   };
 })();

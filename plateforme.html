@@ -7,7 +7,7 @@
   <script src="js/sac-config.js?v=20260629a"></script>
   <link rel="icon" href="evo-uni.jpeg" type="image/jpeg" />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/library-immersive.css?v=20260625e" />
+  <link rel="stylesheet" href="css/library-immersive.css?v=20260704" />
   <meta name="theme-color" content="#1f1814" />
   <script>
     document.documentElement.removeAttribute("data-theme");
@@ -25,7 +25,7 @@
       <section class="lib-mockup-hero" id="platformHero" style="background-image: linear-gradient(180deg, rgba(8,12,20,0.22), rgba(31,24,20,0.72) 78%, #1f1814), url('bibliotheque.jpeg')">
         <div class="lib-mockup-hero__inner">
           <h1 id="platformHeroTitle">Bienvenue dans votre<br>Bibliothèque Numérique</h1>
-          <p id="platformHeroDesc">Accédez à des milliers de ressources éducatives, documents et ouvrages — partout, à tout moment.</p>
+          <p id="platformHeroDesc">Parcourez le catalogue librement. Les ouvrages sont en vente — seuls les livres publiés en accès gratuit sont lisibles sans achat.</p>
           <form class="lib-hero-search" id="heroSearchForm" role="search">
             <input id="heroSearch" type="search" placeholder="Rechercher un livre, un document, un cours…" autocomplete="off" />
             <button type="submit" class="lib-btn-purple">Rechercher</button>
@@ -109,7 +109,8 @@
   <script src="js/sac-session.js"></script>
   <script src="js/sac-identity.js"></script>
   <script src="js/sac-api.js?v=20260629a"></script>
-  <script src="js/sac-library.js?v=20260703"></script>
+  <script src="js/sac-mobile-money.js"></script>
+  <script src="js/sac-library.js?v=20260704"></script>
   <script>
     (async function () {
       const panelLibrary = document.getElementById("panel-library");
@@ -128,25 +129,29 @@
       let session = null;
       try {
         if (typeof SAC_SESSION !== "undefined" && SAC_SESSION.resolveNavigationSession) {
-        session = await SAC_SESSION.resolveNavigationSession();
+          session = await SAC_SESSION.resolveNavigationSession();
         } else if (typeof SAC_SESSION !== "undefined" && SAC_SESSION.getSession) {
-        session = SAC_SESSION.getSession();
+          session = SAC_SESSION.getSession();
         }
       } catch {
         session = null;
       }
 
-      if (!session || !session.identifiant) {
-        window.location.replace("connexion.html");
-        return;
-      }
-
       if (headerActions) {
-        headerActions.innerHTML =
-          '<button type="button" class="btn btn--primary" id="btnLogout">Déconnexion</button>';
-        document.getElementById("btnLogout")?.addEventListener("click", () => {
-          if (typeof SAC_SESSION !== "undefined" && SAC_SESSION.logout) SAC_SESSION.logout("connexion.html");
-        });
+        if (session && session.identifiant) {
+          headerActions.innerHTML =
+            '<a href="index.html" class="btn btn--ghost">Accueil</a>' +
+            '<button type="button" class="btn btn--primary" id="btnLogout">Déconnexion</button>';
+          document.getElementById("btnLogout")?.addEventListener("click", () => {
+            if (typeof SAC_SESSION !== "undefined" && SAC_SESSION.logout) {
+              SAC_SESSION.logout("plateforme.html");
+            }
+          });
+        } else {
+          headerActions.innerHTML =
+            '<a href="index.html" class="btn btn--ghost">Accueil</a>' +
+            '<a href="connexion.html" class="btn btn--primary">Connexion</a>';
+        }
       }
 
       document.body.classList.add("platform-library-mode");
@@ -281,6 +286,9 @@
       }
 
       function bookCardHtml(item, compact) {
+        if (typeof SAC_LIBRARY !== "undefined" && SAC_LIBRARY.renderBookCard) {
+          return SAC_LIBRARY.renderBookCard(item, { compact, session });
+        }
         const href = bookUrl(item);
         const cover = coverUrl(item);
         const coverHtml = cover
@@ -499,6 +507,15 @@
       }
 
       await renderLibrary();
+
+      if (typeof SAC_LIBRARY !== "undefined" && SAC_LIBRARY.bindBookActions) {
+        SAC_LIBRARY.bindBookActions(
+          panelLibrary || document.body,
+          () => session,
+          () => allBooks
+        );
+        window.addEventListener("sac-library-purchase", () => applyLibraryFilters());
+      }
     })();
   </script>
   <script src="js/sac-mobile.js" defer></script>
