@@ -9,7 +9,7 @@
   <link rel="icon" href="evo-uni.jpeg" type="image/jpeg" />
   <link rel="stylesheet" href="css/logo.css" />
   <link rel="stylesheet" href="css/platform.css" />
-  <link rel="stylesheet" href="css/library-immersive.css?v=20260625b" />
+  <link rel="stylesheet" href="css/library-immersive.css?v=20260625c" />
   <link rel="stylesheet" href="css/sac-social.css?v=20260626c" />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />
   <style>
@@ -230,43 +230,96 @@
     </aside>
     <main class="main">
       <div class="topbar">
+        <div class="lib-topbar-brand">📚 Bibliothèque Numérique</div>
+        <nav class="lib-module-nav" aria-label="Modules plateforme">
+          <button type="button" class="side-btn active" data-tab="library">Bibliothèque</button>
+          <button type="button" class="side-btn" data-tab="orientation" data-module="orientation_ia" hidden>Orientation</button>
+          <button type="button" class="side-btn" data-tab="stages" data-module="stages_emplois" hidden>Stages</button>
+          <button type="button" class="side-btn" data-tab="reseau" data-module="reseau" hidden>Réseau</button>
+        </nav>
         <input id="globalSearch" class="search" type="search" placeholder="Rechercher un livre, un auteur, une catégorie…" />
         <div id="headerActions"></div>
-  </div>
+      </div>
 
-      <section class="hero lib-hero" id="platformHero">
-        <h1 id="platformHeroTitle">Bibliothèque numérique</h1>
-        <p id="platformHeroDesc">Livres, guides et documents académiques officiels — consultez et téléchargez depuis votre espace.</p>
-        <div class="kpis">
-          <div class="kpi"><b id="kpiBooks">0</b><span>Livres disponibles</span></div>
-          <div class="kpi"><b>PDF</b><span>Formats numériques</span></div>
-          <div class="kpi"><b>100%</b><span>Accès sans double login</span></div>
-          <div class="kpi"><b>24/7</b><span>Consultation en ligne</span></div>
+      <section class="hero lib-mockup-hero" id="platformHero">
+        <div class="lib-mockup-hero__inner">
+          <h1 id="platformHeroTitle">Bienvenue dans votre<br>Bibliothèque Numérique</h1>
+          <p id="platformHeroDesc">Accédez à des milliers de ressources éducatives, documents et ouvrages — partout, à tout moment.</p>
+          <form class="lib-hero-search" id="heroSearchForm" role="search">
+            <input id="heroSearch" type="search" placeholder="Rechercher un livre, un document, un cours…" autocomplete="off" />
+            <button type="submit" class="lib-btn-purple">Rechercher</button>
+          </form>
         </div>
       </section>
 
-      <section id="panel-library" class="panel-card lib-scene">
-        <h3 style="margin:0 0 0.45rem;">Catalogue</h3>
-        <p class="lib-scene__lead">Ouvrages et ressources publiés officiellement — filtrés par pays et rubrique.</p>
-        <div class="lib-scene__toolbar">
-          <span class="lib-chip-glass">📚 Lecture en ligne</span>
-          <span class="lib-chip-glass">🌍 Par pays</span>
-          <span class="lib-chip-glass">📂 Par rubrique</span>
+      <div id="panel-library">
+        <div class="lib-page-body">
+          <h2 class="lib-section-title">Accès rapide</h2>
+          <div class="lib-quick-grid" id="libQuickGrid">
+            <button type="button" class="lib-quick-card" data-quick="livres">
+              <span class="lib-quick-card__icon">📖</span>
+              <strong>Livres</strong>
+              <span>Romans, essais et ouvrages</span>
+              <em>Explorer →</em>
+            </button>
+            <button type="button" class="lib-quick-card" data-quick="documents">
+              <span class="lib-quick-card__icon">📄</span>
+              <strong>Documents</strong>
+              <span>Mémoires, thèses et rapports</span>
+              <em>Voir →</em>
+            </button>
+            <button type="button" class="lib-quick-card" data-quick="cours">
+              <span class="lib-quick-card__icon">🎓</span>
+              <strong>Cours</strong>
+              <span>Manuels et supports pédagogiques</span>
+              <em>Accéder →</em>
+            </button>
+            <button type="button" class="lib-quick-card" data-quick="all">
+              <span class="lib-quick-card__icon">🔖</span>
+              <strong>Tout le catalogue</strong>
+              <span>Parcourir toutes les ressources</span>
+              <em>Voir tout →</em>
+            </button>
+          </div>
+
+          <div class="lib-main-grid">
+            <div class="lib-books-column">
+              <div class="lib-section-head">
+                <h2>Livres populaires</h2>
+                <button type="button" class="lib-link-btn" id="libSeeAll">Voir tout</button>
+              </div>
+              <div id="libraryPopular" class="lib-popular-grid"></div>
+
+              <div id="libraryCatalog" class="lib-catalog" hidden>
+                <div class="lib-section-head" style="margin-top:0">
+                  <h2>Catalogue complet <span id="kpiBooks" style="font-size:0.85rem;color:var(--lib-muted);font-weight:500">(0)</span></h2>
+                </div>
+                <div class="lib-filters-row">
+                  <label for="libraryCountrySelect">Pays</label>
+                  <select id="libraryCountrySelect" class="lib-cat-select" aria-label="Filtrer par pays">
+                    <option value="CD">🇨🇩 RD Congo</option>
+                  </select>
+                  <label for="libraryCategorySelect">Rubrique</label>
+                  <select id="libraryCategorySelect" class="lib-cat-select" aria-label="Filtrer par rubrique">
+                    <option value="all">Toutes les rubriques</option>
+                  </select>
+                </div>
+                <div id="libraryList" class="lib-grid"></div>
+              </div>
+            </div>
+
+            <aside class="lib-categories-panel">
+              <h3>Catégories</h3>
+              <ul id="libraryCategoryList" class="lib-cat-list"></ul>
+            </aside>
+          </div>
         </div>
-        <div id="libraryCountryFilter" class="lib-cat-filter" style="margin-top:0.75rem;">
-          <span class="lib-cat-filter__label">Pays :</span>
-          <select id="libraryCountrySelect" class="lib-cat-select" aria-label="Filtrer par pays">
-            <option value="CD">🇨🇩 RD Congo</option>
-          </select>
-        </div>
-        <div id="libraryCategoryFilter" class="lib-cat-filter">
-          <span class="lib-cat-filter__label">Rubrique :</span>
-          <select id="libraryCategorySelect" class="lib-cat-select" aria-label="Filtrer par rubrique">
-            <option value="all">Toutes les rubriques</option>
-          </select>
-        </div>
-        <div id="libraryList" class="lib-grid"></div>
-      </section>
+
+        <footer class="lib-footer">
+          <p>Bibliothèque Numérique — Votre savoir, partout, tout le temps.</p>
+          <small>© 2026 Smart Academy of Congo · Tous droits réservés</small>
+        </footer>
+      </div>
 
       <section id="panel-orientation" class="panel-card" style="display:none">
         <h3 style="margin:0 0 0.45rem;">Orientation IA</h3>
@@ -308,6 +361,12 @@
       const heroTitle = document.getElementById("platformHeroTitle");
       const heroDesc = document.getElementById("platformHeroDesc");
       const listRoot = document.getElementById("libraryList");
+      const popularRoot = document.getElementById("libraryPopular");
+      const catalogEl = document.getElementById("libraryCatalog");
+      const categoryListEl = document.getElementById("libraryCategoryList");
+      const heroSearch = document.getElementById("heroSearch");
+      const heroSearchForm = document.getElementById("heroSearchForm");
+      const libSeeAll = document.getElementById("libSeeAll");
       const headerActions = document.getElementById("headerActions");
 
       let session = null;
@@ -327,28 +386,8 @@
       }
 
       if (headerActions) {
-      const dash = {
-        etudiant: "dashboard-etudiant.html",
-        professeur: "dashboard-professeur.html",
-        assistant: "dashboard-assistant.html",
-        universite: "dashboard-universite.html",
-        section: "dashboard-section.html",
-          ministere: "dashboard-admin.html",
-          superadmin: "dashboard-admin.html",
-      }[session.role] || "index.html";
-        const displayName =
-          typeof SAC_IDENTITY !== "undefined" && SAC_IDENTITY.getDisplayName
-            ? SAC_IDENTITY.getDisplayName(session)
-            : session.email || session.identifiant || "Connecté";
-
       headerActions.innerHTML =
           '<span class="session-pill">● Session active</span>' +
-          '<span style="font-size:0.86rem;color:var(--text-muted);margin-right:0.35rem;">' +
-          esc(displayName) +
-          "</span>" +
-          '<a href="' +
-          dash +
-          '" class="btn btn--ghost">Mon tableau de bord</a> ' +
           '<button type="button" class="btn btn--primary" id="btnLogout">Déconnexion</button>';
       document.getElementById("btnLogout")?.addEventListener("click", () => {
           if (typeof SAC_SESSION !== "undefined" && SAC_SESSION.logout) SAC_SESSION.logout("connexion.html");
@@ -399,7 +438,13 @@
         if (panelOrientation) panelOrientation.style.display = tabId === "orientation" ? "block" : "none";
         if (panelStages) panelStages.style.display = tabId === "stages" ? "block" : "none";
         if (panelReseau) panelReseau.style.display = tabId === "reseau" ? "block" : "none";
-        if (tabId !== "library") {
+        if (tabId === "library") {
+          if (heroTitle) heroTitle.innerHTML = "Bienvenue dans votre<br>Bibliothèque Numérique";
+          if (heroDesc) {
+            heroDesc.textContent =
+              "Accédez à des milliers de ressources éducatives, documents et ouvrages — partout, à tout moment.";
+          }
+        } else {
           const copy = heroCopy(tabId);
           if (heroTitle) heroTitle.textContent = copy.title;
           if (heroDesc) heroDesc.textContent = copy.desc;
@@ -456,6 +501,26 @@
       let allBooks = [];
       let activeCategory = "all";
       let activeLibraryCountry = "CD";
+      let activeQuickFilter = null;
+      let catalogExpanded = false;
+      let activeSidebarGroup = null;
+
+      const QUICK_FILTERS = {
+        livres: ["roman", "litterature", "poesie", "theatre", "enfants"],
+        documents: ["memoire", "methodes", "dictionnaire", "programme", "examen"],
+        cours: ["education", "pedagogie", "manuel"],
+        all: null,
+      };
+
+      const SIDEBAR_CATS = [
+        { key: "lit", label: "Littérature", icon: "📚", cls: "lit", ids: ["roman", "litterature", "poesie", "theatre", "enfants"] },
+        { key: "sci", label: "Sciences", icon: "🔬", cls: "sci", ids: ["sciences", "mathematiques", "physique", "chimie", "biologie", "medecine", "sante"] },
+        { key: "tech", label: "Technologie", icon: "💻", cls: "tech", ids: ["informatique", "ingenierie"] },
+        { key: "hist", label: "Histoire", icon: "🏛️", cls: "hist", ids: ["histoire", "geographie", "philosophie"] },
+        { key: "dev", label: "Développement", icon: "📈", cls: "dev", ids: ["developpement", "psychologie", "gestion", "economie"] },
+        { key: "art", label: "Arts & Culture", icon: "🎨", cls: "art", ids: ["arts", "musique", "culture", "religion", "langues"] },
+        { key: "edu", label: "Éducation", icon: "🎓", cls: "edu", ids: ["education", "pedagogie", "manuel", "programme", "examen"] },
+      ];
 
       function resolveLibraryCountry() {
         if (session?.countryCode) return String(session.countryCode).toUpperCase();
@@ -504,41 +569,166 @@
         return url;
       }
 
-      function applyLibraryFilters() {
-        const q = (document.getElementById("globalSearch")?.value || "").trim().toLowerCase();
-        let items = allBooks.slice();
+      function filterByCountry(items) {
         if (typeof SAC_LIBRARY !== "undefined" && SAC_LIBRARY.filterByCountry) {
-          items = SAC_LIBRARY.filterByCountry(items, activeLibraryCountry);
-        } else if (typeof SAC_AFRICA_COUNTRIES !== "undefined") {
-          items = items.filter((item) =>
+          return SAC_LIBRARY.filterByCountry(items, activeLibraryCountry);
+        }
+        if (typeof SAC_AFRICA_COUNTRIES !== "undefined") {
+          return items.filter((item) =>
             SAC_AFRICA_COUNTRIES.matchesLibraryCountry(item, activeLibraryCountry)
           );
         }
-        if (activeCategory !== "all") {
-          items = items.filter((item) => item.category === activeCategory);
+        return items;
+      }
+
+      function getSearchQuery() {
+        const hero = (heroSearch?.value || "").trim().toLowerCase();
+        const global = (document.getElementById("globalSearch")?.value || "").trim().toLowerCase();
+        return hero || global;
+      }
+
+      function matchesFilters(item, opts) {
+        const q = opts?.query !== undefined ? opts.query : getSearchQuery();
+        const cat = opts?.category !== undefined ? opts.category : activeCategory;
+        const quick = opts?.quick !== undefined ? opts.quick : activeQuickFilter;
+        const sidebar = opts?.sidebar !== undefined ? opts.sidebar : activeSidebarGroup;
+
+        if (cat !== "all" && item.category !== cat) return false;
+
+        if (quick && QUICK_FILTERS[quick]) {
+          if (!QUICK_FILTERS[quick].includes(item.category)) return false;
         }
+
+        if (sidebar) {
+          const group = SIDEBAR_CATS.find((g) => g.key === sidebar);
+          if (group && !group.ids.includes(item.category)) return false;
+        }
+
         if (q) {
-          items = items.filter((item) => {
-            const blob = [
-              item.title,
-              item.author,
-              item.category,
-              item.description,
-              item.language,
-              categoryText(item),
-            ]
-              .join(" ")
-              .toLowerCase();
-            return blob.includes(q);
-          });
+          const blob = [
+            item.title,
+            item.author,
+            item.category,
+            item.description,
+            item.language,
+            categoryText(item),
+          ]
+            .join(" ")
+            .toLowerCase();
+          if (!blob.includes(q)) return false;
         }
-        paintLibrary(items);
+        return true;
+      }
+
+      function getFilteredItems(opts) {
+        return filterByCountry(allBooks).filter((item) => matchesFilters(item, opts));
+      }
+
+      function bookCardHtml(item, compact) {
+        const href = bookUrl(item);
+        const cover = coverUrl(item);
+        const coverHtml = cover
+          ? '<div class="cover"><img src="' + esc(cover) + '" alt="" loading="lazy" /></div>'
+          : '<div class="cover">📘</div>';
+        const tag = compact && href ? "a" : "article";
+        const attrs = compact && href ? ' class="lib-book-card" href="' + esc(href) + '" target="_blank" rel="noopener"' : ' class="lib-item"';
+        const openBtn =
+          !compact && href
+            ? '<a class="lib-glass-btn" href="' + esc(href) + '" target="_blank" rel="noopener">📖 Lire</a>'
+            : "";
+        return (
+          "<" + tag + attrs + ">" +
+          coverHtml +
+          '<div class="lib-meta"><strong>' + esc(item.title || "Ressource") + "</strong><p>" +
+          esc(item.author || "—") +
+          "</p>" +
+          (compact ? "" : '<p style="margin-top:0.2rem">' + esc(categoryText(item)) + "</p>") +
+          openBtn +
+          "</div></" + tag + ">"
+        );
+      }
+
+      function paintPopular(items) {
+        if (!popularRoot) return;
+        const popular = items.slice(0, 4);
+        if (!popular.length) {
+          popularRoot.innerHTML =
+            '<p class="lib-empty-msg">Aucun livre pour le moment. Le catalogue sera bientôt enrichi.</p>';
+          return;
+        }
+        popularRoot.innerHTML = popular.map((item) => bookCardHtml(item, true)).join("");
+      }
+
+      function paintCatalog(items) {
+        const kpi = document.getElementById("kpiBooks");
+        if (kpi) kpi.textContent = "(" + allBooks.length + ")";
+        if (!listRoot) return;
+        if (!items.length) {
+          const msg =
+            activeCategory !== "all" || getSearchQuery() || activeQuickFilter || activeSidebarGroup
+              ? "Aucun livre ne correspond à cette recherche ou catégorie."
+              : "Aucun livre publié pour le moment.";
+          listRoot.innerHTML = '<p class="lib-empty-msg">' + msg + "</p>";
+          return;
+        }
+        listRoot.innerHTML = items.map((item) => bookCardHtml(item, false)).join("");
+      }
+
+      function paintCategorySidebar() {
+        if (!categoryListEl) return;
+        const countryItems = filterByCountry(allBooks);
+        let html =
+          '<li><button type="button" data-sidebar="all" class="' +
+          (!activeSidebarGroup ? "active" : "") +
+          '"><span class="lib-cat-icon lib-cat-icon--ref">📂</span>Toutes<span class="lib-cat-count">' +
+          countryItems.length +
+          "</span></button></li>";
+        SIDEBAR_CATS.forEach((group) => {
+          const count = countryItems.filter((item) => group.ids.includes(item.category)).length;
+          html +=
+            '<li><button type="button" data-sidebar="' +
+            esc(group.key) +
+            '" class="' +
+            (activeSidebarGroup === group.key ? "active" : "") +
+            '"><span class="lib-cat-icon lib-cat-icon--' +
+            esc(group.cls) +
+            '">' +
+            group.icon +
+            "</span>" +
+            esc(group.label) +
+            '<span class="lib-cat-count">' +
+            count +
+            "</span></button></li>";
+        });
+        categoryListEl.innerHTML = html;
+        categoryListEl.querySelectorAll("[data-sidebar]").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            activeSidebarGroup = btn.dataset.sidebar === "all" ? null : btn.dataset.sidebar || null;
+            activeCategory = "all";
+            activeQuickFilter = null;
+            if (libraryCategorySelect) libraryCategorySelect.value = "all";
+            expandCatalog();
+            applyLibraryFilters();
+          });
+        });
+      }
+
+      function expandCatalog() {
+        catalogExpanded = true;
+        if (catalogEl) catalogEl.hidden = false;
+      }
+
+      function applyLibraryFilters() {
+        const items = getFilteredItems();
+        const hasFilter = !!(getSearchQuery() || activeQuickFilter || activeSidebarGroup || activeCategory !== "all");
+        paintPopular(hasFilter || catalogExpanded ? items : filterByCountry(allBooks));
+        if (catalogExpanded) paintCatalog(items);
+        paintCategorySidebar();
       }
 
       function buildCategoryFilter() {
-        const wrap = document.getElementById("libraryCategoryFilter");
         const select = document.getElementById("libraryCategorySelect");
-        if (!wrap || !select) return;
+        if (!select) return;
 
         const groups =
           typeof SAC_LIBRARY !== "undefined" && SAC_LIBRARY.CATEGORY_GROUPS
@@ -558,48 +748,6 @@
         });
         select.innerHTML = html;
         select.value = activeCategory;
-        wrap.hidden = false;
-        wrap.style.display = "flex";
-      }
-
-      function paintLibrary(items) {
-        const kpi = document.getElementById("kpiBooks");
-        if (kpi) kpi.textContent = String(allBooks.length);
-        if (!items.length) {
-          const msg =
-            activeCategory !== "all" || (document.getElementById("globalSearch")?.value || "").trim()
-              ? "Aucun livre ne correspond à cette recherche ou rubrique."
-              : "Aucun livre publié pour le moment. Le Ministère peut ajouter des ressources depuis son espace.";
-          listRoot.innerHTML = '<p class="lib-empty-msg">' + msg + "</p>";
-          return;
-        }
-        listRoot.innerHTML = items
-          .map((item) => {
-            const href = bookUrl(item);
-            const cover = coverUrl(item);
-            const coverHtml = cover
-              ? '<div class="cover"><img src="' + esc(cover) + '" alt="Couverture de ' + esc(item.title || "livre") + '" loading="lazy" /></div>'
-              : '<div class="cover">📘</div>';
-            const openBtn = href
-              ? '<a class="lib-glass-btn lib-glass-btn--read" href="' +
-                esc(href) +
-                '" target="_blank" rel="noopener">📖 Lire / Télécharger</a>'
-              : "";
-            return (
-              '<article class="lib-item">' + coverHtml + '<div class="lib-meta"><strong>' +
-              esc(item.title || "Ressource") +
-              '</strong><p>' +
-              esc(item.author || "—") +
-              " · " +
-              esc(categoryText(item)) +
-              (item.language ? " · " + esc(item.language) : "") +
-                  "</p>" +
-              (item.description ? '<p style="margin-top:0.35rem;">' + esc(item.description) + "</p>" : "") +
-              openBtn +
-              "</div></article>"
-            );
-          })
-          .join("");
       }
 
       async function renderLibrary() {
@@ -631,14 +779,61 @@
 
       const globalSearch = document.getElementById("globalSearch");
       const libraryCategorySelect = document.getElementById("libraryCategorySelect");
+
+      document.querySelectorAll("[data-quick]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const key = btn.dataset.quick || "all";
+          activeQuickFilter = key === "all" ? null : key;
+          activeCategory = "all";
+          activeSidebarGroup = null;
+          if (libraryCategorySelect) libraryCategorySelect.value = "all";
+          expandCatalog();
+          applyLibraryFilters();
+          catalogEl?.scrollIntoView({ behavior: "smooth", block: "start" });
+        });
+      });
+
+      if (libSeeAll) {
+        libSeeAll.addEventListener("click", () => {
+          expandCatalog();
+          applyLibraryFilters();
+          catalogEl?.scrollIntoView({ behavior: "smooth", block: "start" });
+        });
+      }
+
+      if (heroSearchForm) {
+        heroSearchForm.addEventListener("submit", (e) => {
+          e.preventDefault();
+          if (globalSearch && heroSearch) globalSearch.value = heroSearch.value;
+          expandCatalog();
+          applyLibraryFilters();
+          catalogEl?.scrollIntoView({ behavior: "smooth", block: "start" });
+        });
+      }
+
+      if (heroSearch) {
+        heroSearch.addEventListener("input", () => {
+          if (globalSearch) globalSearch.value = heroSearch.value;
+          if (heroSearch.value.trim()) expandCatalog();
+          applyLibraryFilters();
+        });
+      }
+
       if (libraryCategorySelect) {
         libraryCategorySelect.addEventListener("change", () => {
           activeCategory = libraryCategorySelect.value || "all";
+          activeQuickFilter = null;
+          activeSidebarGroup = null;
+          expandCatalog();
           applyLibraryFilters();
         });
       }
       if (globalSearch) {
-        globalSearch.addEventListener("input", () => applyLibraryFilters());
+        globalSearch.addEventListener("input", () => {
+          if (heroSearch) heroSearch.value = globalSearch.value;
+          if (globalSearch.value.trim()) expandCatalog();
+          applyLibraryFilters();
+        });
       }
 
       function esc(s) {
