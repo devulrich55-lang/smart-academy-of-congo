@@ -131,6 +131,13 @@
 
   function registerServiceWorker() {
     if (!("serviceWorker" in navigator)) return;
+    if (
+      window.Capacitor &&
+      typeof window.Capacitor.isNativePlatform === "function" &&
+      window.Capacitor.isNativePlatform()
+    ) {
+      return;
+    }
     var base = assetBase();
     window.addEventListener("load", function () {
       navigator.serviceWorker

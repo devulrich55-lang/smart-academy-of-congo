@@ -1,5 +1,5 @@
 /**
- * Mobile Money SAC — Orange Money & M-Pesa via API (sandbox ou FlexPay)
+ * Mobile Money EvoSU — Orange Money & M-Pesa via API (sandbox ou FlexPay)
  */
 const SAC_MOBILE_MONEY = (function () {
   const PROVIDERS = {

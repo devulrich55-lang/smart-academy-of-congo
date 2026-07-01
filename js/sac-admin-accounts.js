@@ -1,7 +1,7 @@
 /**
  * Gestion des comptes campus — administration université (API)
  */
-const SAC_ADMIN_ACCOUNTS = (function () {
+const EVOSU_ADMIN_ACCOUNTS = (function () {
   let summaryCache = null;
   let accountsCache = [];
 
@@ -10,7 +10,7 @@ const SAC_ADMIN_ACCOUNTS = (function () {
   }
 
   function isReady() {
-    return typeof SAC_API !== "undefined" && typeof SAC_API.listAdminAccounts === "function";
+    return typeof EVOSU_API !== "undefined" && typeof EVOSU_API.listAdminAccounts === "function";
   }
 
   async function load(session, options = {}) {
@@ -18,19 +18,19 @@ const SAC_ADMIN_ACCOUNTS = (function () {
       return { summary: null, accounts: [] };
     }
     try {
-      const online = await SAC_API.ensureOnline();
+      const online = await EVOSU_API.ensureOnline();
       if (!online) return { summary: summaryCache, accounts: accountsCache };
 
       const role = options.role || null;
       const [summary, accounts] = await Promise.all([
-        SAC_API.getAdminAccountsSummary(),
-        SAC_API.listAdminAccounts(role),
+        EVOSU_API.getAdminAccountsSummary(),
+        EVOSU_API.listAdminAccounts(role),
       ]);
       summaryCache = summary;
       accountsCache = Array.isArray(accounts) ? accounts : [];
       return { summary: summaryCache, accounts: accountsCache };
     } catch (err) {
-      console.warn("[SAC_ADMIN_ACCOUNTS] load:", err.message || err);
+      console.warn("[EVOSU_ADMIN_ACCOUNTS] load:", err.message || err);
       return { summary: summaryCache, accounts: accountsCache };
     }
   }
@@ -47,7 +47,7 @@ const SAC_ADMIN_ACCOUNTS = (function () {
     if (!isReady()) throw new Error("API indisponible");
     const normalized = String(email || "").toLowerCase();
     const removed = accountsCache.find((a) => String(a.email || "").toLowerCase() === normalized);
-    await SAC_API.deleteAdminAccount(email);
+    await EVOSU_API.deleteAdminAccount(email);
     accountsCache = accountsCache.filter((a) => String(a.email || "").toLowerCase() !== normalized);
     if (summaryCache && removed) {
       if (summaryCache.byRole && removed.role in summaryCache.byRole) {

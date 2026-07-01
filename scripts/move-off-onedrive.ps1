@@ -8,7 +8,7 @@ param([switch]$Force)
 $ErrorActionPreference = "Stop"
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 
-$Source = "C:\Users\1\OneDrive\Desktop\Smart Acamy of Congo"
+$Source = "C:\Users\1\OneDrive\Desktop\Evo-smartUni"
 $Target = "C:\Dev\Smart-Academy-of-Congo"
 
 function Test-CopyComplete {

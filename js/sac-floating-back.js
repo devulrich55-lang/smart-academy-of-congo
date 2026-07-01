@@ -1,10 +1,10 @@
 /**
  * Bouton retour flottant — style pro, déplaçable, position mémorisée
  */
-const SAC_FLOATING_BACK = (function () {
+const EVOSU_FLOATING_BACK = (function () {
   "use strict";
 
-  const POS_KEY = "sac_floating_back_pos";
+  const POS_KEY = "EVOSU_floating_back_pos";
   const DRAG_THRESHOLD = 8;
 
   function clamp(value, min, max) {
@@ -78,14 +78,14 @@ const SAC_FLOATING_BACK = (function () {
   function resolveFallbackUrl(base) {
     const root = base || "";
     try {
-      if (typeof SAC_SESSION !== "undefined") {
-        const session = SAC_SESSION.getSession();
+      if (typeof EVOSU_SESSION !== "undefined") {
+        const session = EVOSU_SESSION.getSession();
         if (session?.role) {
-          if (typeof SAC_PORTAL !== "undefined") {
-            return root + SAC_PORTAL.dashboardUrl(session.role);
+          if (typeof EVOSU_PORTAL !== "undefined") {
+            return root + EVOSU_PORTAL.dashboardUrl(session.role);
           }
-          if (typeof SAC_SESSION.dashboardUrl === "function") {
-            return root + SAC_SESSION.dashboardUrl(session.role);
+          if (typeof EVOSU_SESSION.dashboardUrl === "function") {
+            return root + EVOSU_SESSION.dashboardUrl(session.role);
           }
         }
       }
@@ -112,7 +112,7 @@ const SAC_FLOATING_BACK = (function () {
   function shouldMount() {
     if (document.documentElement.dataset.sacFloatingBackOff === "1") return false;
     if (document.body?.dataset?.sacFloatingBackOff === "1") return false;
-    if (document.querySelector(".sac-floating-back")) return false;
+    if (document.querySelector(".evosu-floating-back")) return false;
     return true;
   }
 
@@ -180,13 +180,13 @@ const SAC_FLOATING_BACK = (function () {
   function createButton(base) {
     const btn = document.createElement("button");
     btn.type = "button";
-    btn.className = "sac-floating-back";
+    btn.className = "evosu-floating-back";
     btn.setAttribute("aria-label", "Retour — maintenir et glisser pour déplacer");
     btn.title = "Cliquer : retour · Glisser : déplacer";
     btn.innerHTML =
-      '<span class="sac-floating-back__icon" aria-hidden="true">←</span>' +
-      '<span class="sac-floating-back__label">Retour</span>' +
-      '<span class="sac-floating-back__grip" aria-hidden="true">⋮</span>';
+      '<span class="evosu-floating-back__icon" aria-hidden="true">←</span>' +
+      '<span class="evosu-floating-back__label">Retour</span>' +
+      '<span class="evosu-floating-back__grip" aria-hidden="true">⋮</span>';
     return btn;
   }
 

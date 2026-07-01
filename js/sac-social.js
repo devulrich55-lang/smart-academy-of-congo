@@ -1,5 +1,5 @@
 /**
- * Réseau social campus SAC — fil moderne, réactions, commentaires, messagerie
+ * Réseau social campus EvoSU — fil moderne, réactions, commentaires, messagerie
  */
 const SAC_SOCIAL = (function () {
   const ROLE_LABELS = {
@@ -385,7 +385,7 @@ const SAC_SOCIAL = (function () {
           '<header class="messenger__chat-head">' +
           '<button type="button" class="messenger__back" id="messengerBack" aria-label="Retour">←</button>' +
           '<span class="messenger__avatar" id="messengerChatAvatar">?</span>' +
-          '<div class="messenger__chat-meta"><strong id="messengerChatName">—</strong><small id="messengerChatSub">Campus SAC</small></div>' +
+          '<div class="messenger__chat-meta"><strong id="messengerChatName">—</strong><small id="messengerChatSub">Campus EvoSU</small></div>' +
           '<button type="button" class="messenger-app__compose" id="messengerNewBtn" title="Nouveau message" aria-label="Nouveau message">✎</button>' +
           "</header>" +
           '<div class="messenger__thread" id="messengerThread"></div>' +
@@ -980,7 +980,7 @@ const SAC_SOCIAL = (function () {
       if (!hasPeer) return;
 
       root.querySelector("#messengerChatName").textContent = state.msgPeerName;
-      root.querySelector("#messengerChatSub").textContent = "Campus SAC";
+      root.querySelector("#messengerChatSub").textContent = "Campus EvoSU";
       root.querySelector("#messengerChatAvatar").textContent = initials(state.msgPeerName);
 
       const thread = root.querySelector("#messengerThread");

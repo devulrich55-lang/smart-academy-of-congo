@@ -343,7 +343,7 @@ const SAC_PLATFORM = (function () {
   function issueDiplomaLocal(data) {
     const code = Math.random().toString(16).slice(2, 10).toUpperCase() + Math.random().toString(16).slice(2, 10).toUpperCase();
     const num =
-      "SAC-" +
+      "EvoSU-" +
       String(data.universite || "UNK")
         .replace(/[^A-Za-z0-9]/g, "")
         .slice(0, 6)
@@ -435,7 +435,7 @@ const SAC_PLATFORM = (function () {
     if (read(KEYS.library).length) return;
     const uni = s.universite;
     write(KEYS.library, [
-      { id: uid("lib"), universite: uni, title: "Introduction à l'informatique", author: "SAC Éditions", category: "ouvrage", description: "Manuel L1-L2", published: true },
+      { id: uid("lib"), universite: uni, title: "Introduction à l'informatique", author: "EvoSU Éditions", category: "ouvrage", description: "Manuel L1-L2", published: true },
       { id: uid("lib"), universite: uni, title: "Méthodologie de recherche", author: "Collectif universitaire", category: "mémoire", description: "Guide rédaction mémoire", published: true },
     ]);
     write(KEYS.careers, [

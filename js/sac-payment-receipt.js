@@ -80,7 +80,7 @@ const SAC_PAYMENT_RECEIPT = (function () {
         <strong>${esc(payment.amount)} ${esc(payment.currency || "USD")}</strong>
       </div>
       <p style="font-size:0.84rem;color:#5a6d7e;margin:0;">
-        Ce reçu atteste du paiement déclaré sur la plateforme SAC. Les fonds sont versés directement
+        Ce reçu atteste du paiement déclaré sur la plateforme EvoSU. Les fonds sont versés directement
         sur le compte bancaire partenaire de votre université.
       </p>
     </div>

@@ -35,7 +35,7 @@ const SAC_ORIENTATION = (function () {
     if (source === "llm") {
       return '<span class="ori-badge ori-badge--llm">✨ Conseil IA (OpenAI)</span>';
     }
-    return '<span class="ori-badge ori-badge--rules">📋 Mode règles SAC</span>';
+    return '<span class="ori-badge ori-badge--rules">📋 Mode règles EvoSU</span>';
   }
 
   function renderAdvice(advice) {

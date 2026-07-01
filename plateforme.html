@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>Bibliothèque Numérique — Smart Academy of Congo</title>
+  <title>Bibliothèque Numérique — Evo-smartUni</title>
   <script src="js/sac-config.js?v=20260629a"></script>
   <link rel="icon" href="evo-uni.jpeg" type="image/jpeg" />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />
@@ -68,7 +68,7 @@
               <div class="lib-section-head">
                 <h2>Livres populaires</h2>
                 <button type="button" class="lib-link-btn" id="libSeeAll">Voir tout</button>
-              </div>
+    </div>
               <div id="libraryPopular" class="lib-popular-grid"></div>
 
               <div id="libraryCatalog" class="lib-catalog" hidden>
@@ -87,20 +87,20 @@
                 </div>
                 <div id="libraryList" class="lib-grid"></div>
               </div>
-            </div>
+  </div>
 
             <aside class="lib-categories-panel">
               <h3>Catégories</h3>
               <ul id="libraryCategoryList" class="lib-cat-list"></ul>
-            </aside>
+    </aside>
           </div>
         </div>
 
         <footer class="lib-footer">
           <p>Bibliothèque Numérique — Votre savoir, partout, tout le temps.</p>
-          <small>© 2026 Smart Academy of Congo · Tous droits réservés</small>
+          <small>© 2026 Evo-smartUni · Tous droits réservés</small>
         </footer>
-      </div>
+  </div>
 
     </main>
   </div>
@@ -129,9 +129,9 @@
       let session = null;
       try {
         if (typeof SAC_SESSION !== "undefined" && SAC_SESSION.resolveNavigationSession) {
-          session = await SAC_SESSION.resolveNavigationSession();
+        session = await SAC_SESSION.resolveNavigationSession();
         } else if (typeof SAC_SESSION !== "undefined" && SAC_SESSION.getSession) {
-          session = SAC_SESSION.getSession();
+        session = SAC_SESSION.getSession();
         }
       } catch {
         session = null;
@@ -139,10 +139,10 @@
 
       if (headerActions) {
         if (session && session.identifiant) {
-          headerActions.innerHTML =
+      headerActions.innerHTML =
             '<a href="index.html" class="btn btn--ghost">Accueil</a>' +
             '<button type="button" class="btn btn--primary" id="btnLogout">Déconnexion</button>';
-          document.getElementById("btnLogout")?.addEventListener("click", () => {
+      document.getElementById("btnLogout")?.addEventListener("click", () => {
             if (typeof SAC_SESSION !== "undefined" && SAC_SESSION.logout) {
               SAC_SESSION.logout("plateforme.html");
             }

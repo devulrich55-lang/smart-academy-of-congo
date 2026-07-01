@@ -118,7 +118,7 @@ const SAC_HOME_NEWS = (function () {
       title: "Communiqué officiel — rentrée académique 2025-2026",
       excerpt:
         "Le Ministère confirme le calendrier académique partagé de la rentrée universitaire et les directives pour l'inscription des étudiants dans les établissements agréés.",
-      body: "Toutes les universités partenaires SAC doivent publier leurs listes d'admission avant le 15 septembre. Consultez la circulaire complète sur le portail régional.",
+      body: "Toutes les universités partenaires EvoSU doivent publier leurs listes d'admission avant le 15 septembre. Consultez la circulaire complète sur le portail régional.",
       linkUrl: "",
       linkLabel: "Lire le communiqué",
       published: true,

@@ -1,5 +1,5 @@
 /** Cours, classes et visibilité étudiants */
-const SAC_COURSES = (function () {
+const EVOSU_COURSES = (function () {
   const NIVEAUX = [
     { id: "l1", label: "Licence 1 (L1)" },
     { id: "l2", label: "Licence 2 (L2)" },
@@ -22,7 +22,7 @@ const SAC_COURSES = (function () {
   }
 
   function getUserByEmail(email) {
-    const users = JSON.parse(localStorage.getItem("sac_users") || "[]");
+    const users = JSON.parse(localStorage.getItem("EVOSU_users") || "[]");
     return users.find((u) => u.email === email);
   }
 
@@ -84,7 +84,7 @@ const SAC_COURSES = (function () {
     const courses = [];
     const seen = new Set();
 
-    const users = JSON.parse(localStorage.getItem("sac_users") || "[]");
+    const users = JSON.parse(localStorage.getItem("EVOSU_users") || "[]");
     users
       .filter((user) => isTeachingRole(user.role))
       .forEach((prof) => {
@@ -101,13 +101,13 @@ const SAC_COURSES = (function () {
         });
       });
 
-    if (typeof SAC_GRADES !== "undefined") {
+    if (typeof EVOSU_GRADES !== "undefined") {
       try {
-        await SAC_GRADES.syncFromServer?.(session);
+        await EVOSU_GRADES.syncFromServer?.(session);
       } catch {
         /* ignore */
       }
-      (SAC_GRADES.getForStudent(student) || []).forEach((grade) => {
+      (EVOSU_GRADES.getForStudent(student) || []).forEach((grade) => {
         addFacultyCourse(
           courses,
           seen,
@@ -125,9 +125,9 @@ const SAC_COURSES = (function () {
       });
     }
 
-    if (typeof SAC_API !== "undefined" && (await SAC_API.ensureOnline())) {
+    if (typeof EVOSU_API !== "undefined" && (await EVOSU_API.ensureOnline())) {
       try {
-        const data = await SAC_API.platformRequest("/platform/courses/for-student");
+        const data = await EVOSU_API.platformRequest("/platform/courses/for-student");
         (data?.courses || []).forEach((course) => {
           addFacultyCourse(courses, seen, course, course.professorEmail, course.professorName, student);
         });
@@ -180,8 +180,8 @@ const SAC_COURSES = (function () {
     const b = normUniversite(docUni);
     if (!a || !b) return true;
     if (a === b) return true;
-    if (typeof SAC_UNIVERSITIES !== "undefined") {
-      const catalog = SAC_UNIVERSITIES.UNIVERSITIES || [];
+    if (typeof EVOSU_UNIVERSITIES !== "undefined") {
+      const catalog = EVOSU_UNIVERSITIES.UNIVERSITIES || [];
       const find = (code) =>
         catalog.find(
           (u) => normUniversite(u.id) === code || normUniversite(u.sigle) === code
@@ -269,15 +269,15 @@ const SAC_COURSES = (function () {
     if (doc.source === "administration") {
       if (doc.universite && !universiteMatch(student.universite, doc.universite)) return false;
       if (doc.audienceType === "section") {
-        if (typeof SAC_SECTIONS === "undefined") return false;
+        if (typeof EVOSU_SECTIONS === "undefined") return false;
         if (doc.sectionId) {
-          return SAC_SECTIONS.studentInSection(student, doc.sectionId);
+          return EVOSU_SECTIONS.studentInSection(student, doc.sectionId);
         }
         if (student.sectionId) {
-          const sec = SAC_SECTIONS.getSectionById(student.sectionId);
+          const sec = EVOSU_SECTIONS.getSectionById(student.sectionId);
           if (sec && doc.filiere) return filiereMatch(sec.filiere, doc.filiere);
         }
-        const sec = SAC_SECTIONS.findSectionForStudent(student);
+        const sec = EVOSU_SECTIONS.findSectionForStudent(student);
         if (!sec || !doc.filiere) return false;
         return filiereMatch(sec.filiere, doc.filiere);
       }

@@ -1,5 +1,5 @@
 /**
- * Portails institutionnels SAC — détection domaine/chemin, URLs et assets.
+ * Portails institutionnels EvoSU — détection domaine/chemin, URLs et assets.
  * ministere/ · superadmin/ · admin-uni/ (+ domaines personnalisés plus tard)
  */
 const SAC_PORTAL = (function () {
@@ -24,8 +24,8 @@ const SAC_PORTAL = (function () {
       emailPlaceholder: "admin@ministere.cd",
       btnLabel: "Accéder au portail Ministère",
       lead:
-        "Espace sécurisé de supervision nationale : consultez les administrateurs institutionnels et les établissements connectés à SAC.",
-      notice: "Accès réservé aux agents habilités du Ministère. Compte créé par le Super Admin SAC.",
+        "Espace sécurisé de supervision nationale : consultez les administrateurs institutionnels et les établissements connectés à EvoSU.",
+      notice: "Accès réservé aux agents habilités du Ministère. Compte créé par le Super Admin EvoSU.",
       dashboard: "dashboard-admin.html",
       adminPortal: true,
       requiresCountry: true,
@@ -57,7 +57,7 @@ const SAC_PORTAL = (function () {
       role: "universite",
       slug: "admin-uni",
       title: "Portail Admin Université",
-      orgName: "Administration de campus — SAC",
+      orgName: "Administration de campus — EvoSU",
       hostHints: ["admin.", "admin-uni."],
       pathPrefix: "/admin-uni",
       accent: "#0d7a4a",
@@ -68,7 +68,7 @@ const SAC_PORTAL = (function () {
       btnLabel: "Accéder à mon campus",
       lead:
         "Gérez votre établissement : sections, professeurs, étudiants, tarifs et communication officielle.",
-      notice: "Compte campus créé par le Super Admin SAC. Utilisez votre code établissement.",
+      notice: "Compte campus créé par le Super Admin EvoSU. Utilisez votre code établissement.",
       dashboard: "dashboard-universite.html",
       adminPortal: false,
       showCodeUni: true,

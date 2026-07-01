@@ -1,5 +1,5 @@
 /**
- * Frontend Render — fichiers statiques + proxy /api vers l'API SAC.
+ * Frontend Render — fichiers statiques + proxy /api vers l'API EvoSU.
  * Évite les blocages CORS entre dbfm.onrender.com et api-1.onrender.com.
  */
 const express = require("express");
@@ -65,5 +65,5 @@ app.use((req, res, next) => {
 });
 
 app.listen(PORT, () => {
-  console.log("SAC frontend on port", PORT, "→ API", API_TARGET);
+  console.log("EvoSU frontend on port", PORT, "→ API", API_TARGET);
 });

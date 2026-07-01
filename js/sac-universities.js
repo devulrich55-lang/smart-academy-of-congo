@@ -218,7 +218,7 @@ const SAC_UNIVERSITIES = (function () {
     const id = resolveId(catalogId);
     const u = getById(id);
     if (!u) {
-      throw new Error("Choisissez un établissement inscrit dans le catalogue SAC.");
+      throw new Error("Choisissez un établissement inscrit dans le catalogue EvoSU.");
     }
     const year = new Date().getFullYear();
     return {
@@ -227,7 +227,7 @@ const SAC_UNIVERSITIES = (function () {
       nomUniversite: u.name,
       sigle: u.sigle,
       countryCode: getCountryCode(u.id),
-      codeUni: "SAC-" + u.sigle + "-" + year,
+      codeUni: "EvoSU-" + u.sigle + "-" + year,
       responsable: (responsable || "").trim(),
     };
   }
@@ -251,7 +251,7 @@ const SAC_UNIVERSITIES = (function () {
       profile.nomUniversite = profile.nomUniversite || u.name;
       profile.sigle = u.sigle;
       if (!profile.codeUni) {
-        profile.codeUni = "SAC-" + u.sigle + "-" + new Date().getFullYear();
+        profile.codeUni = "EvoSU-" + u.sigle + "-" + new Date().getFullYear();
       }
     }
     return profile;

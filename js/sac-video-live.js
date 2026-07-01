@@ -1,8 +1,8 @@
 /**
- * Lanceur vidéo unifié SAC — réunion · cours live · conférence
- * WebRTC SAC intégré (audio, vidéo, partage d'écran, chat)
+ * Lanceur vidéo unifié EvoSU — réunion · cours live · conférence
+ * WebRTC EvoSU intégré (audio, vidéo, partage d'écran, chat)
  */
-const SAC_VIDEO_LIVE = (function () {
+const EVOSU_VIDEO_LIVE = (function () {
   const TYPES = {
     meeting: {
       label: "Réunion",
@@ -33,7 +33,7 @@ const SAC_VIDEO_LIVE = (function () {
   }
 
   function displayName(s) {
-    if (typeof SAC_IDENTITY !== "undefined") return SAC_IDENTITY.getDisplayName(s);
+    if (typeof EVOSU_IDENTITY !== "undefined") return EVOSU_IDENTITY.getDisplayName(s);
     return [s?.prenom, s?.nom].filter(Boolean).join(" ") || s?.email || s?.identifiant || "Participant";
   }
 
@@ -167,20 +167,20 @@ const SAC_VIDEO_LIVE = (function () {
     const userName = displayName(session);
 
     if (type === "course") {
-      if (typeof SAC_LIVE === "undefined") throw new Error("Module cours live indisponible.");
-      const row = await SAC_LIVE.createSession({
+      if (typeof EVOSU_LIVE === "undefined") throw new Error("Module cours live indisponible.");
+      const row = await EVOSU_LIVE.createSession({
         title,
         description: opts.description || "",
         courseCode: opts.courseCode || "",
         filiere: session.filiere,
         niveau: session.niveau,
       });
-      const live = await SAC_LIVE.startSession(row.id);
-      SAC_LIVE.openRoom(live, session);
+      const live = await EVOSU_LIVE.startSession(row.id);
+      EVOSU_LIVE.openRoom(live, session);
       return { kind: "course", data: live };
     }
 
-    if (typeof SAC_MEETINGS === "undefined") {
+    if (typeof EVOSU_MEETINGS === "undefined") {
       throw new Error("Module réunions indisponible.");
     }
 
@@ -194,8 +194,8 @@ const SAC_VIDEO_LIVE = (function () {
       allowedEmails: [],
     };
 
-    if (meetingType === "section_prof" && typeof SAC_SECTIONS !== "undefined") {
-      const sections = SAC_SECTIONS.getSectionsByUniversity(session) || [];
+    if (meetingType === "section_prof" && typeof EVOSU_SECTIONS !== "undefined") {
+      const sections = EVOSU_SECTIONS.getSectionsByUniversity(session) || [];
       const section =
         (session.sectionId && sections.find((s) => s.id === session.sectionId)) ||
         sections[0];
@@ -203,15 +203,15 @@ const SAC_VIDEO_LIVE = (function () {
         payload.sectionId = section.id;
         payload.sectionName = section.name;
         payload.filiere = section.filiere;
-        const profs = SAC_MEETINGS.profEmailsForSection(session.universite, section.filiere);
+        const profs = EVOSU_MEETINGS.profEmailsForSection(session.universite, section.filiere);
         const caller = (session.identifiant || session.email || "").toLowerCase();
         payload.allowedEmails = Array.from(new Set([...profs, caller].filter(Boolean)));
       }
     }
 
-    const created = await SAC_MEETINGS.createMeeting(payload);
-    const live = await SAC_MEETINGS.startMeeting(created.id);
-    SAC_MEETINGS.openRoom(live, userName, session);
+    const created = await EVOSU_MEETINGS.createMeeting(payload);
+    const live = await EVOSU_MEETINGS.startMeeting(created.id);
+    EVOSU_MEETINGS.openRoom(live, userName, session);
     return { kind: type, data: live };
   }
 
@@ -238,11 +238,11 @@ const SAC_VIDEO_LIVE = (function () {
     let meetings = [];
     let courses = [];
 
-    if (typeof SAC_MEETINGS !== "undefined") {
-      meetings = (await SAC_MEETINGS.listMeetings()).filter((m) => m.status === "live");
+    if (typeof EVOSU_MEETINGS !== "undefined") {
+      meetings = (await EVOSU_MEETINGS.listMeetings()).filter((m) => m.status === "live");
     }
-    if (typeof SAC_LIVE !== "undefined") {
-      courses = (await SAC_LIVE.listSessions()).filter((s) => s.status === "live");
+    if (typeof EVOSU_LIVE !== "undefined") {
+      courses = (await EVOSU_LIVE.listSessions()).filter((s) => s.status === "live");
     }
 
     if (!meetings.length && !courses.length) {
@@ -279,9 +279,9 @@ const SAC_VIDEO_LIVE = (function () {
         const label = btn.textContent;
         btn.textContent = "Connexion…";
         try {
-          if (typeof SAC_API !== "undefined") await SAC_API.wakeServer();
-          const m = await SAC_MEETINGS.joinMeeting(btn.dataset.joinMtg);
-          SAC_MEETINGS.openRoom(m, userName, session);
+          if (typeof EVOSU_API !== "undefined") await EVOSU_API.wakeServer();
+          const m = await EVOSU_MEETINGS.joinMeeting(btn.dataset.joinMtg);
+          EVOSU_MEETINGS.openRoom(m, userName, session);
         } catch (err) {
           alert(err.message || "Impossible de rejoindre la réunion.");
         } finally {
@@ -297,12 +297,12 @@ const SAC_VIDEO_LIVE = (function () {
         const label = btn.textContent;
         btn.textContent = "Connexion…";
         try {
-          if (typeof SAC_LIVE_CALL !== "undefined" && SAC_LIVE_CALL.joinCourse) {
-            await SAC_LIVE_CALL.joinCourse(btn.dataset.joinLive, session);
+          if (typeof EVOSU_LIVE_CALL !== "undefined" && EVOSU_LIVE_CALL.joinCourse) {
+            await EVOSU_LIVE_CALL.joinCourse(btn.dataset.joinLive, session);
           } else {
-            if (typeof SAC_API !== "undefined") await SAC_API.wakeServer();
-            const s = await SAC_LIVE.joinSession(btn.dataset.joinLive, session);
-            SAC_LIVE.openRoom(s, session);
+            if (typeof EVOSU_API !== "undefined") await EVOSU_API.wakeServer();
+            const s = await EVOSU_LIVE.joinSession(btn.dataset.joinLive, session);
+            EVOSU_LIVE.openRoom(s, session);
           }
         } catch (err) {
           alert(err.message || "Impossible de rejoindre le cours live.");

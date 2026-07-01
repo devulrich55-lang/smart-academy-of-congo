@@ -1,10 +1,10 @@
 /**
- * Agent IA SAC — correction automatisée des travaux
+ * Agent IA EvoSU — correction automatisée des travaux
  * Flux : dépôt → IA → note provisoire → validation professeur → note finale
  */
-const SAC_AI_CORRECTION = (function () {
-  const STORAGE_KEY = "sac_ai_submissions";
-  const REF_STORAGE_KEY = "sac_ai_references";
+const EVOSU_AI_CORRECTION = (function () {
+  const STORAGE_KEY = "EVOSU_ai_submissions";
+  const REF_STORAGE_KEY = "EVOSU_ai_references";
 
   const STATUS_LABELS = {
     depose: "Déposé",
@@ -92,9 +92,9 @@ const SAC_AI_CORRECTION = (function () {
   }
 
   async function findReference(universite, courseCode, assignmentTitle, professorEmail, semester, courseName) {
-    if (typeof SAC_API !== "undefined" && (await SAC_API.ensureOnline())) {
+    if (typeof EVOSU_API !== "undefined" && (await EVOSU_API.ensureOnline())) {
       try {
-        const json = await SAC_API.platformRequest("/platform/corrections/references");
+        const json = await EVOSU_API.platformRequest("/platform/corrections/references");
         const match = pickLatestReference(
           filterMatchingReferences(
             json.references || [],
@@ -124,8 +124,8 @@ const SAC_AI_CORRECTION = (function () {
   }
 
   async function listReferences(prof) {
-    if (typeof SAC_API !== "undefined" && (await SAC_API.ensureOnline())) {
-      const json = await SAC_API.platformRequest("/platform/corrections/references");
+    if (typeof EVOSU_API !== "undefined" && (await EVOSU_API.ensureOnline())) {
+      const json = await EVOSU_API.platformRequest("/platform/corrections/references");
       return json.references || [];
     }
     const email = (prof.email || prof.identifiant || "").toLowerCase();
@@ -135,15 +135,15 @@ const SAC_AI_CORRECTION = (function () {
   }
 
   async function saveReference(prof, data, file) {
-    if (typeof SAC_API !== "undefined" && (await SAC_API.ensureOnline())) {
+    if (typeof EVOSU_API !== "undefined" && (await EVOSU_API.ensureOnline())) {
         if (file) {
           const fd = new FormData();
           Object.entries(data).forEach(([k, v]) => fd.append(k, v));
           fd.append("file", file);
-          const json = await SAC_API.uploadFormData("/platform/corrections/reference", fd);
+          const json = await EVOSU_API.uploadFormData("/platform/corrections/reference", fd);
           return json.reference;
         }
-      const json = await SAC_API.platformRequest("/platform/corrections/reference", {
+      const json = await EVOSU_API.platformRequest("/platform/corrections/reference", {
         method: "POST",
         body: JSON.stringify(data),
       });
@@ -171,8 +171,8 @@ const SAC_AI_CORRECTION = (function () {
   }
 
   async function deleteReference(prof, referenceId) {
-    if (typeof SAC_API !== "undefined" && (await SAC_API.ensureOnline())) {
-      await SAC_API.platformRequest(`/platform/corrections/reference/${referenceId}`, {
+    if (typeof EVOSU_API !== "undefined" && (await EVOSU_API.ensureOnline())) {
+      await EVOSU_API.platformRequest(`/platform/corrections/reference/${referenceId}`, {
         method: "DELETE",
       });
       return;
@@ -263,9 +263,9 @@ const SAC_AI_CORRECTION = (function () {
   }
 
   async function requestServerResearch(data) {
-    if (typeof SAC_API === "undefined" || !(await SAC_API.ensureOnline())) return null;
+    if (typeof EVOSU_API === "undefined" || !(await EVOSU_API.ensureOnline())) return null;
     try {
-      const json = await SAC_API.platformRequest("/platform/corrections/research", {
+      const json = await EVOSU_API.platformRequest("/platform/corrections/research", {
         method: "POST",
         body: JSON.stringify({
           courseName: data.courseName,
@@ -586,9 +586,9 @@ const SAC_AI_CORRECTION = (function () {
     const cc = Math.round(finalGrade * 2.5 * 10) / 10;
     const exam = 0;
     const avg =
-      typeof SAC_GRADES !== "undefined" ? SAC_GRADES.computeAvg(cc, exam) : finalGrade;
+      typeof EVOSU_GRADES !== "undefined" ? EVOSU_GRADES.computeAvg(cc, exam) : finalGrade;
     const status =
-      typeof SAC_GRADES !== "undefined" ? SAC_GRADES.computeStatus(avg) : avg >= 10 ? "Validé" : "Rattrapage";
+      typeof EVOSU_GRADES !== "undefined" ? EVOSU_GRADES.computeStatus(avg) : avg >= 10 ? "Validé" : "Rattrapage";
     const profEmail = sub.professorEmail || validator.email || validator.identifiant;
     const semester = sub.semester || "s1-2025";
     const payload = {
@@ -606,10 +606,10 @@ const SAC_AI_CORRECTION = (function () {
     };
     let row = null;
 
-    if (typeof SAC_API !== "undefined" && (await SAC_API.ensureOnline())) {
-      if (typeof SAC_GRADES !== "undefined") {
-        await SAC_GRADES.syncFromServer(validator);
-        row = SAC_GRADES.getAll().find(
+    if (typeof EVOSU_API !== "undefined" && (await EVOSU_API.ensureOnline())) {
+      if (typeof EVOSU_GRADES !== "undefined") {
+        await EVOSU_GRADES.syncFromServer(validator);
+        row = EVOSU_GRADES.getAll().find(
           (g) =>
             (g.studentEmail || "").toLowerCase() === (sub.studentEmail || "").toLowerCase() &&
             g.courseCode === sub.courseCode &&
@@ -618,8 +618,8 @@ const SAC_AI_CORRECTION = (function () {
       }
     }
 
-    if (!row && typeof SAC_GRADES !== "undefined") {
-      row = await SAC_GRADES.upsertGrade(
+    if (!row && typeof EVOSU_GRADES !== "undefined") {
+      row = await EVOSU_GRADES.upsertGrade(
         {
           identifiant: profEmail,
           email: profEmail,
@@ -633,11 +633,11 @@ const SAC_AI_CORRECTION = (function () {
     }
 
     let sheet = null;
-    if (typeof SAC_GRADE_SHEET !== "undefined") {
-      sheet = SAC_GRADE_SHEET.createFromValidation(sub, row, validator);
+    if (typeof EVOSU_GRADE_SHEET !== "undefined") {
+      sheet = EVOSU_GRADE_SHEET.createFromValidation(sub, row, validator);
     }
     window.dispatchEvent(
-      new CustomEvent("sac:grades-updated", {
+      new CustomEvent("EvoSU:grades-updated", {
         detail: { submission: sub, grade: row, sheet },
       })
     );
@@ -715,9 +715,9 @@ const SAC_AI_CORRECTION = (function () {
     saveLocal(list);
     localStorage.removeItem(studentHistoryClearedKey(student.email || student.identifiant));
 
-    if (typeof SAC_API !== "undefined" && (await SAC_API.ensureOnline())) {
+    if (typeof EVOSU_API !== "undefined" && (await EVOSU_API.ensureOnline())) {
       try {
-        await SAC_API.platformRequest("/platform/corrections/submit", {
+        await EVOSU_API.platformRequest("/platform/corrections/submit", {
           method: "POST",
           body: JSON.stringify({ ...payload, correctionMode: correctionBundle.mode }),
         });
@@ -730,7 +730,7 @@ const SAC_AI_CORRECTION = (function () {
   }
 
   function studentHistoryClearedKey(email) {
-    return "sac_ai_cleared_" + String(email || "").toLowerCase();
+    return "EVOSU_ai_cleared_" + String(email || "").toLowerCase();
   }
 
   async function deleteStudentSubmission(student, submissionId) {
@@ -741,9 +741,9 @@ const SAC_AI_CORRECTION = (function () {
       throw new Error("Travail introuvable.");
     }
     saveLocal(list.filter((s) => s.id !== submissionId));
-    if (typeof SAC_API !== "undefined" && (await SAC_API.ensureOnline())) {
+    if (typeof EVOSU_API !== "undefined" && (await EVOSU_API.ensureOnline())) {
       try {
-        await SAC_API.platformRequest(`/platform/corrections/${submissionId}`, {
+        await EVOSU_API.platformRequest(`/platform/corrections/${submissionId}`, {
           method: "DELETE",
         });
       } catch {
@@ -756,9 +756,9 @@ const SAC_AI_CORRECTION = (function () {
     const email = (student.email || student.identifiant || "").toLowerCase();
     saveLocal(getLocal().filter((s) => (s.studentEmail || "").toLowerCase() !== email));
     localStorage.setItem(studentHistoryClearedKey(email), String(Date.now()));
-    if (typeof SAC_API !== "undefined" && (await SAC_API.ensureOnline())) {
+    if (typeof EVOSU_API !== "undefined" && (await EVOSU_API.ensureOnline())) {
       try {
-        await SAC_API.platformRequest("/platform/corrections/me", { method: "DELETE" });
+        await EVOSU_API.platformRequest("/platform/corrections/me", { method: "DELETE" });
       } catch {
         /* historique local effacé */
       }
@@ -771,9 +771,9 @@ const SAC_AI_CORRECTION = (function () {
     if (!local.length && localStorage.getItem(studentHistoryClearedKey(email))) {
       return [];
     }
-    if (typeof SAC_API !== "undefined" && (await SAC_API.ensureOnline())) {
+    if (typeof EVOSU_API !== "undefined" && (await EVOSU_API.ensureOnline())) {
       try {
-        const json = await SAC_API.platformRequest("/platform/corrections/me");
+        const json = await EVOSU_API.platformRequest("/platform/corrections/me");
         const apiSubs = json.submissions || [];
         const merged = [...local];
         apiSubs.forEach((sub) => {
@@ -788,8 +788,8 @@ const SAC_AI_CORRECTION = (function () {
   }
 
   async function listPendingProfessor(prof) {
-    if (typeof SAC_API !== "undefined" && (await SAC_API.ensureOnline())) {
-      const json = await SAC_API.platformRequest("/platform/corrections/pending");
+    if (typeof EVOSU_API !== "undefined" && (await EVOSU_API.ensureOnline())) {
+      const json = await EVOSU_API.platformRequest("/platform/corrections/pending");
       return json.submissions || [];
     }
     const email = (prof.email || prof.identifiant || "").toLowerCase();
@@ -805,8 +805,8 @@ const SAC_AI_CORRECTION = (function () {
   }
 
   async function validateSubmission(validator, submissionId, payload) {
-    if (typeof SAC_API !== "undefined" && (await SAC_API.ensureOnline())) {
-      const json = await SAC_API.platformRequest(
+    if (typeof EVOSU_API !== "undefined" && (await EVOSU_API.ensureOnline())) {
+      const json = await EVOSU_API.platformRequest(
         `/platform/corrections/${submissionId}/validate`,
         { method: "POST", body: JSON.stringify(payload) }
       );
@@ -835,9 +835,9 @@ const SAC_AI_CORRECTION = (function () {
   }
 
   async function getClassStats(universite, classe) {
-    if (typeof SAC_API !== "undefined" && (await SAC_API.ensureOnline())) {
+    if (typeof EVOSU_API !== "undefined" && (await EVOSU_API.ensureOnline())) {
       const q = classe ? `?classe=${encodeURIComponent(classe)}` : "";
-      return SAC_API.platformRequest("/platform/corrections/stats/class" + q);
+      return EVOSU_API.platformRequest("/platform/corrections/stats/class" + q);
     }
     const validated = getLocal().filter((s) => s.status === "valide" && s.universite === universite);
     const grades = validated.map((s) => s.finalGrade).filter((g) => g != null);
@@ -881,8 +881,8 @@ const SAC_AI_CORRECTION = (function () {
   }
 
   function courseDisplayName(courseOrSub) {
-    if (typeof SAC_COURSES !== "undefined" && SAC_COURSES.pickCourseTitle) {
-      return SAC_COURSES.pickCourseTitle(courseOrSub);
+    if (typeof EVOSU_COURSES !== "undefined" && EVOSU_COURSES.pickCourseTitle) {
+      return EVOSU_COURSES.pickCourseTitle(courseOrSub);
     }
     const name = String(courseOrSub?.courseName || "").trim();
     const code = String(courseOrSub?.courseCode || "").trim();
@@ -1172,7 +1172,7 @@ const SAC_AI_CORRECTION = (function () {
           </div>
         </div>
         <div class="panel__body">
-          <p class="ai-deposit__intro">Déposez une copie corrigée pour guider l'IA. Si vous ne déposez pas de copie, l'agent SAC fera une <strong>recherche internet automatique</strong> pour corriger les travaux selon des sources fiables du domaine (sans pénaliser l'orthographe).</p>
+          <p class="ai-deposit__intro">Déposez une copie corrigée pour guider l'IA. Si vous ne déposez pas de copie, l'agent EvoSU fera une <strong>recherche internet automatique</strong> pour corriger les travaux selon des sources fiables du domaine (sans pénaliser l'orthographe).</p>
           <form id="aiRefForm" class="ai-deposit__form">
             <div class="ai-form-grid">
               <div class="ai-field">

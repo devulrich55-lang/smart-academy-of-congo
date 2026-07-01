@@ -1,5 +1,5 @@
 /**
- * Registre serveur SAC — migration des comptes locaux vers l'API.
+ * Registre serveur EvoSU — migration des comptes locaux vers l'API.
  * Tous les comptes campus (étudiant, professeur, assistant, section) doivent
  * exister sur le serveur ; les anciens comptes localStorage sont provisionnés
  * automatiquement à la connexion avec le mot de passe saisi.
@@ -73,7 +73,7 @@ const SAC_ACCOUNT_REGISTRY = (function () {
   async function provisionOnServer(user, password) {
     if (!(await isOnline())) {
       throw new Error(
-        "Connexion au serveur obligatoire. Les comptes doivent être enregistrés sur le serveur SAC."
+        "Connexion au serveur obligatoire. Les comptes doivent être enregistrés sur le serveur EvoSU."
       );
     }
     const payload = buildPayload(user, password);

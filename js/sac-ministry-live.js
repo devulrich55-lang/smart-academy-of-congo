@@ -1,9 +1,9 @@
 /**
- * Espace live Ministère ↔ responsables universités (vidéo SAC + documents)
+ * Espace live Ministère ↔ responsables universités (vidéo EvoSU + documents)
  * Réservé au rôle ministere (hôte) et universite (invités).
  */
-const SAC_MINISTRY_LIVE = (function () {
-  const STORAGE_KEY = "sac_ministry_live";
+const EVOSU_MINISTRY_LIVE = (function () {
+  const STORAGE_KEY = "EVOSU_ministry_live";
   const TYPE = "ministry_universities";
 
   function read() {
@@ -34,27 +34,27 @@ const SAC_MINISTRY_LIVE = (function () {
   }
 
   function displayName(s) {
-    if (typeof SAC_IDENTITY !== "undefined") return SAC_IDENTITY.getDisplayName(s);
+    if (typeof EVOSU_IDENTITY !== "undefined") return EVOSU_IDENTITY.getDisplayName(s);
     return [s?.prenom, s?.nom].filter(Boolean).join(" ") || s?.email || "Participant";
   }
 
   async function api(path, opts) {
-    if (typeof SAC_API === "undefined") return null;
-    if (!(await SAC_API.ensureOnline())) return null;
+    if (typeof EVOSU_API === "undefined") return null;
+    if (!(await EVOSU_API.ensureOnline())) return null;
     try {
-      return await SAC_API.platformRequest(path, opts);
+      return await EVOSU_API.platformRequest(path, opts);
     } catch {
       return null;
     }
   }
 
   async function getUniAdmins(session) {
-    if (typeof SAC_INSTITUTIONAL !== "undefined" && session) {
-      const { admins } = await SAC_INSTITUTIONAL.load(session);
+    if (typeof EVOSU_INSTITUTIONAL !== "undefined" && session) {
+      const { admins } = await EVOSU_INSTITUTIONAL.load(session);
       return (admins || []).filter((a) => a.role === "universite");
     }
     try {
-      return JSON.parse(localStorage.getItem("sac_users") || "[]").filter((u) => u.role === "universite");
+      return JSON.parse(localStorage.getItem("EVOSU_users") || "[]").filter((u) => u.role === "universite");
     } catch {
       return [];
     }
@@ -117,12 +117,12 @@ const SAC_MINISTRY_LIVE = (function () {
     const row = {
       id,
       ...body,
-      roomName: "sac-min-" + id.slice(-10),
+      roomName: "evosu-min-" + id.slice(-10),
       status: "scheduled",
       documents: [],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      joinUrl: "sac-min:" + "sac-min-" + id.slice(-10),
+      joinUrl: "evosu-min:" + "evosu-min-" + id.slice(-10),
     };
     const list = read();
     list.unshift(row);
@@ -143,8 +143,8 @@ const SAC_MINISTRY_LIVE = (function () {
     if (!canHost(session)) throw new Error("Accès refusé");
     const data = await api("/platform/ministry/live/" + id + "/start", { method: "POST" });
     if (data?.session) {
-      if (typeof SAC_LIVE_CALL !== "undefined") {
-        SAC_LIVE_CALL.signalLiveStart({
+      if (typeof EVOSU_LIVE_CALL !== "undefined") {
+        EVOSU_LIVE_CALL.signalLiveStart({
           kind: "ministry",
           sessionId: data.session.id,
           title: data.session.title,
@@ -156,8 +156,8 @@ const SAC_MINISTRY_LIVE = (function () {
       return data.session;
     }
     const row = patchLocal(id, { status: "live", startedAt: new Date().toISOString() });
-    if (typeof SAC_LIVE_CALL !== "undefined") {
-      SAC_LIVE_CALL.signalLiveStart({
+    if (typeof EVOSU_LIVE_CALL !== "undefined") {
+      EVOSU_LIVE_CALL.signalLiveStart({
         kind: "ministry",
         sessionId: row.id,
         title: row.title,
@@ -205,9 +205,9 @@ const SAC_MINISTRY_LIVE = (function () {
   async function uploadFile(sessionId, file, user) {
     let url = "";
     const name = file.name || "Document";
-    if (typeof SAC_API !== "undefined" && (await SAC_API.ensureOnline())) {
+    if (typeof EVOSU_API !== "undefined" && (await EVOSU_API.ensureOnline())) {
       try {
-        const created = await SAC_API.createDocument(
+        const created = await EVOSU_API.createDocument(
           { title: name, category: "ministry_live", sessionId },
           file
         );
@@ -308,31 +308,31 @@ const SAC_MINISTRY_LIVE = (function () {
           <button type="button" class="btn btn--ghost" id="sacMinLiveClose" style="color:#fff">✕ Fermer</button>
         </div>
         <div class="min-live-room__body">
-          <div id="sacMinLiveFrame" class="sac-webrtc-host"></div>
+          <div id="sacMinLiveFrame" class="evosu-webrtc-host"></div>
           <aside id="sacMinLiveSide"></aside>
         </div>`;
       document.body.appendChild(el);
     }
     const isHost = canHost(session);
     document.getElementById("sacMinLiveTitle").textContent = liveRow.title;
-    const room = liveRow.roomName || "sac-min-" + liveRow.id.slice(-10);
+    const room = liveRow.roomName || "evosu-min-" + liveRow.id.slice(-10);
     const side = document.getElementById("sacMinLiveSide");
     side.innerHTML = renderDocsPanel(liveRow, session, isHost);
     bindDocsPanel(side, liveRow, session, isHost, session, closeRoom);
     document.getElementById("sacMinLiveClose").onclick = closeRoom;
     el.hidden = false;
     document.body.style.overflow = "hidden";
-    if (typeof SAC_WEBRTC_ROOM !== "undefined") {
-      SAC_WEBRTC_ROOM.attachToHost("sacMinLiveFrame", {
+    if (typeof EVOSU_WEBRTC_ROOM !== "undefined") {
+      EVOSU_WEBRTC_ROOM.attachToHost("sacMinLiveFrame", {
         roomId: room,
-        displayName: userName || "SAC",
+        displayName: userName || "EvoSU",
         onLeave: closeRoom,
       }).catch((err) => alert(err.message || "Salle live indisponible."));
     }
   }
 
   function closeRoom() {
-    if (typeof SAC_WEBRTC_ROOM !== "undefined") SAC_WEBRTC_ROOM.leave();
+    if (typeof EVOSU_WEBRTC_ROOM !== "undefined") EVOSU_WEBRTC_ROOM.leave();
     const el = document.getElementById("sacMinLiveRoom");
     if (el) {
       el.hidden = true;
@@ -399,7 +399,7 @@ const SAC_MINISTRY_LIVE = (function () {
     const admins = await getUniAdmins(session);
     container.innerHTML = `
       <div class="min-live-wrap">
-        <p class="page-desc">Live national avec les <strong>responsables des universités</strong> partenaires — vidéo SAC et échange de documents.</p>
+        <p class="page-desc">Live national avec les <strong>responsables des universités</strong> partenaires — vidéo EvoSU et échange de documents.</p>
         <div class="ws-grid-2">
           <div class="panel panel--ws">
             <div class="panel__head"><h2>Programmer un live</h2></div>
@@ -435,7 +435,7 @@ const SAC_MINISTRY_LIVE = (function () {
             <div class="panel__body">
               <ul class="ws-guide">
                 <li><strong>Programmer</strong> — invite les responsables d'université</li>
-                <li><strong>Démarrer</strong> — ouvre la salle vidéo SAC</li>
+                <li><strong>Démarrer</strong> — ouvre la salle vidéo EvoSU</li>
                 <li><strong>Documents</strong> — partagez PDF, liens Drive pendant le live</li>
                 <li>Les universités rejoignent depuis leur portail <code>/admin-uni/</code></li>
               </ul>

@@ -1,13 +1,13 @@
 /**
  * Activité pédagogique — espace professeur (aligné sur le tableau de bord assistant)
  */
-const SAC_PROFESSOR = (function () {
+const EVOSU_PROFESSOR = (function () {
   function getSemester() {
-    return SAC_GRADES?.CURRENT_SEMESTER || "s1-2025";
+    return EVOSU_GRADES?.CURRENT_SEMESTER || "s1-2025";
   }
 
   function getClasses(session) {
-    return SAC_COURSES.getTeachingClasses(session);
+    return EVOSU_COURSES.getTeachingClasses(session);
   }
 
   function studentNeedsGrade(student, existingGrades) {
@@ -19,14 +19,14 @@ const SAC_PROFESSOR = (function () {
     const profEmail = session?.identifiant || "";
     return getClasses(session)
       .map((courseClass, idx) => {
-        const students = SAC_GRADES.getStudentsForClass(courseClass);
-        const existing = SAC_GRADES.getForProfessorCourse(
+        const students = EVOSU_GRADES.getStudentsForClass(courseClass);
+        const existing = EVOSU_GRADES.getForProfessorCourse(
           profEmail,
           courseClass,
           semester
         );
         const pending = students.filter((s) => studentNeedsGrade(s, existing));
-        const stats = SAC_GRADES.getCourseStats(profEmail, courseClass, semester);
+        const stats = EVOSU_GRADES.getCourseStats(profEmail, courseClass, semester);
         return {
           idx,
           courseClass,
@@ -42,8 +42,8 @@ const SAC_PROFESSOR = (function () {
   }
 
   function getPublicationsWithEngagement(session) {
-    return SAC_DATA.getPublicationsByAuthor(session).map((doc) => {
-      const counts = SAC_DATA.reactionCounts(doc);
+    return EVOSU_DATA.getPublicationsByAuthor(session).map((doc) => {
+      const counts = EVOSU_DATA.reactionCounts(doc);
       return {
         doc,
         counts,
@@ -63,12 +63,12 @@ const SAC_PROFESSOR = (function () {
     return getClasses(session).map((courseClass, idx) => ({
       idx,
       courseClass,
-      students: SAC_GRADES.getStudentsForClass(courseClass),
+      students: EVOSU_GRADES.getStudentsForClass(courseClass),
     }));
   }
 
   function getAccountStatus(session) {
-    const users = SAC_IDENTITY.getLocalUsers();
+    const users = EVOSU_IDENTITY.getLocalUsers();
     const found = users.find(
       (u) => u.role === "professeur" && u.email === session?.identifiant
     );
@@ -88,11 +88,11 @@ const SAC_PROFESSOR = (function () {
     const classes = getClasses(session);
     const pendingCourses = getCoursesWithPendingGrades(session, semester);
     const pendingGrades = pendingCourses.reduce((s, c) => s + c.pendingCount, 0);
-    const docs = SAC_DATA.getPublicationsByAuthor(session);
+    const docs = EVOSU_DATA.getPublicationsByAuthor(session);
     let react = 0;
     let questions = 0;
     docs.forEach((d) => {
-      const c = SAC_DATA.reactionCounts(d);
+      const c = EVOSU_DATA.reactionCounts(d);
       react += c.useful + c.question + c.thanks;
       questions += c.question;
     });
@@ -100,9 +100,9 @@ const SAC_PROFESSOR = (function () {
 
     return {
       coursesCount: classes.length,
-      studentsCount: SAC_GRADES.countStudentsForProfessor(session),
+      studentsCount: EVOSU_GRADES.countStudentsForProfessor(session),
       publicationsCount: docs.length,
-      gradesEntered: SAC_GRADES.countGradesForProfessor(session.identifiant),
+      gradesEntered: EVOSU_GRADES.countGradesForProfessor(session.identifiant),
       pendingGrades,
       pendingCoursesCount: pendingCourses.length,
       reactionsTotal: react,
@@ -119,8 +119,8 @@ const SAC_PROFESSOR = (function () {
   }
 
   function displayName(user) {
-    if (typeof SAC_IDENTITY !== "undefined") {
-      return SAC_IDENTITY.formatFullName(user.prenom, user.nom) || user.email;
+    if (typeof EVOSU_IDENTITY !== "undefined") {
+      return EVOSU_IDENTITY.formatFullName(user.prenom, user.nom) || user.email;
     }
     return [user.prenom, user.nom].filter(Boolean).join(" ") || user.email;
   }

@@ -1,5 +1,5 @@
 {
-  "name": "Evo-smartUni — Smart Academy of Congo",
+  "name": "Evo-smartUni",
   "short_name": "Evo-smartUni",
   "description": "Plateforme académique nationale : cours, notes, live, frais et réclamations.",
   "start_url": "/connexion.html?source=pwa",

@@ -1,7 +1,7 @@
 /**
  * Session — cookies JWT (API) + cache local ; repli localStorage réservé au dev localhost
  */
-const SAC_SESSION = (function () {
+const EVOSU_SESSION = (function () {
   const DASHBOARDS = {
     etudiant: "dashboard-etudiant.html",
     professeur: "dashboard-professeur.html",
@@ -14,31 +14,31 @@ const SAC_SESSION = (function () {
 
   function getSession() {
     try {
-      return JSON.parse(localStorage.getItem("sac_session") || "null");
+      return JSON.parse(localStorage.getItem("EVOSU_session") || "null");
     } catch {
       return null;
     }
   }
 
   function saveSession(session) {
-    localStorage.setItem("sac_session", JSON.stringify(session));
+    localStorage.setItem("EVOSU_session", JSON.stringify(session));
     if (
       session?.logoUrl &&
       session.role === "universite" &&
-      typeof SAC_UNIVERSITY_LOGO !== "undefined"
+      typeof EVOSU_UNIVERSITY_LOGO !== "undefined"
     ) {
-      SAC_UNIVERSITY_LOGO.registerForUniversity(session);
+      EVOSU_UNIVERSITY_LOGO.registerForUniversity(session);
     }
   }
 
   function clearSession() {
-    localStorage.removeItem("sac_session");
+    localStorage.removeItem("EVOSU_session");
   }
 
   function loginUrl(role) {
     const r = role || "etudiant";
-    if (typeof SAC_PORTAL !== "undefined") {
-      return SAC_PORTAL.loginUrlForRole(r);
+    if (typeof EVOSU_PORTAL !== "undefined") {
+      return EVOSU_PORTAL.loginUrlForRole(r);
     }
     if (r === "ministere") return "ministere/";
     if (r === "superadmin") return "superadmin/";
@@ -47,8 +47,8 @@ const SAC_SESSION = (function () {
   }
 
   function dashboardUrl(role) {
-    if (typeof SAC_PORTAL !== "undefined") {
-      return SAC_PORTAL.dashboardUrl(role);
+    if (typeof EVOSU_PORTAL !== "undefined") {
+      return EVOSU_PORTAL.dashboardUrl(role);
     }
     return DASHBOARDS[role] || "index.html";
   }
@@ -59,14 +59,14 @@ const SAC_SESSION = (function () {
   }
 
   function allowLocalAuth() {
-    if (typeof SAC_API !== "undefined" && typeof SAC_API.allowOfflineAuth === "function") {
-      return SAC_API.allowOfflineAuth();
+    if (typeof EVOSU_API !== "undefined" && typeof EVOSU_API.allowOfflineAuth === "function") {
+      return EVOSU_API.allowOfflineAuth();
     }
     const h = window.location.hostname;
     return h === "localhost" || h === "127.0.0.1" || h === "[::1]";
   }
 
-  const POST_REGISTER_KEY = "sac_post_register";
+  const POST_REGISTER_KEY = "EVOSU_post_register";
 
   function markPostRegistration(role) {
     try {
@@ -98,15 +98,15 @@ const SAC_SESSION = (function () {
     if (!session || session.authSource !== "api") return false;
     if (requiredRole && session.role !== requiredRole) return false;
     if (!session.newAccount && !hasPostRegistration(session.role)) return false;
-    if (typeof SAC_API !== "undefined" && typeof SAC_API.hasAuthTokens === "function") {
-      return SAC_API.hasAuthTokens();
+    if (typeof EVOSU_API !== "undefined" && typeof EVOSU_API.hasAuthTokens === "function") {
+      return EVOSU_API.hasAuthTokens();
     }
     return true;
   }
 
   function scheduleSessionSync(local) {
-    if (typeof SAC_API === "undefined" || typeof SAC_API.me !== "function") return;
-    SAC_API.me()
+    if (typeof EVOSU_API === "undefined" || typeof EVOSU_API.me !== "function") return;
+    EVOSU_API.me()
       .then((serverSession) => {
         saveSession({
           ...serverSession,
@@ -129,15 +129,15 @@ const SAC_SESSION = (function () {
     if (requiredRole && session.role !== requiredRole) return false;
     if (session.authSource === "local") return true;
     if (
-      typeof SAC_API !== "undefined" &&
-      typeof SAC_API.hasAuthTokens === "function" &&
-      SAC_API.hasAuthTokens()
+      typeof EVOSU_API !== "undefined" &&
+      typeof EVOSU_API.hasAuthTokens === "function" &&
+      EVOSU_API.hasAuthTokens()
     ) {
       return false;
     }
-    if (typeof SAC_IDENTITY === "undefined") return allowLocalAuth();
-    const user = SAC_IDENTITY.findUserByLoginId(
-      SAC_IDENTITY.getLocalUsers(),
+    if (typeof EVOSU_IDENTITY === "undefined") return allowLocalAuth();
+    const user = EVOSU_IDENTITY.findUserByLoginId(
+      EVOSU_IDENTITY.getLocalUsers(),
       session.identifiant
     );
     return !!user;
@@ -148,13 +148,13 @@ const SAC_SESSION = (function () {
     const session = getSession();
     if (!session || !session.role || !session.identifiant) return null;
     if (isServerSession(session)) return session;
-    if (typeof SAC_IDENTITY === "undefined") return session;
+    if (typeof EVOSU_IDENTITY === "undefined") return session;
 
-    const users = SAC_IDENTITY.getLocalUsers();
-    const user = SAC_IDENTITY.findUserByLoginId(users, session.identifiant);
+    const users = EVOSU_IDENTITY.getLocalUsers();
+    const user = EVOSU_IDENTITY.findUserByLoginId(users, session.identifiant);
     if (!user) return allowLocalAuth() ? session : null;
 
-    const canonical = SAC_IDENTITY.buildSessionFromUser(user);
+    const canonical = EVOSU_IDENTITY.buildSessionFromUser(user);
     const merged = {
       ...session,
       ...canonical,
@@ -181,9 +181,9 @@ const SAC_SESSION = (function () {
   /** Tente de restaurer la session via cookies API (httpOnly) */
   async function restoreSession() {
     const local = getSession();
-    if (typeof SAC_API !== "undefined" && (await SAC_API.ensureOnline())) {
+    if (typeof EVOSU_API !== "undefined" && (await EVOSU_API.ensureOnline())) {
       try {
-        const server = await SAC_API.me({ soft: true });
+        const server = await EVOSU_API.me({ soft: true });
         if (server) return server;
       } catch {
         /* fall through */
@@ -209,12 +209,12 @@ const SAC_SESSION = (function () {
 
     if (isServerSession(session)) return session;
 
-    if (typeof SAC_IDENTITY === "undefined") {
+    if (typeof EVOSU_IDENTITY === "undefined") {
       return allowLocalAuth() ? session : null;
     }
 
-    const users = SAC_IDENTITY.getLocalUsers();
-    const user = SAC_IDENTITY.findUserByLoginId(users, session.identifiant);
+    const users = EVOSU_IDENTITY.getLocalUsers();
+    const user = EVOSU_IDENTITY.findUserByLoginId(users, session.identifiant);
     if (!user) {
       if (canKeepLocalSession(session, requiredRole)) return session;
       if (!allowLocalAuth()) {
@@ -224,7 +224,7 @@ const SAC_SESSION = (function () {
       return session;
     }
 
-    const canonical = SAC_IDENTITY.buildSessionFromUser(user);
+    const canonical = EVOSU_IDENTITY.buildSessionFromUser(user);
     const merged = {
       ...session,
       ...canonical,
@@ -259,11 +259,11 @@ const SAC_SESSION = (function () {
 
     const synced = syncSessionWithAccount(requiredRole) || local;
 
-    if (typeof SAC_API !== "undefined") {
+    if (typeof EVOSU_API !== "undefined") {
       try {
-        const online = await SAC_API.ensureOnline();
-        if (online && typeof SAC_API.me === "function") {
-          const serverSession = await SAC_API.me({ soft: true });
+        const online = await EVOSU_API.ensureOnline();
+        if (online && typeof EVOSU_API.me === "function") {
+          const serverSession = await EVOSU_API.me({ soft: true });
           if (serverSession) {
             if (requiredRole && serverSession.role !== requiredRole) return null;
             saveSession(serverSession);
@@ -291,7 +291,7 @@ const SAC_SESSION = (function () {
     }
 
     const apiOnline =
-      typeof SAC_API !== "undefined" && (await SAC_API.ensureOnline());
+      typeof EVOSU_API !== "undefined" && (await EVOSU_API.ensureOnline());
 
     if (apiOnline) {
       if (local && isFreshApiRegistration(local, requiredRole)) {
@@ -301,7 +301,7 @@ const SAC_SESSION = (function () {
       }
 
       try {
-        const serverSession = await SAC_API.me();
+        const serverSession = await EVOSU_API.me();
         if (requiredRole && serverSession.role !== requiredRole) {
           clearSession();
           return null;
@@ -311,12 +311,12 @@ const SAC_SESSION = (function () {
         return serverSession;
       } catch {
         let recovered = false;
-        if (typeof SAC_API.refresh === "function") {
-          recovered = await SAC_API.refresh();
+        if (typeof EVOSU_API.refresh === "function") {
+          recovered = await EVOSU_API.refresh();
         }
         if (recovered) {
           try {
-            const serverSession = await SAC_API.me();
+            const serverSession = await EVOSU_API.me();
             if (requiredRole && serverSession.role !== requiredRole) {
               clearSession();
               return null;
@@ -338,8 +338,8 @@ const SAC_SESSION = (function () {
         if (
           local &&
           isServerSession(local) &&
-          typeof SAC_API.hasAuthTokens === "function" &&
-          SAC_API.hasAuthTokens()
+          typeof EVOSU_API.hasAuthTokens === "function" &&
+          EVOSU_API.hasAuthTokens()
         ) {
           return local;
         }
@@ -349,8 +349,8 @@ const SAC_SESSION = (function () {
         }
 
         clearSession();
-        if (typeof SAC_API !== "undefined" && typeof SAC_API.clearClientSession === "function") {
-          SAC_API.clearClientSession();
+        if (typeof EVOSU_API !== "undefined" && typeof EVOSU_API.clearClientSession === "function") {
+          EVOSU_API.clearClientSession();
         }
         return null;
       }
@@ -377,13 +377,13 @@ const SAC_SESSION = (function () {
       window.location.replace(loginUrl(requiredRole));
       return null;
     }
-    if (typeof SAC_PORTAL !== "undefined" && SAC_PORTAL.redirectIfWrongRole(session)) {
+    if (typeof EVOSU_PORTAL !== "undefined" && EVOSU_PORTAL.redirectIfWrongRole(session)) {
       return null;
     }
-    if (typeof SAC_SECTION_APPROVAL !== "undefined") {
-      const enriched = SAC_SECTION_APPROVAL.enrichSession(session);
-      if (SAC_SECTION_APPROVAL.shouldBlockDashboard(enriched)) {
-        SAC_SECTION_APPROVAL.redirectPending(enriched);
+    if (typeof EVOSU_SECTION_APPROVAL !== "undefined") {
+      const enriched = EVOSU_SECTION_APPROVAL.enrichSession(session);
+      if (EVOSU_SECTION_APPROVAL.shouldBlockDashboard(enriched)) {
+        EVOSU_SECTION_APPROVAL.redirectPending(enriched);
         return null;
       }
       return enriched;
@@ -393,9 +393,9 @@ const SAC_SESSION = (function () {
 
   /** Déconnexion unique — seul moyen d'effacer la session */
   async function logout(redirectTo) {
-    if (typeof SAC_API !== "undefined") {
+    if (typeof EVOSU_API !== "undefined") {
       try {
-        await SAC_API.logout();
+        await EVOSU_API.logout();
       } catch {
         clearSession();
       }
@@ -411,10 +411,10 @@ const SAC_SESSION = (function () {
     if (!session || !DASHBOARDS[session.role]) return false;
     if (wanted && wanted !== session.role) return false;
     if (
-      typeof SAC_SECTION_APPROVAL !== "undefined" &&
-      SAC_SECTION_APPROVAL.shouldBlockDashboard(session)
+      typeof EVOSU_SECTION_APPROVAL !== "undefined" &&
+      EVOSU_SECTION_APPROVAL.shouldBlockDashboard(session)
     ) {
-      SAC_SECTION_APPROVAL.redirectPending(session);
+      EVOSU_SECTION_APPROVAL.redirectPending(session);
       return true;
     }
     window.location.replace(dashboardUrl(session.role));

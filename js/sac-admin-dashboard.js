@@ -893,7 +893,7 @@ const SAC_ADMIN_DASHBOARD = (function () {
           submit: "Créer le compte Ministère",
         },
         superadmin: {
-          desc: "Compte Super Admin SAC — gestion centrale de la plateforme.",
+          desc: "Compte Super Admin EvoSU — gestion centrale de la plateforme.",
           title: "Nouveau compte Super Admin",
           submit: "Créer le compte Super Admin",
         },
@@ -1021,7 +1021,7 @@ const SAC_ADMIN_DASHBOARD = (function () {
       const year = new Date().getFullYear();
       document.getElementById("newNomUniversite").value = u.name;
       document.getElementById("newSigle").value = u.sigle;
-      document.getElementById("newCodeUni").value = "SAC-" + u.sigle + "-" + year;
+      document.getElementById("newCodeUni").value = "EvoSU-" + u.sigle + "-" + year;
     }
 
     function initInstitutionCountrySelects() {
@@ -1144,7 +1144,7 @@ const SAC_ADMIN_DASHBOARD = (function () {
           return;
         }
         if (!catalogId) {
-          alert("Choisissez l'établissement dans le catalogue SAC.");
+          alert("Choisissez l'établissement dans le catalogue EvoSU.");
           return;
         }
         if (typeof SAC_UNIVERSITIES !== "undefined") {

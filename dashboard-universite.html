@@ -668,7 +668,7 @@
       <h1 class="page-title">Réunions institutionnelles</h1>
       <p class="page-desc">
         Chef de section ↔ Professeurs · Doyen ↔ Chefs de section — vidéo en direct, partage de documents,
-        votes, compte rendu automatique par l'IA SAC.
+        votes, compte rendu automatique par l'IA EvoSU.
       </p>
       <div id="ministryLiveUniRoot"></div>
       <div id="meetingsRoot"></div>
@@ -2051,7 +2051,7 @@
             fn();
             root.dataset.pubInited = "1";
           } catch (err) {
-            console.error("[SAC] init publisher", rootId, err);
+            console.error("[EvoSU] init publisher", rootId, err);
             if (!root.innerHTML.trim()) root.innerHTML = pubErr;
           }
         }

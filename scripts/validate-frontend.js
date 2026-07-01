@@ -55,6 +55,7 @@ for (const file of htmlFiles) {
 referenced.add("js/sac-floating-back.js");
 referenced.add("css/floating-back.css");
 referenced.add("js/sac-pwa.js");
+referenced.add("js/sac-native.js");
 referenced.add("sw.js");
 referenced.add("manifest.webmanifest");
 

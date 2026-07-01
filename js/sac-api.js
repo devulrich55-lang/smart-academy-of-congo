@@ -14,6 +14,10 @@ const SAC_API = (function () {
     const fromGlobal = normalize(window.SAC_API_BASE);
     if (fromGlobal) return fromGlobal;
 
+    if (typeof window !== "undefined" && window.SAC_NATIVE_APP) {
+      return RENDER_API_DIRECT;
+    }
+
     const meta = document.querySelector('meta[name="sac-api-base"]');
     const fromMeta = normalize(meta && meta.getAttribute("content"));
     if (fromMeta) return fromMeta;
@@ -43,7 +47,7 @@ const SAC_API = (function () {
 
   if (typeof window !== "undefined" && window.location.protocol === "file:") {
     console.warn(
-      "[SAC] Ouvrez le site via http://localhost:8000 (double-clic sur start-local.bat), pas en ouvrant le fichier HTML directement."
+      "[EvoSU] Ouvrez le site via http://localhost:8000 (double-clic sur start-local.bat), pas en ouvrant le fichier HTML directement."
     );
   }
 
@@ -153,7 +157,7 @@ const SAC_API = (function () {
   }
 
   function useBearerAuth() {
-    return isCrossOriginApi() || isRenderFrontend();
+    return isCrossOriginApi() || isRenderFrontend() || !!(typeof window !== "undefined" && window.SAC_NATIVE_APP);
   }
 
   /** Node (proxy /api) si dispo, sinon API directe (Static Site + CORS). */

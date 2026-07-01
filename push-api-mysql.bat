@@ -48,7 +48,7 @@ if errorlevel 1 (
 
 git remote remove origin 2>nul
 
-git remote add origin https://github.com/devulrich55-lang/smart-academy-of-congo-API.git 2>nul
+git remote add origin https://github.com/devulrich55-lang/Evo-smartUni-API.git 2>nul
 
 git branch -M main 2>nul
 

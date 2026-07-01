@@ -144,7 +144,7 @@
       "features.p1.title": "Système unifié multi-universités",
       "features.p1.text":
         "Un portail national : chaque campus garde son autonomie tout en partageant standards, tarifs et annonces nationales.",
-      "features.p1.tag": "Réseau SAC",
+      "features.p1.tag": "Réseau EvoSU",
       "features.p2.title": "Inscription en ligne",
       "features.p2.text":
         "Dossier numérique, choix d'établissement, sections et paiement initial avec validation assistant / université.",
@@ -406,7 +406,7 @@
       "features.p1.title": "Multi-university unified system",
       "features.p1.text":
         "A national portal: each campus keeps autonomy while sharing standards, fees and national announcements.",
-      "features.p1.tag": "SAC Network",
+      "features.p1.tag": "EvoSU Network",
       "features.p2.title": "Online registration",
       "features.p2.text":
         "Digital file, institution choice, sections and initial payment with assistant / university validation.",
@@ -667,7 +667,7 @@
       "features.p1.title": "نظام موحّد متعدد الجامعات",
       "features.p1.text":
         "بوابة وطنية: كل حرم يحتفظ باستقلاليته مع مشاركة المعايير والرسوم والإعلانات الوطنية.",
-      "features.p1.tag": "شبكة SAC",
+      "features.p1.tag": "شبكة EvoSU",
       "features.p2.title": "التسجيل عبر الإنترنت",
       "features.p2.text":
         "ملف رقمي، اختيار المؤسسة، الأقسام والدفع الأولي مع التحقق من المساعد / الجامعة.",
@@ -862,7 +862,7 @@
       "features.p1.title": "Sistema unificado multi-universidades",
       "features.p1.text":
         "Portal nacional: cada campus mantém autonomia partilhando padrões, tarifas e anúncios nacionais.",
-      "features.p1.tag": "Rede SAC",
+      "features.p1.tag": "Rede EvoSU",
       "features.p2.title": "Inscrição online",
       "features.p2.text":
         "Dossier digital, escolha de instituição, secções e pagamento inicial com validação assistente / universidade.",
@@ -1057,7 +1057,7 @@
       "features.p1.title": "Sistema unificado multi-universidades",
       "features.p1.text":
         "Portal nacional: cada campus mantiene autonomía compartiendo estándares, tarifas y anuncios nacionales.",
-      "features.p1.tag": "Red SAC",
+      "features.p1.tag": "Red EvoSU",
       "features.p2.title": "Inscripción en línea",
       "features.p2.text":
         "Expediente digital, elección de institución, secciones y pago inicial con validación asistente / universidad.",

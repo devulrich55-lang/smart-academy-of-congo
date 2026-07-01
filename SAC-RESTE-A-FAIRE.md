@@ -22,8 +22,8 @@
 
 | Couche | Dossier local | Dépôt GitHub | Service Render |
 |--------|---------------|--------------|----------------|
-| **Frontend** | `Smart Acamy of Congo/` | `smart-academy-of-congo` | Site `-dbfm` |
-| **Backend** | `Smart Acamy of Congo/backend-python/` | `smart-academy-of-congo-API` | API `-1` |
+| **Frontend** | `Evo-smartUni/` | `smart-academy-of-congo` | Site `-dbfm` |
+| **Backend** | `Evo-smartUni/backend-python/` | `smart-academy-of-congo-API` | API `-1` |
 
 > Le dossier `backend-python/` est dans le `.gitignore` du frontend → un `git push` sur le site **ne déploie jamais l'API**.
 
@@ -163,7 +163,7 @@
 | **Dernières corrections frontend** | Présence, session post-inscription, logo — push bloqué |
 | **Travail Git depuis OneDrive** | Sync verrouille `.git/objects/` |
 | **Paiement Mobile Money réel** | Validation manuelle assistant — pas d'intégration opérateur |
-| **IA externe (ChatGPT / OpenAI)** | Correction / réunions = logique interne SAC |
+| **IA externe (ChatGPT / OpenAI)** | Correction / réunions = logique interne EvoSU |
 | **MySQL / PlanetScale en prod** | Config possible ; prod utilise **SQLite** sur Render |
 
 ---
@@ -233,7 +233,7 @@ Deletion of directory '.git/objects/01' failed. Should I try again? (y/n)
 ```
 
 ### Cause
-Projet dans OneDrive : `C:\Users\1\OneDrive\Desktop\Smart Acamy of Congo`
+Projet dans OneDrive : `C:\Users\1\OneDrive\Desktop\Evo-smartUni`
 
 ### Solution immédiate
 1. Répondre `n` si ça boucle, fermer le terminal.
@@ -243,7 +243,7 @@ Projet dans OneDrive : `C:\Users\1\OneDrive\Desktop\Smart Acamy of Congo`
 
 ### Solution durable
 ```powershell
-xcopy "C:\Users\1\OneDrive\Desktop\Smart Acamy of Congo" "C:\dev\Smart-Academy-of-Congo" /E /I /H
+xcopy "C:\Users\1\OneDrive\Desktop\Evo-smartUni" "C:\dev\Smart-Academy-of-Congo" /E /I /H
 cd "C:\dev\Smart-Academy-of-Congo"
 ```
 
@@ -320,7 +320,7 @@ GET  /api/platform/presence/classes
 ## Frontend
 ```powershell
 # Pause OneDrive + fermer Cursor avant
-cd "C:\Users\1\OneDrive\Desktop\Smart Acamy of Congo"
+cd "C:\Users\1\OneDrive\Desktop\Evo-smartUni"
 git status
 git add css/presence.css js/sac-presence.js js/sac-api.js js/sac-session.js js/sac-config.js
 git add dashboard-etudiant.html dashboard-professeur.html dashboard-section.html
@@ -334,7 +334,7 @@ git push origin main
 
 ## Backend API
 ```powershell
-cd "C:\Users\1\OneDrive\Desktop\Smart Acamy of Congo\backend-python"
+cd "C:\Users\1\OneDrive\Desktop\Evo-smartUni\backend-python"
 git status
 git add app/main.py app/config.py
 git add app/routes/platform.py app/services/platform_service.py

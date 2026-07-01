@@ -1,5 +1,5 @@
 /**
- * Salle live SAC — WebRTC natif
+ * Salle live EvoSU — WebRTC natif
  * Commentaires sur l'écran · responsive · sans panneau chat
  */
 const SAC_WEBRTC_ROOM = (function () {
@@ -270,7 +270,7 @@ const SAC_WEBRTC_ROOM = (function () {
     async connect() {
       this.renderShell();
       if (typeof SAC_API !== "undefined" && SAC_API.wakeServer) {
-        this.setStatus("Réveil du serveur SAC… (30–90 s sur Render)");
+        this.setStatus("Réveil du serveur EvoSU… (30–90 s sur Render)");
         try {
           await SAC_API.wakeServer({ attempts: 8, timeoutMs: 55000, delayMs: 7000 });
         } catch {
@@ -598,7 +598,7 @@ const SAC_WEBRTC_ROOM = (function () {
         if (this.isAudience) {
           this.setStatus("Connecté · Touchez l'écran si vous n'entendez pas le professeur");
         } else {
-          this.setStatus("Connecté · Salle SAC");
+          this.setStatus("Connecté · Salle EvoSU");
         }
       };
       this.ws.onclose = () => {
@@ -626,7 +626,7 @@ const SAC_WEBRTC_ROOM = (function () {
         }
       };
       this.ws.onerror = () => {
-        if (!this.destroyed) this.setStatus("Erreur serveur SAC");
+        if (!this.destroyed) this.setStatus("Erreur serveur EvoSU");
       };
       this.ws.onmessage = (ev) => {
         try {
@@ -643,7 +643,7 @@ const SAC_WEBRTC_ROOM = (function () {
       if (type === "welcome") {
         this.peerId = msg.peerId;
         if (msg.role) this.userRole = msg.role;
-        this.setStatus((msg.peers?.length || 0) + " connecté(s) · Live SAC");
+        this.setStatus((msg.peers?.length || 0) + " connecté(s) · Live EvoSU");
         this.setParticipantsFromServer(msg.peers, msg.displayName || this.displayName);
         (msg.chatLog || []).forEach((m) => this.showFloatingComment(m));
         (msg.qaLog || []).forEach((m) => this.ingestQa(m, false));
@@ -1386,7 +1386,7 @@ const SAC_WEBRTC_ROOM = (function () {
     async handleRecordingBlob(blob) {
       const sessionId = this.opts.sessionId;
       if (sessionId && typeof SAC_API !== "undefined" && SAC_API.uploadLiveRecording) {
-        this.setStatus("Envoi de l'enregistrement vers SAC…");
+        this.setStatus("Envoi de l'enregistrement vers EvoSU…");
         const fd = new FormData();
         fd.append(
           "file",
@@ -1397,7 +1397,7 @@ const SAC_WEBRTC_ROOM = (function () {
           const data = await SAC_API.uploadLiveRecording(sessionId, fd);
           lastRecordingUrl = data.recordingUrl || data.session?.recordingUrl || null;
           if (lastRecordingUrl) {
-            this.setStatus("Enregistrement enregistré sur SAC");
+            this.setStatus("Enregistrement enregistré sur EvoSU");
             if (typeof this.opts.onRecordingUploaded === "function") {
               this.opts.onRecordingUploaded(lastRecordingUrl);
             }

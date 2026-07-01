@@ -547,11 +547,11 @@
       es: "Servicio público Evo-smartUni. Introduzca el número de diploma y el código de verificación de la certificación digital. La firma criptográfica se verifica en el servidor.",
     },
     "verify.label.number": {
-      fr: "Numéro de diplôme (ex. SAC-UNIKIN-2025-…)",
-      en: "Diploma number (e.g. SAC-UNIKIN-2025-…)",
-      ar: "رقم الشهادة (مثال SAC-UNIKIN-2025-…)",
-      pt: "Número do diploma (ex. SAC-UNIKIN-2025-…)",
-      es: "Número de diploma (ej. SAC-UNIKIN-2025-…)",
+      fr: "Numéro de diplôme (ex. EvoSU-UNIKIN-2025-…)",
+      en: "Diploma number (e.g. EvoSU-UNIKIN-2025-…)",
+      ar: "رقم الشهادة (مثال EvoSU-UNIKIN-2025-…)",
+      pt: "Número do diploma (ex. EvoSU-UNIKIN-2025-…)",
+      es: "Número de diploma (ej. EvoSU-UNIKIN-2025-…)",
     },
     "verify.label.code": {
       fr: "Code de vérification",
@@ -862,11 +862,11 @@
       es: "Nueva contraseña — Evo-smartUni",
     },
     "meta.platform.title": {
-      fr: "Plateforme SAC — Bibliothèque, orientation, stages & réseau",
-      en: "SAC Platform — Library, guidance, internships & network",
-      ar: "منصة SAC — مكتبة، توجيه، تدريب وشبكة",
-      pt: "Plataforma SAC — Biblioteca, orientação, estágios e rede",
-      es: "Plataforma SAC — Biblioteca, orientación, prácticas y red",
+      fr: "Plateforme EvoSU — Bibliothèque, orientation, stages & réseau",
+      en: "EvoSU Platform — Library, guidance, internships & network",
+      ar: "منصة EvoSU — مكتبة، توجيه، تدريب وشبكة",
+      pt: "Plataforma EvoSU — Biblioteca, orientação, estágios e rede",
+      es: "Plataforma EvoSU — Biblioteca, orientación, prácticas y red",
     },
     "dash.home.btn": {
       fr: "🏠 Tableau de bord",

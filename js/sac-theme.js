@@ -143,7 +143,7 @@
       ext.src = base + "js/sac-i18n-platform.js?v=" + v;
       ext.onload = finishI18n;
       ext.onerror = function () {
-        console.error("[SAC] sac-i18n-platform.js failed to load");
+        console.error("[EvoSU] sac-i18n-platform.js failed to load");
         finishI18n();
       };
       document.head.appendChild(ext);
@@ -169,7 +169,7 @@
     s.src = base + "js/sac-i18n.js?v=" + v;
     s.onload = loadPlatformScript;
     s.onerror = function () {
-      console.error("[SAC] sac-i18n.js failed to load");
+      console.error("[EvoSU] sac-i18n.js failed to load");
     };
     document.head.appendChild(s);
   }

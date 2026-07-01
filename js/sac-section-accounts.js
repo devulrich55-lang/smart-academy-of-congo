@@ -14,7 +14,7 @@ const SAC_SECTION_ACCOUNTS = (function () {
       throw new Error(
         "Connexion au serveur obligatoire pour " +
           (actionLabel || "cette opération") +
-          ". Tous les comptes doivent être enregistrés sur le serveur SAC."
+          ". Tous les comptes doivent être enregistrés sur le serveur EvoSU."
       );
     }
   }

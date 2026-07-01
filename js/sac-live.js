@@ -1,6 +1,6 @@
 /**
 
- * Cours en direct SAC — vidéo WebRTC SAC + présence, documents, Q&A, IA, rapports
+ * Cours en direct EvoSU — vidéo WebRTC EvoSU + présence, documents, Q&A, IA, rapports
 
  */
 
@@ -560,7 +560,7 @@ const SAC_LIVE = (function () {
 
     localNotify(row, "live_session_start", "Cours en direct", "« " + row.title + " » est en direct.");
 
-    pushBrowserNotif("🔴 Cours en direct", row.title + " — rejoignez avec votre compte SAC.");
+    pushBrowserNotif("🔴 Cours en direct", row.title + " — rejoignez avec votre compte EvoSU.");
 
     if (typeof SAC_LIVE_CALL !== "undefined") {
       SAC_LIVE_CALL.signalLiveStart({
@@ -875,7 +875,7 @@ const SAC_LIVE = (function () {
 
   function openSacVideoRoom(hostId, roomName, user, liveSession, onLeave) {
     if (typeof SAC_WEBRTC_ROOM === "undefined") {
-      alert("Module vidéo SAC indisponible.");
+      alert("Module vidéo EvoSU indisponible.");
       return;
     }
     const userName = displayName(user);
@@ -926,7 +926,7 @@ const SAC_LIVE = (function () {
           );
         }
       } else {
-        alert(msg || "Impossible d'ouvrir la salle live SAC.");
+        alert(msg || "Impossible d'ouvrir la salle live EvoSU.");
       }
       if (typeof onLeave === "function") onLeave();
     });
@@ -1305,7 +1305,7 @@ const SAC_LIVE = (function () {
 
         </div>
 
-        <p class="live-room__hint">🎥 Vidéo SAC · 🎤 Audio · 🖥️ Partage d'écran · 💬 Commentaires · ⏺️ Replay auto sur SAC</p>`;
+        <p class="live-room__hint">🎥 Vidéo EvoSU · 🎤 Audio · 🖥️ Partage d'écran · 💬 Commentaires · ⏺️ Replay auto sur EvoSU</p>`;
 
       document.body.appendChild(overlay);
 

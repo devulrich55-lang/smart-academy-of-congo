@@ -1,7 +1,7 @@
 /**
- * Réunions institutionnelles SAC
+ * Réunions institutionnelles EvoSU
  * Chef section ↔ Professeurs | Doyen ↔ Chefs de section
- * Vidéo SAC WebRTC · Documents · Votes · IA (transcription, résumé, traduction, Q&A)
+ * Vidéo EvoSU WebRTC · Documents · Votes · IA (transcription, résumé, traduction, Q&A)
  */
 const SAC_MEETINGS = (function () {
   const STORAGE_KEY = "sac_meetings";
@@ -265,7 +265,7 @@ const SAC_MEETINGS = (function () {
     if (typeof SAC_WEBRTC_ROOM !== "undefined") {
       SAC_WEBRTC_ROOM.attachToHost("sacMtgRoomFrame", {
         roomId: room,
-        displayName: userName || "SAC",
+        displayName: userName || "EvoSU",
         userRole: role,
         isHost,
         onLeave: closeRoom,

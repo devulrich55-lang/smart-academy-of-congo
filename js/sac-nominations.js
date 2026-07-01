@@ -1,7 +1,7 @@
 /**
  * Nominations institutionnelles — professeurs nommés chefs de section, etc.
  */
-const SAC_NOMINATIONS = (function () {
+const EVOSU_NOMINATIONS = (function () {
   const GRADE_LABELS = {
     assistant: "Assistant",
     chef: "Chef de travaux",
@@ -29,25 +29,25 @@ const SAC_NOMINATIONS = (function () {
   function getCampusProfessors(session) {
     const code = campusCode(session);
     if (!code) return [];
-    return SAC_IDENTITY.getLocalUsers().filter(
+    return EVOSU_IDENTITY.getLocalUsers().filter(
       (u) => u.role === "professeur" && String(u.universite || "") === code
     );
   }
 
   async function fetchCampusProfessors(session) {
     const local = getCampusProfessors(session);
-    if (typeof SAC_API === "undefined" || !(await SAC_API.ensureOnline())) {
+    if (typeof EVOSU_API === "undefined" || !(await EVOSU_API.ensureOnline())) {
       return local;
     }
     try {
-      const remote = await SAC_API.listCampusProfessors();
+      const remote = await EVOSU_API.listCampusProfessors();
       if (!Array.isArray(remote) || !remote.length) return local;
       const byEmail = new Map();
       local.forEach((p) => {
-        byEmail.set(SAC_IDENTITY.normalizeEmail(p.email), { ...p });
+        byEmail.set(EVOSU_IDENTITY.normalizeEmail(p.email), { ...p });
       });
       remote.forEach((p) => {
-        const key = SAC_IDENTITY.normalizeEmail(p.email);
+        const key = EVOSU_IDENTITY.normalizeEmail(p.email);
         byEmail.set(key, { ...(byEmail.get(key) || {}), ...p, email: p.email || byEmail.get(key)?.email });
       });
       return Array.from(byEmail.values()).sort((a, b) =>
@@ -59,14 +59,14 @@ const SAC_NOMINATIONS = (function () {
   }
 
   function findProfessorByEmail(session, email) {
-    const key = SAC_IDENTITY.normalizeEmail(email);
+    const key = EVOSU_IDENTITY.normalizeEmail(email);
     return getCampusProfessors(session).find(
-      (p) => SAC_IDENTITY.normalizeEmail(p.email) === key
+      (p) => EVOSU_IDENTITY.normalizeEmail(p.email) === key
     );
   }
 
   function findHeadForSection(session, sectionId) {
-    const sec = SAC_SECTIONS.getSectionById(sectionId);
+    const sec = EVOSU_SECTIONS.getSectionById(sectionId);
     if (!sec) return null;
     const headEmail = sec.headProfessorEmail;
     if (headEmail) {
@@ -84,13 +84,13 @@ const SAC_NOMINATIONS = (function () {
     ];
     (professors || getCampusProfessors(session)).forEach((p) => {
       const name =
-        typeof SAC_IDENTITY !== "undefined"
-          ? SAC_IDENTITY.formatFullName(p.prenom, p.nom)
+        typeof EVOSU_IDENTITY !== "undefined"
+          ? EVOSU_IDENTITY.formatFullName(p.prenom, p.nom)
           : [p.prenom, p.nom].filter(Boolean).join(" ");
       const label = `${name || p.email} · ${gradeLabel(p)}`;
       const sel =
         selectedEmail &&
-        SAC_IDENTITY.normalizeEmail(selectedEmail) === SAC_IDENTITY.normalizeEmail(p.email)
+        EVOSU_IDENTITY.normalizeEmail(selectedEmail) === EVOSU_IDENTITY.normalizeEmail(p.email)
           ? " selected"
           : "";
       opts.push(`<option value="${p.email}"${sel}>${label}</option>`);
@@ -119,7 +119,7 @@ const SAC_NOMINATIONS = (function () {
 
   function buildSectionHeadActor(sessionOrUser) {
     if (!isSectionHead(sessionOrUser)) return null;
-    const section = SAC_SECTIONS.getSectionById(sessionOrUser.sectionId);
+    const section = EVOSU_SECTIONS.getSectionById(sessionOrUser.sectionId);
     return {
       role: sessionOrUser.role === "section" ? "section" : "professeur",
       identifiant: sessionOrUser.identifiant || sessionOrUser.email,
@@ -128,8 +128,8 @@ const SAC_NOMINATIONS = (function () {
       nom: sessionOrUser.nom,
       prenom: sessionOrUser.prenom,
       displayName:
-        typeof SAC_IDENTITY !== "undefined"
-          ? SAC_IDENTITY.getDisplayName(sessionOrUser)
+        typeof EVOSU_IDENTITY !== "undefined"
+          ? EVOSU_IDENTITY.getDisplayName(sessionOrUser)
           : sessionOrUser.displayName,
       universite: sessionOrUser.universite,
       filiere: section?.filiere || sessionOrUser.filiere,
@@ -140,25 +140,25 @@ const SAC_NOMINATIONS = (function () {
   }
 
   function _saveUser(updated) {
-    const users = SAC_IDENTITY.getLocalUsers();
+    const users = EVOSU_IDENTITY.getLocalUsers();
     const idx = users.findIndex(
-      (u) => u.role === updated.role && SAC_IDENTITY.normalizeEmail(u.email) === SAC_IDENTITY.normalizeEmail(updated.email)
+      (u) => u.role === updated.role && EVOSU_IDENTITY.normalizeEmail(u.email) === EVOSU_IDENTITY.normalizeEmail(updated.email)
     );
     if (idx < 0) throw new Error("Professeur introuvable sur ce campus.");
     users[idx] = { ...users[idx], ...updated, updatedAt: new Date().toISOString() };
-    localStorage.setItem("sac_users", JSON.stringify(users));
+    localStorage.setItem("EVOSU_users", JSON.stringify(users));
     return users[idx];
   }
 
   function _clearSectionHead(sectionId, exceptEmail) {
     if (!sectionId) return;
-    const users = SAC_IDENTITY.getLocalUsers();
+    const users = EVOSU_IDENTITY.getLocalUsers();
     let changed = false;
     users.forEach((u, i) => {
       if (
         u.nomination === "chef_section" &&
         u.sectionId === sectionId &&
-        SAC_IDENTITY.normalizeEmail(u.email) !== SAC_IDENTITY.normalizeEmail(exceptEmail || "")
+        EVOSU_IDENTITY.normalizeEmail(u.email) !== EVOSU_IDENTITY.normalizeEmail(exceptEmail || "")
       ) {
         users[i] = {
           ...u,
@@ -170,23 +170,23 @@ const SAC_NOMINATIONS = (function () {
         changed = true;
       }
     });
-    if (changed) localStorage.setItem("sac_users", JSON.stringify(users));
+    if (changed) localStorage.setItem("EVOSU_users", JSON.stringify(users));
   }
 
   async function nominateSectionHead(uniSession, professorEmail, sectionId) {
-    const section = SAC_SECTIONS.getSectionById(sectionId);
-    if (!section || !SAC_SECTIONS.universityOwnsSection(uniSession, sectionId)) {
+    const section = EVOSU_SECTIONS.getSectionById(sectionId);
+    if (!section || !EVOSU_SECTIONS.universityOwnsSection(uniSession, sectionId)) {
       throw new Error("Section invalide pour votre établissement.");
     }
 
     const professors = getCampusProfessors(uniSession);
     const prof = professors.find(
-      (p) => SAC_IDENTITY.normalizeEmail(p.email) === SAC_IDENTITY.normalizeEmail(professorEmail)
+      (p) => EVOSU_IDENTITY.normalizeEmail(p.email) === EVOSU_IDENTITY.normalizeEmail(professorEmail)
     );
     if (!prof) throw new Error("Professeur introuvable sur votre campus.");
 
-    if (typeof SAC_API !== "undefined" && (await SAC_API.ensureOnline())) {
-      await SAC_API.nominateProfessor({
+    if (typeof EVOSU_API !== "undefined" && (await EVOSU_API.ensureOnline())) {
+      await EVOSU_API.nominateProfessor({
         email: prof.email,
         nomination: "chef_section",
         sectionId,
@@ -196,11 +196,11 @@ const SAC_NOMINATIONS = (function () {
     _clearSectionHead(sectionId, prof.email);
 
     const displayName =
-      typeof SAC_IDENTITY !== "undefined"
-        ? SAC_IDENTITY.formatFullName(prof.prenom, prof.nom)
+      typeof EVOSU_IDENTITY !== "undefined"
+        ? EVOSU_IDENTITY.formatFullName(prof.prenom, prof.nom)
         : [prof.prenom, prof.nom].filter(Boolean).join(" ");
 
-    SAC_SECTIONS.updateSection(sectionId, {
+    EVOSU_SECTIONS.updateSection(sectionId, {
       responsableNom: displayName || prof.email,
       headProfessorEmail: prof.email,
     });
@@ -217,22 +217,22 @@ const SAC_NOMINATIONS = (function () {
   async function revokeNomination(uniSession, professorEmail) {
     const professors = getCampusProfessors(uniSession);
     const prof = professors.find(
-      (p) => SAC_IDENTITY.normalizeEmail(p.email) === SAC_IDENTITY.normalizeEmail(professorEmail)
+      (p) => EVOSU_IDENTITY.normalizeEmail(p.email) === EVOSU_IDENTITY.normalizeEmail(professorEmail)
     );
     if (!prof) throw new Error("Professeur introuvable.");
 
-    if (typeof SAC_API !== "undefined" && (await SAC_API.ensureOnline())) {
-      await SAC_API.revokeProfessorNomination(prof.email);
+    if (typeof EVOSU_API !== "undefined" && (await EVOSU_API.ensureOnline())) {
+      await EVOSU_API.revokeProfessorNomination(prof.email);
     }
 
     if (prof.sectionId) {
-      const sec = SAC_SECTIONS.getSectionById(prof.sectionId);
+      const sec = EVOSU_SECTIONS.getSectionById(prof.sectionId);
       if (
         sec &&
         sec.headProfessorEmail &&
-        SAC_IDENTITY.normalizeEmail(sec.headProfessorEmail) === SAC_IDENTITY.normalizeEmail(prof.email)
+        EVOSU_IDENTITY.normalizeEmail(sec.headProfessorEmail) === EVOSU_IDENTITY.normalizeEmail(prof.email)
       ) {
-        SAC_SECTIONS.updateSection(prof.sectionId, { headProfessorEmail: "" });
+        EVOSU_SECTIONS.updateSection(prof.sectionId, { headProfessorEmail: "" });
       }
     }
 

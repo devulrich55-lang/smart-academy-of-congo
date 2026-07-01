@@ -1536,7 +1536,7 @@
       <p class="form-footer" style="margin-top:0.5rem;font-size:0.85rem;color:var(--text-muted);">
         <span data-i18n="signup.footer.university">Vous représentez une université ?</span>
         <a href="admin-uni/" style="font-weight:600;color:var(--primary);" data-i18n="signup.footer.portal">Portail admin campus</a>
-        — compte créé par le Super Admin SAC.
+        — compte créé par le Super Admin EvoSU.
       </p>
     </section>
   </main>
@@ -2062,7 +2062,7 @@
           (payCur !== "USD" ? bordereauLine("Équivalent indicatif", selectedAmt) : "") +
           bordereauLine("Motif / libellé", motif) +
           bordereauLine("E-mail inscrit", email) +
-          bordereauLine("Référence SAC", ref, "bordereau-line__v--mono") +
+          bordereauLine("Référence EvoSU", ref, "bordereau-line__v--mono") +
           bordereauLine("Date du bordereau", dateStr) +
           bordereauLine("Instructions", "Saisissez chaque champ dans l'application UBA ou au guichet. Ne modifiez pas le numéro de compte.") +
           foot
@@ -2082,9 +2082,9 @@
           (payCur !== "CDF" ? bordereauLine("Équivalent indicatif", selectedAmt) : "") +
           bordereauLine("Motif / libellé", motif) +
           bordereauLine("E-mail inscrit", email) +
-          bordereauLine("Référence SAC", ref, "bordereau-line__v--mono") +
+          bordereauLine("Référence EvoSU", ref, "bordereau-line__v--mono") +
           bordereauLine("Date du bordereau", dateStr) +
-          bordereauLine("Instructions", "Vérifiez le montant en CDF avant validation. Indiquez la référence SAC en commentaire si possible.") +
+          bordereauLine("Instructions", "Vérifiez le montant en CDF avant validation. Indiquez la référence EvoSU en commentaire si possible.") +
           foot
         );
       }
@@ -2101,7 +2101,7 @@
           (payCur !== "CDF" ? bordereauLine("Équivalent indicatif", selectedAmt) : "") +
           bordereauLine("Motif", motif) +
           bordereauLine("E-mail inscrit", email) +
-          bordereauLine("Référence SAC", ref, "bordereau-line__v--mono") +
+          bordereauLine("Référence EvoSU", ref, "bordereau-line__v--mono") +
           bordereauLine("Date", dateStr) +
           bordereauLine("Étapes", "1) Composer *144# ou l'app Orange Money · 2) Transfert · 3) Saisir le numéro · 4) Montant · 5) Valider avec code secret") +
           foot
@@ -2119,7 +2119,7 @@
         (payCur !== "CDF" ? bordereauLine("Équivalent indicatif", selectedAmt) : "") +
         bordereauLine("Motif", motif) +
         bordereauLine("E-mail inscrit", email) +
-        bordereauLine("Référence SAC", ref, "bordereau-line__v--mono") +
+        bordereauLine("Référence EvoSU", ref, "bordereau-line__v--mono") +
         bordereauLine("Date", dateStr) +
         bordereauLine("Étapes", "1) Ouvrir M-Pesa · 2) Envoyer de l'argent · 3) Numéro bénéficiaire · 4) Montant · 5) Confirmer avec code PIN") +
         foot
@@ -2696,7 +2696,7 @@
     });
 
     function generateTransactionId() {
-      return "SAC-" + Date.now().toString(36).toUpperCase() + "-" + Math.random().toString(36).slice(2, 6).toUpperCase();
+      return "EvoSU-" + Date.now().toString(36).toUpperCase() + "-" + Math.random().toString(36).slice(2, 6).toUpperCase();
     }
 
     async function openPaymentModal(profile) {
@@ -3163,7 +3163,7 @@
         ) {
           const uniCode = uniProfile.universite || uniProfile.sigle;
           if (SAC_SECTION_ACCOUNTS.getRectorForUniversity(uniCode)) {
-            console.warn("[SAC] Compte recteur déjà existant pour ce campus.");
+            console.warn("[EvoSU] Compte recteur déjà existant pour ce campus.");
             return;
           }
           try {
@@ -3641,7 +3641,7 @@
           nom: nomU,
           sigle,
           universite: sigleId,
-          codeUni: "SAC-" + sigle.toUpperCase().replace(/\s+/g, "") + "-" + new Date().getFullYear(),
+          codeUni: "EvoSU-" + sigle.toUpperCase().replace(/\s+/g, "") + "-" + new Date().getFullYear(),
           ville,
           adresse: document.getElementById("adresse").value.trim(),
           nbEtudiants: document.getElementById("nbEtudiants").value,

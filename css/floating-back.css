@@ -1,5 +1,5 @@
-/* Bouton retour flottant — déplaçable, style SAC pro */
-.sac-floating-back {
+/* Bouton retour flottant — déplaçable, style EvoSU pro */
+.evosu-floating-back {
   position: fixed;
   z-index: 10050;
   display: inline-flex;
@@ -27,19 +27,19 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-.sac-floating-back:hover {
+.evosu-floating-back:hover {
   border-color: rgba(12, 61, 110, 0.28);
   box-shadow:
     0 12px 36px rgba(12, 61, 110, 0.22),
     0 4px 12px rgba(15, 23, 42, 0.1);
 }
 
-.sac-floating-back:focus-visible {
+.evosu-floating-back:focus-visible {
   outline: 2px solid #145a9e;
   outline-offset: 3px;
 }
 
-.sac-floating-back.is-dragging {
+.evosu-floating-back.is-dragging {
   cursor: grabbing;
   transform: scale(1.04);
   border-color: rgba(12, 61, 110, 0.35);
@@ -48,7 +48,7 @@
     0 6px 16px rgba(15, 23, 42, 0.12);
 }
 
-.sac-floating-back__icon {
+.evosu-floating-back__icon {
   width: 30px;
   height: 30px;
   border-radius: 50%;
@@ -61,12 +61,12 @@
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
-.sac-floating-back__label {
+.evosu-floating-back__label {
   white-space: nowrap;
   letter-spacing: 0.01em;
 }
 
-.sac-floating-back__grip {
+.evosu-floating-back__grip {
   font-size: 0.72rem;
   line-height: 0.85;
   letter-spacing: -0.12em;
@@ -76,11 +76,11 @@
 }
 
 @media (max-width: 420px) {
-  .sac-floating-back__label {
+  .evosu-floating-back__label {
     display: none;
   }
 
-  .sac-floating-back {
+  .evosu-floating-back {
     padding: 0.5rem;
     border-radius: 50%;
     width: 48px;
@@ -88,24 +88,24 @@
     justify-content: center;
   }
 
-  .sac-floating-back__grip {
+  .evosu-floating-back__grip {
     display: none;
   }
 }
 
 @media print {
-  .sac-floating-back {
+  .evosu-floating-back {
     display: none !important;
   }
 }
 
-html[data-theme="dark"] .sac-floating-back {
+html[data-theme="dark"] .evosu-floating-back {
   background: rgba(15, 23, 42, 0.92);
   border-color: rgba(148, 163, 184, 0.25);
   color: #e2e8f0;
   box-shadow: 0 10px 32px rgba(0, 0, 0, 0.45);
 }
 
-html[data-theme="dark"] .sac-floating-back__grip {
+html[data-theme="dark"] .evosu-floating-back__grip {
   color: rgba(148, 163, 184, 0.55);
 }

@@ -420,7 +420,7 @@ const SAC_LIVE_CALL = (function () {
     syncCourseFromPayload(payload);
     startRing();
     pushNotif(
-      "📞 Appel live SAC",
+      "📞 Appel live EvoSU",
       (payload.hostName || "Animateur") + " — " + (payload.title || "Session en direct")
     );
 

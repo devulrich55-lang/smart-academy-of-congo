@@ -765,7 +765,7 @@ const SAC_SECTIONS = (function () {
         : data.universite || uniSession.universite || uniSession.codeUni;
     if (campusDomainTaken(campusCode, data.filiere)) {
       throw new Error(
-        "Ce domaine dispose déjà d'une section dans votre université. Règle SAC : un domaine = une section (ex. Informatique, Gestion…)."
+        "Ce domaine dispose déjà d'une section dans votre université. Règle EvoSU : un domaine = une section (ex. Informatique, Gestion…)."
       );
     }
     const section = {
