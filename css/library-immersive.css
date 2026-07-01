@@ -20,6 +20,15 @@ body.platform-library-mode::before {
   display: none;
 }
 
+body.platform-library-mode [data-theme-toggle],
+body.platform-library-mode .theme-toggle {
+  display: none !important;
+}
+
+body.platform-library-mode .session-pill {
+  display: none !important;
+}
+
 body.platform-library-mode .app-shell {
   grid-template-columns: 1fr;
   min-height: 100vh;
@@ -34,53 +43,12 @@ body.platform-library-mode .main {
   max-width: none;
 }
 
-/* ── Nav modules (topbar) ── */
-.lib-module-nav {
-  display: none;
-  gap: 0.35rem;
-  flex-wrap: wrap;
-}
-
-body.platform-library-mode .lib-module-nav {
-  display: flex;
-}
-
-body.platform-library-mode .lib-module-nav .side-btn {
-  padding: 0.38rem 0.65rem;
-  font-size: 0.78rem;
-  border-radius: 8px;
-  color: var(--lib-muted);
-  background: transparent;
-  border: 1px solid transparent;
-  cursor: pointer;
-  font-family: inherit;
-  font-weight: 600;
-}
-
-body.platform-library-mode .lib-module-nav .side-btn:hover {
-  color: #fff;
-  background: rgba(255, 255, 255, 0.06);
-}
-
-body.platform-library-mode .lib-module-nav .side-btn.active {
-  color: #fff;
-  background: rgba(99, 102, 241, 0.25);
-  border-color: rgba(99, 102, 241, 0.45);
-}
-
+/* ── Topbar bibliothèque ── */
 body.platform-library-mode .topbar {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 0.75rem;
-}
-
-body.platform-library-mode .lib-topbar-brand {
-  margin-right: auto;
-}
-
-/* ── Topbar bibliothèque ── */
-body.platform-library-mode .topbar {
   margin: 0;
   border-radius: 0;
   border: none;
@@ -88,6 +56,12 @@ body.platform-library-mode .topbar {
   background: rgba(10, 14, 20, 0.92);
   backdrop-filter: blur(16px);
   padding: 0.85rem 1.5rem;
+}
+
+body.platform-library-mode .lib-topbar-brand {
+  display: flex;
+  align-items: center;
+  margin-right: auto;
 }
 
 body.platform-library-mode .topbar .search {
@@ -104,16 +78,12 @@ body.platform-library-mode .topbar .search {
   white-space: nowrap;
 }
 
-body.platform-library-mode .lib-topbar-brand {
-  display: flex;
-}
-
 body.platform-library-mode #headerActions {
   display: flex;
   align-items: center;
   gap: 0.55rem;
-  flex-wrap: wrap;
   justify-content: flex-end;
+  margin-left: auto;
 }
 
 body.platform-library-mode .btn--primary {
@@ -140,17 +110,24 @@ body.platform-library-mode .session-pill {
 }
 
 /* ── Hero ── */
+body.platform-library-mode .lib-mockup-hero,
 .lib-mockup-hero {
   position: relative;
-  min-height: 280px;
+  min-height: 300px;
   display: flex;
   align-items: center;
   justify-content: center;
   text-align: center;
   padding: 2.5rem 1.5rem 2rem;
-  background:
-    linear-gradient(180deg, rgba(10, 14, 20, 0.55) 0%, rgba(10, 14, 20, 0.82) 100%),
-    url("../bibliotheque.jpeg") center center / cover no-repeat;
+  border: none;
+  border-radius: 0;
+  background-color: #1a1208;
+  background-image:
+    linear-gradient(180deg, rgba(8, 12, 20, 0.28) 0%, rgba(8, 12, 20, 0.48) 100%),
+    url("../bibliotheque.jpeg");
+  background-position: center center;
+  background-size: cover;
+  background-repeat: no-repeat;
 }
 
 .lib-mockup-hero__inner {
