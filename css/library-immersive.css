@@ -1,41 +1,45 @@
 /**
- * Bibliothèque numérique — modèle mockup (hero image, accès rapide, catégories)
+ * Bibliothèque numérique — page autonome (sans thème plateforme)
  */
 :root {
-  --lib-purple: #6366f1;
-  --lib-purple-hover: #7c7ff7;
-  --lib-bg: #0a0e14;
-  --lib-glass: rgba(255, 255, 255, 0.06);
-  --lib-glass-border: rgba(255, 255, 255, 0.12);
-  --lib-text: #f1f5f9;
-  --lib-muted: #94a3b8;
+  --lib-accent: #c9a227;
+  --lib-accent-hover: #dbb84a;
+  --lib-accent-soft: rgba(201, 162, 39, 0.22);
+  --lib-hero-fade: #1f1814;
+  --lib-lower-bg: #1f1814;
+  --lib-lower-bg-mid: #261e19;
+  --lib-lower-bg-deep: #181210;
+  --lib-surface: rgba(255, 244, 230, 0.07);
+  --lib-surface-hover: rgba(255, 244, 230, 0.11);
+  --lib-border: rgba(210, 180, 140, 0.18);
+  --lib-text: #f5efe6;
+  --lib-muted: #b8a99a;
 }
 
+/* Reset page autonome — ignore thème global */
+html[data-sac-lib-standalone="1"],
+html[data-sac-lib-standalone="1"][data-theme="light"],
+html[data-sac-lib-standalone="1"][data-theme="dark"] {
+  color-scheme: dark;
+}
+
+html[data-sac-lib-standalone="1"] body,
+html[data-sac-lib-standalone="1"][data-theme] body,
 body.platform-library-mode {
-  color: var(--lib-text);
-  background: var(--lib-bg);
+  margin: 0;
+  min-height: 100vh;
+  font-family: "DM Sans", system-ui, sans-serif;
+  color: var(--lib-text) !important;
+  background: var(--lib-lower-bg-deep) !important;
 }
 
-body.platform-library-mode::before {
-  display: none;
-}
-
-body.platform-library-mode [data-theme-toggle],
-body.platform-library-mode .theme-toggle {
-  display: none !important;
-}
-
-body.platform-library-mode .session-pill {
+html[data-sac-lib-standalone="1"] [data-theme-toggle],
+html[data-sac-lib-standalone="1"] .theme-toggle {
   display: none !important;
 }
 
 body.platform-library-mode .app-shell {
-  grid-template-columns: 1fr;
   min-height: 100vh;
-}
-
-body.platform-library-mode .side {
-  display: none;
 }
 
 body.platform-library-mode .main {
@@ -43,7 +47,7 @@ body.platform-library-mode .main {
   max-width: none;
 }
 
-/* ── Topbar bibliothèque ── */
+/* ── Topbar ── */
 body.platform-library-mode .topbar {
   display: flex;
   flex-wrap: wrap;
@@ -52,30 +56,25 @@ body.platform-library-mode .topbar {
   margin: 0;
   border-radius: 0;
   border: none;
-  border-bottom: 1px solid var(--lib-glass-border);
-  background: rgba(10, 14, 20, 0.92);
+  border-bottom: 1px solid var(--lib-border);
+  background: rgba(24, 18, 14, 0.96);
   backdrop-filter: blur(16px);
   padding: 0.85rem 1.5rem;
 }
 
-body.platform-library-mode .lib-topbar-brand {
-  display: flex;
-  align-items: center;
-  margin-right: auto;
-}
-
-body.platform-library-mode .topbar .search {
-  display: none;
-}
-
 .lib-topbar-brand {
-  display: none;
+  display: flex;
   align-items: center;
   gap: 0.5rem;
   font-weight: 700;
   font-size: 1.05rem;
   color: #fff;
   white-space: nowrap;
+  margin-right: auto;
+}
+
+body.platform-library-mode .topbar .search {
+  display: none;
 }
 
 body.platform-library-mode #headerActions {
@@ -86,31 +85,28 @@ body.platform-library-mode #headerActions {
   margin-left: auto;
 }
 
-body.platform-library-mode .btn--primary {
-  background: var(--lib-purple);
-  border: none;
+body.platform-library-mode .btn {
+  padding: 0.5rem 0.92rem;
   border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  text-decoration: none;
+  display: inline-block;
+}
+
+body.platform-library-mode .btn--primary {
+  background: var(--lib-accent) !important;
+  color: #1a1410 !important;
+  border: none !important;
 }
 
 body.platform-library-mode .btn--primary:hover {
-  background: var(--lib-purple-hover);
+  background: var(--lib-accent-hover) !important;
 }
 
-body.platform-library-mode .btn--ghost {
-  background: transparent;
-  border: 1px solid var(--lib-glass-border);
-  color: var(--lib-muted);
-  border-radius: 10px;
-}
-
-body.platform-library-mode .session-pill {
-  background: rgba(34, 197, 94, 0.12);
-  border-color: rgba(34, 197, 94, 0.35);
-  color: #4ade80;
-}
-
-/* ── Hero ── */
-body.platform-library-mode .lib-mockup-hero,
+/* ── Hero (image bibliothèque) ── */
 .lib-mockup-hero {
   position: relative;
   min-height: 300px;
@@ -118,12 +114,12 @@ body.platform-library-mode .lib-mockup-hero,
   align-items: center;
   justify-content: center;
   text-align: center;
-  padding: 2.5rem 1.5rem 2rem;
+  padding: 2.5rem 1.5rem 2.5rem;
   border: none;
   border-radius: 0;
   background-color: #1a1208;
   background-image:
-    linear-gradient(180deg, rgba(8, 12, 20, 0.28) 0%, rgba(8, 12, 20, 0.48) 100%),
+    linear-gradient(180deg, rgba(8, 12, 20, 0.22) 0%, rgba(31, 24, 20, 0.72) 78%, var(--lib-hero-fade) 100%),
     url("../bibliotheque.jpeg");
   background-position: center center;
   background-size: cover;
@@ -150,7 +146,7 @@ body.platform-library-mode .lib-mockup-hero,
 .lib-mockup-hero p {
   margin: 0.75rem auto 0;
   max-width: 520px;
-  color: rgba(255, 255, 255, 0.82);
+  color: rgba(255, 248, 240, 0.88);
   font-size: 0.95rem;
   line-height: 1.55;
 }
@@ -165,8 +161,8 @@ body.platform-library-mode .lib-mockup-hero,
   margin-right: auto;
   border-radius: 14px;
   overflow: hidden;
-  background: rgba(15, 23, 42, 0.75);
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(30, 22, 16, 0.82);
+  border: 1px solid var(--lib-border);
   backdrop-filter: blur(12px);
 }
 
@@ -179,19 +175,19 @@ body.platform-library-mode .lib-mockup-hero,
   font: inherit;
   font-size: 0.92rem;
   outline: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' fill='%2394a3b8' viewBox='0 0 16 16'%3E%3Cpath d='M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85zm-5.242 1.156a5 5 0 1 1 0-10 5 5 0 0 1 0 10z'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' fill='%23b8a99a' viewBox='0 0 16 16'%3E%3Cpath d='M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85zm-5.242 1.156a5 5 0 1 1 0-10 5 5 0 0 1 0 10z'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: 0.9rem center;
 }
 
 .lib-hero-search input::placeholder {
-  color: rgba(148, 163, 184, 0.9);
+  color: rgba(184, 169, 154, 0.9);
 }
 
 .lib-btn-purple {
   border: none;
-  background: var(--lib-purple);
-  color: #fff;
+  background: var(--lib-accent);
+  color: #1a1410;
   font: inherit;
   font-weight: 700;
   font-size: 0.9rem;
@@ -202,10 +198,15 @@ body.platform-library-mode .lib-mockup-hero,
 }
 
 .lib-btn-purple:hover {
-  background: var(--lib-purple-hover);
+  background: var(--lib-accent-hover);
 }
 
-/* ── Corps page ── */
+/* ── Partie inférieure (tons bois / bibliothèque) ── */
+#panel-library {
+  background:
+    linear-gradient(180deg, var(--lib-hero-fade) 0%, var(--lib-lower-bg) 6%, var(--lib-lower-bg-mid) 50%, var(--lib-lower-bg-deep) 100%);
+}
+
 .lib-page-body {
   padding: 1.5rem 1.5rem 0;
   max-width: 1200px;
@@ -216,7 +217,7 @@ body.platform-library-mode .lib-mockup-hero,
   margin: 0 0 1rem;
   font-size: 1.15rem;
   font-weight: 700;
-  color: #fff;
+  color: #faf6f0;
 }
 
 /* ── Accès rapide ── */
@@ -233,8 +234,8 @@ body.platform-library-mode .lib-mockup-hero,
   gap: 0.35rem;
   padding: 1.1rem 1rem;
   border-radius: 14px;
-  background: var(--lib-glass);
-  border: 1px solid var(--lib-glass-border);
+  background: var(--lib-surface);
+  border: 1px solid var(--lib-border);
   backdrop-filter: blur(12px);
   cursor: pointer;
   transition: background 0.2s, border-color 0.2s, transform 0.15s;
@@ -244,8 +245,8 @@ body.platform-library-mode .lib-mockup-hero,
 }
 
 .lib-quick-card:hover {
-  background: rgba(255, 255, 255, 0.09);
-  border-color: rgba(99, 102, 241, 0.45);
+  background: var(--lib-surface-hover);
+  border-color: rgba(201, 162, 39, 0.45);
   transform: translateY(-2px);
 }
 
@@ -256,7 +257,7 @@ body.platform-library-mode .lib-mockup-hero,
 
 .lib-quick-card strong {
   font-size: 0.95rem;
-  color: #fff;
+  color: #faf6f0;
 }
 
 .lib-quick-card span {
@@ -270,7 +271,7 @@ body.platform-library-mode .lib-mockup-hero,
   font-style: normal;
   font-size: 0.82rem;
   font-weight: 600;
-  color: var(--lib-purple);
+  color: var(--lib-accent);
 }
 
 /* ── Grille principale ── */
@@ -294,13 +295,13 @@ body.platform-library-mode .lib-mockup-hero,
   margin: 0;
   font-size: 1.15rem;
   font-weight: 700;
-  color: #fff;
+  color: #faf6f0;
 }
 
 .lib-link-btn {
   border: none;
   background: transparent;
-  color: var(--lib-purple);
+  color: var(--lib-accent);
   font: inherit;
   font-weight: 600;
   font-size: 0.88rem;
@@ -322,8 +323,8 @@ body.platform-library-mode .lib-mockup-hero,
 .lib-book-card {
   border-radius: 12px;
   overflow: hidden;
-  background: var(--lib-glass);
-  border: 1px solid var(--lib-glass-border);
+  background: var(--lib-surface);
+  border: 1px solid var(--lib-border);
   transition: transform 0.2s, border-color 0.2s;
   cursor: pointer;
   text-decoration: none;
@@ -333,13 +334,17 @@ body.platform-library-mode .lib-mockup-hero,
 
 .lib-book-card:hover {
   transform: translateY(-3px);
-  border-color: rgba(99, 102, 241, 0.4);
+  border-color: rgba(201, 162, 39, 0.4);
 }
 
 .lib-book-card .cover {
   height: 200px;
   border-radius: 0;
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.25), rgba(30, 41, 59, 0.8));
+  background: linear-gradient(135deg, rgba(201, 162, 39, 0.18), rgba(38, 30, 25, 0.85));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
 }
 
 .lib-book-card .lib-meta {
@@ -349,7 +354,7 @@ body.platform-library-mode .lib-mockup-hero,
 .lib-book-card .lib-meta strong {
   display: block;
   font-size: 0.88rem;
-  color: #fff;
+  color: #faf6f0;
   line-height: 1.3;
   margin-bottom: 0.2rem;
 }
@@ -360,11 +365,11 @@ body.platform-library-mode .lib-mockup-hero,
   color: var(--lib-muted);
 }
 
-/* ── Catalogue complet ── */
+/* ── Catalogue ── */
 .lib-catalog {
   margin-top: 1.5rem;
   padding-top: 1.25rem;
-  border-top: 1px solid var(--lib-glass-border);
+  border-top: 1px solid var(--lib-border);
 }
 
 .lib-catalog[hidden] {
@@ -386,13 +391,13 @@ body.platform-library-mode .lib-mockup-hero,
 }
 
 .lib-cat-select {
-  border: 1px solid var(--lib-glass-border);
+  border: 1px solid var(--lib-border);
   border-radius: 10px;
   padding: 0.45rem 0.65rem;
   font: inherit;
   font-size: 0.82rem;
-  color: #fff;
-  background: rgba(15, 23, 42, 0.7);
+  color: #faf6f0;
+  background: rgba(38, 30, 25, 0.85);
   min-width: 180px;
 }
 
@@ -408,21 +413,21 @@ body.platform-library-mode .lib-mockup-hero,
 }
 
 .lib-item {
-  border: 1px solid var(--lib-glass-border);
+  border: 1px solid var(--lib-border);
   border-radius: 12px;
-  background: var(--lib-glass);
+  background: var(--lib-surface);
   overflow: hidden;
   transition: transform 0.2s;
 }
 
 .lib-item:hover {
   transform: translateY(-2px);
-  border-color: rgba(99, 102, 241, 0.35);
+  border-color: rgba(201, 162, 39, 0.35);
 }
 
 .lib-item .cover {
   height: 170px;
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(30, 41, 59, 0.7));
+  background: linear-gradient(135deg, rgba(201, 162, 39, 0.15), rgba(38, 30, 25, 0.8));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -442,7 +447,7 @@ body.platform-library-mode .lib-mockup-hero,
 }
 
 .lib-meta strong {
-  color: #fff;
+  color: #faf6f0;
   font-size: 0.86rem;
 }
 
@@ -462,22 +467,22 @@ body.platform-library-mode .lib-mockup-hero,
   font-size: 0.76rem;
   font-weight: 700;
   text-decoration: none;
-  background: rgba(99, 102, 241, 0.2);
-  border: 1px solid rgba(99, 102, 241, 0.45);
-  color: #c7d2fe;
+  background: var(--lib-accent-soft);
+  border: 1px solid rgba(201, 162, 39, 0.45);
+  color: #f5e6c8;
   transition: background 0.2s;
 }
 
 .lib-glass-btn:hover {
-  background: rgba(99, 102, 241, 0.35);
+  background: rgba(201, 162, 39, 0.35);
   color: #fff;
 }
 
-/* ── Sidebar catégories ── */
+/* ── Catégories ── */
 .lib-categories-panel {
   border-radius: 14px;
-  background: var(--lib-glass);
-  border: 1px solid var(--lib-glass-border);
+  background: var(--lib-surface);
+  border: 1px solid var(--lib-border);
   padding: 1rem 0.85rem;
   backdrop-filter: blur(12px);
   position: sticky;
@@ -488,7 +493,7 @@ body.platform-library-mode .lib-mockup-hero,
   margin: 0 0 0.85rem;
   font-size: 1rem;
   font-weight: 700;
-  color: #fff;
+  color: #faf6f0;
 }
 
 .lib-cat-list {
@@ -518,8 +523,8 @@ body.platform-library-mode .lib-mockup-hero,
 
 .lib-cat-list button:hover,
 .lib-cat-list button.active {
-  background: rgba(99, 102, 241, 0.15);
-  color: #fff;
+  background: var(--lib-accent-soft);
+  color: #faf6f0;
 }
 
 .lib-cat-list .lib-cat-icon {
@@ -541,18 +546,17 @@ body.platform-library-mode .lib-mockup-hero,
 }
 
 .lib-cat-list button.active .lib-cat-count {
-  color: #c7d2fe;
+  color: #e8d4a8;
 }
 
-/* Couleurs icônes catégories */
-.lib-cat-icon--lit { background: rgba(236, 72, 153, 0.2); }
-.lib-cat-icon--sci { background: rgba(34, 197, 94, 0.2); }
-.lib-cat-icon--tech { background: rgba(59, 130, 246, 0.2); }
-.lib-cat-icon--hist { background: rgba(251, 146, 60, 0.2); }
-.lib-cat-icon--dev { background: rgba(168, 85, 247, 0.2); }
-.lib-cat-icon--art { background: rgba(244, 114, 182, 0.2); }
-.lib-cat-icon--edu { background: rgba(45, 212, 191, 0.2); }
-.lib-cat-icon--ref { background: rgba(148, 163, 184, 0.2); }
+.lib-cat-icon--lit { background: rgba(236, 72, 153, 0.18); }
+.lib-cat-icon--sci { background: rgba(34, 197, 94, 0.18); }
+.lib-cat-icon--tech { background: rgba(59, 130, 246, 0.18); }
+.lib-cat-icon--hist { background: rgba(251, 146, 60, 0.18); }
+.lib-cat-icon--dev { background: rgba(168, 85, 247, 0.18); }
+.lib-cat-icon--art { background: rgba(244, 114, 182, 0.18); }
+.lib-cat-icon--edu { background: rgba(45, 212, 191, 0.18); }
+.lib-cat-icon--ref { background: rgba(184, 169, 154, 0.18); }
 
 .lib-empty-msg {
   margin: 0;
@@ -566,8 +570,8 @@ body.platform-library-mode .lib-mockup-hero,
 .lib-footer {
   text-align: center;
   padding: 1.5rem 1rem 2rem;
-  border-top: 1px solid var(--lib-glass-border);
-  margin-top: 0.5rem;
+  border-top: 1px solid var(--lib-border);
+  background: var(--lib-lower-bg-deep);
 }
 
 .lib-footer p {
@@ -581,16 +585,7 @@ body.platform-library-mode .lib-mockup-hero,
   display: block;
   margin-top: 0.35rem;
   font-size: 0.78rem;
-  color: rgba(148, 163, 184, 0.7);
-}
-
-/* ── Hero masqué hors bibliothèque ── */
-#platformHero.lib-mockup-hero {
-  display: none;
-}
-
-body.platform-library-mode #platformHero.lib-mockup-hero {
-  display: flex;
+  color: rgba(184, 169, 154, 0.75);
 }
 
 /* ── Responsive ── */
