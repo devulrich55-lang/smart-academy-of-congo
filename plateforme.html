@@ -9,6 +9,7 @@
   <link rel="icon" href="evo-uni.jpeg" type="image/jpeg" />
   <link rel="stylesheet" href="css/logo.css" />
   <link rel="stylesheet" href="css/platform.css" />
+  <link rel="stylesheet" href="css/library-immersive.css?v=20260625b" />
   <link rel="stylesheet" href="css/sac-social.css?v=20260626c" />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />
   <style>
@@ -200,118 +201,10 @@
       min-width: 220px;
       max-width: 100%;
     }
-    .dict-form { display: grid; grid-template-columns: 1fr auto; gap: 0.5rem; margin: 0.65rem 0; }
-    .dict-lang-row {
-      display: grid;
-      grid-template-columns: minmax(180px, 260px);
-      gap: 0.5rem;
-      margin-bottom: 0.55rem;
-    }
-    .dict-lang-field label {
-      display: block;
-      font-size: 0.78rem;
-      color: var(--muted);
-      margin-bottom: 0.28rem;
-      font-weight: 600;
-    }
-    .dict-lang-field select,
-    .dict-input {
-      width: 100%;
-      border: 1px solid var(--line);
-      border-radius: 9px;
-      padding: 0.58rem 0.7rem;
-      font: inherit;
-      color: var(--text);
-      background: rgba(9, 19, 45, 0.85);
-    }
-    .dict-swap {
-      display: none;
-    }
-    .dict-entry {
-      border-top: 3px solid var(--accent);
-      padding-top: 0.65rem;
-    }
-    .dict-entry__head {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: baseline;
-      gap: 0.45rem 0.75rem;
-      margin-bottom: 0.75rem;
-      padding-bottom: 0.55rem;
-      border-bottom: 1px solid var(--line);
-    }
-    .dict-entry__word {
-      margin: 0;
-      font-family: "Playfair Display", serif;
-      font-size: 1.55rem;
-      color: var(--text);
-      font-weight: 700;
-    }
-    .dict-entry__phon {
-      color: var(--muted);
-      font-size: 0.92rem;
-    }
-    .dict-entry__lang {
-      margin-left: auto;
-      font-size: 0.72rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: var(--accent);
-      border: 1px solid rgba(56, 215, 177, 0.35);
-      border-radius: 999px;
-      padding: 0.18rem 0.5rem;
-    }
-    .dict-entry__sense { margin-bottom: 0.75rem; }
-    .dict-entry__pos {
-      color: var(--primary);
-      font-weight: 700;
-      font-size: 0.84rem;
-      margin-bottom: 0.3rem;
-      text-transform: capitalize;
-    }
-    .dict-entry__sense ol {
-      margin: 0;
-      padding-left: 1.2rem;
-      color: var(--text);
-    }
-    .dict-entry__sense li { margin-bottom: 0.45rem; line-height: 1.45; }
-    .dict-entry__ex {
-      display: block;
-      margin-top: 0.2rem;
-      color: var(--muted);
-      font-size: 0.84rem;
-    }
-    .dict-entry__syn {
-      margin-top: 0.55rem;
-      padding-top: 0.55rem;
-      border-top: 1px dashed var(--line);
-      font-size: 0.86rem;
-      color: var(--muted);
-    }
-    .dict-entry__syn strong { color: var(--text); }
-    .dict-entry__note {
-      margin: 0.5rem 0 0;
-      font-size: 0.78rem;
-      color: var(--muted);
-    }
-    .dict-out {
-      border: 1px solid var(--line);
-      border-radius: 10px;
-      padding: 0.8rem;
-      min-height: 68px;
-      color: var(--muted);
-      background: rgba(9, 19, 45, 0.85);
-    }
-    .dict-result__main { display: none; }
-    .dict-result__meta { display: none; }
-    .dict-result__meanings { display: none; }
-    .dict-result__alt { display: none; }
     @media (max-width: 980px) {
       .app-shell { grid-template-columns: 1fr; }
       .side { border-right: none; border-bottom: 1px solid var(--line); }
       .kpis { grid-template-columns: repeat(2, minmax(120px, 1fr)); }
-      .dict-lang-row { grid-template-columns: 1fr; }
     }
   </style>
   <link rel="stylesheet" href="css/theme.css" />
@@ -327,13 +220,12 @@
       </a>
       <nav class="side-nav" id="platformSideNav">
         <button class="side-btn active" data-tab="library">📚 Bibliothèque</button>
-        <button class="side-btn" data-tab="dictionary">📖 Dictionnaire</button>
         <button class="side-btn" data-tab="orientation" data-module="orientation_ia" hidden>🤖 Orientation IA</button>
         <button class="side-btn" data-tab="stages" data-module="stages_emplois" hidden>💼 Stages &amp; emplois</button>
         <button class="side-btn" data-tab="reseau" data-module="reseau" hidden>👥 Réseau campus</button>
       </nav>
       <div class="side-note">
-        Connexion requise. Bibliothèque, dictionnaire, orientation IA, offres de stage et fil social campus selon votre rôle.
+        Connexion requise. Consultez la bibliothèque numérique, l'orientation IA, les stages et le réseau campus selon votre rôle.
   </div>
     </aside>
     <main class="main">
@@ -342,20 +234,25 @@
         <div id="headerActions"></div>
   </div>
 
-      <section class="hero">
-        <h1 id="platformHeroTitle">Bibliothèque Numérique</h1>
-        <p id="platformHeroDesc">Consultez les livres et documents publiés officiellement, et recherchez des définitions dans le dictionnaire intégré.</p>
+      <section class="hero lib-hero" id="platformHero">
+        <h1 id="platformHeroTitle">Bibliothèque numérique</h1>
+        <p id="platformHeroDesc">Livres, guides et documents académiques officiels — consultez et téléchargez depuis votre espace.</p>
         <div class="kpis">
           <div class="kpi"><b id="kpiBooks">0</b><span>Livres disponibles</span></div>
-          <div class="kpi"><b>5 langues</b><span>Dictionnaire intégré</span></div>
+          <div class="kpi"><b>PDF</b><span>Formats numériques</span></div>
           <div class="kpi"><b>100%</b><span>Accès sans double login</span></div>
           <div class="kpi"><b>24/7</b><span>Consultation en ligne</span></div>
         </div>
       </section>
 
-      <section id="panel-library" class="panel-card">
-        <h3 style="margin:0 0 0.45rem;">Recommandé pour vous</h3>
-        <p style="margin:0;color:var(--muted);font-size:0.9rem">Livres, guides et documents académiques — filtrés par pays.</p>
+      <section id="panel-library" class="panel-card lib-scene">
+        <h3 style="margin:0 0 0.45rem;">Catalogue</h3>
+        <p class="lib-scene__lead">Ouvrages et ressources publiés officiellement — filtrés par pays et rubrique.</p>
+        <div class="lib-scene__toolbar">
+          <span class="lib-chip-glass">📚 Lecture en ligne</span>
+          <span class="lib-chip-glass">🌍 Par pays</span>
+          <span class="lib-chip-glass">📂 Par rubrique</span>
+        </div>
         <div id="libraryCountryFilter" class="lib-cat-filter" style="margin-top:0.75rem;">
           <span class="lib-cat-filter__label">Pays :</span>
           <select id="libraryCountrySelect" class="lib-cat-select" aria-label="Filtrer par pays">
@@ -369,22 +266,6 @@
           </select>
         </div>
         <div id="libraryList" class="lib-grid"></div>
-      </section>
-
-      <section id="panel-dictionary" class="panel-card" style="display:none">
-        <h3 style="margin:0 0 0.45rem;">Dictionnaire</h3>
-        <p style="margin:0;color:var(--muted);font-size:0.9rem">Définitions via PONS (si activé) ou Wiktionary — choisissez votre langue puis recherchez un mot.</p>
-        <div class="dict-lang-row">
-          <div class="dict-lang-field">
-            <label for="dictUserLang">Ma langue (langue de recherche)</label>
-            <select id="dictUserLang" class="dict-input"></select>
-          </div>
-        </div>
-        <form id="dictionaryForm" class="dict-form">
-          <input id="dictInput" class="dict-input" type="text" placeholder="Ex: livre, book, libro, mbote, moyo…" required />
-          <button type="submit" class="btn btn--primary">Rechercher</button>
-        </form>
-        <div id="dictOutput" class="dict-out">Sélectionnez votre langue et entrez un mot à définir.</div>
       </section>
 
       <section id="panel-orientation" class="panel-card" style="display:none">
@@ -412,8 +293,7 @@
   <script src="js/sac-identity.js"></script>
   <script src="js/sac-api.js?v=20260629a"></script>
   <script src="js/sac-platform.js"></script>
-  <script src="js/sac-library.js?v=20260626b"></script>
-  <script src="js/sac-dictionary.js?v=20260625f"></script>
+  <script src="js/sac-library.js?v=20260703"></script>
   <script src="js/sac-careers.js?v=20260626c"></script>
   <script src="js/sac-orientation.js?v=20260627"></script>
   <script src="js/sac-social.js?v=20260629a"></script>
@@ -421,17 +301,13 @@
     (async function () {
       const tabs = document.querySelectorAll("[data-tab]");
       const panelLibrary = document.getElementById("panel-library");
-      const panelDictionary = document.getElementById("panel-dictionary");
       const panelOrientation = document.getElementById("panel-orientation");
       const panelStages = document.getElementById("panel-stages");
       const panelReseau = document.getElementById("panel-reseau");
+      const heroEl = document.getElementById("platformHero");
       const heroTitle = document.getElementById("platformHeroTitle");
       const heroDesc = document.getElementById("platformHeroDesc");
       const listRoot = document.getElementById("libraryList");
-      const form = document.getElementById("dictionaryForm");
-      const input = document.getElementById("dictInput");
-      const output = document.getElementById("dictOutput");
-      const userLang = document.getElementById("dictUserLang");
       const headerActions = document.getElementById("headerActions");
 
       let session = null;
@@ -492,7 +368,6 @@
 
       const HERO_KEYS = {
         library: ["platform.hero.library.title", "platform.hero.library.desc"],
-        dictionary: ["platform.hero.dictionary.title", "platform.hero.dictionary.desc"],
         orientation: ["platform.hero.orientation.title", "platform.hero.orientation.desc"],
         stages: ["platform.hero.careers.title", "platform.hero.careers.desc"],
         reseau: ["platform.hero.social.title", "platform.hero.social.desc"],
@@ -508,7 +383,7 @@
           title: ptx(keys[0], "Bibliothèque Numérique"),
           desc: ptx(
             keys[1],
-            "Consultez les livres et documents publiés officiellement, et recherchez des définitions dans le dictionnaire intégré."
+            "Livres, guides et documents académiques officiels — consultez et téléchargez depuis votre espace."
           ),
         };
       }
@@ -517,15 +392,18 @@
 
       function showTab(tabId) {
         currentPlatformTab = tabId;
+        document.body.classList.toggle("platform-library-mode", tabId === "library");
+        if (heroEl) heroEl.style.display = tabId === "library" ? "" : "none";
         tabs.forEach((b) => b.classList.toggle("active", b.dataset.tab === tabId));
         if (panelLibrary) panelLibrary.style.display = tabId === "library" ? "block" : "none";
-        if (panelDictionary) panelDictionary.style.display = tabId === "dictionary" ? "block" : "none";
         if (panelOrientation) panelOrientation.style.display = tabId === "orientation" ? "block" : "none";
         if (panelStages) panelStages.style.display = tabId === "stages" ? "block" : "none";
         if (panelReseau) panelReseau.style.display = tabId === "reseau" ? "block" : "none";
-        const copy = heroCopy(tabId);
-        if (heroTitle) heroTitle.textContent = copy.title;
-        if (heroDesc) heroDesc.textContent = copy.desc;
+        if (tabId !== "library") {
+          const copy = heroCopy(tabId);
+          if (heroTitle) heroTitle.textContent = copy.title;
+          if (heroDesc) heroDesc.textContent = copy.desc;
+        }
         const search = document.getElementById("globalSearch");
         if (search) {
           search.style.display = tabId === "library" ? "" : "none";
@@ -536,6 +414,8 @@
         }
         mountPlatformModule(tabId);
       }
+
+      showTab("library");
 
       window.addEventListener("sac:lang-change", () => showTab(currentPlatformTab));
 
@@ -567,7 +447,7 @@
       });
 
       const hashTab = (location.hash || "").replace("#", "").toLowerCase();
-      const validTabs = ["library", "dictionary", "orientation", "stages", "reseau"];
+      const validTabs = ["library", "orientation", "stages", "reseau"];
       if (validTabs.includes(hashTab)) {
         const hashBtn = document.querySelector('[data-tab="' + hashTab + '"]');
         if (hashBtn && !hashBtn.hidden) showTab(hashTab);
@@ -690,7 +570,7 @@
             activeCategory !== "all" || (document.getElementById("globalSearch")?.value || "").trim()
               ? "Aucun livre ne correspond à cette recherche ou rubrique."
               : "Aucun livre publié pour le moment. Le Ministère peut ajouter des ressources depuis son espace.";
-          listRoot.innerHTML = '<p style="color:var(--muted);margin:0;">' + msg + "</p>";
+          listRoot.innerHTML = '<p class="lib-empty-msg">' + msg + "</p>";
           return;
         }
         listRoot.innerHTML = items
@@ -701,9 +581,9 @@
               ? '<div class="cover"><img src="' + esc(cover) + '" alt="Couverture de ' + esc(item.title || "livre") + '" loading="lazy" /></div>'
               : '<div class="cover">📘</div>';
             const openBtn = href
-              ? '<a class="btn btn--primary" style="margin-top:0.45rem;display:inline-block;font-size:0.8rem;padding:0.35rem 0.65rem;" href="' +
+              ? '<a class="lib-glass-btn lib-glass-btn--read" href="' +
                 esc(href) +
-                '" target="_blank" rel="noopener">Lire / Télécharger</a>'
+                '" target="_blank" rel="noopener">📖 Lire / Télécharger</a>'
               : "";
             return (
               '<article class="lib-item">' + coverHtml + '<div class="lib-meta"><strong>' +
@@ -759,10 +639,6 @@
       }
       if (globalSearch) {
         globalSearch.addEventListener("input", () => applyLibraryFilters());
-      }
-
-      if (typeof SAC_DICTIONARY !== "undefined" && SAC_DICTIONARY.bindForm) {
-        SAC_DICTIONARY.bindForm(form, input, output, userLang);
       }
 
       function esc(s) {

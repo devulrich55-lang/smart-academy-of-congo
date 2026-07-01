@@ -372,8 +372,8 @@
       es: "📖 Diccionario",
     },
     "platform.side.note": {
-      fr: "Connexion requise. Bibliothèque, dictionnaire, orientation IA, offres de stage et fil social campus selon votre rôle.",
-      en: "Login required. Library, dictionary, AI guidance, internships and campus social feed depending on your role.",
+      fr: "Connexion requise. Bibliothèque, orientation IA, offres de stage et fil social campus selon votre rôle.",
+      en: "Login required. Library, AI guidance, internships and campus social feed depending on your role.",
       ar: "يلزم تسجيل الدخول. المكتبة والقاموس والتوجيه بالذكاء الاصطناعي والتدريب والشبكة الاجتماعية حسب دورك.",
       pt: "Login necessário. Biblioteca, dicionário, orientação IA, estágios e rede social do campus conforme o seu papel.",
       es: "Se requiere inicio de sesión. Biblioteca, diccionario, orientación IA, prácticas y red social del campus según su rol.",
@@ -463,9 +463,9 @@
       es: "Biblioteca Digital",
     },
     "platform.hero.library.desc": {
-      fr: "Consultez les livres et documents publiés officiellement, et recherchez des définitions dans le dictionnaire intégré.",
-      en: "Browse officially published books and documents, and search definitions in the built-in dictionary.",
-      ar: "اطلع على الكتب والوثائق الرسمية وابحث عن التعريفات في القاموس المدمج.",
+      fr: "Livres, guides et documents académiques officiels — consultez et téléchargez depuis votre espace.",
+      en: "Official books, guides and academic documents — browse and download from your space.",
+      ar: "كتب وأدلة ووثائق أكاديمية رسمية — اطلع عليها وحمّلها من مساحتك.",
       pt: "Consulte livros e documentos publicados oficialmente e pesquise definições no dicionário integrado.",
       es: "Consulte libros y documentos publicados oficialmente y busque definiciones en el diccionario integrado.",
     },

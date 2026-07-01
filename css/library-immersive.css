@@ -1,0 +1,286 @@
+/**
+ * Bibliothèque immersive — fond bibliotheque.jpeg, boutons verre transparents
+ */
+body.platform-library-mode {
+  color: #f8fbff;
+  background: #1a1208 url("../bibliotheque.jpeg") center center / cover no-repeat fixed;
+}
+
+body.platform-library-mode [data-theme-toggle],
+body.platform-library-mode .theme-toggle {
+  display: none !important;
+}
+
+body.platform-library-mode::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    160deg,
+    rgba(18, 28, 48, 0.22) 0%,
+    rgba(10, 18, 36, 0.12) 42%,
+    rgba(8, 14, 28, 0.28) 100%
+  );
+}
+
+body.platform-library-mode .app-shell {
+  position: relative;
+  z-index: 1;
+}
+
+body.platform-library-mode .side {
+  background: rgba(255, 255, 255, 0.07);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border-right: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+body.platform-library-mode .brand {
+  color: #fff;
+  border-bottom-color: rgba(255, 255, 255, 0.16);
+}
+
+body.platform-library-mode .brand small {
+  color: rgba(255, 255, 255, 0.82);
+}
+
+body.platform-library-mode .side-btn {
+  color: rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+body.platform-library-mode .side-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.28);
+}
+
+body.platform-library-mode .side-btn.active {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.38);
+  color: #fff;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.14);
+}
+
+body.platform-library-mode .side-note {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.18);
+  color: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(10px);
+}
+
+body.platform-library-mode .topbar {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+body.platform-library-mode .search {
+  background: rgba(255, 255, 255, 0.09);
+  border-color: rgba(255, 255, 255, 0.24);
+  color: #fff;
+  backdrop-filter: blur(8px);
+}
+
+body.platform-library-mode .search::placeholder {
+  color: rgba(255, 255, 255, 0.62);
+}
+
+body.platform-library-mode .hero.lib-hero {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+body.platform-library-mode .hero.lib-hero h1 {
+  color: #fff;
+  text-shadow: 0 2px 20px rgba(0, 0, 0, 0.4);
+}
+
+body.platform-library-mode .hero.lib-hero p {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+body.platform-library-mode .kpi {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+}
+
+body.platform-library-mode .kpi span {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+body.platform-library-mode #panel-library.lib-scene {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.16);
+}
+
+body.platform-library-mode #panel-library h3,
+body.platform-library-mode #panel-library .lib-scene__lead {
+  color: #fff;
+}
+
+body.platform-library-mode .lib-cat-filter__label {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+body.platform-library-mode .lib-cat-select {
+  background: rgba(255, 255, 255, 0.09);
+  border-color: rgba(255, 255, 255, 0.24);
+  color: #fff;
+  backdrop-filter: blur(8px);
+}
+
+body.platform-library-mode .lib-cat-select option {
+  color: #1a2b3c;
+  background: #fff;
+}
+
+body.platform-library-mode .lib-item {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+}
+
+body.platform-library-mode .lib-item:hover {
+  transform: translateY(-3px);
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.34);
+}
+
+body.platform-library-mode .lib-meta strong {
+  color: #fff;
+}
+
+body.platform-library-mode .lib-meta p {
+  color: rgba(255, 255, 255, 0.82);
+}
+
+body.platform-library-mode .cover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+body.platform-library-mode .btn--ghost,
+body.platform-library-mode #headerActions .btn--ghost {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.28);
+  color: #fff;
+  backdrop-filter: blur(10px);
+}
+
+body.platform-library-mode .btn--ghost:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+body.platform-library-mode .btn--primary,
+body.platform-library-mode #headerActions .btn--primary {
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.32);
+  color: #fff;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+  backdrop-filter: blur(10px);
+}
+
+body.platform-library-mode .btn--primary:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+body.platform-library-mode .session-pill {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.28);
+  color: #d8ffec;
+}
+
+body.platform-library-mode #headerActions > span:not(.session-pill) {
+  color: rgba(255, 255, 255, 0.88) !important;
+}
+
+.lib-glass-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  margin-top: 0.55rem;
+  padding: 0.5rem 0.9rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+  font-family: inherit;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.32);
+  color: #fff;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
+}
+
+.lib-glass-btn:hover {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.48);
+  transform: translateY(-1px);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 8px 22px rgba(0, 0, 0, 0.12);
+}
+
+.lib-glass-btn--read {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.36);
+}
+
+.lib-glass-btn--read:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.lib-scene__lead {
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.lib-scene__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin-top: 0.85rem;
+  align-items: center;
+}
+
+.lib-chip-glass {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.38rem 0.72rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  color: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(10px);
+}
+
+.lib-empty-msg {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 0.9rem;
+}
+
+@media (max-width: 768px) {
+  body.platform-library-mode {
+    background-attachment: scroll;
+  }
+}
