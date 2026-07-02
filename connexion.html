@@ -543,117 +543,18 @@
       let apiSession = null;
       let apiError = "";
       try {
-        if (currentRole === "section" && SAC_SESSION.allowLocalAuth()) {
-          if (await tryLocalSectionLogin(idVal, pwdVal, { silent: true })) {
-            return;
-          }
+        apiSession = await directApiLogin(idVal, pwdVal, currentRole, uniVal);
+        if (currentRole === "section") {
+          apiSession = enrichSectionSession(apiSession, idVal);
         }
-
-        if (typeof SAC_API !== "undefined") {
-          btnSubmit.textContent = "Connexion en cours…";
-          try {
-            if (currentRole === "section") {
-              apiSession = await runWithTimeout(
-                attemptApiSectionLogin(idVal, pwdVal, uniVal),
-                12000,
-                "Serveur trop lent. Réessayez."
-              );
-            } else {
-              apiSession = await runWithTimeout(
-                SAC_API.login(idVal, pwdVal, currentRole, { universite: uniVal }),
-                12000,
-                "Serveur trop lent. Réessayez."
-              );
-            }
-          } catch (err) {
-            apiError =
-              err.message ||
-              "Connexion impossible. Vérifiez l'e-mail, le mot de passe et l'université.";
-            try {
-              // Fallback direct API to bypass client-side hangs in some browsers.
-              apiSession = await directApiLogin(idVal, pwdVal, currentRole, uniVal);
-              if (currentRole === "section") {
-                apiSession = enrichSectionSession(apiSession, idVal);
-              }
-            } catch (fallbackErr) {
-              apiError = fallbackErr.message || apiError;
-            }
-          }
-        }
-
-        if (apiSession) {
-          redirectAfterLogin(apiSession);
-          return;
-        }
-
-        if (apiError) {
-          alert(apiError);
-          return;
-        }
-
-        if (!SAC_SESSION.allowLocalAuth()) {
-          const apiHint = typeof SAC_API !== "undefined" && SAC_API.getBase
-            ? SAC_API.getBase()
-            : "";
-          const originHint =
-            typeof SAC_API !== "undefined" && SAC_API.getFrontendOrigin
-              ? SAC_API.getFrontendOrigin()
-              : window.location.origin;
-          let detail = "";
-          if (typeof SAC_API.probeApiReachability === "function") {
-            const probe = await SAC_API.probeApiReachability();
-            if (probe.message) detail = "\n\n" + probe.message;
-            if (probe.scenario === "OK") {
-              btnSubmit.textContent = "Connexion en cours…";
-              try {
-                apiSession = await SAC_API.login(idVal, pwdVal, currentRole, {
-                  universite: uniVal,
-                });
-              } catch (err) {
-                apiError = err.message || "Identifiant ou mot de passe incorrect.";
-              }
-              if (apiSession) {
-                redirectAfterLogin(apiSession);
-                return;
-              }
-              const migrated = await attemptServerMigration(idVal, pwdVal, uniVal);
-              if (migrated?.session) {
-                apiSession = migrated.session;
-                if (currentRole === "section") {
-                  apiSession = enrichSectionSession(apiSession, idVal);
-                }
-                redirectAfterLogin(apiSession);
-                return;
-              }
-              if (migrated?.error) {
-                apiError = migrated.error;
-              }
-              alert(apiError || "Identifiant ou mot de passe incorrect.");
-              return;
-            }
-          } else if (typeof SAC_API.probeCors === "function") {
-            const probe = await SAC_API.probeCors();
-            if (probe.cors && probe.cors.originAllowed === false) {
-              detail =
-                "\n\nCORS : votre site n'est PAS autorisé par l'API.\n" +
-                "Origine : " + (probe.cors.requestOrigin || originHint) + "\n" +
-                "→ ALLOWED_ORIGINS=" + originHint;
-            } else if (probe.error) {
-              detail = "\n\nErreur réseau : " + probe.error;
-            }
-          }
-          alert(
-            "Connexion impossible.\n\n" +
-            (apiHint ? "API : " + apiHint + "\n" : "") +
-            "Test direct : " + (apiHint ? apiHint + "/api/health" : "/api/health") +
-            "\n\nSi ce lien s'ouvre dans Safari mais pas ici → CORS (voir ci-dessous)." +
-            detail +
-            "\n\nRender API-1 → Environment :\nALLOWED_ORIGINS=" +
-            originHint +
-            "\nCROSS_ORIGIN_AUTH=true"
-          );
-          return;
-        }
+        redirectAfterLogin(apiSession);
+        return;
+      } catch (err) {
+        apiError =
+          err.message ||
+          "Connexion impossible. Vérifiez l'e-mail, le mot de passe et l'université.";
+        alert(apiError);
+        return;
       } finally {
         window.clearTimeout(fallbackUnlock);
         window.clearTimeout(watchdogAlert);
