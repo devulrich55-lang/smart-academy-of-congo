@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+  <title>Connexion de secours — Evo-smartUni</title>
+  <link rel="icon" href="evo-uni.jpeg" type="image/jpeg" />
+  <link rel="stylesheet" href="css/theme.css" />
+  <style>
+    body { font-family: "DM Sans", system-ui, sans-serif; background:#f5f7fb; margin:0; }
+    .wrap { max-width:520px; margin:24px auto; background:#fff; border:1px solid #dfe5ef; border-radius:14px; padding:18px; }
+    h1 { margin:0 0 8px; font-size:1.2rem; color:#0c3d6e; }
+    p { margin:0 0 12px; color:#516173; font-size:0.92rem; }
+    .fg { margin-bottom:10px; }
+    label { display:block; margin-bottom:5px; font-weight:600; color:#213246; }
+    input, select { width:100%; box-sizing:border-box; border:1px solid #cfd9e6; border-radius:10px; padding:10px 11px; font:inherit; }
+    button { width:100%; border:none; border-radius:10px; background:#0c3d6e; color:#fff; padding:11px; font:inherit; font-weight:700; cursor:pointer; }
+    button:disabled { opacity:0.6; cursor:not-allowed; }
+    .status { margin-top:10px; padding:10px; border-radius:10px; background:#f0f4fa; color:#1f3348; font-size:0.9rem; white-space:pre-wrap; }
+    .ok { background:#e9f8ee; color:#0d6b3b; }
+    .bad { background:#fdeeee; color:#912626; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Connexion de secours</h1>
+    <p>Utilisez cette page si le bouton de connexion standard reste bloqué.</p>
+    <form id="f">
+      <div class="fg">
+        <label for="role">Profil</label>
+        <select id="role">
+          <option value="etudiant">Étudiant</option>
+          <option value="professeur">Professeur</option>
+          <option value="assistant">Assistant</option>
+          <option value="section">Section</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label for="universite">Université</label>
+        <input id="universite" type="text" placeholder="Ex: ISTA" required />
+      </div>
+      <div class="fg">
+        <label for="identifier">E-mail / identifiant</label>
+        <input id="identifier" type="text" placeholder="Ex: etu@ista.cd" required />
+      </div>
+      <div class="fg">
+        <label for="password">Mot de passe</label>
+        <input id="password" type="password" required />
+      </div>
+      <button id="submit" type="submit">Se connecter</button>
+    </form>
+    <div id="status" class="status">Prêt.</div>
+  </div>
+
+  <script>
+    (function () {
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function (regs) {
+          regs.forEach(function (r) { r.unregister().catch(function () {}); });
+        });
+      }
+      const form = document.getElementById("f");
+      const statusEl = document.getElementById("status");
+      const submit = document.getElementById("submit");
+      const roleEl = document.getElementById("role");
+      const uniEl = document.getElementById("universite");
+      const idEl = document.getElementById("identifier");
+      const pwEl = document.getElementById("password");
+
+      function setStatus(msg, cls) {
+        statusEl.className = "status" + (cls ? " " + cls : "");
+        statusEl.textContent = msg;
+      }
+
+      form.addEventListener("submit", async function (e) {
+        e.preventDefault();
+        submit.disabled = true;
+        setStatus("Connexion en cours…", "");
+        const controller = new AbortController();
+        const t = setTimeout(function () { controller.abort(); }, 12000);
+        try {
+          const res = await fetch("/api/auth/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Accept": "application/json" },
+            credentials: "omit",
+            signal: controller.signal,
+            body: JSON.stringify({
+              identifier: idEl.value.trim(),
+              password: pwEl.value,
+              role: roleEl.value,
+              universite: uniEl.value.trim() || null,
+              codeUni: null,
+              adminPortal: false
+            })
+          });
+          const data = await res.json().catch(function () { return {}; });
+          if (!res.ok) {
+            throw new Error(data.message || data.detail || data.error || ("Erreur " + res.status));
+          }
+          if (!data.session) {
+            throw new Error("Réponse serveur inattendue (session absente).");
+          }
+          localStorage.setItem("sac_session", JSON.stringify(data.session));
+          if (data.accessToken) sessionStorage.setItem("sac_access_token", data.accessToken);
+          if (data.refreshToken) sessionStorage.setItem("sac_refresh_token", data.refreshToken);
+          setStatus("Connexion réussie. Redirection…", "ok");
+          const role = data.session.role;
+          const map = {
+            etudiant: "dashboard-etudiant.html",
+            professeur: "dashboard-professeur.html",
+            assistant: "dashboard-assistant.html",
+            section: "dashboard-section.html",
+            universite: "dashboard-universite.html"
+          };
+          setTimeout(function () {
+            window.location.href = map[role] || "index.html";
+          }, 800);
+        } catch (err) {
+          setStatus("Échec: " + (err.message || "Erreur inconnue"), "bad");
+          alert("Connexion échouée : " + (err.message || "Erreur inconnue"));
+        } finally {
+          clearTimeout(t);
+          submit.disabled = false;
+        }
+      });
+    })();
+  </script>
+</body>
+</html>
