@@ -4,9 +4,11 @@
 const SAC_EVOMONITOR = (function () {
   "use strict";
 
-  const REFRESH_MS = 30000;
+  const REFRESH_MS = 20000;
+  const SECURITY_PULSE_MS = 20000;
   let session = null;
   let timer = null;
+  let securityTimer = null;
   let lastOverview = null;
 
   function esc(s) {
@@ -269,9 +271,23 @@ const SAC_EVOMONITOR = (function () {
       '<div class="em-alert-cards">' +
       metricCard("📧", "E-mail configuré", alerts.emailConfigured ? "Oui" : "Non", "", alerts.emailConfigured ? "em-metric--ok" : "em-metric--warn") +
       metricCard("🚨", "Incidents ouverts", fmtNum(alerts.openIncidents)) +
-      metricCard("📨", "E-mails envoyés (scan)", fmtNum(alerts.emailsSent)) +
+      metricCard("🛡️", "Alertes sécurité", fmtNum(alerts.openSecurityIncidents || 0), "< " + (alerts.securityWindowSeconds || 30) + " s") +
+      metricCard("🗑️", "Résolus purgés", fmtNum(alerts.purgedResolved || 0), "auto") +
       "</div>" +
-      '<p class="em-hint">Lorsqu\'une anomalie critique est détectée, EvoMonitor peut notifier l\'administrateur par e-mail et enregistrer l\'incident automatiquement.</p>';
+      '<p class="em-hint">Les pannes résolues sont supprimées automatiquement. Toute tentative de connexion échouée, accès 403 ou attaque est alertée par e-mail en moins de 30 secondes.</p>';
+  }
+
+  async function pollSecurityPulse() {
+    if (typeof SAC_API === "undefined" || !SAC_API.getMonitorSecurityPulse) return;
+    try {
+      const pulse = await SAC_API.getMonitorSecurityPulse();
+      if (pulse && pulse.newAlerts > 0) {
+        toast("🛡️ " + pulse.newAlerts + " alerte(s) sécurité détectée(s)");
+        await loadOverview();
+      }
+    } catch {
+      /* ignore */
+    }
   }
 
   async function loadOverview(opts) {
@@ -318,12 +334,17 @@ const SAC_EVOMONITOR = (function () {
   function startAutoRefresh() {
     stopAutoRefresh();
     timer = setInterval(() => loadOverview(), REFRESH_MS);
+    securityTimer = setInterval(() => pollSecurityPulse(), SECURITY_PULSE_MS);
   }
 
   function stopAutoRefresh() {
     if (timer) {
       clearInterval(timer);
       timer = null;
+    }
+    if (securityTimer) {
+      clearInterval(securityTimer);
+      securityTimer = null;
     }
   }
 

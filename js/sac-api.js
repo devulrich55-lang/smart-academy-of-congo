@@ -1770,6 +1770,10 @@ const SAC_API = (function () {
     return request("/admin/monitor/overview" + q);
   }
 
+  async function getMonitorSecurityPulse() {
+    return request("/admin/monitor/security-pulse");
+  }
+
   async function listMonitorIncidents(limit) {
     const params = limit ? "?limit=" + encodeURIComponent(String(limit)) : "";
     const data = await request("/admin/monitor/incidents" + params);
@@ -2177,6 +2181,7 @@ const SAC_API = (function () {
     createSocialStudyGroup,
     joinSocialStudyGroup,
     getMonitorOverview,
+    getMonitorSecurityPulse,
     listMonitorIncidents,
     resolveMonitorIncident,
     listSocialNotifications,
