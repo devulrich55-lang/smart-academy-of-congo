@@ -1,7 +1,7 @@
 /**
  * Service Worker Evo-smartUni — coque hors-ligne (shell statique)
  */
-const CACHE = "sac-pwa-v20260702";
+const CACHE = "sac-pwa-v20260702b";
 const SHELL = [
   "/",
   "/index.html",
@@ -46,11 +46,38 @@ self.addEventListener("fetch", (event) => {
   if (url.origin !== self.location.origin) return;
   if (url.pathname.startsWith("/api/") || url.pathname.startsWith("/uploads/")) return;
 
+  const isHtml =
+    req.mode === "navigate" ||
+    req.destination === "document" ||
+    /\.html$/i.test(url.pathname);
+
+  if (isHtml) {
+    // Network-first for HTML to avoid stale login pages.
+    event.respondWith(
+      fetch(req)
+        .then((res) => {
+          if (res && res.status === 200) {
+            const clone = res.clone();
+            caches.open(CACHE).then((cache) => cache.put(req, clone));
+          }
+          return res;
+        })
+        .catch(() =>
+          caches.match(req).then((cached) => cached || caches.match("/connexion.html"))
+        )
+    );
+    return;
+  }
+
   event.respondWith(
     caches.match(req).then((cached) => {
       const network = fetch(req)
         .then((res) => {
-          if (res && res.status === 200 && url.pathname.match(/\.(html|css|js|png|jpg|jpeg|webp|ico|woff2?)$/i)) {
+          if (
+            res &&
+            res.status === 200 &&
+            url.pathname.match(/\.(css|js|png|jpg|jpeg|webp|ico|woff2?)$/i)
+          ) {
             const clone = res.clone();
             caches.open(CACHE).then((cache) => cache.put(req, clone));
           }

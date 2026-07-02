@@ -141,7 +141,7 @@
     var base = assetBase();
     window.addEventListener("load", function () {
       navigator.serviceWorker
-        .register(base + "sw.js", { scope: base || "/" })
+        .register(base + "sw.js", { scope: base || "/", updateViaCache: "none" })
         .catch(function () {
           /* hors ligne ou navigateur incompatible */
         });
