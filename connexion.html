@@ -201,7 +201,7 @@
   <script src="js/sac-identity.js?v=20260702a"></script>
   <script src="js/sac-tariffs.js?v=20260702a"></script>
   <script src="js/sac-section-approval.js?v=20260702a"></script>
-  <script src="js/sac-session.js?v=20260702a"></script>
+  <script src="js/sac-session.js?v=20260702c"></script>
   <script src="js/sac-api.js?v=20260702a"></script>
   <script src="js/sac-account-registry.js?v=20260702a"></script>
   <script>
@@ -305,66 +305,77 @@
     }
 
     async function redirectAfterLogin(session) {
-      const role = normalizeRoleKey(session.role || currentRole);
-      const cfg = ROLES[role];
-      if (!cfg?.dashboard) return;
-      const enriched =
-        typeof SAC_SECTION_APPROVAL !== "undefined"
-          ? SAC_SECTION_APPROVAL.enrichSession(session)
-          : session;
-      enriched.role = role;
-      if (
-        typeof SAC_SECTION_APPROVAL !== "undefined" &&
-        SAC_SECTION_APPROVAL.shouldBlockDashboard(enriched)
-      ) {
-        SAC_SESSION.clearSession();
-        if (typeof SAC_API !== "undefined" && typeof SAC_API.clearClientSession === "function") {
-          SAC_API.clearClientSession();
+      try {
+        const role = normalizeRoleKey(session.role || currentRole);
+        const cfg = ROLES[role];
+        if (!cfg?.dashboard) {
+          setLoginStatus(
+            "Profil non reconnu (« " + (session.role || currentRole) + " »). Choisissez le bon onglet.",
+            "error"
+          );
+          btnSubmit.disabled = false;
+          btnSubmit.textContent = ROLES[currentRole].btnText;
+          return;
         }
-        const waitStatus = SAC_SECTION_APPROVAL.isRejected(enriched)
-          ? "rejected"
-          : "pending_login";
-        window.location.replace(
-          SAC_SECTION_APPROVAL.pendingPageUrl(
-            enriched.role,
-            enriched.identifiant || enriched.userId,
-            {
-              status: waitStatus,
-              source: "login",
-            }
-          )
-        );
-        return;
-      }
-      SAC_SESSION.saveSession(enriched);
-      if (
-        enriched.role === "section" &&
-        enriched.authSource === "api" &&
-        typeof SAC_SECTION_APPROVAL !== "undefined" &&
-        SAC_SECTION_APPROVAL.mirrorLocalUser
-      ) {
-        SAC_SECTION_APPROVAL.mirrorLocalUser({
-          email: enriched.identifiant || enriched.email,
-          role: "section",
-          prenom: enriched.prenom,
-          nom: enriched.nom,
-          universite: enriched.universite,
-          universiteLocked: enriched.universiteLocked || enriched.universite,
-          sectionKind: enriched.sectionKind,
-          isRector: enriched.isRector,
-          sectionName: enriched.sectionName,
-          sectionApproval: "approved",
-        });
-      }
-      if (enriched.role === "etudiant" && typeof SAC_TARIFFS !== "undefined") {
-        try {
-          await SAC_TARIFFS.ensurePlatformSettings();
-          await SAC_TARIFFS.refreshStudentFeesFromCampus(enriched);
-        } catch {
-          /* repli local */
+        const enriched =
+          typeof SAC_SECTION_APPROVAL !== "undefined"
+            ? SAC_SECTION_APPROVAL.enrichSession(session)
+            : session;
+        enriched.role = role;
+        if (
+          typeof SAC_SECTION_APPROVAL !== "undefined" &&
+          SAC_SECTION_APPROVAL.shouldBlockDashboard(enriched)
+        ) {
+          SAC_SESSION.clearSession();
+          if (typeof SAC_API !== "undefined" && typeof SAC_API.clearClientSession === "function") {
+            SAC_API.clearClientSession();
+          }
+          const waitStatus = SAC_SECTION_APPROVAL.isRejected(enriched)
+            ? "rejected"
+            : "pending_login";
+          window.location.replace(
+            SAC_SECTION_APPROVAL.pendingPageUrl(
+              enriched.role,
+              enriched.identifiant || enriched.userId,
+              {
+                status: waitStatus,
+                source: "login",
+              }
+            )
+          );
+          return;
         }
+        SAC_SESSION.saveSession(enriched);
+        if (
+          enriched.role === "section" &&
+          enriched.authSource === "api" &&
+          typeof SAC_SECTION_APPROVAL !== "undefined" &&
+          SAC_SECTION_APPROVAL.mirrorLocalUser
+        ) {
+          SAC_SECTION_APPROVAL.mirrorLocalUser({
+            email: enriched.identifiant || enriched.email,
+            role: "section",
+            prenom: enriched.prenom,
+            nom: enriched.nom,
+            universite: enriched.universite,
+            universiteLocked: enriched.universiteLocked || enriched.universite,
+            sectionKind: enriched.sectionKind,
+            isRector: enriched.isRector,
+            sectionName: enriched.sectionName,
+            sectionApproval: "approved",
+          });
+        }
+        if (enriched.role === "etudiant" && typeof SAC_TARIFFS !== "undefined") {
+          SAC_TARIFFS.ensurePlatformSettings().catch(() => {});
+          SAC_TARIFFS.refreshStudentFeesFromCampus(enriched).catch(() => {});
+        }
+        window.location.replace(cfg.dashboard);
+      } catch (err) {
+        setLoginStatus(err.message || "Erreur lors de la redirection.", "error");
+        btnSubmit.disabled = false;
+        btnSubmit.textContent = ROLES[currentRole].btnText;
+        updateSteps(2);
       }
-      window.location.replace(cfg.dashboard);
     }
 
     let currentRole = "etudiant";
@@ -595,7 +606,7 @@
           apiSession = enrichSectionSession(apiSession, idVal);
         }
         setLoginStatus("Connexion réussie. Redirection...", "ok");
-        redirectAfterLogin(apiSession);
+        await redirectAfterLogin(apiSession);
         return;
       } catch (err) {
         apiError =
