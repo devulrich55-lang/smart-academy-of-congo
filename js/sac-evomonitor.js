@@ -168,6 +168,7 @@ const SAC_EVOMONITOR = (function () {
     renderAnomalies(data.anomalies || []);
     renderIncidents((data.incidents && data.incidents.recent) || []);
     renderAlerts(data);
+    renderSecurityBanner(data);
 
     const perf2 = document.getElementById("emPerfGrid2");
     if (perfGrid && perf2) perf2.innerHTML = perfGrid.innerHTML;
@@ -212,7 +213,9 @@ const SAC_EVOMONITOR = (function () {
     const tbody = document.getElementById("emIncidentsBody");
     const count = document.getElementById("emOpenIncidents");
     if (count && lastOverview) {
-      count.textContent = String((lastOverview.incidents && lastOverview.incidents.open) || 0);
+      const open = (lastOverview.incidents && lastOverview.incidents.open) || 0;
+      count.textContent = String(open);
+      count.hidden = open <= 0;
     }
     if (!tbody) return;
     if (!items.length) {
@@ -263,18 +266,91 @@ const SAC_EVOMONITOR = (function () {
     });
   }
 
+  function renderSecurityBanner(data) {
+    const host = document.getElementById("emQuickPreview");
+    if (!host) return;
+    const users = data.users || {};
+    const alerts = data.alerts || {};
+    const failed = users.failedLogins24h || 0;
+    const openSec = alerts.openSecurityIncidents || 0;
+    let banner = host.querySelector(".em-security-banner");
+    if (!failed && !openSec) {
+      if (banner) banner.remove();
+      return;
+    }
+    if (!banner) {
+      banner = document.createElement("div");
+      banner.className = "em-panel em-security-banner";
+      host.insertBefore(banner, host.firstChild);
+    }
+    banner.innerHTML =
+      "<h3>🛡️ Surveillance sécurité</h3>" +
+      "<p>" +
+      (openSec ? openSec + " alerte(s) sécurité ouverte(s). " : "") +
+      (failed ? failed + " échec(s) de connexion (24 h). " : "") +
+      'Consultez l’onglet <button type="button" class="btn btn--ghost btn--xs" id="emGoAlerts">Alertes</button>.</p>';
+    banner.querySelector("#emGoAlerts")?.addEventListener("click", function () {
+      showSection("alerts");
+    });
+  }
+
   function renderAlerts(data) {
     const box = document.getElementById("emAlertsInfo");
+    const secList = document.getElementById("emSecurityList");
+    const secBadge = document.getElementById("emOpenSecurity");
     if (!box) return;
     const alerts = data.alerts || {};
+    const openSec = alerts.openSecurityIncidents || 0;
+    if (secBadge) {
+      secBadge.textContent = String(openSec);
+      secBadge.hidden = openSec <= 0;
+    }
     box.innerHTML =
       '<div class="em-alert-cards">' +
       metricCard("📧", "E-mail configuré", alerts.emailConfigured ? "Oui" : "Non", "", alerts.emailConfigured ? "em-metric--ok" : "em-metric--warn") +
+      metricCard("📬", "Destinataires alertes", fmtNum(alerts.alertRecipients || 0)) +
       metricCard("🚨", "Incidents ouverts", fmtNum(alerts.openIncidents)) +
-      metricCard("🛡️", "Alertes sécurité", fmtNum(alerts.openSecurityIncidents || 0), "< " + (alerts.securityWindowSeconds || 30) + " s") +
+      metricCard("🛡️", "Alertes sécurité", fmtNum(openSec), "< " + (alerts.securityWindowSeconds || 30) + " s") +
       metricCard("🗑️", "Résolus purgés", fmtNum(alerts.purgedResolved || 0), "auto") +
       "</div>" +
       '<p class="em-hint">Les pannes résolues sont supprimées automatiquement. Toute tentative de connexion échouée, accès 403 ou attaque est alertée par e-mail en moins de 30 secondes.</p>';
+
+    if (!secList) return;
+    const recent = ((data.incidents && data.incidents.recent) || []).filter(function (inc) {
+      return inc.service === "security";
+    });
+    if (!recent.length) {
+      secList.innerHTML = '<p class="em-empty">✅ Aucune alerte sécurité ouverte.</p>';
+      return;
+    }
+    secList.innerHTML =
+      "<h3 class=\"em-security-list__title\">Alertes sécurité récentes</h3>" +
+      recent
+        .map(function (inc) {
+          return (
+            '<article class="em-anomaly em-sev--critical">' +
+            '<div class="em-anomaly__head"><span class="em-anomaly__badge">🛡️</span><strong>' +
+            esc(inc.title) +
+            '</strong><span class="em-anomaly__svc">' +
+            fmtDate(inc.createdAt) +
+            "</span></div>" +
+            "<p>" +
+            esc(inc.message) +
+            "</p>" +
+            (inc.status === "open"
+              ? '<button type="button" class="btn btn--ghost btn--xs" data-resolve-sec="' +
+                esc(inc.id) +
+                '">Marquer résolu</button>'
+              : "") +
+            "</article>"
+          );
+        })
+        .join("");
+    secList.querySelectorAll("[data-resolve-sec]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        resolveIncident(btn.dataset.resolveSec);
+      });
+    });
   }
 
   async function pollSecurityPulse() {
@@ -381,6 +457,7 @@ const SAC_EVOMONITOR = (function () {
     });
 
     await loadOverview();
+    pollSecurityPulse();
     startAutoRefresh();
   }
 

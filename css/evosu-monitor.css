@@ -126,6 +126,39 @@
   font-weight: 700;
 }
 
+.em-nav-badge[hidden] {
+  display: none;
+}
+
+.em-nav-badge--sec {
+  background: #7c3aed;
+}
+
+.em-security-banner {
+  grid-column: 1 / -1;
+  border: 1px solid rgba(124, 58, 237, 0.25);
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.08), rgba(14, 116, 144, 0.06));
+}
+
+.em-security-banner h3 {
+  margin: 0 0 0.35rem;
+  font-size: 1rem;
+}
+
+.em-security-banner p {
+  margin: 0;
+  color: var(--muted, #64748b);
+}
+
+.em-security-list {
+  margin-top: 1rem;
+}
+
+.em-security-list__title {
+  margin: 0 0 0.75rem;
+  font-size: 0.95rem;
+}
+
 .em-layout {
   max-width: 1200px;
 }

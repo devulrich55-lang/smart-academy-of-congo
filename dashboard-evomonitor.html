@@ -14,7 +14,7 @@
   <link rel="stylesheet" href="css/dashboard.css" />
   <link rel="stylesheet" href="css/theme.css" />
   <link rel="stylesheet" href="css/admin-workspace.css" />
-  <link rel="stylesheet" href="css/evosu-monitor.css" />
+  <link rel="stylesheet" href="css/evosu-monitor.css?v=20260702f" />
   <link rel="stylesheet" href="css/mobile.css" />
   <meta name="theme-color" content="#0e7490" />
 </head>
@@ -40,8 +40,8 @@
       <button type="button" class="nav-tab" data-section="network">Réseau</button>
       <button type="button" class="nav-tab" data-section="users">Utilisateurs</button>
       <button type="button" class="nav-tab" data-section="anomalies">Anomalies</button>
-      <button type="button" class="nav-tab" data-section="alerts">Alertes</button>
-      <button type="button" class="nav-tab" data-section="incidents">Incidents <span class="em-nav-badge" id="emOpenIncidents">0</span></button>
+      <button type="button" class="nav-tab" data-section="alerts">Alertes <span class="em-nav-badge em-nav-badge--sec" id="emOpenSecurity">0</span></button>
+      <button type="button" class="nav-tab" data-section="incidents">Incidents actifs <span class="em-nav-badge" id="emOpenIncidents">0</span></button>
     </nav>
   </header>
 
@@ -105,6 +105,7 @@
       <p class="page-desc">Notifications, e-mails et actions correctives proposées.</p>
       <div class="em-panel">
         <div id="emAlertsInfo"></div>
+        <div id="emSecurityList" class="em-security-list"></div>
         <div class="em-actions">
           <button type="button" class="btn btn--role" id="emScanBtn">🔔 Scanner &amp; notifier (e-mail)</button>
         </div>
@@ -112,8 +113,8 @@
     </section>
 
     <section class="page-section" id="section-incidents">
-      <h1 class="page-title">Historique des incidents</h1>
-      <p class="page-desc">Date, gravité, service, résolution et responsable.</p>
+      <h1 class="page-title">Incidents actifs</h1>
+      <p class="page-desc">Incidents ouverts ou pris en charge. Les pannes résolues sont supprimées automatiquement.</p>
       <div class="em-panel em-panel--table">
         <table class="em-table">
           <thead>
@@ -134,9 +135,9 @@
     </section>
   </main>
 
-  <script src="js/sac-session.js?v=20260702e"></script>
-  <script src="js/sac-api.js?v=20260702e"></script>
-  <script src="js/sac-evomonitor.js?v=20260702e"></script>
+  <script src="js/sac-session.js?v=20260702f"></script>
+  <script src="js/sac-api.js?v=20260702f"></script>
+  <script src="js/sac-evomonitor.js?v=20260702f"></script>
   <script>
     document.addEventListener("DOMContentLoaded", function () {
       SAC_EVOMONITOR.init();
