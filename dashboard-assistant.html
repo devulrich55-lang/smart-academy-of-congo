@@ -9,7 +9,7 @@
   <link rel="icon" href="evo-uni.jpeg" type="image/jpeg" />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/logo.css" />
-  <link rel="stylesheet" href="css/sac-social.css?v=20260625g" />
+  <link rel="stylesheet" href="css/sac-social.css?v=20260702a" />
   <link rel="stylesheet" href="css/dashboard.css" />
   <link rel="stylesheet" href="css/reclamations.css" />
   <link rel="stylesheet" href="css/ai-correction.css" />
@@ -219,7 +219,7 @@
   <script src="js/sac-grade-sheet.js"></script>
   <script src="js/sac-platform.js"></script>
   <script src="js/sac-careers.js?v=20260626c"></script>
-  <script src="js/sac-social.js?v=20260625g"></script>
+  <script src="js/sac-social.js?v=20260702a"></script>
   <script src="js/sac-ai-correction.js"></script>
   <script src="js/sac-presence.js"></script>
   <script>
@@ -559,6 +559,9 @@
       let socialMounted = false;
 
       function showSection(id) {
+        if (id !== "reseau" && typeof SAC_SOCIAL !== "undefined" && SAC_SOCIAL.clearMessengerMode) {
+          SAC_SOCIAL.clearMessengerMode();
+        }
         document.querySelectorAll(".nav-tab").forEach((x) => x.classList.remove("active"));
         document.querySelectorAll(".page-section").forEach((x) => x.classList.remove("active"));
         document.querySelector(`[data-section="${id}"]`)?.classList.add("active");
@@ -596,6 +599,8 @@
           );
         }
       }
+
+      document.addEventListener("sac-campus-back", () => showSection("accueil"));
 
       document.querySelectorAll(".nav-tab").forEach((t) => {
         t.addEventListener("click", () => showSection(t.dataset.section));

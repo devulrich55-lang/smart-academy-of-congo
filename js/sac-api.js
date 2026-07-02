@@ -1738,6 +1738,27 @@ const SAC_API = (function () {
     return data?.hashtags || [];
   }
 
+  async function listSocialStudyGroups() {
+    const data = await request("/platform/social/study-groups");
+    return data?.groups || [];
+  }
+
+  async function createSocialStudyGroup(payload) {
+    const data = await request("/platform/social/study-groups", {
+      method: "POST",
+      body: JSON.stringify(payload || {}),
+    });
+    return data?.group || data;
+  }
+
+  async function joinSocialStudyGroup(groupId) {
+    const data = await request(
+      "/platform/social/study-groups/" + encodeURIComponent(groupId) + "/join",
+      { method: "POST", body: JSON.stringify({}) }
+    );
+    return data?.group || data;
+  }
+
   async function listSocialNotifications() {
     const data = await request("/platform/social/notifications");
     return data?.notifications || [];
@@ -2127,6 +2148,9 @@ const SAC_API = (function () {
     addSocialComment,
     listSocialEvents,
     listSocialHashtags,
+    listSocialStudyGroups,
+    createSocialStudyGroup,
+    joinSocialStudyGroup,
     listSocialNotifications,
     markSocialNotificationRead,
     getSocialSettings,

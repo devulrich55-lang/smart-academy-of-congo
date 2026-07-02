@@ -124,7 +124,9 @@ const SAC_SOCIAL = (function () {
     const isAuthor = (p.authorEmail || "").toLowerCase() === email;
     const mod = canModerate(session);
     const aud =
-      p.audience === "promotion"
+      (p.groupKey || "").startsWith("study:")
+        ? '<span class="social-tag social-tag--study">📚 Groupe d\'étude</span>'
+        : p.audience === "promotion"
         ? '<span class="social-tag social-tag--promo">Promotion' +
           (p.filiere ? " · " + esc(p.filiere) : "") +
           (p.niveau ? " " + esc(p.niveau) : "") +
@@ -291,6 +293,7 @@ const SAC_SOCIAL = (function () {
       pendingKind: null,
       msgPeer: null,
       msgPeerName: "",
+      studyGroups: [],
     };
 
     const showMessagesNav = session.role === "etudiant";
@@ -301,6 +304,7 @@ const SAC_SOCIAL = (function () {
 
     root.innerHTML =
       '<div class="social-hub social-hub--campus">' +
+      '<button type="button" class="campus-hub__back" id="campusHubBack" aria-label="Retour au tableau de bord"><span aria-hidden="true">←</span> Retour</button>' +
       '<header class="social-hub__nav social-hub__nav--legacy">' +
       '<div class="social-hub__nav-brand"><span class="social-hub__nav-logo">💬</span><div><strong>Réseau campus</strong><small>Fil · Messages · Alertes</small></div></div>' +
       '<nav class="social-hub__nav-tabs" aria-label="Sections">' +
@@ -319,10 +323,16 @@ const SAC_SOCIAL = (function () {
       "</div></div>" +
       '<div class="social-hub__grid social-hub__grid--feed">' +
       '<aside class="social-hub__side">' +
-      '<div class="social-hub__card"><h4>Groupes</h4>' +
+      '<div class="social-hub__card" id="socialGroupsCard">' +
+      '<div class="social-hub__card-head"><h4>Groupes</h4>' +
+      (state.settings.canPost
+        ? '<button type="button" class="social-hub__group-add" id="studyGroupCreateBtn" title="Créer un groupe d\'étude" aria-label="Créer un groupe d\'étude">+</button>'
+        : "") +
+      "</div>" +
+      '<div class="social-hub__groups" id="socialGroupsList">' +
       '<button type="button" class="social-hub__group-btn social-hub__group-btn--active" data-group="">🌐 Campus</button>' +
       '<button type="button" class="social-hub__group-btn" data-group="filiere">🎓 Ma filière</button>' +
-      '<button type="button" class="social-hub__group-btn" data-group="promotion">👥 Ma promotion</button></div>' +
+      '<button type="button" class="social-hub__group-btn" data-group="promotion">👥 Ma promotion</button></div></div>' +
       '<div class="social-hub__card" id="socialTagsCard"><h4>Hashtags</h4><p class="social-hub__muted">Chargement…</p></div>' +
       '<div class="social-hub__card" id="socialEventsCard"><h4>Événements</h4><p class="social-hub__muted">Chargement…</p></div>' +
       (state.settings.canModerate
@@ -411,7 +421,19 @@ const SAC_SOCIAL = (function () {
       '<button type="button" class="campus-bottom-nav__btn" data-view="notif">' +
       '<span class="campus-bottom-nav__icon">🔔</span><span>Alerte</span>' +
       '<span class="campus-bottom-nav__badge campus-bottom-nav__badge--dot" id="navNotifBadgeBottom" hidden></span></button>' +
-      "</nav></div>";
+      "</nav>" +
+      '<div class="campus-study-modal" id="studyGroupModal" hidden role="dialog" aria-labelledby="studyGroupModalTitle">' +
+      '<div class="campus-study-modal__backdrop" data-close-study-modal></div>' +
+      '<div class="campus-study-modal__panel">' +
+      '<h3 id="studyGroupModalTitle">Créer un groupe d\'étude</h3>' +
+      '<p class="social-hub__muted">Réunissez vos camarades pour préparer examens, TD ou projets.</p>' +
+      '<label class="campus-study-modal__field"><span>Nom du groupe *</span><input class="fi" id="studyGroupName" maxlength="120" placeholder="Ex. Révisions Anatomie L2" /></label>' +
+      '<label class="campus-study-modal__field"><span>Matière</span><input class="fi" id="studyGroupSubject" maxlength="120" placeholder="Ex. Anatomie" /></label>' +
+      '<label class="campus-study-modal__field"><span>Description</span><textarea class="fi" id="studyGroupDesc" rows="3" maxlength="500" placeholder="Objectifs, horaires de réunion…"></textarea></label>' +
+      '<div class="campus-study-modal__actions">' +
+      '<button type="button" class="btn btn--ghost" data-close-study-modal>Annuler</button>' +
+      '<button type="button" class="btn btn--role" id="studyGroupSubmit">Créer le groupe</button>' +
+      "</div></div></div></div>";
 
     const composer = root.querySelector("#socialComposer");
     const feedEl = root.querySelector("#socialFeedList");
@@ -510,6 +532,9 @@ const SAC_SOCIAL = (function () {
         const raw = root.querySelector("#socialEventAt")?.value;
         payload.eventAt = raw ? new Date(raw).toISOString() : "";
       }
+      if (state.filters.group && state.filters.group.startsWith("study:")) {
+        payload.studyGroupId = state.filters.group.split(":")[1];
+      }
       try {
         if (publishBtn) {
           publishBtn.disabled = true;
@@ -548,13 +573,141 @@ const SAC_SOCIAL = (function () {
       });
     });
 
-    root.querySelectorAll("[data-group]").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        root.querySelectorAll("[data-group]").forEach((b) => b.classList.remove("social-hub__group-btn--active"));
-        btn.classList.add("social-hub__group-btn--active");
-        state.filters.group = btn.dataset.group;
-        paintFeed();
+    function activateGroupFilter(groupKey) {
+      root.querySelectorAll("[data-group]").forEach((b) => {
+        b.classList.toggle("social-hub__group-btn--active", (b.dataset.group || "") === (groupKey || ""));
       });
+      state.filters.group = groupKey || "";
+      paintFeed();
+    }
+
+    async function paintStudyGroups() {
+      const list = root.querySelector("#socialGroupsList");
+      if (!list) return;
+      const active = state.filters.group || "";
+      let groups = [];
+      try {
+        if (typeof SAC_API !== "undefined" && SAC_API.listSocialStudyGroups) {
+          const online = await SAC_API.ensureOnline();
+          if (online) groups = await SAC_API.listSocialStudyGroups();
+        }
+      } catch {
+        /* ignore */
+      }
+      state.studyGroups = groups;
+      list.querySelectorAll("[data-study-group], [data-study-join]").forEach((el) => el.remove());
+      groups.forEach((g) => {
+        const key = "study:" + g.id;
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className =
+          "social-hub__group-btn" + (active === key ? " social-hub__group-btn--active" : "");
+        btn.dataset.group = key;
+        btn.dataset.studyGroup = g.id;
+        const icon = g.isMember ? "📚" : "🔒";
+        btn.innerHTML =
+          icon +
+          " " +
+          esc(g.name) +
+          (g.memberCount
+            ? ' <span class="social-hub__group-meta">' + esc(String(g.memberCount)) + "</span>"
+            : "");
+        list.appendChild(btn);
+        if (!g.isMember) {
+          const join = document.createElement("button");
+          join.type = "button";
+          join.className = "social-hub__group-join";
+          join.dataset.studyJoin = g.id;
+          join.textContent = "Rejoindre · " + esc(g.name);
+          list.appendChild(join);
+        }
+      });
+    }
+
+    root.addEventListener("click", async (e) => {
+      const joinBtn = e.target.closest("[data-study-join]");
+      if (joinBtn && root.contains(joinBtn)) {
+        e.preventDefault();
+        try {
+          if (typeof SAC_API !== "undefined" && SAC_API.joinSocialStudyGroup) {
+            await SAC_API.joinSocialStudyGroup(joinBtn.dataset.studyJoin);
+            await paintStudyGroups();
+          }
+        } catch (err) {
+          alert(err.message || "Impossible de rejoindre le groupe.");
+        }
+        return;
+      }
+      const groupBtn = e.target.closest("[data-group]");
+      if (groupBtn && root.contains(groupBtn)) {
+        activateGroupFilter(groupBtn.dataset.group || "");
+      }
+    });
+
+    root.querySelector("#campusHubBack")?.addEventListener("click", () => {
+      if (state.view === "messages" && state.msgPeer) {
+        state.msgPeer = null;
+        paintMessenger();
+        return;
+      }
+      clearMessengerMode();
+      document.dispatchEvent(new CustomEvent("sac-campus-back", { bubbles: true }));
+    });
+
+    function closeStudyModal() {
+      const modal = root.querySelector("#studyGroupModal");
+      if (modal) modal.hidden = true;
+    }
+
+    root.querySelector("#studyGroupCreateBtn")?.addEventListener("click", () => {
+      const modal = root.querySelector("#studyGroupModal");
+      if (modal) {
+        modal.hidden = false;
+        root.querySelector("#studyGroupName")?.focus();
+      }
+    });
+
+    root.querySelectorAll("[data-close-study-modal]").forEach((el) => {
+      el.addEventListener("click", closeStudyModal);
+    });
+
+    root.querySelector("#studyGroupSubmit")?.addEventListener("click", async () => {
+      const name = root.querySelector("#studyGroupName")?.value.trim();
+      if (!name || name.length < 2) {
+        alert("Indiquez un nom de groupe (2 caractères minimum).");
+        return;
+      }
+      const submit = root.querySelector("#studyGroupSubmit");
+      try {
+        if (typeof SAC_API === "undefined" || !SAC_API.createSocialStudyGroup) {
+          throw new Error("Connexion API requise.");
+        }
+        if (submit) {
+          submit.disabled = true;
+          submit.textContent = "Création…";
+        }
+        const group = await SAC_API.createSocialStudyGroup({
+          name,
+          subject: root.querySelector("#studyGroupSubject")?.value.trim() || "",
+          description: root.querySelector("#studyGroupDesc")?.value.trim() || "",
+        });
+        closeStudyModal();
+        const nameInput = root.querySelector("#studyGroupName");
+        const subjectInput = root.querySelector("#studyGroupSubject");
+        const descInput = root.querySelector("#studyGroupDesc");
+        if (nameInput) nameInput.value = "";
+        if (subjectInput) subjectInput.value = "";
+        if (descInput) descInput.value = "";
+        await paintStudyGroups();
+        if (group?.id) activateGroupFilter("study:" + group.id);
+      } catch (err) {
+        alert(err.message || "Création impossible.");
+      } finally {
+        if (submit) {
+          submit.disabled = false;
+          submit.textContent = "Créer le groupe";
+        }
+      }
     });
 
     function syncCampusLayout() {
@@ -572,6 +725,8 @@ const SAC_SOCIAL = (function () {
       document.body.classList.toggle("sac-messenger-chat-open", inChat && sectionActive);
       const toolbar = root.querySelector(".social-hub__toolbar");
       if (toolbar) toolbar.hidden = inMessages;
+      const backBtn = root.querySelector("#campusHubBack");
+      if (backBtn) backBtn.hidden = !!(inChat && sectionActive);
     }
 
     function syncMessengerLayout() {
@@ -830,6 +985,7 @@ const SAC_SOCIAL = (function () {
       } catch {
         /* ignore */
       }
+      await paintStudyGroups();
     }
 
     async function updateBadges() {
