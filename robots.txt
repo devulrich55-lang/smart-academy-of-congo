@@ -1,12 +1,25 @@
 User-agent: *
+Allow: /
+Allow: /index.html
+Allow: /connexion.html
+Allow: /inscription.html
+Allow: /plateforme.html
+Allow: /verifier-diplome.html
+Allow: /privacy.html
+Allow: /mot-de-passe-oublie.html
+
 Disallow: /dashboard-etudiant.html
 Disallow: /dashboard-professeur.html
 Disallow: /dashboard-assistant.html
 Disallow: /dashboard-universite.html
 Disallow: /dashboard-section.html
+Disallow: /dashboard-admin.html
 Disallow: /fiche-cote.html
 Disallow: /bulletin-semestre.html
-Disallow: /connexion.html
-Disallow: /inscription.html
 Disallow: /reinitialisation.html
-Disallow: /mot-de-passe-oublie.html
+Disallow: /admin-uni/
+Disallow: /ministere/
+Disallow: /superadmin/
+Disallow: /connexion-admin.html
+
+Sitemap: https://smart-academy-of-congoat.onrender.com/sitemap.xml
