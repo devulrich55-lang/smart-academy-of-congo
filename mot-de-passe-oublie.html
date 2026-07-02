@@ -115,7 +115,20 @@
           window.location.href = "reinitialisation.html?" + resetQs.toString();
         }, 2200);
       } catch (err) {
-        showAlert(err.message || "Une erreur est survenue. Réessayez plus tard.", "error");
+        const code = err.code || "";
+        if (code === "EMAIL_NOT_CONFIGURED") {
+          showAlert(
+            "L'envoi d'e-mails n'est pas encore configuré sur le serveur. Contactez l'administrateur (variables GMAIL_USER et GMAIL_APP_PASSWORD sur Render).",
+            "error"
+          );
+        } else if (code === "EMAIL_SEND_FAILED") {
+          showAlert(
+            "Le serveur n'a pas pu envoyer l'e-mail (Gmail). Vérifiez que le mot de passe d'application Google est valide sur Render, puis réessayez dans quelques minutes.",
+            "error"
+          );
+        } else {
+          showAlert(err.message || "Une erreur est survenue. Réessayez plus tard.", "error");
+        }
       } finally {
         btnSubmit.disabled = false;
         btnSubmit.textContent = "Envoyer le code par e-mail";
