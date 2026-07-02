@@ -51,9 +51,9 @@
   upsertMeta("og:description", description, true);
   upsertMeta("og:url", canonical, true);
   upsertMeta("og:locale", "fr_FR", true);
-  upsertMeta("og:image", origin + "/logo_pro.png", true);
+  upsertMeta("og:image", origin + "/evo-uni.jpeg", true);
   upsertMeta("twitter:card", "summary_large_image");
   upsertMeta("twitter:title", title);
   upsertMeta("twitter:description", description);
-  upsertMeta("twitter:image", origin + "/logo_pro.png");
+  upsertMeta("twitter:image", origin + "/evo-uni.jpeg");
 })();

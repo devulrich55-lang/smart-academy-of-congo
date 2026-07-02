@@ -56,7 +56,7 @@
     if (!document.querySelector('link[rel="apple-touch-icon"]')) {
       var icon = document.createElement("link");
       icon.rel = "apple-touch-icon";
-      icon.href = base + "logo_pro.png";
+      icon.href = base + "evo-uni.jpeg";
       head.appendChild(icon);
     }
   }
@@ -101,8 +101,8 @@
     } else {
       bar.innerHTML =
         '<div class="sac-install-banner__text">' +
-        "<strong>Application mobile</strong>" +
-        "<span>Installez Evo-smartUni sur votre téléphone pour un accès rapide</span>" +
+        "<strong>Installez Evo-smartUni</strong>" +
+        "<span>Accès rapide depuis l'écran d'accueil de votre téléphone</span>" +
         "</div>" +
         '<button type="button" class="sac-install-banner__btn" id="sacInstallBtn">Installer</button>' +
         '<button type="button" class="sac-install-banner__close" aria-label="Fermer">✕</button>';
