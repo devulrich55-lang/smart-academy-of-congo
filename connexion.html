@@ -4,12 +4,23 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="description" content="Connexion sécurisée — Evo-smartUni. Étudiant, professeur, assistant ou chef de section." />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
   <script>
-    // Anti-cache d'urgence: sur la page connexion, forcer la mise à jour SW.
+    // Anti-cache d'urgence: sur la page connexion, couper le service worker
+    // pour éviter les blocages silencieux liés au cache PWA.
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.getRegistrations().then(function (regs) {
         regs.forEach(function (reg) {
-          reg.update().catch(function () {});
+          reg.unregister().catch(function () {});
+        });
+      });
+    }
+    if ("caches" in window) {
+      caches.keys().then(function (keys) {
+        keys.forEach(function (key) {
+          caches.delete(key).catch(function () {});
         });
       });
     }
@@ -185,13 +196,13 @@
     </div>
   </main>
 
-  <script src="js/sac-universities.js"></script>
-  <script src="js/sac-identity.js"></script>
-  <script src="js/sac-tariffs.js"></script>
-  <script src="js/sac-section-approval.js?v=20260624e"></script>
-  <script src="js/sac-session.js?v=20260629b"></script>
-  <script src="js/sac-api.js?v=20260630h"></script>
-  <script src="js/sac-account-registry.js?v=20260630a"></script>
+  <script src="js/sac-universities.js?v=20260702a"></script>
+  <script src="js/sac-identity.js?v=20260702a"></script>
+  <script src="js/sac-tariffs.js?v=20260702a"></script>
+  <script src="js/sac-section-approval.js?v=20260702a"></script>
+  <script src="js/sac-session.js?v=20260702a"></script>
+  <script src="js/sac-api.js?v=20260702a"></script>
+  <script src="js/sac-account-registry.js?v=20260702a"></script>
   <script>
     (async function () {
       const roleParam = new URLSearchParams(window.location.search).get("role");
