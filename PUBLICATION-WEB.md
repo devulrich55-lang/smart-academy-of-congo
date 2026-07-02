@@ -8,10 +8,12 @@ Guide pour rendre le site **trouvable sur Google** et prêt pour les université
 
 | Service | URL |
 |---------|-----|
-| **Site web** | https://smart-academy-of-congoat.onrender.com |
+| **Site web** | https://www.evosmartuni.com |
+| **Domaine racine** | https://evosmartuni.com |
 | **API** | https://smart-academy-of-congo-api-1.onrender.com |
+| **Render (secours)** | https://smart-academy-of-congoat.onrender.com |
 
-> Si vous ajoutez un domaine personnalisé (ex. `www.evosmartuni.cd`), mettez à jour `sitemap.xml`, `robots.txt` et les variables CORS de l’API.
+> Guide DNS détaillé : **[DOMAIN-EVOSMARTUNI.md](DOMAIN-EVOSMARTUNI.md)**
 
 ---
 
@@ -31,9 +33,9 @@ Guide pour rendre le site **trouvable sur Google** et prêt pour les université
 2. Render → service **smart-academy-of-congo** → vérifiez **Auto-Deploy** activé.
 3. Attendez la fin du déploiement (2–5 min).
 4. Testez :
-   - https://smart-academy-of-congoat.onrender.com/
-   - https://smart-academy-of-congoat.onrender.com/sitemap.xml
-   - https://smart-academy-of-congoat.onrender.com/robots.txt
+   - https://www.evosmartuni.com/
+   - https://www.evosmartuni.com/sitemap.xml
+   - https://www.evosmartuni.com/robots.txt
 
 ---
 
@@ -42,7 +44,7 @@ Guide pour rendre le site **trouvable sur Google** et prêt pour les université
 1. Allez sur [Google Search Console](https://search.google.com/search-console).
 2. **Ajouter une propriété** → **Préfixe d’URL** :
    ```
-   https://smart-academy-of-congoat.onrender.com
+   https://www.evosmartuni.com
    ```
 3. **Vérification** — méthode recommandée : balise HTML  
    - Copiez la balise `google-site-verification` fournie par Google.
@@ -63,8 +65,8 @@ Délai habituel : **quelques jours à 2 semaines** avant d’apparaître sur Goo
 Sur Render → service **API** → Variables :
 
 ```
-ALLOWED_ORIGINS=https://smart-academy-of-congoat.onrender.com,https://smart-academy-of-congo-dbfm.onrender.com
-FRONTEND_URL=https://smart-academy-of-congoat.onrender.com
+ALLOWED_ORIGINS=https://www.evosmartuni.com,https://evosmartuni.com,https://smart-academy-of-congoat.onrender.com
+FRONTEND_URL=https://www.evosmartuni.com
 CROSS_ORIGIN_AUTH=true
 ```
 

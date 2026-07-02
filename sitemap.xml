@@ -1,32 +1,32 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://smart-academy-of-congoat.onrender.com/</loc>
+    <loc>https://www.evosmartuni.com/</loc>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://smart-academy-of-congoat.onrender.com/connexion.html</loc>
+    <loc>https://www.evosmartuni.com/connexion.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://smart-academy-of-congoat.onrender.com/inscription.html</loc>
+    <loc>https://www.evosmartuni.com/inscription.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://smart-academy-of-congoat.onrender.com/plateforme.html</loc>
+    <loc>https://www.evosmartuni.com/plateforme.html</loc>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
-    <loc>https://smart-academy-of-congoat.onrender.com/verifier-diplome.html</loc>
+    <loc>https://www.evosmartuni.com/verifier-diplome.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://smart-academy-of-congoat.onrender.com/privacy.html</loc>
+    <loc>https://www.evosmartuni.com/privacy.html</loc>
     <changefreq>yearly</changefreq>
     <priority>0.5</priority>
   </url>

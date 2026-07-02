@@ -22,4 +22,4 @@ Disallow: /ministere/
 Disallow: /superadmin/
 Disallow: /connexion-admin.html
 
-Sitemap: https://smart-academy-of-congoat.onrender.com/sitemap.xml
+Sitemap: https://www.evosmartuni.com/sitemap.xml

@@ -153,6 +153,7 @@ const SAC_API = (function () {
   function isRenderFrontend() {
     if (typeof window === "undefined") return false;
     const host = window.location.hostname || "";
+    if (host === "evosmartuni.com" || host === "www.evosmartuni.com") return true;
     return host.endsWith(".onrender.com") && host.indexOf("-api") === -1;
   }
 
