@@ -2,7 +2,7 @@
   "name": "smart-academy-congo",
   "version": "1.0.0",
   "private": true,
-  "description": "Evo-smartUni — site + proxy API (Render)",
+  "description": "Evo-smartUni — site web + proxy API (Render)",
   "scripts": {
     "build": "echo Static frontend ready",
     "start": "node server.js",
