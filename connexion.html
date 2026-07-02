@@ -450,6 +450,49 @@
       ]);
     }
 
+    async function directApiLogin(identifier, password, role, universite) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 12000);
+      try {
+        const res = await fetch("/api/auth/login", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+          credentials: "omit",
+          signal: controller.signal,
+          body: JSON.stringify({
+            identifier,
+            password,
+            role,
+            universite: universite || null,
+            codeUni: null,
+            adminPortal: false,
+          }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          throw new Error(
+            data.message ||
+              data.detail ||
+              data.error ||
+              "Identifiant ou mot de passe incorrect."
+          );
+        }
+        const session = data.session || null;
+        if (!session) {
+          throw new Error("Réponse serveur inattendue (session absente).");
+        }
+        if (data.accessToken) sessionStorage.setItem("sac_access_token", data.accessToken);
+        if (data.refreshToken) sessionStorage.setItem("sac_refresh_token", data.refreshToken);
+        localStorage.setItem("sac_session", JSON.stringify(session));
+        return session;
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+
     loginForm.addEventListener("submit", async (e) => {
       e.preventDefault();
       updateSteps(3);
@@ -526,6 +569,15 @@
             apiError =
               err.message ||
               "Connexion impossible. Vérifiez l'e-mail, le mot de passe et l'université.";
+            try {
+              // Fallback direct API to bypass client-side hangs in some browsers.
+              apiSession = await directApiLogin(idVal, pwdVal, currentRole, uniVal);
+              if (currentRole === "section") {
+                apiSession = enrichSectionSession(apiSession, idVal);
+              }
+            } catch (fallbackErr) {
+              apiError = fallbackErr.message || apiError;
+            }
           }
         }
 
