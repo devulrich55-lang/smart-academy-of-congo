@@ -17,7 +17,7 @@
     window.SAC_API_PROXY_ORIGIN = window.location.origin.replace(/\/+$/, "");
     window.SAC_API_BASE = RENDER_API;
   }
-  window.SAC_JS_BUILD = "20260702c";
+  window.SAC_JS_BUILD = "20260702d";
   window.SAC_PLATFORM_LOGO = "evo-uni.jpeg";
   window.SAC_PLATFORM_LOGO_ALT = "Evo-smartUni";
   if (typeof document !== "undefined" && window.SAC_API_BASE) {

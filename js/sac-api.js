@@ -168,29 +168,33 @@ const SAC_API = (function () {
       (typeof window !== "undefined" && window.SAC_API_PROXY_ORIGIN) ||
       (typeof window !== "undefined" ? window.location.origin.replace(/\/+$/, "") : "");
     if (proxyOrigin) {
-      try {
-        const res = await fetchWithTimeout(
-          proxyOrigin + "/api/health",
-          { method: "GET", credentials: "omit", mode: "cors" },
-          8000
-        );
-        let data = {};
+      for (let attempt = 0; attempt < 2; attempt += 1) {
         try {
-          data = await res.json();
+          const res = await fetchWithTimeout(
+            proxyOrigin + "/api/health",
+            { method: "GET", credentials: "omit", mode: "cors" },
+            attempt === 0 ? 25000 : 45000
+          );
+          let data = {};
+          try {
+            data = await res.json();
+          } catch {
+            /* non-json */
+          }
+          if (
+            res.ok ||
+            (data && typeof data === "object" && ("ok" in data || "database" in data))
+          ) {
+            BASE = proxyOrigin;
+            if (typeof window !== "undefined") window.SAC_API_BASE = proxyOrigin;
+            baseResolved = true;
+            return BASE;
+          }
         } catch {
-          /* non-json */
+          if (attempt === 0) {
+            await new Promise((r) => setTimeout(r, 3000));
+          }
         }
-        if (
-          res.ok ||
-          (data && typeof data === "object" && ("ok" in data || "database" in data))
-        ) {
-          BASE = proxyOrigin;
-          if (typeof window !== "undefined") window.SAC_API_BASE = proxyOrigin;
-          baseResolved = true;
-          return BASE;
-        }
-      } catch {
-        /* pas de proxy — site Static */
       }
     }
     BASE = RENDER_API_DIRECT;
@@ -579,10 +583,11 @@ const SAC_API = (function () {
     const maxWaitMs = options && options.maxWaitMs;
 
     const run = async () => {
-      if (isCrossOriginApi()) {
+      if (isRenderFrontend() && !baseResolved) await resolveApiBase();
+      if (isCrossOriginApi() || force) {
         return wakeServer(wakeDefaults(!!force));
       }
-      if (force || online === null) await ping(force ? { attempts: 5, timeoutMs: 45000 } : undefined);
+      if (online === null) await ping(undefined);
       return online;
     };
 

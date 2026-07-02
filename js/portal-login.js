@@ -58,8 +58,13 @@
     const roleParam = new URLSearchParams(window.location.search).get("role");
     if (await SAC_SESSION.redirectIfAuthenticated(roleParam || def.role)) return;
 
-    if (typeof SAC_API !== "undefined" && SAC_API.wakeServer) {
-      SAC_API.wakeServer({ attempts: 3, timeoutMs: 30000, delayMs: 4000 });
+    if (typeof SAC_API !== "undefined") {
+      if (SAC_API.resolveApiBase) {
+        SAC_API.resolveApiBase().catch(function () {});
+      }
+      if (SAC_API.wakeServer) {
+        SAC_API.wakeServer({ attempts: 4, timeoutMs: 45000, delayMs: 4000 });
+      }
     }
 
     const form = document.getElementById("portalLoginForm");
@@ -101,13 +106,18 @@
 
       submitBtn.disabled = true;
       const prevLabel = submitBtn.textContent;
-      submitBtn.textContent = "Connexion…";
+      submitBtn.textContent = "Réveil du serveur…";
 
       try {
         if (typeof SAC_API === "undefined") throw new Error("API indisponible");
-        await SAC_API.wakeServer();
-        if (!SAC_API.isOnline()) throw new Error("Serveur injoignable. Réessayez dans quelques instants.");
+        const online = await SAC_API.ensureOnline(true);
+        if (!online) {
+          throw new Error(
+            "Serveur injoignable — Render démarre (cold start). Attendez 1 minute puis réessayez."
+          );
+        }
 
+        submitBtn.textContent = "Connexion…";
         const extra = { adminPortal: !!def.adminPortal };
         if (countryCode) extra.countryCode = countryCode;
         if (def.showCodeUni && codeUniInput) {

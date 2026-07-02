@@ -55,6 +55,7 @@ app.use(
 app.get("/ministere", (_req, res) => res.redirect(301, "/ministere/"));
 app.get("/superadmin", (_req, res) => res.redirect(301, "/superadmin/"));
 app.get("/admin-uni", (_req, res) => res.redirect(301, "/admin-uni/"));
+app.get("/evomonitor", (_req, res) => res.redirect(301, "/evomonitor/"));
 app.get("/connexion-admin.html", (_req, res) => res.redirect(301, "/ministere/"));
 
 app.use((req, res, next) => {
