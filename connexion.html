@@ -455,6 +455,10 @@
 
       btnSubmit.disabled = true;
       btnSubmit.textContent = "Connexion en cours…";
+      const fallbackUnlock = window.setTimeout(() => {
+        btnSubmit.disabled = false;
+        btnSubmit.textContent = ROLES[currentRole].btnText;
+      }, 20000);
 
       let apiSession = null;
       let apiError = "";
@@ -466,12 +470,18 @@
         }
 
         if (typeof SAC_API !== "undefined") {
-          btnSubmit.textContent = "Réveil du serveur…";
-          await SAC_API.wakeServer({
-            onAttempt(n, total) {
-              btnSubmit.textContent = "Réveil du serveur… " + n + "/" + total;
-            },
-          });
+          btnSubmit.textContent = "Connexion au serveur…";
+          await Promise.race([
+            SAC_API.wakeServer({
+              attempts: 2,
+              timeoutMs: 12000,
+              delayMs: 1200,
+              onAttempt(n, total) {
+                btnSubmit.textContent = "Connexion au serveur… " + n + "/" + total;
+              },
+            }),
+            new Promise((resolve) => setTimeout(() => resolve(false), 9000)),
+          ]);
           if (SAC_API.isOnline()) {
             btnSubmit.textContent = "Connexion en cours…";
             try {
@@ -485,6 +495,9 @@
             } catch (err) {
               apiError = err.message || "Identifiant ou mot de passe incorrect.";
             }
+          } else {
+            apiError =
+              "Serveur indisponible pour le moment. Réessayez dans 20 à 60 secondes.";
           }
         }
 
@@ -582,6 +595,7 @@
           return;
         }
       } finally {
+        window.clearTimeout(fallbackUnlock);
         if (!apiSession) {
           btnSubmit.disabled = false;
           btnSubmit.textContent = ROLES[currentRole].btnText;
