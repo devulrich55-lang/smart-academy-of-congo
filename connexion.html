@@ -4,6 +4,16 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="description" content="Connexion sécurisée — Evo-smartUni. Étudiant, professeur, assistant ou chef de section." />
+  <script>
+    // Anti-cache d'urgence: sur la page connexion, forcer la mise à jour SW.
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function (regs) {
+        regs.forEach(function (reg) {
+          reg.update().catch(function () {});
+        });
+      });
+    }
+  </script>
   <title data-i18n="meta.login.title">Connexion — Evo-smartUni</title>
   <link rel="manifest" href="manifest.webmanifest" />
   <meta name="apple-mobile-web-app-title" content="Evo-smartUni" />
@@ -459,6 +469,13 @@
         btnSubmit.disabled = false;
         btnSubmit.textContent = ROLES[currentRole].btnText;
       }, 20000);
+      const watchdogAlert = window.setTimeout(() => {
+        if (btnSubmit.disabled) {
+          btnSubmit.disabled = false;
+          btnSubmit.textContent = ROLES[currentRole].btnText;
+          alert("Connexion trop longue. Vérifiez internet puis réessayez.");
+        }
+      }, 12000);
 
       let apiSession = null;
       let apiError = "";
@@ -596,6 +613,7 @@
         }
       } finally {
         window.clearTimeout(fallbackUnlock);
+        window.clearTimeout(watchdogAlert);
         if (!apiSession) {
           btnSubmit.disabled = false;
           btnSubmit.textContent = ROLES[currentRole].btnText;
