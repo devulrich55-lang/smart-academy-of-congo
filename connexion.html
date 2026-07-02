@@ -441,6 +441,15 @@
       togglePassword.setAttribute("aria-label", isPwd ? "Masquer le mot de passe" : "Afficher le mot de passe");
     });
 
+    async function runWithTimeout(task, ms, message) {
+      return Promise.race([
+        task,
+        new Promise((_, reject) => {
+          setTimeout(() => reject(new Error(message || "Délai dépassé.")), ms);
+        }),
+      ]);
+    }
+
     loginForm.addEventListener("submit", async (e) => {
       e.preventDefault();
       updateSteps(3);
@@ -498,34 +507,25 @@
         }
 
         if (typeof SAC_API !== "undefined") {
-          btnSubmit.textContent = "Connexion au serveur…";
-          await Promise.race([
-            SAC_API.wakeServer({
-              attempts: 2,
-              timeoutMs: 12000,
-              delayMs: 1200,
-              onAttempt(n, total) {
-                btnSubmit.textContent = "Connexion au serveur… " + n + "/" + total;
-              },
-            }),
-            new Promise((resolve) => setTimeout(() => resolve(false), 9000)),
-          ]);
-          if (SAC_API.isOnline()) {
-            btnSubmit.textContent = "Connexion en cours…";
-            try {
-              if (currentRole === "section") {
-                apiSession = await attemptApiSectionLogin(idVal, pwdVal, uniVal);
-              } else {
-                apiSession = await SAC_API.login(idVal, pwdVal, currentRole, {
-                  universite: uniVal,
-                });
-              }
-            } catch (err) {
-              apiError = err.message || "Identifiant ou mot de passe incorrect.";
+          btnSubmit.textContent = "Connexion en cours…";
+          try {
+            if (currentRole === "section") {
+              apiSession = await runWithTimeout(
+                attemptApiSectionLogin(idVal, pwdVal, uniVal),
+                12000,
+                "Serveur trop lent. Réessayez."
+              );
+            } else {
+              apiSession = await runWithTimeout(
+                SAC_API.login(idVal, pwdVal, currentRole, { universite: uniVal }),
+                12000,
+                "Serveur trop lent. Réessayez."
+              );
             }
-          } else {
+          } catch (err) {
             apiError =
-              "Serveur indisponible pour le moment. Réessayez dans 20 à 60 secondes.";
+              err.message ||
+              "Connexion impossible. Vérifiez l'e-mail, le mot de passe et l'université.";
           }
         }
 
@@ -534,28 +534,8 @@
           return;
         }
 
-        if (typeof SAC_API !== "undefined" && SAC_API.isOnline()) {
-          const migrated = await attemptServerMigration(idVal, pwdVal, uniVal);
-          if (migrated?.session) {
-            apiSession = migrated.session;
-            if (currentRole === "section") {
-              apiSession = enrichSectionSession(apiSession, idVal);
-            }
-            redirectAfterLogin(apiSession);
-            return;
-          }
-          if (migrated?.error) {
-            apiError = migrated.error;
-          }
-          if (currentRole === "section" && SAC_SESSION.allowLocalAuth()) {
-            if (await tryLocalSectionLogin(idVal, pwdVal)) {
-              return;
-            }
-          }
-          alert(
-            apiError ||
-              "Identifiant ou mot de passe incorrect. Vérifiez l'e-mail, le mot de passe et l'université."
-          );
+        if (apiError) {
+          alert(apiError);
           return;
         }
 
