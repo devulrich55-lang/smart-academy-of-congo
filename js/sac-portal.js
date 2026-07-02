@@ -75,6 +75,27 @@ const SAC_PORTAL = (function () {
       requiresCountry: true,
       logoFile: "../" + PLATFORM_LOGO,
     },
+    evomonitor: {
+      id: "evomonitor",
+      role: "superadmin",
+      slug: "evomonitor",
+      title: "EvoMonitor",
+      orgName: "Centre de supervision — Evo-smartUni",
+      hostHints: ["monitor.", "evomonitor."],
+      pathPrefix: "/evomonitor",
+      accent: "#0e7490",
+      accentDark: "#0c4a6e",
+      themeColor: "#0e7490",
+      icon: "📡",
+      emailPlaceholder: "admin@evosmartuni.com",
+      btnLabel: "Accéder à EvoMonitor",
+      lead:
+        "Surveillez la santé de la plateforme : performance, base de données, réseau et alertes intelligentes.",
+      notice: "Accès réservé aux comptes Super Admin. Toute consultation est journalisée.",
+      dashboard: "dashboard-evomonitor.html",
+      adminPortal: true,
+      logoFile: "../" + PLATFORM_LOGO,
+    },
   };
 
   function normPath(path) {
@@ -131,6 +152,7 @@ const SAC_PORTAL = (function () {
     if (role === "ministere") return siteUrl("ministere/");
     if (role === "superadmin") return siteUrl("superadmin/");
     if (role === "universite") return siteUrl("admin-uni/");
+    if (role === "evomonitor") return siteUrl("evomonitor/");
     return siteUrl("connexion.html?role=" + encodeURIComponent(role || "etudiant"));
   }
 
@@ -147,8 +169,14 @@ const SAC_PORTAL = (function () {
       section: "dashboard-section.html",
       ministere: "dashboard-admin.html",
       superadmin: "dashboard-admin.html",
+      evomonitor: "dashboard-evomonitor.html",
     };
     return siteUrl(map[role] || "index.html");
+  }
+
+  function portalDashboardUrl(def) {
+    if (def && def.dashboard) return siteUrl(def.dashboard);
+    return dashboardUrl(def ? def.role : "");
   }
 
   function applyTheme(def) {
@@ -164,6 +192,7 @@ const SAC_PORTAL = (function () {
       ministere: "ministere",
       superadmin: "superadmin",
       universite: "admin-uni",
+      evomonitor: "evomonitor",
     };
     const slug = slugByRole[role];
     if (slug && DEFS[slug] && DEFS[slug].logoFile) {
@@ -239,6 +268,7 @@ const SAC_PORTAL = (function () {
     const def = current();
     if (!def || !session || !session.role) return false;
     if (session.role === def.role) return false;
+    if (def.id === "evomonitor" && session.role === "superadmin") return false;
     window.location.replace(dashboardUrl(session.role));
     return true;
   }
@@ -247,6 +277,7 @@ const SAC_PORTAL = (function () {
     if (portalId === "ministere") return siteUrl("ministere/");
     if (portalId === "superadmin") return siteUrl("superadmin/");
     if (portalId === "admin-uni") return siteUrl("admin-uni/");
+    if (portalId === "evomonitor") return siteUrl("evomonitor/");
     return siteUrl("connexion.html");
   }
 
@@ -267,6 +298,7 @@ const SAC_PORTAL = (function () {
     forgotPasswordUrl,
     logoutUrl,
     dashboardUrl,
+    portalDashboardUrl,
     applyTheme,
     redirectIfWrongRole,
     logoUrlForRole,

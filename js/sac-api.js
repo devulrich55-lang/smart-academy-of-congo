@@ -1759,6 +1759,26 @@ const SAC_API = (function () {
     return data?.group || data;
   }
 
+  async function getMonitorOverview(options) {
+    const opts = options || {};
+    const q = opts.notify ? "?notify=true" : "";
+    return request("/admin/monitor/overview" + q);
+  }
+
+  async function listMonitorIncidents(limit) {
+    const params = limit ? "?limit=" + encodeURIComponent(String(limit)) : "";
+    const data = await request("/admin/monitor/incidents" + params);
+    return data?.incidents || [];
+  }
+
+  async function resolveMonitorIncident(incidentId, status) {
+    const data = await request("/admin/monitor/incidents/" + encodeURIComponent(incidentId), {
+      method: "PATCH",
+      body: JSON.stringify({ status: status || "resolved" }),
+    });
+    return data?.incident || data;
+  }
+
   async function listSocialNotifications() {
     const data = await request("/platform/social/notifications");
     return data?.notifications || [];
@@ -2151,6 +2171,9 @@ const SAC_API = (function () {
     listSocialStudyGroups,
     createSocialStudyGroup,
     joinSocialStudyGroup,
+    getMonitorOverview,
+    listMonitorIncidents,
+    resolveMonitorIncident,
     listSocialNotifications,
     markSocialNotificationRead,
     getSocialSettings,

@@ -126,7 +126,11 @@
           SAC_AFRICA_COUNTRIES.setPortalCountry(def.id, countryCode);
         }
         SAC_SESSION.saveSession(session);
-        window.location.replace(SAC_PORTAL.dashboardUrl(session.role));
+        const target =
+          typeof SAC_PORTAL.portalDashboardUrl === "function"
+            ? SAC_PORTAL.portalDashboardUrl(def)
+            : SAC_PORTAL.dashboardUrl(session.role);
+        window.location.replace(target);
       } catch (err) {
         alert(err.message || "Identifiant ou mot de passe incorrect.");
       } finally {

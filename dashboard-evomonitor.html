@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>EvoMonitor — Centre de supervision</title>
+  <script src="js/sac-config.js"></script>
+  <script src="js/sac-portal.js"></script>
+  <script src="js/sac-theme.js"></script>
+  <link rel="icon" href="evo-uni.jpeg" type="image/jpeg" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/logo.css" />
+  <link rel="stylesheet" href="css/dashboard.css" />
+  <link rel="stylesheet" href="css/theme.css" />
+  <link rel="stylesheet" href="css/admin-workspace.css" />
+  <link rel="stylesheet" href="css/evosu-monitor.css" />
+  <link rel="stylesheet" href="css/mobile.css" />
+  <meta name="theme-color" content="#0e7490" />
+</head>
+<body class="evomonitor-dashboard">
+  <header class="header ws-header em-header">
+    <div class="header__top">
+      <a href="evomonitor/" class="logo">
+        <img src="evo-uni.jpeg" alt="EvoMonitor" class="logo__img" width="48" height="48" />
+        <span class="logo__text">EvoMonitor <small>Centre de supervision</small></span>
+      </a>
+      <div class="em-header__actions">
+        <span class="badge-role em-badge">📡 Supervision</span>
+        <span id="emUserName" class="em-user"></span>
+        <button type="button" class="btn btn--ghost btn--xs" id="emRefreshBtn">Actualiser</button>
+        <button type="button" class="theme-toggle" data-theme-toggle aria-label="Thème"></button>
+        <button type="button" class="btn btn--ghost" id="btnLogout">Déconnexion</button>
+      </div>
+    </div>
+    <nav class="nav-tabs" aria-label="Navigation EvoMonitor">
+      <button type="button" class="nav-tab active" data-section="accueil">Tableau de santé</button>
+      <button type="button" class="nav-tab" data-section="performance">Performance</button>
+      <button type="button" class="nav-tab" data-section="database">Base de données</button>
+      <button type="button" class="nav-tab" data-section="network">Réseau</button>
+      <button type="button" class="nav-tab" data-section="users">Utilisateurs</button>
+      <button type="button" class="nav-tab" data-section="anomalies">Anomalies</button>
+      <button type="button" class="nav-tab" data-section="alerts">Alertes</button>
+      <button type="button" class="nav-tab" data-section="incidents">Incidents <span class="em-nav-badge" id="emOpenIncidents">0</span></button>
+    </nav>
+  </header>
+
+  <div class="em-toast" id="emToast" role="status"></div>
+
+  <main class="layout em-layout">
+    <section class="page-section active" id="section-accueil">
+      <div class="em-hero-grid">
+        <div class="em-panel em-panel--hero">
+          <div id="emHeroStatus" class="em-hero-status em-status--ok">
+            <span class="em-hero-status__icon">🟢</span>
+            <div><strong>Chargement…</strong><span>État général du système</span></div>
+          </div>
+          <p class="em-meta" id="emLastUpdate">—</p>
+          <p class="em-meta" id="emHeroDate">—</p>
+        </div>
+        <div class="em-panel em-panel--score">
+          <h2>Score de santé global</h2>
+          <div id="emHealthScore" class="em-score-wrap">—</div>
+          <p class="em-hint">Indicateur composite : performance, base de données, réseau et sécurité.</p>
+        </div>
+      </div>
+      <div class="em-quick-grid" id="emQuickPreview">
+        <div class="em-panel"><h3>Performance</h3><div class="em-metrics" id="emPerfGrid"></div></div>
+        <div class="em-panel"><h3>Utilisateurs</h3><div class="em-metrics" id="emUsersGrid"></div></div>
+      </div>
+    </section>
+
+    <section class="page-section" id="section-performance">
+      <h1 class="page-title">Performance</h1>
+      <p class="page-desc">Temps de réponse, CPU, mémoire, stockage et charge du serveur.</p>
+      <div class="em-panel"><div class="em-metrics em-metrics--wide" id="emPerfGrid2"></div></div>
+    </section>
+
+    <section class="page-section" id="section-database">
+      <h1 class="page-title">Base de données</h1>
+      <p class="page-desc">Connexion, latence des requêtes, erreurs et sauvegardes.</p>
+      <div class="em-panel"><div class="em-metrics em-metrics--wide" id="emDbGrid"></div></div>
+    </section>
+
+    <section class="page-section" id="section-network">
+      <h1 class="page-title">Réseau</h1>
+      <p class="page-desc">Latence, disponibilité Internet, débit et taux d'échec.</p>
+      <div class="em-panel"><div class="em-metrics em-metrics--wide" id="emNetGrid"></div></div>
+    </section>
+
+    <section class="page-section" id="section-users">
+      <h1 class="page-title">Utilisateurs</h1>
+      <p class="page-desc">Sessions actives, inscriptions et tentatives de connexion.</p>
+      <div class="em-panel"><div class="em-metrics em-metrics--wide" id="emUsersGrid2"></div></div>
+    </section>
+
+    <section class="page-section" id="section-anomalies">
+      <h1 class="page-title">Détection automatique des anomalies</h1>
+      <p class="page-desc">Problèmes détectés avant qu'ils ne deviennent une panne.</p>
+      <div class="em-panel" id="emAnomaliesList"><p class="em-empty">Chargement…</p></div>
+    </section>
+
+    <section class="page-section" id="section-alerts">
+      <h1 class="page-title">Alertes intelligentes</h1>
+      <p class="page-desc">Notifications, e-mails et actions correctives proposées.</p>
+      <div class="em-panel">
+        <div id="emAlertsInfo"></div>
+        <div class="em-actions">
+          <button type="button" class="btn btn--role" id="emScanBtn">🔔 Scanner &amp; notifier (e-mail)</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="page-section" id="section-incidents">
+      <h1 class="page-title">Historique des incidents</h1>
+      <p class="page-desc">Date, gravité, service, résolution et responsable.</p>
+      <div class="em-panel em-panel--table">
+        <table class="em-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Gravité</th>
+              <th>Service</th>
+              <th>Incident</th>
+              <th>Statut</th>
+              <th>Résolution</th>
+            </tr>
+          </thead>
+          <tbody id="emIncidentsBody">
+            <tr><td colspan="6" class="em-empty">Chargement…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script src="js/sac-session.js"></script>
+  <script src="js/sac-api.js"></script>
+  <script src="js/sac-evomonitor.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      SAC_EVOMONITOR.init();
+      document.querySelectorAll(".nav-tab").forEach(function (tab) {
+        tab.addEventListener("click", function () {
+          if (tab.dataset.section === "performance") {
+            var src = document.getElementById("emPerfGrid");
+            var dst = document.getElementById("emPerfGrid2");
+            if (src && dst) dst.innerHTML = src.innerHTML;
+          }
+          if (tab.dataset.section === "users") {
+            var u1 = document.getElementById("emUsersGrid");
+            var u2 = document.getElementById("emUsersGrid2");
+            if (u1 && u2) u2.innerHTML = u1.innerHTML;
+          }
+        });
+      });
+    });
+  </script>
+  <script src="js/sac-mobile.js" defer></script>
+</body>
+</html>

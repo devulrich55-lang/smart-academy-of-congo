@@ -435,6 +435,18 @@ const SAC_SESSION = (function () {
       SAC_SECTION_APPROVAL.redirectPending(session);
       return true;
     }
+    if (typeof SAC_PORTAL !== "undefined" && SAC_PORTAL.current()) {
+      const def = SAC_PORTAL.current();
+      const okRole = session.role === def.role || (def.id === "evomonitor" && session.role === "superadmin");
+      if (okRole) {
+        const target =
+          typeof SAC_PORTAL.portalDashboardUrl === "function"
+            ? SAC_PORTAL.portalDashboardUrl(def)
+            : SAC_PORTAL.dashboardUrl(session.role);
+        window.location.replace(target);
+        return true;
+      }
+    }
     window.location.replace(dashboardUrl(session.role));
     return true;
   }

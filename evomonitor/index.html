@@ -4,8 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="robots" content="noindex, nofollow" />
-  <meta name="description" content="Portail Super Admin — Evo-smartUni" />
-  <title>Portail Super Admin — Evo-smartUni</title>
+  <meta name="description" content="EvoMonitor — Centre de supervision Evo-smartUni" />
+  <title>EvoMonitor — Connexion</title>
   <script src="../js/sac-config.js"></script>
   <script src="../js/sac-portal.js"></script>
   <script src="../js/sac-theme.js"></script>
@@ -13,46 +13,51 @@
   <link rel="apple-touch-icon" href="../evo-uni.jpeg" data-portal-favicon />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="../css/logo.css" />
   <link rel="stylesheet" href="../css/theme.css" />
   <link rel="stylesheet" href="../css/admin-workspace.css" />
   <link rel="stylesheet" href="../css/portal-institutional.css" />
+  <link rel="stylesheet" href="../css/evosu-monitor.css" />
   <link rel="stylesheet" href="../css/mobile.css" />
-  <meta name="theme-color" content="#5b21b6" />
+  <meta name="theme-color" content="#0e7490" />
 </head>
-<body class="portal-page portal-page--pro">
+<body class="portal-page portal-page--pro evomonitor-portal">
   <header class="portal-header">
     <a href="./" class="portal-brand logo">
       <img src="../evo-uni.jpeg" alt="Evo-smartUni" class="logo__img portal-logo" data-portal-logo width="52" height="52" />
       <div>
-        <span class="portal-org-name">Portail Super Admin</span>
+        <span class="portal-org-name">EvoMonitor</span>
+        <small class="portal-org-sub">Centre de supervision</small>
       </div>
     </a>
-    <span class="portal-badge">Accès restreint</span>
+    <span class="portal-badge portal-badge--monitor">Super Admin</span>
     <button type="button" class="theme-toggle" data-theme-toggle aria-label="Thème"></button>
   </header>
 
   <main class="portal-main">
     <div class="portal-shell">
-      <aside class="portal-hero">
-        <div class="portal-hero__sac">
-          <img src="../evo-uni.jpeg" alt="Evo-smartUni" class="portal-hero__logo" data-portal-logo />
-        </div>
-        <p class="portal-hero__institution"><span aria-hidden="true">🛡️</span> Administration centrale EvoSU</p>
-        <h1>Gestion institutionnelle</h1>
+      <aside class="portal-hero evomonitor-hero">
+        <div class="evomonitor-hero__pulse" aria-hidden="true"></div>
+        <p class="portal-hero__institution"><span aria-hidden="true">📡</span> Smart Health · Evo-smartUni</p>
+        <h1>Centre de contrôle</h1>
         <p>
-          Créez et gérez les comptes Ministère, administrateurs université et Super Admin.
-          Toutes les actions sont journalisées.
+          Surveillez la santé de la plateforme nationale : performance, base de données,
+          réseau, utilisateurs et alertes intelligentes.
         </p>
+        <ul class="evomonitor-hero__list">
+          <li>État général & score de santé</li>
+          <li>Détection automatique des anomalies</li>
+          <li>Historique des incidents</li>
+        </ul>
       </aside>
-      <section class="portal-card">
-        <h2>Connexion Super Admin</h2>
-        <p class="subtitle">Identifiants d'administration EvoSU</p>
+      <section class="portal-card evomonitor-card">
+        <h2>Connexion EvoMonitor</h2>
+        <p class="subtitle">Accès réservé aux comptes Super Admin</p>
         <form id="portalLoginForm" novalidate>
           <div class="portal-field">
             <label for="portalEmail">E-mail Super Admin</label>
-            <input type="email" id="portalEmail" name="email" required autocomplete="username" placeholder="djemcibamba@gmail.com" />
+            <input type="email" id="portalEmail" name="email" required autocomplete="username" placeholder="admin@evosmartuni.com" />
           </div>
           <div class="portal-field">
             <label for="portalPassword">Mot de passe</label>
@@ -61,23 +66,16 @@
           <p class="portal-forgot-wrap">
             <a href="../mot-de-passe-oublie.html?portal=superadmin" class="portal-forgot">Mot de passe oublié ?</a>
           </p>
-          <div class="portal-field" id="portalCodeUniWrap" hidden>
-            <label for="portalCodeUni">Code établissement</label>
-            <input type="text" id="portalCodeUni" autocomplete="off" />
-          </div>
-          <button type="submit" class="portal-submit" id="portalSubmit">Accéder au Super Admin</button>
+          <button type="submit" class="portal-submit evomonitor-submit" id="portalSubmit">Accéder à EvoMonitor</button>
         </form>
         <p class="portal-notice">
-          Portail séparé du site public. Plateforme nationale Evo-smartUni.
+          Portail distinct du Super Admin institutionnel. Toute consultation est journalisée.
         </p>
         <div class="portal-trust">
           <span>🔒 Accès journalisé</span>
+          <span>📊 Temps réel</span>
           <span>🛡️ Super Admin uniquement</span>
-          <span>🌍 Evo-smartUni — International</span>
         </div>
-        <p class="portal-notice" style="margin-top:1rem;">
-          <a href="../evomonitor/" class="portal-forgot">📡 Accéder à EvoMonitor (supervision)</a>
-        </p>
       </section>
     </div>
   </main>
@@ -85,9 +83,9 @@
   <footer class="portal-footer">
     <div class="portal-footer__brand">
       <img src="../evo-uni.jpeg" alt="Evo-smartUni" data-portal-logo width="36" height="36" />
-      <span>Evo-smartUni</span>
+      <span>EvoMonitor</span>
     </div>
-    <span>Super Admin — Administration centrale</span>
+    <span>Centre de supervision — Evo-smartUni</span>
   </footer>
 
   <script src="../js/sac-identity.js"></script>
