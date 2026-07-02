@@ -7,6 +7,9 @@ agent-transcripts/
 
 # Dependances
 node_modules/
+www/
+android/
+ios/
 
 # Secrets locaux
 .env

@@ -286,14 +286,33 @@
       },
     };
 
+    function normalizeRoleKey(role) {
+      const raw = String(role || "").trim().toLowerCase();
+      const aliases = {
+        student: "etudiant",
+        etudiant: "etudiant",
+        professeur: "professeur",
+        professor: "professeur",
+        teacher: "professeur",
+        assistant: "assistant",
+        section: "section",
+        head: "section",
+        universite: "universite",
+        university: "universite",
+        campus: "universite",
+      };
+      return aliases[raw] || raw;
+    }
+
     async function redirectAfterLogin(session) {
-      const role = session.role || currentRole;
+      const role = normalizeRoleKey(session.role || currentRole);
       const cfg = ROLES[role];
       if (!cfg?.dashboard) return;
       const enriched =
         typeof SAC_SECTION_APPROVAL !== "undefined"
           ? SAC_SECTION_APPROVAL.enrichSession(session)
           : session;
+      enriched.role = role;
       if (
         typeof SAC_SECTION_APPROVAL !== "undefined" &&
         SAC_SECTION_APPROVAL.shouldBlockDashboard(enriched)
