@@ -1,15 +1,21 @@
 /**
- * EvoMonitor — centre de supervision (Super Admin)
+ * EvoMonitor — centre de supervision (Super Admin) + SATA intelligence
  */
 const SAC_EVOMONITOR = (function () {
   "use strict";
 
   const REFRESH_MS = 20000;
   const SECURITY_PULSE_MS = 20000;
+  const LIVE_REFRESH_MS = 5000;
   let session = null;
   let timer = null;
   let securityTimer = null;
+  let liveTimer = null;
   let lastOverview = null;
+  let logsCache = [];
+  let logFilters = { q: "", category: "all", level: "all" };
+
+  const INTEL = typeof SAC_EVOMONITOR_INTEL !== "undefined" ? SAC_EVOMONITOR_INTEL : null;
 
   function esc(s) {
     const el = document.createElement("div");
@@ -65,6 +71,11 @@ const SAC_EVOMONITOR = (function () {
     document.querySelectorAll(".nav-tab").forEach((t) => {
       t.classList.toggle("active", t.dataset.section === id);
     });
+    if (id === "live") startLiveRefresh();
+    else stopLiveRefresh();
+    if (id === "logs") loadLogs();
+    if (id === "sata") renderSata();
+    if (id === "debug") renderDebug();
   }
 
   function scoreRing(score) {
@@ -105,28 +116,52 @@ const SAC_EVOMONITOR = (function () {
     );
   }
 
+  let lastPredictionKey = "";
+
+  function enrichOverview(data) {
+    if (!data || !INTEL) return data;
+    let overview = INTEL.applySimulation(data);
+    INTEL.recordSnapshot(overview);
+    const predictions = INTEL.predictAnomalies(overview, INTEL.getHistory());
+    overview._predictions = predictions;
+    overview._moduleScores = overview.moduleScores || INTEL.computeModuleScores(overview);
+    overview._epm = overview.epm != null ? overview.epm : INTEL.estimateEpm(overview, INTEL.getHistory());
+    overview.anomalies = (overview.anomalies || []).concat(predictions);
+    return overview;
+  }
+
   function renderOverview(data) {
-    lastOverview = data;
+    const enriched = enrichOverview(data);
+    lastOverview = enriched;
     const hero = document.getElementById("emHeroStatus");
     const scoreEl = document.getElementById("emHealthScore");
     const updated = document.getElementById("emLastUpdate");
+    const moduleHost = document.getElementById("emModuleScores");
+    const epmEl = document.getElementById("emEpmBadge");
+
     if (hero) {
-      hero.className = "em-hero-status " + statusClass(data.status);
+      hero.className = "em-hero-status " + statusClass(enriched.status);
       hero.innerHTML =
         '<span class="em-hero-status__icon">' +
-        esc(data.statusIcon || "🟢") +
+        esc(enriched.statusIcon || "🟢") +
         "</span>" +
         "<div><strong>" +
-        esc(data.statusLabel) +
+        esc(enriched.statusLabel) +
         "</strong><span>État général du système</span></div>";
     }
-    if (scoreEl) scoreEl.innerHTML = scoreRing(data.healthScore);
-    if (updated) updated.textContent = "Mis à jour : " + fmtDate(data.updatedAt);
+    const displayScore = enriched._moduleScores?.global ?? enriched.healthScore;
+    if (scoreEl) scoreEl.innerHTML = scoreRing(displayScore);
+    if (updated) updated.textContent = "Mis à jour : " + fmtDate(enriched.updatedAt);
+    if (INTEL && moduleHost) INTEL.renderModuleScores(moduleHost, enriched._moduleScores);
+    if (epmEl) {
+      epmEl.textContent = (enriched._epm || 0) + " EPM";
+      epmEl.hidden = false;
+    }
 
-    const perf = data.performance || {};
-    const db = data.database || {};
-    const net = data.network || {};
-    const users = data.users || {};
+    const perf = enriched.performance || {};
+    const db = enriched.database || {};
+    const net = enriched.network || {};
+    const users = enriched.users || {};
 
     const perfGrid = document.getElementById("emPerfGrid");
     if (perfGrid) {
@@ -153,7 +188,8 @@ const SAC_EVOMONITOR = (function () {
         metricCard("🌐", "Latence", fmtNum(net.latencyMs, " ms")) +
         metricCard("📶", "Internet", net.internetAvailable ? "Disponible" : "Indisponible", "", net.internetAvailable ? "em-metric--ok" : "em-metric--bad") +
         metricCard("📈", "Requêtes / min", fmtNum(net.requestsPerMinute)) +
-        metricCard("⚠️", "Taux d'échec", fmtNum(net.failureRate, " %"));
+        metricCard("⚠️", "Taux d'échec", fmtNum(net.failureRate, " %")) +
+        metricCard("🔥", "Erreurs / min", fmtNum(enriched._epm || 0, " EPM"), "Errors Per Minute");
     }
 
     const usersGrid = document.getElementById("emUsersGrid");
@@ -165,15 +201,30 @@ const SAC_EVOMONITOR = (function () {
         metricCard("🔐", "Échecs connexion (24 h)", fmtNum(users.failedLogins24h));
     }
 
-    renderAnomalies(data.anomalies || []);
-    renderIncidents((data.incidents && data.incidents.recent) || []);
-    renderAlerts(data);
-    renderSecurityBanner(data);
+    renderAnomalies(enriched.anomalies || []);
+    renderIncidents((enriched.incidents && enriched.incidents.recent) || []);
+    renderAlerts(enriched);
+    renderSecurityBanner(enriched);
+
+    if (INTEL) {
+      INTEL.renderLiveDashboard(document.getElementById("emLiveCharts"), enriched, INTEL.getHistory());
+    }
 
     const perf2 = document.getElementById("emPerfGrid2");
     if (perfGrid && perf2) perf2.innerHTML = perfGrid.innerHTML;
     const users2 = document.getElementById("emUsersGrid2");
     if (usersGrid && users2) users2.innerHTML = usersGrid.innerHTML;
+
+    if (INTEL && enriched._predictions?.length) {
+      const key = enriched._predictions.map((p) => p.title).join("|");
+      if (key !== lastPredictionKey) {
+        lastPredictionKey = key;
+        INTEL.dispatchAlert(
+          { severity: enriched._predictions[0].severity, message: enriched._predictions[0].title },
+          toast
+        );
+      }
+    }
   }
 
   function renderAnomalies(items) {
@@ -190,11 +241,12 @@ const SAC_EVOMONITOR = (function () {
           severityClass(a.severity) +
           '">' +
           '<div class="em-anomaly__head"><span class="em-anomaly__badge">' +
-          esc(a.severity === "critical" ? "🔴" : "⚠️") +
+          esc(a.severity === "critical" ? "🔴" : a.kind === "prediction" ? "🧠" : "⚠️") +
           "</span><strong>" +
           esc(a.title) +
           '</strong><span class="em-anomaly__svc">' +
           esc(a.service) +
+          (a.kind === "prediction" ? ' · <em class="em-tag-pred">Prédiction</em>' : "") +
           "</span></div>" +
           "<p>" +
           esc(a.message) +
@@ -209,22 +261,40 @@ const SAC_EVOMONITOR = (function () {
       .join("");
   }
 
+  function incidentStatusUi(inc) {
+    if (!INTEL) {
+      if (inc.status === "acknowledged") return { label: "Pris en charge", pill: "em-pill--ack" };
+      if (inc.status === "resolved") return { label: "Résolu", pill: "em-pill--resolved" };
+      return { label: "Ouvert", pill: "em-pill--open" };
+    }
+    const ui = INTEL.uiStatusFromApi(inc.status);
+    return INTEL.INCIDENT_STATUS[ui] || INTEL.INCIDENT_STATUS.open;
+  }
+
   function renderIncidents(items) {
     const tbody = document.getElementById("emIncidentsBody");
     const count = document.getElementById("emOpenIncidents");
+    const mttrEl = document.getElementById("emMttrStat");
     if (count && lastOverview) {
       const open = (lastOverview.incidents && lastOverview.incidents.open) || 0;
       count.textContent = String(open);
       count.hidden = open <= 0;
     }
+    if (INTEL && mttrEl) {
+      const mttr = INTEL.computeMttr(items);
+      mttrEl.textContent = mttr != null ? "MTTR moyen : " + fmtDuration(mttr) : "MTTR : —";
+    }
     if (!tbody) return;
     if (!items.length) {
-      tbody.innerHTML = '<tr><td colspan="6" class="em-empty">Aucun incident enregistré.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="7" class="em-empty">Aucun incident enregistré.</td></tr>';
       return;
     }
     tbody.innerHTML = items
-      .map(
-        (inc) =>
+      .map((inc) => {
+        const st = incidentStatusUi(inc);
+        const meta = INTEL ? INTEL.getIncidentMeta()[inc.id] : {};
+        const assignee = meta.assignee || inc.assignee || "—";
+        return (
           "<tr>" +
           "<td>" +
           fmtDate(inc.createdAt) +
@@ -243,26 +313,36 @@ const SAC_EVOMONITOR = (function () {
           esc(inc.message) +
           "</small></td>" +
           "<td>" +
-          (inc.status === "open"
-            ? '<span class="em-pill em-pill--open">Ouvert</span>'
-            : inc.status === "acknowledged"
-              ? '<span class="em-pill em-pill--ack">Pris en charge</span>'
-              : '<span class="em-pill em-pill--resolved">Résolu</span>') +
-          "<br/><small>" +
-          (inc.resolvedBy ? "Par " + esc(inc.resolvedBy) : "") +
+          '<span class="em-pill ' +
+          st.pill +
+          '">' +
+          esc(st.label) +
+          "</span>" +
+          "</td>" +
+          "<td><small>" +
+          esc(assignee) +
           "</small></td>" +
           "<td>" +
           (inc.status === "open"
+            ? '<button type="button" class="btn btn--ghost btn--xs" data-investigate="' +
+              esc(inc.id) +
+              '">Investiguer</button> '
+            : "") +
+          (inc.status !== "resolved"
             ? '<button type="button" class="btn btn--ghost btn--xs" data-resolve="' +
               esc(inc.id) +
-              '">Marquer résolu</button>'
+              '">Corrigé</button>'
             : fmtDuration(inc.resolutionMs)) +
           "</td></tr>"
-      )
+        );
+      })
       .join("");
 
     tbody.querySelectorAll("[data-resolve]").forEach((btn) => {
-      btn.addEventListener("click", () => resolveIncident(btn.dataset.resolve));
+      btn.addEventListener("click", () => updateIncident(btn.dataset.resolve, "fixed"));
+    });
+    tbody.querySelectorAll("[data-investigate]").forEach((btn) => {
+      btn.addEventListener("click", () => updateIncident(btn.dataset.investigate, "investigating"));
     });
   }
 
@@ -287,11 +367,10 @@ const SAC_EVOMONITOR = (function () {
       "<h3>🛡️ Surveillance sécurité</h3>" +
       "<p>" +
       (openSec ? openSec + " alerte(s) sécurité ouverte(s). " : "") +
-      (failed ? failed + " échec(s) de connexion (24 h). " : "") +
-      'Consultez l’onglet <button type="button" class="btn btn--ghost btn--xs" id="emGoAlerts">Alertes</button>.</p>';
-    banner.querySelector("#emGoAlerts")?.addEventListener("click", function () {
-      showSection("alerts");
-    });
+      (failed ? failed + " échec(s) de connexion (24 h) — détection brute force active. " : "") +
+      'Consultez l’onglet <button type="button" class="btn btn--ghost btn--xs" id="emGoAlerts">Alertes</button> ou <button type="button" class="btn btn--ghost btn--xs" id="emGoLogs">Logs</button>.</p>';
+    banner.querySelector("#emGoAlerts")?.addEventListener("click", () => showSection("alerts"));
+    banner.querySelector("#emGoLogs")?.addEventListener("click", () => showSection("logs"));
   }
 
   function renderAlerts(data) {
@@ -301,6 +380,7 @@ const SAC_EVOMONITOR = (function () {
     if (!box) return;
     const alerts = data.alerts || {};
     const openSec = alerts.openSecurityIncidents || 0;
+    const cfg = INTEL ? INTEL.getAlertConfig() : {};
     if (secBadge) {
       secBadge.textContent = String(openSec);
       secBadge.hidden = openSec <= 0;
@@ -311,30 +391,29 @@ const SAC_EVOMONITOR = (function () {
       metricCard("📬", "Destinataires alertes", fmtNum(alerts.alertRecipients || 0)) +
       metricCard("🚨", "Incidents ouverts", fmtNum(alerts.openIncidents)) +
       metricCard("🛡️", "Alertes sécurité", fmtNum(openSec), "< " + (alerts.securityWindowSeconds || 30) + " s") +
+      metricCard("📱", "Canaux SATA actifs", countActiveChannels(cfg)) +
       metricCard("🗑️", "Résolus purgés", fmtNum(alerts.purgedResolved || 0), "auto") +
       "</div>" +
-      '<p class="em-hint">Les pannes résolues sont supprimées automatiquement. Toute tentative de connexion échouée, accès 403 ou attaque est alertée par e-mail en moins de 30 secondes.</p>';
+      '<p class="em-hint">Alertes multi-canaux : dashboard, e-mail, SMS, Telegram, WhatsApp, push. Configurez dans l’onglet SATA.</p>';
 
     if (!secList) return;
-    const recent = ((data.incidents && data.incidents.recent) || []).filter(function (inc) {
-      return inc.service === "security";
-    });
+    const recent = ((data.incidents && data.incidents.recent) || []).filter((inc) => inc.service === "security");
     if (!recent.length) {
-      secList.innerHTML = '<p class="em-empty">✅ Aucune alerte sécurité ouverte.</p>';
+      secList.innerHTML =
+        '<p class="em-empty">✅ Aucune alerte sécurité ouverte. Détection : brute force, IP suspectes, injections SQL (côté API).</p>';
       return;
     }
     secList.innerHTML =
-      "<h3 class=\"em-security-list__title\">Alertes sécurité récentes</h3>" +
+      '<h3 class="em-security-list__title">Alertes sécurité récentes</h3>' +
       recent
-        .map(function (inc) {
-          return (
+        .map(
+          (inc) =>
             '<article class="em-anomaly em-sev--critical">' +
             '<div class="em-anomaly__head"><span class="em-anomaly__badge">🛡️</span><strong>' +
             esc(inc.title) +
             '</strong><span class="em-anomaly__svc">' +
             fmtDate(inc.createdAt) +
-            "</span></div>" +
-            "<p>" +
+            "</span></div><p>" +
             esc(inc.message) +
             "</p>" +
             (inc.status === "open"
@@ -343,14 +422,22 @@ const SAC_EVOMONITOR = (function () {
                 '">Marquer résolu</button>'
               : "") +
             "</article>"
-          );
-        })
+        )
         .join("");
-    secList.querySelectorAll("[data-resolve-sec]").forEach(function (btn) {
-      btn.addEventListener("click", function () {
-        resolveIncident(btn.dataset.resolveSec);
-      });
+    secList.querySelectorAll("[data-resolve-sec]").forEach((btn) => {
+      btn.addEventListener("click", () => updateIncident(btn.dataset.resolveSec, "fixed"));
     });
+  }
+
+  function countActiveChannels(cfg) {
+    let n = 0;
+    if (cfg.dashboard) n++;
+    if (cfg.email) n++;
+    if (cfg.sms) n++;
+    if (cfg.telegram) n++;
+    if (cfg.whatsapp) n++;
+    if (cfg.push) n++;
+    return String(n);
   }
 
   async function pollSecurityPulse() {
@@ -359,6 +446,12 @@ const SAC_EVOMONITOR = (function () {
       const pulse = await SAC_API.getMonitorSecurityPulse();
       if (pulse && pulse.newAlerts > 0) {
         toast("🛡️ " + pulse.newAlerts + " alerte(s) sécurité détectée(s)");
+        if (INTEL) {
+          await INTEL.dispatchAlert(
+            { severity: "critical", message: pulse.newAlerts + " alerte(s) sécurité" },
+            toast
+          );
+        }
         await loadOverview();
       }
     } catch {
@@ -396,14 +489,70 @@ const SAC_EVOMONITOR = (function () {
     }
   }
 
-  async function resolveIncident(id) {
-    if (!id || !confirm("Marquer cet incident comme résolu ?")) return;
+  async function updateIncident(id, uiStatus) {
+    if (!id) return;
+    const label = INTEL?.INCIDENT_STATUS[uiStatus]?.label || uiStatus;
+    if (!confirm("Passer l'incident en « " + label + " » ?")) return;
     try {
-      await SAC_API.resolveMonitorIncident(id, "resolved");
-      toast("Incident résolu.");
+      const apiStatus = INTEL ? INTEL.apiStatusFromUi(uiStatus) : uiStatus === "fixed" ? "resolved" : uiStatus;
+      if (typeof SAC_API.updateMonitorIncident === "function") {
+        await SAC_API.updateMonitorIncident(id, { status: apiStatus });
+      } else {
+        await SAC_API.resolveMonitorIncident(id, apiStatus);
+      }
+      if (INTEL && session) {
+        INTEL.setIncidentMeta(id, {
+          assignee: session.identifiant || session.email,
+          updatedAt: new Date().toISOString(),
+        });
+      }
+      toast("Incident mis à jour : " + label);
       await loadOverview();
     } catch (err) {
       toast(err.message || "Action impossible.");
+    }
+  }
+
+  async function loadLogs() {
+    const host = document.getElementById("emLogsList");
+    if (!host || !INTEL) return;
+    host.innerHTML = '<p class="em-empty">Chargement des logs…</p>';
+    try {
+      const result = await INTEL.fetchLogs(250);
+      logsCache = result.logs || [];
+      const repeats = result.repeats || INTEL.detectRepeatedErrors(logsCache);
+      INTEL.renderLogsPanel(host, logsCache, logFilters, repeats);
+    } catch (err) {
+      host.innerHTML = '<p class="em-empty" style="color:#b91c1c;">' + esc(err.message) + "</p>";
+    }
+  }
+
+  function renderSata() {
+    if (!INTEL) return;
+    INTEL.renderSataPanel(document.getElementById("emSataPanel"), {
+      onToast: toast,
+      onRefresh: () => loadOverview(),
+    });
+  }
+
+  function renderDebug() {
+    if (!INTEL) return;
+    INTEL.renderDebugPanel(document.getElementById("emDebugPanel"));
+  }
+
+  function startLiveRefresh() {
+    stopLiveRefresh();
+    liveTimer = setInterval(() => {
+      if (lastOverview && INTEL) {
+        INTEL.renderLiveDashboard(document.getElementById("emLiveCharts"), lastOverview, INTEL.getHistory());
+      }
+    }, LIVE_REFRESH_MS);
+  }
+
+  function stopLiveRefresh() {
+    if (liveTimer) {
+      clearInterval(liveTimer);
+      liveTimer = null;
     }
   }
 
@@ -422,11 +571,22 @@ const SAC_EVOMONITOR = (function () {
       clearInterval(securityTimer);
       securityTimer = null;
     }
+    stopLiveRefresh();
+  }
+
+  function syncDebugToggle() {
+    const btn = document.getElementById("emDebugToggle");
+    if (!btn || !INTEL) return;
+    const on = INTEL.isDebugMode();
+    btn.classList.toggle("em-debug-on", on);
+    btn.textContent = on ? "🐛 Debug ON" : "🐛 Debug";
   }
 
   async function init() {
     session = await SAC_SESSION.guard("superadmin");
     if (!session) return;
+
+    if (INTEL) INTEL.wrapFetchForDebug();
 
     const name = [session.prenom, session.nom].filter(Boolean).join(" ") || session.identifiant || session.email;
     const nameEl = document.getElementById("emUserName");
@@ -438,6 +598,12 @@ const SAC_EVOMONITOR = (function () {
 
     document.getElementById("emRefreshBtn")?.addEventListener("click", () => loadOverview());
     document.getElementById("emScanBtn")?.addEventListener("click", () => loadOverview({ notify: true }));
+    document.getElementById("emDebugToggle")?.addEventListener("click", () => {
+      if (!INTEL) return;
+      INTEL.setDebugMode(!INTEL.isDebugMode());
+      syncDebugToggle();
+      toast(INTEL.isDebugMode() ? "Mode debug activé." : "Mode debug désactivé.");
+    });
     document.getElementById("btnLogout")?.addEventListener("click", () => {
       stopAutoRefresh();
       const logoutTarget =
@@ -449,6 +615,20 @@ const SAC_EVOMONITOR = (function () {
       tab.addEventListener("click", () => showSection(tab.dataset.section));
     });
 
+    document.getElementById("emLogSearch")?.addEventListener("input", (e) => {
+      logFilters.q = e.target.value;
+      if (INTEL) INTEL.renderLogsPanel(document.getElementById("emLogsList"), logsCache, logFilters, INTEL.detectRepeatedErrors(logsCache));
+    });
+    document.getElementById("emLogCategory")?.addEventListener("change", (e) => {
+      logFilters.category = e.target.value;
+      loadLogs();
+    });
+    document.getElementById("emLogLevel")?.addEventListener("change", (e) => {
+      logFilters.level = e.target.value;
+      loadLogs();
+    });
+    document.getElementById("emLogsRefresh")?.addEventListener("click", () => loadLogs());
+
     document.getElementById("emHeroDate").textContent = new Date().toLocaleDateString("fr-FR", {
       weekday: "long",
       day: "numeric",
@@ -456,6 +636,7 @@ const SAC_EVOMONITOR = (function () {
       year: "numeric",
     });
 
+    syncDebugToggle();
     await loadOverview();
     pollSecurityPulse();
     startAutoRefresh();

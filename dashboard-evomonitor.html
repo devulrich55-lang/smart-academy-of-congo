@@ -14,7 +14,7 @@
   <link rel="stylesheet" href="css/dashboard.css" />
   <link rel="stylesheet" href="css/theme.css" />
   <link rel="stylesheet" href="css/admin-workspace.css" />
-  <link rel="stylesheet" href="css/evosu-monitor.css?v=20260702f" />
+  <link rel="stylesheet" href="css/evosu-monitor.css?v=20260706" />
   <link rel="stylesheet" href="css/mobile.css" />
   <meta name="theme-color" content="#0e7490" />
 </head>
@@ -26,8 +26,10 @@
         <span class="logo__text">EvoMonitor <small>Centre de supervision</small></span>
       </a>
       <div class="em-header__actions">
-        <span class="badge-role em-badge">📡 Supervision</span>
+        <span class="badge-role em-badge">📡 SATA · Supervision</span>
+        <span id="emEpmBadge" class="em-epm-badge" hidden>0 EPM</span>
         <span id="emUserName" class="em-user"></span>
+        <button type="button" class="btn btn--ghost btn--xs em-debug-toggle" id="emDebugToggle">🐛 Debug</button>
         <button type="button" class="btn btn--ghost btn--xs" id="emRefreshBtn">Actualiser</button>
         <button type="button" class="theme-toggle" data-theme-toggle aria-label="Thème"></button>
         <button type="button" class="btn btn--ghost" id="btnLogout">Déconnexion</button>
@@ -35,13 +37,17 @@
     </div>
     <nav class="nav-tabs" aria-label="Navigation EvoMonitor">
       <button type="button" class="nav-tab active" data-section="accueil">Tableau de santé</button>
+      <button type="button" class="nav-tab" data-section="live">📊 Live</button>
+      <button type="button" class="nav-tab" data-section="logs">🧾 Logs</button>
       <button type="button" class="nav-tab" data-section="performance">Performance</button>
       <button type="button" class="nav-tab" data-section="database">Base de données</button>
       <button type="button" class="nav-tab" data-section="network">Réseau</button>
       <button type="button" class="nav-tab" data-section="users">Utilisateurs</button>
       <button type="button" class="nav-tab" data-section="anomalies">Anomalies</button>
       <button type="button" class="nav-tab" data-section="alerts">Alertes <span class="em-nav-badge em-nav-badge--sec" id="emOpenSecurity">0</span></button>
-      <button type="button" class="nav-tab" data-section="incidents">Incidents actifs <span class="em-nav-badge" id="emOpenIncidents">0</span></button>
+      <button type="button" class="nav-tab" data-section="incidents">Incidents <span class="em-nav-badge" id="emOpenIncidents">0</span></button>
+      <button type="button" class="nav-tab" data-section="sata">🧠 SATA</button>
+      <button type="button" class="nav-tab" data-section="debug">👨‍💻 Debug</button>
     </nav>
   </header>
 
@@ -61,12 +67,44 @@
         <div class="em-panel em-panel--score">
           <h2>Score de santé global</h2>
           <div id="emHealthScore" class="em-score-wrap">—</div>
-          <p class="em-hint">Indicateur composite : performance, base de données, réseau et sécurité.</p>
+          <div id="emModuleScores"></div>
+          <p class="em-hint">Indicateur composite par module : API, DB, Auth, Storage, Sécurité.</p>
         </div>
       </div>
       <div class="em-quick-grid" id="emQuickPreview">
         <div class="em-panel"><h3>Performance</h3><div class="em-metrics" id="emPerfGrid"></div></div>
         <div class="em-panel"><h3>Utilisateurs</h3><div class="em-metrics" id="emUsersGrid"></div></div>
+      </div>
+    </section>
+
+    <section class="page-section" id="section-live">
+      <h1 class="page-title">Dashboard temps réel</h1>
+      <p class="page-desc">Graphiques live — CPU, trafic API, latence, EPM, utilisateurs connectés. Rafraîchissement toutes les 5 s.</p>
+      <div id="emLiveCharts"><p class="em-empty">Chargement…</p></div>
+    </section>
+
+    <section class="page-section" id="section-logs">
+      <h1 class="page-title">Logs centralisés</h1>
+      <p class="page-desc">Serveur, API, utilisateurs et sécurité — recherche, filtrage et détection d'erreurs répétées.</p>
+      <div class="em-panel">
+        <div class="em-log-toolbar">
+          <input type="search" class="fi" id="emLogSearch" placeholder="Rechercher dans les logs…" />
+          <select class="fi" id="emLogCategory">
+            <option value="all">Toutes catégories</option>
+            <option value="server">Serveur</option>
+            <option value="api">API</option>
+            <option value="user">Utilisateur</option>
+            <option value="security">Sécurité</option>
+          </select>
+          <select class="fi" id="emLogLevel">
+            <option value="all">Tous niveaux</option>
+            <option value="error">Erreur</option>
+            <option value="warn">Avertissement</option>
+            <option value="info">Info</option>
+          </select>
+          <button type="button" class="btn btn--ghost btn--xs" id="emLogsRefresh">Actualiser</button>
+        </div>
+        <div id="emLogsList"><p class="em-empty">Chargement…</p></div>
       </div>
     </section>
 
@@ -113,8 +151,9 @@
     </section>
 
     <section class="page-section" id="section-incidents">
-      <h1 class="page-title">Incidents actifs</h1>
-      <p class="page-desc">Incidents ouverts ou pris en charge. Les pannes résolues sont supprimées automatiquement.</p>
+      <h1 class="page-title">Gestion d'incidents</h1>
+      <p class="page-desc">Workflow : Ouvert → En investigation → Corrigé. MTTR et historique.</p>
+      <p class="em-meta" id="emMttrStat">MTTR : —</p>
       <div class="em-panel em-panel--table">
         <table class="em-table">
           <thead>
@@ -124,20 +163,34 @@
               <th>Service</th>
               <th>Incident</th>
               <th>Statut</th>
-              <th>Résolution</th>
+              <th>Assigné</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody id="emIncidentsBody">
-            <tr><td colspan="6" class="em-empty">Chargement…</td></tr>
+            <tr><td colspan="7" class="em-empty">Chargement…</td></tr>
           </tbody>
         </table>
       </div>
     </section>
+
+    <section class="page-section" id="section-sata">
+      <h1 class="page-title">SATA — Système nerveux intelligent</h1>
+      <p class="page-desc">Alertes multi-canaux, auto-réparation et simulation de panne (sans impact production).</p>
+      <div id="emSataPanel"></div>
+    </section>
+
+    <section class="page-section" id="section-debug">
+      <h1 class="page-title">Mode développeur</h1>
+      <p class="page-desc">Stack traces, réponses API et rejeu de requêtes. Activez le bouton Debug dans l'en-tête.</p>
+      <div class="em-panel" id="emDebugPanel"></div>
+    </section>
   </main>
 
-  <script src="js/sac-session.js?v=20260702f"></script>
-  <script src="js/sac-api.js?v=20260702f"></script>
-  <script src="js/sac-evomonitor.js?v=20260702f"></script>
+  <script src="js/sac-session.js?v=20260706"></script>
+  <script src="js/sac-api.js?v=20260706"></script>
+  <script src="js/sac-evomonitor-intelligence.js?v=20260706"></script>
+  <script src="js/sac-evomonitor.js?v=20260706"></script>
   <script>
     document.addEventListener("DOMContentLoaded", function () {
       SAC_EVOMONITOR.init();

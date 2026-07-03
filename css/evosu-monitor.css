@@ -495,3 +495,238 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ── SATA intelligence (v20260706) ── */
+
+.em-epm-badge {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  background: rgba(239, 68, 68, 0.12);
+  color: #b91c1c;
+  border: 1px solid rgba(239, 68, 68, 0.25);
+}
+
+.em-debug-toggle.em-debug-on {
+  background: rgba(124, 58, 237, 0.15);
+  color: #5b21b6;
+  border-color: rgba(124, 58, 237, 0.35);
+}
+
+.em-module-scores {
+  display: grid;
+  gap: 0.45rem;
+  margin-top: 0.75rem;
+}
+
+.em-module-score {
+  display: grid;
+  grid-template-columns: 1.5rem 1fr auto;
+  gap: 0.4rem 0.55rem;
+  align-items: center;
+  font-size: 0.78rem;
+}
+
+.em-module-score__icon {
+  font-size: 1rem;
+}
+
+.em-module-score__bar {
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(14, 116, 144, 0.12);
+  overflow: hidden;
+}
+
+.em-module-score__bar div {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+
+.em-module-score strong {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.8rem;
+}
+
+.em-module-score span {
+  grid-column: 2 / -1;
+  color: var(--muted, #64748b);
+  font-size: 0.72rem;
+}
+
+.em-tag-pred {
+  font-style: normal;
+  font-size: 0.68rem;
+  color: #7c3aed;
+  font-weight: 600;
+}
+
+.em-live-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.em-live-chart canvas {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.em-live-val {
+  margin: 0.5rem 0 0;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--em-accent-dark);
+}
+
+.em-live-val--warn {
+  color: #b91c1c;
+}
+
+.em-log-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.em-log-toolbar .fi {
+  flex: 1;
+  min-width: 140px;
+}
+
+.em-log-list {
+  max-height: 520px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.em-log-row {
+  padding: 0.55rem 0.75rem;
+  border-radius: 10px;
+  border: 1px solid var(--em-line);
+  background: #fff;
+  font-size: 0.82rem;
+}
+
+.em-log-row--error {
+  border-left: 3px solid var(--em-critical);
+}
+
+.em-log-row--warn {
+  border-left: 3px solid var(--em-warn);
+}
+
+.em-log-row time {
+  display: block;
+  font-size: 0.7rem;
+  color: var(--muted, #94a3b8);
+}
+
+.em-log-cat,
+.em-log-action {
+  display: inline-block;
+  margin-right: 0.35rem;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--em-accent-dark);
+  font-weight: 600;
+}
+
+.em-log-row p {
+  margin: 0.25rem 0 0;
+  color: #334155;
+}
+
+.em-log-repeats {
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  border-radius: 10px;
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+}
+
+.em-log-repeats h3 {
+  margin: 0 0 0.5rem;
+  font-size: 0.9rem;
+}
+
+.em-log-repeats ul {
+  margin: 0;
+  padding-left: 1.1rem;
+  font-size: 0.82rem;
+}
+
+.em-sata-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.em-channel-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.em-channel-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.82rem;
+}
+
+.em-heal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.em-debug-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 560px;
+  overflow-y: auto;
+}
+
+.em-debug-row {
+  border: 1px solid var(--em-line);
+  border-radius: 10px;
+  padding: 0.5rem 0.75rem;
+  background: #fff;
+}
+
+.em-debug-row summary {
+  cursor: pointer;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.78rem;
+}
+
+.em-debug-row pre {
+  margin: 0.5rem 0;
+  padding: 0.5rem;
+  border-radius: 8px;
+  background: #0f172a;
+  color: #e2e8f0;
+  font-size: 0.72rem;
+  overflow-x: auto;
+  max-height: 200px;
+}
+
+.nav-tabs {
+  overflow-x: auto;
+  flex-wrap: nowrap;
+  -webkit-overflow-scrolling: touch;
+}
+

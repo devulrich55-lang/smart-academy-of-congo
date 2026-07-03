@@ -131,7 +131,7 @@ const SAC_ADMIN_DASHBOARD = (function () {
     }
     if (id === "bibliotheque" && typeof SAC_LIBRARY !== "undefined") {
       const session = SAC_SESSION.getSession();
-      if (session?.role === "ministere") {
+      if (session?.role === "ministere" || session?.role === "superadmin") {
         SAC_LIBRARY.initMinistryPublisher(session, "libraryPublisherRoot", { showList: true });
       }
     }
@@ -143,7 +143,7 @@ const SAC_ADMIN_DASHBOARD = (function () {
     }
     if (id === "accueil" && typeof SAC_LIBRARY !== "undefined") {
       const session = SAC_SESSION.getSession();
-      if (session?.role === "ministere") {
+      if (session?.role === "ministere" || session?.role === "superadmin") {
         SAC_LIBRARY.initMinistryPublisher(session, "libraryPublisherAccueil", { showList: false });
       }
     }
@@ -737,13 +737,24 @@ const SAC_ADMIN_DASHBOARD = (function () {
       }
     }
 
+    if (isMinistere || isSuper) {
+      document.getElementById("tabBibliotheque")?.removeAttribute("hidden");
+      document.getElementById("btnQuickBibliotheque")?.removeAttribute("hidden");
+      document.getElementById("section-bibliotheque")?.classList.remove("ws-only-ministere-hidden");
+      document.getElementById("ministryLibraryAccueil")?.classList.remove("ws-only-ministere-hidden");
+    }
+
     if (isMinistere) {
       document.getElementById("tabLive")?.removeAttribute("hidden");
       document.getElementById("tabPublier")?.removeAttribute("hidden");
-      document.getElementById("tabBibliotheque")?.removeAttribute("hidden");
+      document.getElementById("btnQuickPublier")?.removeAttribute("hidden");
+      document.getElementById("btnQuickLive")?.removeAttribute("hidden");
       document.querySelectorAll(".ws-only-ministere-hidden").forEach((el) => {
         el.classList.remove("ws-only-ministere-hidden");
       });
+    }
+
+    if (isMinistere || isSuper) {
       if (typeof SAC_LIBRARY !== "undefined") {
         SAC_LIBRARY.initMinistryPublisher(session, "libraryPublisherAccueil", { showList: false });
       }

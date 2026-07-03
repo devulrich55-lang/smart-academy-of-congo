@@ -113,12 +113,84 @@ const SAC_LIBRARY = (function () {
 
   function absUrl(url) {
     if (!url) return "";
-    if (/^https?:\/\//i.test(url)) return url;
+    const s = String(url).trim();
+    if (/^(https?:|data:|blob:)/i.test(s)) return s;
+    if (s.startsWith("//")) return "https:" + s;
     if (typeof SAC_API !== "undefined" && SAC_API.getBase) {
       const base = SAC_API.getBase();
-      if (base) return base + url;
+      if (base) return base.replace(/\/$/, "") + (s.startsWith("/") ? s : "/" + s);
     }
-    return url;
+    return s;
+  }
+
+  function previewUrl(url) {
+    const s = String(url || "").trim();
+    if (/^(data:|blob:)/i.test(s)) return s;
+    return absUrl(s);
+  }
+
+  /** Réponse upload API — champs variables selon version backend (fileUrl, mediaUrl, url…). */
+  function extractUploadUrl(data) {
+    if (!data || typeof data !== "object") return "";
+    const direct =
+      data.fileUrl ||
+      data.file_url ||
+      data.url ||
+      data.mediaUrl ||
+      data.media_url ||
+      data.coverUrl ||
+      data.cover_url ||
+      "";
+    if (direct) return String(direct).trim();
+    const nested = data.item || data.file || data.document;
+    if (nested) return extractUploadUrl(nested);
+    const list = data.files || data.items || data.attachments;
+    if (Array.isArray(list) && list.length) return extractUploadUrl(list[0]);
+    return "";
+  }
+
+  function buildBookPayload(raw) {
+    const fileUrl = String(raw.fileUrl || "").trim();
+    const coverUrl = String(raw.coverUrl || "").trim();
+    const isFree = !!raw.isFree;
+    const countryCode = String(raw.countryCode || "CD").toUpperCase();
+    return {
+      ...raw,
+      fileUrl,
+      coverUrl,
+      countryCode,
+      file_url: fileUrl,
+      cover_url: coverUrl,
+      country_code: countryCode,
+      is_free: isFree,
+      free: isFree,
+      scope: "national",
+      authorRole: "ministere",
+      accessType: isFree ? "free" : "paid",
+      access: isFree ? "free" : "paid",
+    };
+  }
+
+  async function ensureLibraryAuth() {
+    if (typeof SAC_API === "undefined") return;
+    if (SAC_API.ensureAuthTokens) {
+      const ok = await SAC_API.ensureAuthTokens();
+      if (!ok && SAC_API.hasAuthTokens && !SAC_API.hasAuthTokens()) {
+        throw new Error("Session expirée — reconnectez-vous via le portail Ministère.");
+      }
+    }
+  }
+
+  function isUploadAccessError(err) {
+    const status = err?.status;
+    const msg = String(err?.message || "").toLowerCase();
+    return (
+      status === 401 ||
+      status === 403 ||
+      status === 404 ||
+      status === 405 ||
+      /accès refusé|non autorisé|forbidden|auth_required|connexion requise/i.test(msg)
+    );
   }
 
   const PURCHASES_KEY = "sac_library_purchases";
@@ -446,7 +518,12 @@ const SAC_LIBRARY = (function () {
   function sessionCountryCode(session) {
     if (!session) return "";
     if (session.countryCode) return String(session.countryCode).toUpperCase();
-    if (session.role === "ministere") return String(session.countryCode || "CD").toUpperCase();
+    if (session.role === "ministere" || session.role === "superadmin") {
+      if (typeof SAC_AFRICA_COUNTRIES !== "undefined") {
+        return String(SAC_AFRICA_COUNTRIES.getStoredCountry() || "CD").toUpperCase();
+      }
+      return "CD";
+    }
     if (session.role === "universite" && session.universite && typeof SAC_UNIVERSITIES !== "undefined") {
       return SAC_UNIVERSITIES.getCountryCode(session.universite);
     }
@@ -464,10 +541,8 @@ const SAC_LIBRARY = (function () {
           const data = await SAC_API.listDigitalLibrary(cc);
           let items = data?.items || [];
           items = filterByCountry(items, cc);
-          if (items.length) {
-            cacheItems(items);
-            return items;
-          }
+          cacheItems(items);
+          return items;
         }
       } catch {
         /* fallback */
@@ -497,15 +572,31 @@ const SAC_LIBRARY = (function () {
 
   async function createBook(payload) {
     if (typeof SAC_API !== "undefined" && SAC_API.createDigitalLibraryBook) {
-      const data = await SAC_API.createDigitalLibraryBook(payload);
-      return data?.item || data;
+      const online = await SAC_API.ensureOnline();
+      if (!online) throw new Error("Publication en ligne requise — API injoignable.");
+      await ensureLibraryAuth();
+      try {
+        const data = await SAC_API.createDigitalLibraryBook(buildBookPayload(payload));
+        return data?.item || data;
+      } catch (err) {
+        if (err?.status === 403 || /accès refusé|non autorisé/i.test(String(err?.message || ""))) {
+          throw new Error(
+            "Accès refusé — reconnectez-vous via le portail Ministère. " +
+              "Vérifiez aussi que l'API bibliothèque est à jour sur Render."
+          );
+        }
+        throw err;
+      }
     }
     throw new Error("Publication en ligne requise.");
   }
 
   async function updateBook(id, payload) {
     if (typeof SAC_API !== "undefined" && SAC_API.updateDigitalLibraryBook) {
-      const data = await SAC_API.updateDigitalLibraryBook(id, payload);
+      const online = await SAC_API.ensureOnline();
+      if (!online) throw new Error("Mise à jour en ligne requise — API injoignable.");
+      await ensureLibraryAuth();
+      const data = await SAC_API.updateDigitalLibraryBook(id, buildBookPayload(payload));
       return data?.item || data;
     }
     throw new Error("Mise à jour en ligne requise.");
@@ -519,30 +610,71 @@ const SAC_LIBRARY = (function () {
   }
 
   async function uploadFile(file) {
-    if (typeof SAC_API !== "undefined" && SAC_API.uploadDigitalLibraryFile) {
+    if (typeof SAC_API === "undefined") throw new Error("Téléversement indisponible.");
+    const online = await SAC_API.ensureOnline();
+    if (!online) throw new Error("Téléversement impossible — API injoignable.");
+    await ensureLibraryAuth();
+
+    const tryUpload = async (fn) => {
+      const raw = await fn();
+      const fileUrl = extractUploadUrl(raw);
+      if (!fileUrl) {
+        throw new Error("Téléversement terminé mais l'URL du fichier est absente.");
+      }
+      return { ...raw, fileUrl };
+    };
+
+    let lastErr = null;
+    try {
       const fd = new FormData();
       fd.append("files", file);
-      return SAC_API.uploadDigitalLibraryFile(fd);
+      return await tryUpload(() => SAC_API.uploadDigitalLibraryFile(fd));
+    } catch (err) {
+      lastErr = err;
     }
-    throw new Error("Téléversement indisponible.");
+
+    if (lastErr && isUploadAccessError(lastErr) && SAC_API.uploadHomeNewsMedia) {
+      try {
+        return await tryUpload(() => SAC_API.uploadHomeNewsMedia([file]));
+      } catch (fallbackErr) {
+        lastErr = fallbackErr;
+      }
+    }
+
+    if (lastErr?.status === 403 || /accès refusé|non autorisé/i.test(String(lastErr?.message || ""))) {
+      throw new Error(
+        "Accès refusé — déconnectez-vous puis reconnectez-vous via le portail Ministère (avec votre pays). " +
+          "Si le problème persiste, l'API bibliothèque doit être redéployée sur Render."
+      );
+    }
+    throw lastErr || new Error("Téléversement impossible.");
+  }
+
+  function canManageLibrary(session) {
+    return !!session && (session.role === "ministere" || session.role === "superadmin");
   }
 
   function initMinistryPublisher(session, rootId, options) {
     const root = document.getElementById(rootId || "libraryPublisherRoot");
     if (!root) return;
-    if (!session || session.role !== "ministere") {
+    if (!canManageLibrary(session)) {
       root.innerHTML =
-        '<p class="page-desc" style="margin:0;color:#b91c1c;">Réservé au compte Ministère.</p>';
+        '<p class="page-desc" style="margin:0;color:#b91c1c;">Réservé au compte Ministère ou Super Admin.</p>';
       return;
     }
 
     const onChange = typeof options?.onChange === "function" ? options.onChange : null;
     const showList = options?.showList !== false;
-    const countryCode = sessionCountryCode(session) || "CD";
+    const countryCode =
+      sessionCountryCode(session) ||
+      (typeof SAC_AFRICA_COUNTRIES !== "undefined" ? SAC_AFRICA_COUNTRIES.getStoredCountry() : "CD") ||
+      "CD";
     const countryLabel =
       typeof SAC_AFRICA_COUNTRIES !== "undefined"
         ? SAC_AFRICA_COUNTRIES.label(countryCode)
         : countryCode;
+    const showCountryPick =
+      session.role === "superadmin" || !sessionCountryCode(session);
     let editingId = null;
 
     const listPanel = showList
@@ -559,6 +691,13 @@ const SAC_LIBRARY = (function () {
       "</strong>. Les ouvrages publiés ici sont visibles pour les utilisateurs de ce pays.</p>" +
       '<form class="lib-publish-form ws-form-grid">' +
       '<p class="lib-form-intro" style="grid-column:1/-1;margin:0 0 0.35rem;color:var(--muted);font-size:0.88rem;">Renseignez les informations du livre, ajoutez une couverture et téléversez le fichier (PDF, EPUB, DOC).</p>' +
+      (showCountryPick
+        ? '<div class="fg" style="grid-column:1/-1;"><label>Pays de publication *</label><select class="fi lib-country" required>' +
+          (typeof SAC_AFRICA_COUNTRIES !== "undefined"
+            ? SAC_AFRICA_COUNTRIES.buildSelectOptions(countryCode, { includeAll: false, includePanAfrica: true })
+            : '<option value="CD">RDC</option>') +
+          "</select></div>"
+        : "") +
       '<div class="fg" style="grid-column:1/-1;"><label>Titre du livre *</label><input class="fi lib-title" required minlength="3" placeholder="Ex: Mathématiques — Terminale" /></div>' +
       '<div class="fg"><label>Auteur</label><input class="fi lib-author" placeholder="Nom de l\'auteur" /></div>' +
       '<div class="fg"><label>Catégorie *</label><select class="fi lib-category" required>' +
@@ -615,7 +754,7 @@ const SAC_LIBRARY = (function () {
 
     function showCoverPreview(url) {
       if (!url || !coverPreview || !coverPreviewImg) return;
-      coverPreviewImg.src = absUrl(url);
+      coverPreviewImg.src = previewUrl(url);
       coverPreview.style.display = "block";
     }
 
@@ -755,6 +894,12 @@ const SAC_LIBRARY = (function () {
 
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
+      if (btnSubmit.disabled) return;
+      btnSubmit.disabled = true;
+      const prevLabel = btnSubmit.textContent;
+      btnSubmit.textContent = editingId ? "Enregistrement…" : "Publication…";
+      const selectedCountry =
+        q(".lib-country")?.value?.trim().toUpperCase() || countryCode;
       const payload = {
         title: q(".lib-title").value.trim(),
         author: q(".lib-author").value.trim(),
@@ -764,40 +909,30 @@ const SAC_LIBRARY = (function () {
         fileUrl: q(".lib-url").value.trim(),
         coverUrl: q(".lib-cover-url").value.trim(),
         published: q(".lib-published").checked,
-        countryCode: countryCode,
+        countryCode: selectedCountry,
         isFree: !!freeCheckbox?.checked,
         price: freeCheckbox?.checked ? 0 : Number(q(".lib-price")?.value) || DEFAULT_BOOK_PRICE,
         currency: q(".lib-currency")?.value || DEFAULT_BOOK_CURRENCY,
       };
 
-      const coverFile = q(".lib-cover-file")?.files?.[0];
-      if (coverFile) {
-        try {
-          const upCover = await uploadFile(coverFile);
-          if (upCover?.fileUrl) payload.coverUrl = upCover.fileUrl;
-        } catch (err) {
-          alert(err.message || "Échec du téléversement de la couverture.");
-          return;
-        }
-      }
-
-      const file = q(".lib-file")?.files?.[0];
-      if (file) {
-        try {
-          const up = await uploadFile(file);
-          if (up?.fileUrl) payload.fileUrl = up.fileUrl;
-        } catch (err) {
-          alert(err.message || "Échec du téléversement.");
-          return;
-        }
-      }
-
-      if (!payload.fileUrl) {
-        alert("Ajoutez un fichier du livre (PDF, EPUB, DOC) ou une URL.");
-        return;
-      }
-
       try {
+        const coverFile = q(".lib-cover-file")?.files?.[0];
+        if (coverFile) {
+          const upCover = await uploadFile(coverFile);
+          payload.coverUrl = upCover.fileUrl;
+        }
+
+        const file = q(".lib-file")?.files?.[0];
+        if (file) {
+          const up = await uploadFile(file);
+          payload.fileUrl = up.fileUrl;
+        }
+
+        if (!payload.fileUrl) {
+          alert("Ajoutez un fichier du livre (PDF, EPUB, DOC) ou une URL.");
+          return;
+        }
+
         const wasEdit = !!editingId;
         if (editingId) await updateBook(editingId, payload);
         else await createBook(payload);
@@ -807,6 +942,9 @@ const SAC_LIBRARY = (function () {
         alert(wasEdit ? "Livre mis à jour." : "Livre publié dans la bibliothèque de " + countryLabel + ".");
       } catch (err) {
         alert(err.message || "Publication impossible.");
+      } finally {
+        btnSubmit.disabled = false;
+        btnSubmit.textContent = prevLabel;
       }
     });
 

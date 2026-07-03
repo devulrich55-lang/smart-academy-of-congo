@@ -1788,6 +1788,45 @@ const SAC_API = (function () {
     return data?.incident || data;
   }
 
+  async function updateMonitorIncident(incidentId, patch) {
+    const data = await request("/admin/monitor/incidents/" + encodeURIComponent(incidentId), {
+      method: "PATCH",
+      body: JSON.stringify(patch || {}),
+    });
+    return data?.incident || data;
+  }
+
+  async function listMonitorLogs(options) {
+    const opts = options || {};
+    const params = new URLSearchParams();
+    if (opts.limit) params.set("limit", String(opts.limit));
+    if (opts.q) params.set("q", String(opts.q));
+    if (opts.category) params.set("category", String(opts.category));
+    const q = params.toString() ? "?" + params.toString() : "";
+    return request("/admin/monitor/logs" + q);
+  }
+
+  async function triggerMonitorHeal(action) {
+    return request("/admin/monitor/heal", {
+      method: "POST",
+      body: JSON.stringify({ action: action || "ping_api" }),
+    });
+  }
+
+  async function sendMonitorAlert(payload) {
+    return request("/admin/monitor/alerts/dispatch", {
+      method: "POST",
+      body: JSON.stringify(payload || {}),
+    });
+  }
+
+  async function runMonitorSimulation(scenario) {
+    return request("/admin/monitor/simulate", {
+      method: "POST",
+      body: JSON.stringify({ scenario: scenario || "traffic" }),
+    });
+  }
+
   async function listSocialNotifications() {
     const data = await request("/platform/social/notifications");
     return data?.notifications || [];
@@ -2184,6 +2223,11 @@ const SAC_API = (function () {
     getMonitorSecurityPulse,
     listMonitorIncidents,
     resolveMonitorIncident,
+    updateMonitorIncident,
+    listMonitorLogs,
+    triggerMonitorHeal,
+    sendMonitorAlert,
+    runMonitorSimulation,
     listSocialNotifications,
     markSocialNotificationRead,
     getSocialSettings,
