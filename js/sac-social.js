@@ -304,7 +304,6 @@ const SAC_SOCIAL = (function () {
 
     root.innerHTML =
       '<div class="social-hub social-hub--campus">' +
-      '<button type="button" class="campus-hub__back" id="campusHubBack" aria-label="Retour au tableau de bord"><span aria-hidden="true">←</span> Retour</button>' +
       '<header class="social-hub__nav social-hub__nav--legacy">' +
       '<div class="social-hub__nav-brand"><span class="social-hub__nav-logo">💬</span><div><strong>Réseau campus</strong><small>Fil · Messages · Alertes</small></div></div>' +
       '<nav class="social-hub__nav-tabs" aria-label="Sections">' +
@@ -644,14 +643,10 @@ const SAC_SOCIAL = (function () {
       }
     });
 
-    root.querySelector("#campusHubBack")?.addEventListener("click", () => {
-      if (state.view === "messages" && state.msgPeer) {
-        state.msgPeer = null;
-        paintMessenger();
-        return;
-      }
-      clearMessengerMode();
-      document.dispatchEvent(new CustomEvent("sac-campus-back", { bubbles: true }));
+    document.addEventListener("sac-campus-messenger-back", () => {
+      if (!root.isConnected) return;
+      state.msgPeer = null;
+      paintMessenger();
     });
 
     function closeStudyModal() {
@@ -725,8 +720,6 @@ const SAC_SOCIAL = (function () {
       document.body.classList.toggle("sac-messenger-chat-open", inChat && sectionActive);
       const toolbar = root.querySelector(".social-hub__toolbar");
       if (toolbar) toolbar.hidden = inMessages;
-      const backBtn = root.querySelector("#campusHubBack");
-      if (backBtn) backBtn.hidden = !!(inChat && sectionActive);
     }
 
     function syncMessengerLayout() {

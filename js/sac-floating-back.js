@@ -75,18 +75,30 @@ const EVOSU_FLOATING_BACK = (function () {
     return !file || file === "index.html";
   }
 
+  function getSessionApi() {
+    if (typeof SAC_SESSION !== "undefined") return SAC_SESSION;
+    if (typeof EVOSU_SESSION !== "undefined") return EVOSU_SESSION;
+    return null;
+  }
+
+  function getPortalApi() {
+    if (typeof SAC_PORTAL !== "undefined") return SAC_PORTAL;
+    if (typeof EVOSU_PORTAL !== "undefined") return EVOSU_PORTAL;
+    return null;
+  }
+
   function resolveFallbackUrl(base) {
     const root = base || "";
     try {
-      if (typeof EVOSU_SESSION !== "undefined") {
-        const session = EVOSU_SESSION.getSession();
-        if (session?.role) {
-          if (typeof EVOSU_PORTAL !== "undefined") {
-            return root + EVOSU_PORTAL.dashboardUrl(session.role);
-          }
-          if (typeof EVOSU_SESSION.dashboardUrl === "function") {
-            return root + EVOSU_SESSION.dashboardUrl(session.role);
-          }
+      const sessionApi = getSessionApi();
+      const session = sessionApi?.getSession?.();
+      if (session?.role) {
+        const portal = getPortalApi();
+        if (portal?.dashboardUrl) {
+          return root + portal.dashboardUrl(session.role);
+        }
+        if (typeof sessionApi.dashboardUrl === "function") {
+          return root + sessionApi.dashboardUrl(session.role);
         }
       }
     } catch {
@@ -96,6 +108,14 @@ const EVOSU_FLOATING_BACK = (function () {
   }
 
   function goBack(base) {
+    if (document.body?.classList?.contains("sac-messenger-chat-open")) {
+      document.dispatchEvent(new CustomEvent("sac-campus-messenger-back", { bubbles: true }));
+      return;
+    }
+    if (document.body?.classList?.contains("sac-campus-social-mode")) {
+      document.dispatchEvent(new CustomEvent("sac-campus-back", { bubbles: true }));
+      return;
+    }
     const referrer = document.referrer || "";
     const sameOrigin = referrer && referrer.indexOf(window.location.origin) === 0;
     if (sameOrigin && window.history.length > 1) {
@@ -216,3 +236,5 @@ const EVOSU_FLOATING_BACK = (function () {
     POS_KEY,
   };
 })();
+
+const SAC_FLOATING_BACK = EVOSU_FLOATING_BACK;

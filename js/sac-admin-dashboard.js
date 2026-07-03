@@ -1397,6 +1397,9 @@ const SAC_ADMIN_DASHBOARD = (function () {
           telephone: SAC_IDENTITY.readPhone("newTel"),
           password: document.getElementById("newPassword").value,
         };
+      } else {
+        alert("Type de compte non pris en charge.");
+        return;
       }
       if (!validateInstitutionalCreate(role, payload)) return;
       if (role === "universite") {
@@ -1439,7 +1442,19 @@ const SAC_ADMIN_DASHBOARD = (function () {
           return;
         }
       }
+      const submitBtn = document.getElementById("btnCreateAdminSubmit");
+      const submitBusy = submitBtn?.textContent || "Créer";
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = "Enregistrement…";
+      }
       try {
+        if (typeof SAC_API !== "undefined" && SAC_API.ensureOnline) {
+          const online = await SAC_API.ensureOnline(true, { maxWaitMs: 60000 });
+          if (!online && !(typeof SAC_API.hasAuthTokens === "function" && SAC_API.hasAuthTokens())) {
+            throw new Error("Serveur injoignable — attendez le réveil de l'API puis réessayez.");
+          }
+        }
         const created = await SAC_INSTITUTIONAL.create(session, payload);
         if (!created?.email) {
           throw new Error("Réponse serveur invalide — le compte n'a pas été enregistré.");
@@ -1493,6 +1508,11 @@ const SAC_ADMIN_DASHBOARD = (function () {
         await reloadActivities();
       } catch (err) {
         alert(institutionalCreateErrorMessage(err));
+      } finally {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = submitBusy;
+        }
       }
     });
 

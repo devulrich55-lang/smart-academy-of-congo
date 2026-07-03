@@ -1430,10 +1430,6 @@ body.sac-campus-social-mode .messenger-bottom-nav {
   display: none !important;
 }
 
-body.sac-campus-social-mode .evosu-floating-back {
-  display: none !important;
-}
-
 body.sac-campus-social-mode.sac-has-quick-nav .layout {
   padding-bottom: calc(4.75rem + env(safe-area-inset-bottom)) !important;
 }
@@ -1898,45 +1894,6 @@ body.sac-campus-social-mode .social-hub__feed-tab--active {
     margin: 0 auto;
     border-radius: 16px 16px 0 0;
   }
-}
-
-/* Bouton retour réseau campus */
-.campus-hub__back {
-  position: fixed;
-  top: max(0.55rem, env(safe-area-inset-top));
-  left: max(0.55rem, env(safe-area-inset-left));
-  z-index: 10060;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  padding: 0.42rem 0.85rem;
-  border: 1px solid rgba(201, 162, 39, 0.35);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.96);
-  color: var(--campus-text, #2c2118);
-  font: inherit;
-  font-size: 0.82rem;
-  font-weight: 600;
-  box-shadow: var(--campus-shadow, 0 8px 28px rgba(44, 33, 24, 0.08));
-  cursor: pointer;
-  backdrop-filter: blur(10px);
-}
-
-.campus-hub__back span[aria-hidden="true"] {
-  font-size: 1rem;
-  line-height: 1;
-}
-
-.campus-hub__back:hover {
-  background: #fff;
-  border-color: var(--campus-accent, #c9a227);
-  color: var(--campus-accent-hover, #b8921f);
-}
-
-body.sac-campus-social-mode #section-reseau .social-hub__toolbar,
-body.sac-campus-social-mode #section-reseau .campus-messages__header,
-body.sac-campus-social-mode #section-reseau .notif-center {
-  padding-top: calc(2.6rem + env(safe-area-inset-top));
 }
 
 .social-hub__card-head {
