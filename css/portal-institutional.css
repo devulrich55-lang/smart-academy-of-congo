@@ -288,6 +288,31 @@
   color: #64748b;
 }
 
+.portal-access-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem 1.1rem;
+  justify-content: center;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(26, 43, 60, 0.08);
+}
+
+.portal-access-links a {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--portal-accent, #1e40af);
+  text-decoration: none;
+}
+
+.portal-access-links a:hover {
+  text-decoration: underline;
+}
+
+.evomonitor-portal .portal-access-links a {
+  color: #0e7490;
+}
+
 @media (max-width: 800px) {
   .portal-shell {
     grid-template-columns: 1fr;
