@@ -325,6 +325,13 @@
     mount();
   }
 
+  function removeMobileQuickNav() {
+    document.querySelectorAll(".sac-mobile-quick-nav").forEach(function (el) {
+      el.remove();
+    });
+    document.body.classList.remove("sac-has-quick-nav");
+  }
+
   function init() {
     initTouchClasses();
     initDashboardTabs();
@@ -332,7 +339,7 @@
     initTableObserver();
     initPlatformSidebar();
     initFloatingBack();
-    initMobileQuickNav();
+    removeMobileQuickNav();
     initPwa();
   }
 
