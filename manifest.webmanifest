@@ -43,6 +43,12 @@
       "short_name": "Inscription",
       "url": "/inscription.html",
       "icons": [{ "src": "/evo-uni.jpeg", "sizes": "192x192", "type": "image/jpeg" }]
+    },
+    {
+      "name": "Télécharger (Android)",
+      "short_name": "Android",
+      "url": "/app/",
+      "icons": [{ "src": "/evo-uni.jpeg", "sizes": "192x192", "type": "image/jpeg" }]
     }
   ]
 }

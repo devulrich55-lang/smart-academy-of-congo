@@ -59,6 +59,7 @@ const PORTALS = [
   "evomonitor",
   "devcenter",
   "techmanager",
+  "app",
 ];
 
 for (const slug of PORTALS) {
@@ -67,6 +68,9 @@ for (const slug of PORTALS) {
     res.sendFile(path.join(ROOT, slug, "index.html"));
   });
 }
+
+app.get("/telecharger", (_req, res) => res.redirect(301, "/app/"));
+app.get("/telecharger/", (_req, res) => res.redirect(301, "/app/"));
 
 app.get("/connexion-admin.html", (_req, res) => res.redirect(301, "/ministere/"));
 

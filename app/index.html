@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="description" content="Téléchargez et installez Evo-smartUni sur Android — accès rapide depuis l'écran d'accueil." />
+  <meta name="theme-color" content="#0c3d6e" />
+  <title>Télécharger Evo-smartUni — Android</title>
+  <link rel="manifest" href="../manifest.webmanifest" />
+  <link rel="icon" href="../evo-uni.jpeg" type="image/jpeg" />
+  <link rel="apple-touch-icon" href="../evo-uni.jpeg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../css/app-install.css?v=20260703g" />
+  <script src="../js/sac-config.js?v=20260703f"></script>
+</head>
+<body class="app-install-page">
+  <div class="app-install-shell">
+    <header class="app-install-hero">
+      <img src="../evo-uni.jpeg" alt="Evo-smartUni" width="88" height="88" />
+      <h1>Télécharger Evo-smartUni</h1>
+      <p>Installez l'application sur votre téléphone Android pour un accès rapide — notes, frais, live et campus.</p>
+    </header>
+
+    <main class="app-install-card">
+      <h2>Installation Android</h2>
+      <button type="button" class="app-install-btn app-install-btn--primary" id="btnInstallApp" disabled>
+        📲 Installer Evo-smartUni (Android)
+      </button>
+      <a href="../connexion.html?source=app" class="app-install-btn app-install-btn--ghost" id="btnOpenLogin">
+        Se connecter sur le site
+      </a>
+
+      <div class="app-install-badge app-install-badge--warn" id="installStatusBadge">
+        Chargement…
+      </div>
+
+      <p style="margin:1rem 0 0.35rem;font-size:0.82rem;font-weight:600;color:#64748b;">Lien de téléchargement à partager</p>
+      <div class="app-install-link-box" id="installShareLink">—</div>
+      <button type="button" class="app-install-btn app-install-btn--ghost" id="btnCopyInstallLink">
+        📋 Copier le lien de téléchargement
+      </button>
+
+      <ol class="app-install-steps" id="installManualSteps" hidden>
+        <li>Ouvrez ce lien dans <strong>Google Chrome</strong> (pas Facebook ni WhatsApp).</li>
+        <li>Appuyez sur le menu <strong>⋮</strong> en haut à droite.</li>
+        <li>Choisissez <strong>« Installer l'application »</strong> ou <strong>« Ajouter à l'écran d'accueil »</strong>.</li>
+        <li>Confirmez — l'icône Evo-smartUni apparaît sur votre téléphone.</li>
+      </ol>
+    </main>
+
+    <footer class="app-install-footer">
+      <a href="../index.html">← Retour à l'accueil</a>
+      ·
+      <a href="../connexion.html">Connexion</a>
+    </footer>
+  </div>
+
+  <div class="app-install-toast" id="appInstallToast" role="status" aria-live="polite"></div>
+
+  <script src="../js/sac-pwa.js?v=20260703g"></script>
+  <script src="../js/sac-app-install.js?v=20260703g"></script>
+</body>
+</html>

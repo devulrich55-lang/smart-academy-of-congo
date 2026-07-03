@@ -145,7 +145,8 @@
     window.addEventListener("beforeinstallprompt", function (e) {
       e.preventDefault();
       deferredPrompt = e;
-      if (window.matchMedia("(max-width: 768px)").matches) {
+      window.dispatchEvent(new CustomEvent("sac-pwa-install-ready"));
+      if (window.matchMedia("(max-width: 768px)").matches && !document.body.dataset.sacInstallPage) {
         showInstallBanner("android");
       }
     });
@@ -157,6 +158,18 @@
     }
   }
 
+  function promptInstall() {
+    if (!deferredPrompt) {
+      return Promise.resolve({ outcome: "unavailable" });
+    }
+    var prompt = deferredPrompt;
+    return prompt.prompt().then(function () {
+      return prompt.userChoice;
+    }).finally(function () {
+      deferredPrompt = null;
+    });
+  }
+
   function init() {
     injectHeadLinks();
     registerServiceWorker();
@@ -166,7 +179,20 @@
   window.SAC_PWA = {
     init: init,
     isStandalone: isStandalone,
+    isIos: isIos,
     assetBase: assetBase,
+    canInstall: function () {
+      return !!deferredPrompt;
+    },
+    promptInstall: promptInstall,
+    onInstallReady: function (cb) {
+      if (typeof cb !== "function") return;
+      if (deferredPrompt) {
+        cb();
+        return;
+      }
+      window.addEventListener("sac-pwa-install-ready", cb, { once: true });
+    },
   };
 
   if (document.readyState === "loading") {
