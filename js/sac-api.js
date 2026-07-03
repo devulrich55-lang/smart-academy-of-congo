@@ -402,19 +402,22 @@ const SAC_API = (function () {
 
   async function request(path, options = {}) {
     if (isRenderFrontend() && !baseResolved) await resolveApiBase();
+    const timeoutMs = options.timeoutMs || 45000;
+    const fetchOpts = { ...options };
+    delete fetchOpts.timeoutMs;
     let res;
     try {
       res = await fetchWithTimeout(`${BASE}/api${path}`, {
-        ...options,
+        ...fetchOpts,
         credentials: apiCredentials(),
         headers: apiJsonHeaders({
           ...getAuthHeaders(),
-          ...(options.body && !(options.body instanceof FormData)
+          ...(fetchOpts.body && !(fetchOpts.body instanceof FormData)
             ? { "Content-Type": "application/json" }
             : {}),
-          ...options.headers,
+          ...fetchOpts.headers,
         }),
-      });
+      }, timeoutMs);
     } catch (netErr) {
       const err = new Error(networkErrorMessage(netErr));
       err.code = "NETWORK_ERROR";
@@ -1490,7 +1493,32 @@ const SAC_API = (function () {
   }
 
   async function createBackupNow() {
-    return request("/admin/backups", { method: "POST", body: JSON.stringify({}) });
+    const start = await request("/admin/backups/create", {
+      method: "POST",
+      body: JSON.stringify({}),
+      timeoutMs: 60000,
+    });
+    const jobId = start.jobId;
+    if (!jobId) {
+      return start;
+    }
+    const deadline = Date.now() + 180000;
+    while (Date.now() < deadline) {
+      await new Promise(function (r) {
+        setTimeout(r, 2000);
+      });
+      const data = await request("/admin/backups/jobs/" + encodeURIComponent(jobId), {
+        timeoutMs: 45000,
+      });
+      const job = data.job || {};
+      if (job.status === "done") {
+        return { ok: true, backup: job.backup, status: await getBackupStatus() };
+      }
+      if (job.status === "error") {
+        throw new Error(job.message || "Échec de la sauvegarde");
+      }
+    }
+    throw new Error("Délai dépassé — vérifiez la liste des archives dans un instant.");
   }
 
   async function purgeOldBackups() {

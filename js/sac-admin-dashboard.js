@@ -322,13 +322,28 @@ const SAC_ADMIN_DASHBOARD = (function () {
   }
 
   async function createBackupNow() {
+    const btn = document.getElementById("btnBackupNow");
+    if (typeof SAC_API.createBackupNow !== "function") {
+      alert("Module sauvegarde absent — videz le cache (Ctrl+F5) puis réessayez.");
+      return;
+    }
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = "Sauvegarde en cours…";
+    }
     try {
-      toast("Sauvegarde en cours…");
-      await SAC_API.createBackupNow();
-      toast("Sauvegarde créée.");
-      loadBackupPanel();
+      await SAC_API.ensureOnline(true);
+      toast("Sauvegarde en cours — patientez…");
+      const result = await SAC_API.createBackupNow();
+      toast("Sauvegarde créée : " + (result.backup && result.backup.sizeLabel ? result.backup.sizeLabel : "OK"));
+      await loadBackupPanel();
     } catch (err) {
       alert(err.message || "Sauvegarde impossible.");
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = "⚡ Sauvegarde immédiate";
+      }
     }
   }
 
