@@ -328,6 +328,8 @@
                 <option value="ministere">Ministère (MESU)</option>
                 <option value="superadmin">Super Admin</option>
                 <option value="universite">Admin université (DG campus)</option>
+                <option value="developpeur">Développeur (Dev Center)</option>
+                <option value="techmanager">Responsable technique (Tech Manager)</option>
               </select>
             </div>
 
@@ -388,6 +390,41 @@
                   <label for="saNomComplet">Nom complet *</label>
                   <input type="text" class="fi" id="saNomComplet" placeholder="Ex. Jean Mukendi" />
                 </div>
+              </div>
+            </div>
+
+            <!-- Développeur — Dev Center -->
+            <div id="developpeurFields" class="ws-role-panel ws-role-panel--dev" hidden>
+              <p class="ws-role-intro">
+                Accès au Dev Center — tickets AI Ops, corrections et suivi technique.
+                Connexion via <code>/devcenter/</code>.
+              </p>
+              <div class="ws-form-grid ws-form-grid--compact">
+                <div class="fg" style="grid-column:1/-1;">
+                  <label for="devEmail">E-mail développeur *</label>
+                  <input type="email" class="fi" id="devEmail" placeholder="dev@evosmartuni.com" autocomplete="off" />
+                </div>
+                <div class="fg" style="grid-column:1/-1;">
+                  <label for="devPassword">Mot de passe *</label>
+                  <input type="password" class="fi" id="devPassword" minlength="8" autocomplete="new-password" placeholder="8 caractères minimum" />
+                </div>
+                <div class="fg" style="grid-column:1/-1;">
+                  <label for="devNomComplet">Nom complet *</label>
+                  <input type="text" class="fi" id="devNomComplet" placeholder="Ex. Alex Mukendi" />
+                </div>
+                <div class="fg" style="grid-column:1/-1;">
+                  <label for="devFonction">Spécialité / rôle</label>
+                  <input type="text" class="fi" id="devFonction" placeholder="Ex. Backend Python, DevOps…" />
+                </div>
+              </div>
+            </div>
+
+            <div id="techmanagerFields" class="ws-role-panel ws-role-panel--tm" hidden>
+              <p class="ws-role-intro">Responsable technique — Tech Manager via <code>/techmanager/</code>.</p>
+              <div class="ws-form-grid ws-form-grid--compact">
+                <div class="fg" style="grid-column:1/-1;"><label for="tmEmail">E-mail *</label><input type="email" class="fi" id="tmEmail" placeholder="tech@evosmartuni.com" /></div>
+                <div class="fg" style="grid-column:1/-1;"><label for="tmPassword">Mot de passe *</label><input type="password" class="fi" id="tmPassword" minlength="8" /></div>
+                <div class="fg" style="grid-column:1/-1;"><label for="tmNomComplet">Nom complet *</label><input type="text" class="fi" id="tmNomComplet" placeholder="Ex. Jean Mukendi" /></div>
               </div>
             </div>
 

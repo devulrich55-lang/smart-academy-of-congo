@@ -10,6 +10,8 @@ const SAC_SESSION = (function () {
     section: "dashboard-section.html",
     ministere: "dashboard-admin.html",
     superadmin: "dashboard-admin.html",
+    developpeur: "dashboard-devcenter.html",
+    techmanager: "dashboard-techmanager.html",
   };
 
   const SESSION_KEY = "sac_session";
@@ -437,7 +439,13 @@ const SAC_SESSION = (function () {
     }
     if (typeof SAC_PORTAL !== "undefined" && SAC_PORTAL.current()) {
       const def = SAC_PORTAL.current();
-      const okRole = session.role === def.role || (def.id === "evomonitor" && session.role === "superadmin");
+      const okRole =
+        session.role === def.role ||
+        (def.id === "evomonitor" && session.role === "superadmin") ||
+        (def.id === "devcenter" &&
+          (session.role === "developpeur" || session.role === "superadmin")) ||
+        (def.id === "techmanager" &&
+          (session.role === "techmanager" || session.role === "superadmin"));
       if (okRole) {
         const target =
           typeof SAC_PORTAL.portalDashboardUrl === "function"

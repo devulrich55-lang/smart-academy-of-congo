@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tech Manager — EvoSmartUni</title>
+  <script src="js/sac-config.js"></script>
+  <script src="js/sac-portal.js"></script>
+  <script src="js/sac-theme.js"></script>
+  <link rel="stylesheet" href="css/dashboard.css" />
+  <link rel="stylesheet" href="css/devcenter.css?v=20260709" />
+  <meta name="theme-color" content="#0f766e" />
+</head>
+<body class="devcenter-dashboard tm-dashboard">
+  <header class="header ws-header dc-header tm-header">
+    <div class="header__top">
+      <a href="techmanager/" class="logo"><span class="logo__text">Tech Manager <small>Responsable technique</small></span></a>
+      <div class="dc-header__actions">
+        <span class="badge-role tm-badge">🎯 TECH MANAGER</span>
+        <span id="tmUserName"></span>
+        <button type="button" class="btn btn--ghost btn--xs" id="tmRefreshBtn">Actualiser</button>
+        <button type="button" class="btn btn--ghost" id="btnLogout">Déconnexion</button>
+      </div>
+    </div>
+    <nav class="nav-tabs dc-nav">
+      <button type="button" class="nav-tab tm-tab active" data-view="board">📋 Tickets</button>
+      <button type="button" class="nav-tab tm-tab" data-view="review">✅ À valider <span class="dc-count" id="tmReviewCount">0</span></button>
+      <button type="button" class="nav-tab tm-tab" data-view="team">👥 Équipe</button>
+      <button type="button" class="nav-tab tm-tab" data-view="stats">📊 Statistiques</button>
+    </nav>
+  </header>
+  <div class="dc-toast" id="tmToast"></div>
+  <main class="layout dc-layout">
+    <section class="page-section active" id="tm-board">
+      <h1 class="page-title">Gestion des tickets</h1>
+      <p class="page-desc">Attribuez, priorisez et validez avant production.</p>
+      <div class="dc-grid">
+        <div class="dc-panel" id="tmTicketsList"></div>
+        <div class="dc-panel dc-panel--detail" id="tmTicketDetail"><p class="dc-empty">Sélectionnez un ticket.</p></div>
+      </div>
+    </section>
+    <section class="page-section" id="tm-team"><div class="dc-panel" id="tmTeamPanel"></div></section>
+    <section class="page-section" id="tm-stats"><div class="dc-panel" id="tmStatsPanel"></div></section>
+  </main>
+  <script src="js/sac-session.js?v=20260709"></script>
+  <script src="js/sac-api.js?v=20260709"></script>
+  <script src="js/sac-techmanager.js?v=20260709"></script>
+  <script>document.addEventListener("DOMContentLoaded",function(){SAC_TECHMANAGER.init();});</script>
+</body>
+</html>

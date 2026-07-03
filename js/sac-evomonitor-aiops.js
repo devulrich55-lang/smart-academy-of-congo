@@ -303,6 +303,7 @@ const SAC_EVOMONITOR_AIOPS = (function () {
       "</div></div>" +
       '<div id="emAiAnalysisResult" class="em-ai-analysis-host"></div></div>' +
       '<div class="em-panel em-panel--wide"><h3>🎫 Tickets développeurs</h3>' +
+      '<p class="em-hint">Les tickets sont centralisés dans le <a href="../devcenter/" target="_blank" rel="noopener">Dev Center</a>.</p>' +
       '<div class="em-heal-actions"><button type="button" class="btn btn--ghost btn--xs" id="emAiTicketsRefresh">Actualiser</button></div>' +
       '<div id="emAiTicketsList"><p class="em-empty">Chargement…</p></div></div></div>';
 

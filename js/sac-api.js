@@ -1861,6 +1861,140 @@ const SAC_API = (function () {
     });
   }
 
+  async function getDevCenterProfile() {
+    return request("/admin/dev-center/profile");
+  }
+
+  async function updateDevCenterProfile(patch) {
+    return request("/admin/dev-center/profile", {
+      method: "PATCH",
+      body: JSON.stringify(patch || {}),
+    });
+  }
+
+  async function getDevCenterStats() {
+    return request("/admin/dev-center/stats");
+  }
+
+  async function listDevCenterTickets(filter, limit) {
+    const params = new URLSearchParams();
+    if (filter) params.set("filter", String(filter));
+    if (limit) params.set("limit", String(limit));
+    const q = params.toString() ? "?" + params.toString() : "";
+    return request("/admin/dev-center/tickets" + q);
+  }
+
+  async function getDevCenterTicket(ticketId) {
+    return request("/admin/dev-center/tickets/" + encodeURIComponent(ticketId));
+  }
+
+  async function assignDevCenterTicket(ticketId, assignee) {
+    return request("/admin/dev-center/tickets/" + encodeURIComponent(ticketId) + "/assign", {
+      method: "POST",
+      body: JSON.stringify({ assignee: assignee || null }),
+    });
+  }
+
+  async function updateDevCenterTicket(ticketId, patch) {
+    return request("/admin/dev-center/tickets/" + encodeURIComponent(ticketId), {
+      method: "PATCH",
+      body: JSON.stringify(patch || {}),
+    });
+  }
+
+  async function listDevCenterDevelopers() {
+    return request("/admin/dev-center/developers");
+  }
+
+  async function getDevCenterPerformance() {
+    return request("/admin/dev-center/performance");
+  }
+
+  async function getDevCenterProjects() {
+    return request("/admin/dev-center/projects");
+  }
+
+  async function getDevCenterWorkflow() {
+    return request("/admin/dev-center/workflow");
+  }
+
+  async function listDevCenterComments(ticketId) {
+    return request("/admin/dev-center/tickets/" + encodeURIComponent(ticketId) + "/comments");
+  }
+
+  async function addDevCenterComment(ticketId, body) {
+    return request("/admin/dev-center/tickets/" + encodeURIComponent(ticketId) + "/comments", {
+      method: "POST",
+      body: JSON.stringify({ body: body }),
+    });
+  }
+
+  async function listDevCenterHistory(ticketId) {
+    return request("/admin/dev-center/tickets/" + encodeURIComponent(ticketId) + "/history");
+  }
+
+  async function logDevCenterTime(ticketId, payload) {
+    return request("/admin/dev-center/tickets/" + encodeURIComponent(ticketId) + "/time", {
+      method: "POST",
+      body: JSON.stringify(payload || {}),
+    });
+  }
+
+  async function getTechManagerOverview() {
+    return request("/admin/tech-manager/overview");
+  }
+
+  async function listTechManagerTickets(filter, limit) {
+    const params = new URLSearchParams();
+    if (filter) params.set("filter", filter);
+    if (limit) params.set("limit", String(limit));
+    const q = params.toString() ? "?" + params.toString() : "";
+    return request("/admin/tech-manager/tickets" + q);
+  }
+
+  async function assignTechManagerTicket(ticketId, payload) {
+    return request("/admin/tech-manager/tickets/" + encodeURIComponent(ticketId) + "/assign", {
+      method: "POST",
+      body: JSON.stringify(payload || {}),
+    });
+  }
+
+  async function setTechManagerPriority(ticketId, priority) {
+    return request("/admin/tech-manager/tickets/" + encodeURIComponent(ticketId) + "/priority", {
+      method: "PATCH",
+      body: JSON.stringify({ priority: priority }),
+    });
+  }
+
+  async function validateTechManagerTicket(ticketId, payload) {
+    return request("/admin/tech-manager/tickets/" + encodeURIComponent(ticketId) + "/validate", {
+      method: "POST",
+      body: JSON.stringify(payload || {}),
+    });
+  }
+
+  async function approveTechManagerProduction(ticketId) {
+    return request("/admin/tech-manager/tickets/" + encodeURIComponent(ticketId) + "/production", {
+      method: "POST",
+      body: JSON.stringify({}),
+    });
+  }
+
+  async function resolveTechManagerTicket(ticketId) {
+    return request("/admin/tech-manager/tickets/" + encodeURIComponent(ticketId) + "/resolve", {
+      method: "POST",
+      body: JSON.stringify({}),
+    });
+  }
+
+  async function listTechManagerTeam() {
+    return request("/admin/tech-manager/team");
+  }
+
+  async function getTechManagerStats() {
+    return request("/admin/tech-manager/stats");
+  }
+
   async function listSocialNotifications() {
     const data = await request("/platform/social/notifications");
     return data?.notifications || [];
@@ -2268,6 +2402,30 @@ const SAC_API = (function () {
     listAiOpsTickets,
     createAiOpsTicket,
     updateAiOpsTicket,
+    getDevCenterProfile,
+    updateDevCenterProfile,
+    getDevCenterStats,
+    listDevCenterTickets,
+    getDevCenterTicket,
+    assignDevCenterTicket,
+    updateDevCenterTicket,
+    listDevCenterDevelopers,
+    getDevCenterPerformance,
+    getDevCenterProjects,
+    getDevCenterWorkflow,
+    listDevCenterComments,
+    addDevCenterComment,
+    listDevCenterHistory,
+    logDevCenterTime,
+    getTechManagerOverview,
+    listTechManagerTickets,
+    assignTechManagerTicket,
+    setTechManagerPriority,
+    validateTechManagerTicket,
+    approveTechManagerProduction,
+    resolveTechManagerTicket,
+    listTechManagerTeam,
+    getTechManagerStats,
     listSocialNotifications,
     markSocialNotificationRead,
     getSocialSettings,

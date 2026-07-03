@@ -96,6 +96,46 @@ const SAC_PORTAL = (function () {
       adminPortal: true,
       logoFile: "../" + PLATFORM_LOGO,
     },
+    devcenter: {
+      id: "devcenter",
+      role: "developpeur",
+      slug: "devcenter",
+      title: "Dev Center",
+      orgName: "Espace développeurs — Evo-smartUni",
+      hostHints: ["dev.", "devcenter."],
+      pathPrefix: "/devcenter",
+      accent: "#4338ca",
+      accentDark: "#312e81",
+      themeColor: "#4338ca",
+      icon: "👨‍💻",
+      emailPlaceholder: "dev@evosmartuni.com",
+      btnLabel: "Accéder au Dev Center",
+      lead: "Tickets AI Ops, corrections et suivi des incidents techniques.",
+      notice: "Accès réservé aux comptes développeur.",
+      dashboard: "dashboard-devcenter.html",
+      adminPortal: true,
+      logoFile: "../" + PLATFORM_LOGO,
+    },
+    techmanager: {
+      id: "techmanager",
+      role: "techmanager",
+      slug: "techmanager",
+      title: "Tech Manager",
+      orgName: "Responsable technique — Evo-smartUni",
+      hostHints: ["tech.", "techmanager."],
+      pathPrefix: "/techmanager",
+      accent: "#a855f7",
+      accentDark: "#9333ea",
+      themeColor: "#a855f7",
+      icon: "🎯",
+      emailPlaceholder: "tech@evosmartuni.com",
+      btnLabel: "Accéder au Tech Manager",
+      lead: "Gestion équipe dev, priorités et validation pré-production.",
+      notice: "Accès réservé au responsable technique.",
+      dashboard: "dashboard-techmanager.html",
+      adminPortal: true,
+      logoFile: "../" + PLATFORM_LOGO,
+    },
   };
 
   function normPath(path) {
@@ -153,6 +193,8 @@ const SAC_PORTAL = (function () {
     if (role === "superadmin") return siteUrl("superadmin/");
     if (role === "universite") return siteUrl("admin-uni/");
     if (role === "evomonitor") return siteUrl("evomonitor/");
+    if (role === "developpeur") return siteUrl("devcenter/");
+    if (role === "techmanager") return siteUrl("techmanager/");
     return siteUrl("connexion.html?role=" + encodeURIComponent(role || "etudiant"));
   }
 
@@ -170,6 +212,8 @@ const SAC_PORTAL = (function () {
       ministere: "dashboard-admin.html",
       superadmin: "dashboard-admin.html",
       evomonitor: "dashboard-evomonitor.html",
+      developpeur: "dashboard-devcenter.html",
+      techmanager: "dashboard-techmanager.html",
     };
     return siteUrl(map[role] || "index.html");
   }
@@ -193,6 +237,8 @@ const SAC_PORTAL = (function () {
       superadmin: "superadmin",
       universite: "admin-uni",
       evomonitor: "evomonitor",
+      devcenter: "devcenter",
+      techmanager: "techmanager",
     };
     const slug = slugByRole[role];
     if (slug && DEFS[slug] && DEFS[slug].logoFile) {
@@ -269,6 +315,10 @@ const SAC_PORTAL = (function () {
     if (!def || !session || !session.role) return false;
     if (session.role === def.role) return false;
     if (def.id === "evomonitor" && session.role === "superadmin") return false;
+    if (def.id === "devcenter" && (session.role === "developpeur" || session.role === "superadmin"))
+      return false;
+    if (def.id === "techmanager" && (session.role === "techmanager" || session.role === "superadmin"))
+      return false;
     window.location.replace(dashboardUrl(session.role));
     return true;
   }
@@ -278,6 +328,8 @@ const SAC_PORTAL = (function () {
     if (portalId === "superadmin") return siteUrl("superadmin/");
     if (portalId === "admin-uni") return siteUrl("admin-uni/");
     if (portalId === "evomonitor") return siteUrl("evomonitor/");
+    if (portalId === "devcenter") return siteUrl("devcenter/");
+    if (portalId === "techmanager") return siteUrl("techmanager/");
     return siteUrl("connexion.html");
   }
 

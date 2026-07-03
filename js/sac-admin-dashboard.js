@@ -16,6 +16,8 @@ const SAC_ADMIN_DASHBOARD = (function () {
     superadmin: { label: "Super Admin", icon: "🛡️" },
     ministere: { label: "Ministère", icon: "🏛️" },
     universite: { label: "Admin université", icon: "🎓" },
+    developpeur: { label: "Développeur", icon: "👨‍💻" },
+    techmanager: { label: "Tech Manager", icon: "🎯" },
   };
   const MAX_SUPERADMIN_ACCOUNTS = 2;
   let institutionalSummaryCache = null;
@@ -98,6 +100,7 @@ const SAC_ADMIN_DASHBOARD = (function () {
   function roleBadge(role) {
     if (role === "superadmin") return '<span class="badge-super">Super Admin</span>';
     if (role === "ministere") return '<span class="badge-min">Ministère</span>';
+    if (role === "developpeur") return '<span class="badge-dev">Développeur</span>';
     return '<span class="badge-uni">Admin Uni</span>';
   }
 
@@ -787,6 +790,8 @@ const SAC_ADMIN_DASHBOARD = (function () {
     const uniFields = document.getElementById("uniFields");
     const ministereFields = document.getElementById("ministereFields");
     const superadminFields = document.getElementById("superadminFields");
+    const developpeurFields = document.getElementById("developpeurFields");
+    const techmanagerFields = document.getElementById("techmanagerFields");
 
     function splitFullName(full) {
       const parts = String(full || "")
@@ -860,6 +865,8 @@ const SAC_ADMIN_DASHBOARD = (function () {
       const panels = [
         { el: ministereFields, active: role === "ministere" },
         { el: superadminFields, active: role === "superadmin" },
+        { el: developpeurFields, active: role === "developpeur" },
+        { el: techmanagerFields, active: role === "techmanager" },
         { el: uniFields, active: role === "universite" },
       ];
       panels.forEach(({ el, active }) => {
@@ -875,6 +882,8 @@ const SAC_ADMIN_DASHBOARD = (function () {
       });
       setFieldRequired(["minEmail", "minPassword", "minNomComplet", "minCountry"], role === "ministere");
       setFieldRequired(["saEmail", "saPassword", "saNomComplet"], role === "superadmin");
+      setFieldRequired(["devEmail", "devPassword", "devNomComplet"], role === "developpeur");
+      setFieldRequired(["tmEmail", "tmPassword", "tmNomComplet"], role === "techmanager");
       setFieldRequired(
         ["newEmail", "newPassword", "newPrenom", "newNom", "newTel", "newResponsable", "newCampusCatalog", "newCountry"],
         role === "universite"
@@ -890,6 +899,8 @@ const SAC_ADMIN_DASHBOARD = (function () {
       const role = newRole?.value || "ministere";
       if (ministereFields) ministereFields.hidden = role !== "ministere";
       if (superadminFields) superadminFields.hidden = role !== "superadmin";
+      if (developpeurFields) developpeurFields.hidden = role !== "developpeur";
+      if (techmanagerFields) techmanagerFields.hidden = role !== "techmanager";
       if (uniFields) uniFields.hidden = role !== "universite";
 
       const logoInput = document.getElementById("newLogoUniversite");
@@ -912,6 +923,16 @@ const SAC_ADMIN_DASHBOARD = (function () {
           desc: "Compte DG / recteur — pays, campus, sections faculté, logo et coordonnées.",
           title: "Nouveau compte Admin université",
           submit: "Créer le compte campus",
+        },
+        developpeur: {
+          desc: "Compte Dev Center — accès tickets AI Ops et espace de travail développeur.",
+          title: "Nouveau compte Développeur",
+          submit: "Créer le compte développeur",
+        },
+        techmanager: {
+          desc: "Responsable technique — attribution, validation et stats équipe via Tech Manager.",
+          title: "Nouveau compte Tech Manager",
+          submit: "Créer le compte Tech Manager",
         },
       };
       const c = copy[role] || copy.ministere;
@@ -1135,6 +1156,38 @@ const SAC_ADMIN_DASHBOARD = (function () {
           prenom,
           nom,
           telephone: "",
+        };
+      } else if (role === "developpeur") {
+        const full = document.getElementById("devNomComplet")?.value.trim() || "";
+        const { prenom, nom } = splitFullName(full);
+        if (!full || full.length < 3) {
+          alert("Indiquez le nom complet du développeur.");
+          return;
+        }
+        payload = {
+          role,
+          email: document.getElementById("devEmail")?.value.trim() || "",
+          password: document.getElementById("devPassword")?.value || "",
+          prenom,
+          nom,
+          telephone: "",
+          fonction: document.getElementById("devFonction")?.value.trim() || "Développeur EvoSU",
+        };
+      } else if (role === "techmanager") {
+        const full = document.getElementById("tmNomComplet")?.value.trim() || "";
+        const { prenom, nom } = splitFullName(full);
+        if (!full || full.length < 3) {
+          alert("Indiquez le nom complet du responsable technique.");
+          return;
+        }
+        payload = {
+          role,
+          email: document.getElementById("tmEmail")?.value.trim() || "",
+          password: document.getElementById("tmPassword")?.value || "",
+          prenom,
+          nom,
+          telephone: "",
+          fonction: "Responsable technique EvoSU",
         };
       } else if (role === "universite") {
         payload = {
