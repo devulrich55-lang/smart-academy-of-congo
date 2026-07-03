@@ -162,43 +162,69 @@ const SAC_API = (function () {
   }
 
   /** Node (proxy /api) si dispo, sinon API directe (Static Site + CORS). */
-  async function resolveApiBase() {
-    if (baseResolved || !isRenderFrontend()) return BASE;
+  async function resolveApiBase(force) {
+    if (!isRenderFrontend()) return BASE;
     const proxyOrigin =
       (typeof window !== "undefined" && window.SAC_API_PROXY_ORIGIN) ||
       (typeof window !== "undefined" ? window.location.origin.replace(/\/+$/, "") : "");
-    if (proxyOrigin) {
-      for (let attempt = 0; attempt < 2; attempt += 1) {
+
+    async function tryHealth(baseUrl, attempts, timeoutMs) {
+      for (let attempt = 0; attempt < attempts; attempt += 1) {
         try {
           const res = await fetchWithTimeout(
-            proxyOrigin + "/api/health",
+            baseUrl + "/api/health",
             { method: "GET", credentials: "omit", mode: "cors" },
-            attempt === 0 ? 25000 : 45000
+            attempt === 0 ? timeoutMs : Math.max(timeoutMs, 45000)
           );
+          const ct = (res.headers.get("content-type") || "").toLowerCase();
+          if (ct && !ct.includes("json") && !ct.includes("javascript")) continue;
           let data = {};
           try {
             data = await res.json();
           } catch {
-            /* non-json */
+            continue;
           }
           if (
             res.ok ||
             (data && typeof data === "object" && ("ok" in data || "database" in data))
           ) {
-            BASE = proxyOrigin;
-            if (typeof window !== "undefined") window.SAC_API_BASE = proxyOrigin;
-            baseResolved = true;
-            return BASE;
+            return true;
           }
         } catch {
-          if (attempt === 0) {
-            await new Promise((r) => setTimeout(r, 3000));
+          if (attempt < attempts - 1) {
+            await new Promise((r) => setTimeout(r, force ? 4000 : 3000));
           }
         }
       }
+      return false;
     }
-    BASE = RENDER_API_DIRECT;
-    if (typeof window !== "undefined") window.SAC_API_BASE = RENDER_API_DIRECT;
+
+    if (proxyOrigin && (force || !baseResolved)) {
+      const proxyOk = await tryHealth(proxyOrigin, force ? 4 : 2, force ? 55000 : 25000);
+      if (proxyOk) {
+        BASE = proxyOrigin;
+        if (typeof window !== "undefined") window.SAC_API_BASE = proxyOrigin;
+        baseResolved = true;
+        return BASE;
+      }
+    }
+
+    if (!force && baseResolved && BASE === proxyOrigin) {
+      return BASE;
+    }
+
+    const directOk = await tryHealth(RENDER_API_DIRECT, force ? 6 : 2, force ? 60000 : 30000);
+    if (directOk) {
+      BASE = RENDER_API_DIRECT;
+      if (typeof window !== "undefined") window.SAC_API_BASE = RENDER_API_DIRECT;
+      baseResolved = true;
+      return BASE;
+    }
+
+    if (proxyOrigin) {
+      BASE = proxyOrigin;
+      if (typeof window !== "undefined") window.SAC_API_BASE = proxyOrigin;
+    }
     baseResolved = true;
     return BASE;
   }
@@ -583,9 +609,9 @@ const SAC_API = (function () {
     const maxWaitMs = options && options.maxWaitMs;
 
     const run = async () => {
-      if (isRenderFrontend() && !baseResolved) await resolveApiBase();
+      if (isRenderFrontend()) await resolveApiBase(!!force);
       if (isCrossOriginApi() || force) {
-        return wakeServer(wakeDefaults(!!force));
+        return wakeServer(Object.assign({}, wakeDefaults(!!force), options || {}));
       }
       if (online === null) await ping(undefined);
       return online;

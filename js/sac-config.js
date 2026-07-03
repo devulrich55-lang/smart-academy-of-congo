@@ -14,10 +14,12 @@
     return hostname.endsWith(".onrender.com") && hostname.indexOf("-api") === -1;
   }
   if (isHostedFrontend(host)) {
-    window.SAC_API_PROXY_ORIGIN = window.location.origin.replace(/\/+$/, "");
-    window.SAC_API_BASE = RENDER_API;
+    var origin = window.location.origin.replace(/\/+$/, "");
+    window.SAC_API_PROXY_ORIGIN = origin;
+    // Proxy same-origin (server.js) — évite CORS et cold-start cross-origin
+    window.SAC_API_BASE = origin;
   }
-  window.SAC_JS_BUILD = "20260702d";
+  window.SAC_JS_BUILD = "20260703a";
   window.SAC_PLATFORM_LOGO = "evo-uni.jpeg";
   window.SAC_PLATFORM_LOGO_ALT = "Evo-smartUni";
   if (typeof document !== "undefined" && window.SAC_API_BASE) {

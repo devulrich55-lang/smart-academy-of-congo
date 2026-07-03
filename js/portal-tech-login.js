@@ -32,6 +32,25 @@
     } catch (_) {}
   }
 
+  async function ensureApiReady(btn) {
+    if (typeof SAC_API === "undefined") throw new Error("API indisponible");
+    if (btn) btn.textContent = "Connexion au serveur…";
+    if (SAC_API.resolveApiBase) await SAC_API.resolveApiBase(true);
+    const online = await SAC_API.ensureOnline(true, {
+      attempts: 10,
+      timeoutMs: 60000,
+      delayMs: 6000,
+    });
+    if (online) return;
+    if (SAC_API.probeApiReachability) {
+      const probe = await SAC_API.probeApiReachability();
+      if (probe.message) throw new Error(probe.message);
+    }
+    throw new Error(
+      "Serveur en démarrage (Render cold start). Attendez 1–2 minutes puis réessayez."
+    );
+  }
+
   async function loginSubmit(portalId, form) {
     const def = SAC_PORTAL.DEFS?.[portalId] || SAC_PORTAL.getDef?.(portalId);
     if (!def) throw new Error("Portail inconnu");
@@ -51,12 +70,7 @@
     btn.textContent = "Réveil du serveur…";
 
     try {
-      if (typeof SAC_API === "undefined") throw new Error("API indisponible");
-      const online = await SAC_API.ensureOnline(true);
-      if (!online) {
-        throw new Error("Serveur injoignable — attendez 1 minute puis réessayez.");
-      }
-
+      await ensureApiReady(btn);
       btn.textContent = "Connexion…";
       const session = await SAC_API.login(email, password, def.role, { adminPortal: true });
       saveRemembered(portalId, email, remember);
@@ -105,8 +119,8 @@
     if (await SAC_SESSION.redirectIfAuthenticated(roleParam || def.role)) return;
 
     if (typeof SAC_API !== "undefined") {
-      SAC_API.resolveApiBase?.().catch(function () {});
-      SAC_API.wakeServer?.({ attempts: 4, timeoutMs: 45000, delayMs: 4000 });
+      SAC_API.resolveApiBase(true).catch(function () {});
+      SAC_API.wakeServer({ attempts: 6, timeoutMs: 55000, delayMs: 5000 });
     }
 
     bindForm("devcenter");
