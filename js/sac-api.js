@@ -1481,6 +1481,54 @@ const SAC_API = (function () {
     });
   }
 
+  async function getBackupStatus() {
+    return request("/admin/backups/status");
+  }
+
+  async function listBackups() {
+    return request("/admin/backups");
+  }
+
+  async function createBackupNow() {
+    return request("/admin/backups", { method: "POST", body: JSON.stringify({}) });
+  }
+
+  async function purgeOldBackups() {
+    return request("/admin/backups/purge", { method: "POST", body: JSON.stringify({}) });
+  }
+
+  async function restoreBackup(backupId, confirm) {
+    return request("/admin/backups/" + encodeURIComponent(backupId) + "/restore", {
+      method: "POST",
+      body: JSON.stringify({ confirm: confirm }),
+    });
+  }
+
+  async function downloadBackup(backupId) {
+    if (isRenderFrontend() && !baseResolved) await resolveApiBase();
+    const url = `${BASE}/api/admin/backups/${encodeURIComponent(backupId)}/download`;
+    const res = await fetchWithTimeout(
+      url,
+      { method: "GET", credentials: apiCredentials(), headers: getAuthHeaders() },
+      120000
+    );
+    if (!res.ok) {
+      let data = {};
+      try {
+        data = await res.json();
+      } catch (_) {}
+      throw new Error(apiErrorMessage(data, res.status) || "Téléchargement impossible");
+    }
+    const blob = await res.blob();
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "evosu-backup-" + backupId + ".zip";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(a.href);
+  }
+
   async function listHomeNews() {
     const data = await platformRequest("/platform/home-news", { auth: false });
     return data.items || [];
@@ -2490,6 +2538,12 @@ const SAC_API = (function () {
     listAdminActivities,
     deleteAdminActivities,
     getAdminPresenceSummary,
+    getBackupStatus,
+    listBackups,
+    createBackupNow,
+    purgeOldBackups,
+    restoreBackup,
+    downloadBackup,
     platformRequest,
     uploadFormData,
     getBase,

@@ -47,6 +47,7 @@
       <button type="button" class="nav-tab nav-tab--priority" data-section="create" id="tabCreate" hidden>➕ Créer un compte</button>
       <button type="button" class="nav-tab ws-registry-secret" data-section="registry" id="tabRegistry" hidden>📊 Registre</button>
       <button type="button" class="nav-tab ws-only-super-hidden" data-section="tarifs" id="tabTarifs" hidden>💰 Tarifs inscription</button>
+      <button type="button" class="nav-tab ws-only-super-hidden" data-section="sauvegarde" id="tabSauvegarde" hidden>🗄️ Sauvegarde</button>
       <button type="button" class="nav-tab" data-section="securite">🔒 Sécurité</button>
     </nav>
   </header>
@@ -176,6 +177,7 @@
           <button type="button" class="btn btn--role ws-only-super-hidden" data-goto="create" id="btnQuickCreate">➕ Créer un compte</button>
           <button type="button" class="btn btn--role ws-only-super-hidden" data-goto="validations" id="btnQuickValidations" hidden>✅ Valider inscriptions étudiants</button>
           <button type="button" class="btn btn--role ws-only-super-hidden" data-goto="tarifs" id="btnQuickTarifs" hidden>💰 Tarifs inscription</button>
+          <button type="button" class="btn btn--role ws-only-super-hidden" data-goto="sauvegarde" id="btnQuickSauvegarde" hidden>🗄️ Sauvegarde & restauration</button>
           <button type="button" class="btn btn--ghost" data-goto="securite">🔒 Politique de sécurité</button>
         </div>
       </div>
@@ -628,6 +630,59 @@
     </section>
 
     <!-- SÉCURITÉ -->
+    <section class="page-section ws-only-super-hidden" id="section-sauvegarde">
+      <h1 class="page-title">Sauvegarde & restauration</h1>
+      <p class="page-desc">
+        État complet de l'application (base de données + fichiers uploads).
+        Sauvegarde automatique toutes les <strong>6 h</strong> — rétention <strong>24 h</strong>.
+      </p>
+
+      <div class="ws-grid-2" style="margin-bottom:1rem;">
+        <div class="panel panel--ws">
+          <div class="panel__head"><h2>État du système</h2></div>
+          <div class="panel__body" id="backupStatusPanel"><p class="page-desc">Chargement…</p></div>
+        </div>
+        <div class="panel panel--accent-gold">
+          <div class="panel__head"><h2>Actions d'urgence</h2></div>
+          <div class="panel__body">
+            <p class="page-desc" style="margin-top:0;">En cas de panne, attaque ou perte de données.</p>
+            <div style="display:flex;flex-direction:column;gap:0.65rem;">
+              <button type="button" class="btn btn--role" id="btnBackupNow">⚡ Sauvegarde immédiate</button>
+              <button type="button" class="btn btn--ghost" id="btnBackupPurge">🧹 Purger les archives &gt; 24 h</button>
+            </div>
+            <p class="ws-field-hint" style="margin-top:0.75rem;">
+              La restauration crée d'abord une sauvegarde de sécurité (<em>pre_restore</em>).
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel panel--ws">
+        <div class="panel__head">
+          <h2>Archives disponibles</h2>
+          <span id="backupListCount" style="font-size:0.82rem;color:var(--muted);">—</span>
+        </div>
+        <div class="panel__body">
+          <div class="ws-table-wrap">
+            <table class="ws-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Type</th>
+                  <th>Taille</th>
+                  <th>Âge</th>
+                  <th class="col-actions">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="backupListBody">
+                <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:2rem;">Chargement…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <section class="page-section" id="section-securite">
       <h1 class="page-title">Sécurité & conformité</h1>
       <p class="page-desc">Politique d'accès des espaces institutionnels EvoSU.</p>
@@ -684,7 +739,7 @@
   <script src="js/sac-platform-registry.js?v=20260625a"></script>
   <script src="js/sac-tariffs.js?v=20260623b"></script>
   <script src="js/sac-admin-activities.js?v=20260629a"></script>
-  <script src="js/sac-admin-dashboard.js?v=20260629a"></script>
+  <script src="js/sac-admin-dashboard.js?v=20260703b"></script>
   <script>
     SAC_ADMIN_DASHBOARD.init();
   </script>

@@ -166,6 +166,181 @@ const SAC_ADMIN_DASHBOARD = (function () {
     if (id === "validations") {
       renderPlatformValidations();
     }
+    if (id === "sauvegarde") {
+      loadBackupPanel();
+    }
+  }
+
+  async function loadBackupPanel() {
+    const statusHost = document.getElementById("backupStatusPanel");
+    const tbody = document.getElementById("backupListBody");
+    const countEl = document.getElementById("backupListCount");
+    if (!statusHost || !tbody || typeof SAC_API.listBackups !== "function") return;
+
+    statusHost.innerHTML = "<p class=\"page-desc\">Chargement…</p>";
+    tbody.innerHTML =
+      '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:2rem;">Chargement…</td></tr>';
+
+    try {
+      await SAC_API.ensureOnline(true);
+      const data = await SAC_API.listBackups();
+      const st = data.status || {};
+      const backups = data.backups || [];
+      const latest = st.latest;
+
+      statusHost.innerHTML =
+        "<ul class=\"ws-guide\">" +
+        "<li><strong>Automatique</strong> — toutes les " +
+        escHtml(st.intervalHours || 6) +
+        " h</li>" +
+        "<li><strong>Rétention</strong> — " +
+        escHtml(st.retentionHours || 24) +
+        " h (suppression auto)</li>" +
+        "<li><strong>Archives</strong> — " +
+        escHtml(st.totalBackups || 0) +
+        " (" +
+        escHtml(st.totalLabel || "0 o") +
+        ")</li>" +
+        "<li><strong>Base</strong> — " +
+        escHtml(st.databaseBackend || "sqlite") +
+        "</li>" +
+        (latest
+          ? "<li><strong>Dernière</strong> — " +
+            escHtml((latest.createdAt || "").replace("T", " ").slice(0, 19)) +
+            " (" +
+            escHtml(latest.trigger === "auto" ? "auto" : "manuelle") +
+            ")</li>"
+          : "<li><strong>Dernière</strong> — aucune</li>") +
+        (st.nextScheduledInHours != null
+          ? "<li><strong>Prochaine auto</strong> — ~" + escHtml(st.nextScheduledInHours) + " h</li>"
+          : "") +
+        "</ul>";
+
+      if (countEl) countEl.textContent = backups.length + " archive(s)";
+
+      if (!backups.length) {
+        tbody.innerHTML =
+          '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:2rem;">Aucune sauvegarde — lancez une sauvegarde immédiate.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = backups
+        .map(function (b) {
+          const triggerLabel =
+            b.trigger === "auto"
+              ? "🔄 Auto"
+              : b.trigger === "pre_restore"
+                ? "🛡️ Pré-restauration"
+                : "⚡ Manuelle";
+          return (
+            "<tr data-backup-id=\"" +
+            escHtml(b.id) +
+            "\">" +
+            "<td>" +
+            escHtml((b.createdAt || "").replace("T", " ").slice(0, 19)) +
+            "</td>" +
+            "<td>" +
+            triggerLabel +
+            "</td>" +
+            "<td>" +
+            escHtml(b.sizeLabel || "—") +
+            "</td>" +
+            "<td>" +
+            escHtml(b.ageHours) +
+            " h</td>" +
+            "<td class=\"col-actions\">" +
+            '<button type="button" class="btn btn--ghost btn--xs btn-backup-dl" data-id="' +
+            escHtml(b.id) +
+            '">⬇️</button> ' +
+            '<button type="button" class="btn btn--role btn--xs btn-backup-restore" data-id="' +
+            escHtml(b.id) +
+            '">♻️ Restaurer</button>' +
+            "</td></tr>"
+          );
+        })
+        .join("");
+
+      tbody.querySelectorAll(".btn-backup-dl").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          downloadBackupFile(btn.dataset.id);
+        });
+      });
+      tbody.querySelectorAll(".btn-backup-restore").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          restoreBackupPrompt(btn.dataset.id);
+        });
+      });
+    } catch (err) {
+      statusHost.innerHTML =
+        '<p class="page-desc" style="color:var(--danger,#b91c1c);">' + escHtml(err.message || "Erreur") + "</p>";
+      tbody.innerHTML =
+        '<tr><td colspan="5" style="text-align:center;color:var(--muted);">Impossible de charger les sauvegardes.</td></tr>';
+    }
+  }
+
+  async function downloadBackupFile(backupId) {
+    if (!backupId || typeof SAC_API.downloadBackup !== "function") return;
+    try {
+      toast("Téléchargement…");
+      await SAC_API.downloadBackup(backupId);
+    } catch (err) {
+      alert(err.message || "Téléchargement impossible.");
+    }
+  }
+
+  async function restoreBackupPrompt(backupId) {
+    if (!backupId) return;
+    const phrase = "RESTAURER-" + backupId;
+    const typed = prompt(
+      "ATTENTION — Cette action remplace la base et les fichiers uploads.\n\n" +
+        "Saisissez exactement :\n" +
+        phrase
+    );
+    if (typed !== phrase) {
+      if (typed !== null) alert("Confirmation incorrecte — restauration annulée.");
+      return;
+    }
+    if (
+      !confirm(
+        "Confirmer la restauration ? L'application reviendra à l'état de cette archive. Une sauvegarde de sécurité sera créée avant."
+      )
+    ) {
+      return;
+    }
+    try {
+      toast("Restauration en cours…");
+      const result = await SAC_API.restoreBackup(backupId, phrase);
+      alert(
+        "Restauration terminée.\nSauvegarde de sécurité : " +
+          (result.preRestoreBackupId || "—") +
+          "\n\nRechargez la page."
+      );
+      loadBackupPanel();
+    } catch (err) {
+      alert(err.message || "Restauration impossible.");
+    }
+  }
+
+  async function createBackupNow() {
+    try {
+      toast("Sauvegarde en cours…");
+      await SAC_API.createBackupNow();
+      toast("Sauvegarde créée.");
+      loadBackupPanel();
+    } catch (err) {
+      alert(err.message || "Sauvegarde impossible.");
+    }
+  }
+
+  async function purgeOldBackups() {
+    if (!confirm("Supprimer toutes les archives de plus de 24 h ?")) return;
+    try {
+      const r = await SAC_API.purgeOldBackups();
+      toast((r.count || 0) + " archive(s) supprimée(s).");
+      loadBackupPanel();
+    } catch (err) {
+      alert(err.message || "Purge impossible.");
+    }
   }
 
   function escHtml(v) {
@@ -708,11 +883,14 @@ const SAC_ADMIN_DASHBOARD = (function () {
       document.getElementById("tabCreate")?.removeAttribute("hidden");
       document.getElementById("tabTarifs")?.removeAttribute("hidden");
       document.getElementById("tabValidations")?.removeAttribute("hidden");
+      document.getElementById("tabSauvegarde")?.removeAttribute("hidden");
       document.getElementById("btnQuickTarifs")?.removeAttribute("hidden");
       document.getElementById("btnQuickValidations")?.removeAttribute("hidden");
+      document.getElementById("btnQuickSauvegarde")?.removeAttribute("hidden");
       document.getElementById("section-create")?.classList.remove("ws-only-super-hidden");
       document.getElementById("section-tarifs")?.classList.remove("ws-only-super-hidden");
       document.getElementById("section-validations")?.classList.remove("ws-only-super-hidden");
+      document.getElementById("section-sauvegarde")?.classList.remove("ws-only-super-hidden");
       document.querySelectorAll(".ws-only-super-hidden").forEach((el) => el.classList.remove("ws-only-super-hidden"));
       document.querySelectorAll(".col-actions").forEach((c) => (c.style.display = ""));
       const hint = document.getElementById("listHint");
@@ -1352,6 +1530,8 @@ const SAC_ADMIN_DASHBOARD = (function () {
       document.getElementById("validStatusFilter")?.addEventListener("change", renderPlatformValidations);
       document.getElementById("validCampusFilter")?.addEventListener("change", renderPlatformValidations);
       document.getElementById("btnRefreshValidations")?.addEventListener("click", renderPlatformValidations);
+      document.getElementById("btnBackupNow")?.addEventListener("click", createBackupNow);
+      document.getElementById("btnBackupPurge")?.addEventListener("click", purgeOldBackups);
       document.addEventListener("visibilitychange", () => {
         if (document.hidden) stopPresencePolling();
         else startPresencePolling();
