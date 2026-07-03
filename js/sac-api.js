@@ -1827,6 +1827,40 @@ const SAC_API = (function () {
     });
   }
 
+  async function getAiOpsStatus() {
+    return request("/admin/monitor/ai-ops/status");
+  }
+
+  async function analyzeAiOpsError(context) {
+    return request("/admin/monitor/ai-ops/analyze", {
+      method: "POST",
+      body: JSON.stringify(context || {}),
+    });
+  }
+
+  async function getAiOpsPredictions() {
+    return request("/admin/monitor/ai-ops/predictions");
+  }
+
+  async function listAiOpsTickets(limit) {
+    const params = limit ? "?limit=" + encodeURIComponent(String(limit)) : "";
+    return request("/admin/monitor/ai-ops/tickets" + params);
+  }
+
+  async function createAiOpsTicket(payload) {
+    return request("/admin/monitor/ai-ops/tickets", {
+      method: "POST",
+      body: JSON.stringify(payload || {}),
+    });
+  }
+
+  async function updateAiOpsTicket(ticketId, patch) {
+    return request("/admin/monitor/ai-ops/tickets/" + encodeURIComponent(ticketId), {
+      method: "PATCH",
+      body: JSON.stringify(patch || {}),
+    });
+  }
+
   async function listSocialNotifications() {
     const data = await request("/platform/social/notifications");
     return data?.notifications || [];
@@ -2228,6 +2262,12 @@ const SAC_API = (function () {
     triggerMonitorHeal,
     sendMonitorAlert,
     runMonitorSimulation,
+    getAiOpsStatus,
+    analyzeAiOpsError,
+    getAiOpsPredictions,
+    listAiOpsTickets,
+    createAiOpsTicket,
+    updateAiOpsTicket,
     listSocialNotifications,
     markSocialNotificationRead,
     getSocialSettings,

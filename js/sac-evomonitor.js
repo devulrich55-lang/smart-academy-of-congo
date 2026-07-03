@@ -16,6 +16,7 @@ const SAC_EVOMONITOR = (function () {
   let logFilters = { q: "", category: "all", level: "all" };
 
   const INTEL = typeof SAC_EVOMONITOR_INTEL !== "undefined" ? SAC_EVOMONITOR_INTEL : null;
+  const AIOPS = typeof SAC_EVOMONITOR_AIOPS !== "undefined" ? SAC_EVOMONITOR_AIOPS : null;
 
   function esc(s) {
     const el = document.createElement("div");
@@ -75,6 +76,7 @@ const SAC_EVOMONITOR = (function () {
     else stopLiveRefresh();
     if (id === "logs") loadLogs();
     if (id === "sata") renderSata();
+    if (id === "aiops") renderAiOps();
     if (id === "debug") renderDebug();
   }
 
@@ -528,10 +530,23 @@ const SAC_EVOMONITOR = (function () {
   }
 
   function renderSata() {
-    if (!INTEL) return;
+    if (!INTEL || !INTEL.renderSataPanel) return;
     INTEL.renderSataPanel(document.getElementById("emSataPanel"), {
       onToast: toast,
       onRefresh: () => loadOverview(),
+    });
+  }
+
+  function renderAiOps() {
+    if (!AIOPS) return;
+    AIOPS.renderAiOpsPanel(document.getElementById("emAiOpsPanel"), {
+      onToast: toast,
+      getLastErrorLog: function () {
+        const errors = logsCache.filter(function (l) {
+          return l.level === "error" || l.level === "warn" || (l.action && String(l.action).includes("failed"));
+        });
+        return errors.length ? errors[0] : null;
+      },
     });
   }
 

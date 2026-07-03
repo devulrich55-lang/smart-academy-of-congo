@@ -890,5 +890,6 @@ const SAC_EVOMONITOR_INTEL = (function () {
     setDebugMode,
     renderDebugPanel,
     wrapFetchForDebug,
+    renderSataPanel,
   };
 })();
