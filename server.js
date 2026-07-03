@@ -52,10 +52,22 @@ app.use(
   })
 );
 
-app.get("/ministere", (_req, res) => res.redirect(301, "/ministere/"));
-app.get("/superadmin", (_req, res) => res.redirect(301, "/superadmin/"));
-app.get("/admin-uni", (_req, res) => res.redirect(301, "/admin-uni/"));
-app.get("/evomonitor", (_req, res) => res.redirect(301, "/evomonitor/"));
+const PORTALS = [
+  "ministere",
+  "superadmin",
+  "admin-uni",
+  "evomonitor",
+  "devcenter",
+  "techmanager",
+];
+
+for (const slug of PORTALS) {
+  app.get(`/${slug}`, (_req, res) => res.redirect(301, `/${slug}/`));
+  app.get(`/${slug}/`, (_req, res) => {
+    res.sendFile(path.join(ROOT, slug, "index.html"));
+  });
+}
+
 app.get("/connexion-admin.html", (_req, res) => res.redirect(301, "/ministere/"));
 
 app.use((req, res, next) => {
