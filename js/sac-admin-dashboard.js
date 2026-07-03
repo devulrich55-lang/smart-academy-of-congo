@@ -101,6 +101,7 @@ const SAC_ADMIN_DASHBOARD = (function () {
     if (role === "superadmin") return '<span class="badge-super">Super Admin</span>';
     if (role === "ministere") return '<span class="badge-min">Ministère</span>';
     if (role === "developpeur") return '<span class="badge-dev">Développeur</span>';
+    if (role === "techmanager") return '<span class="badge-tm">Tech Manager</span>';
     return '<span class="badge-uni">Admin Uni</span>';
   }
 
@@ -741,6 +742,8 @@ const SAC_ADMIN_DASHBOARD = (function () {
       statSuper: br.superadmin || 0,
       statMin: br.ministere || 0,
       statUni: br.universite || 0,
+      statDev: br.developpeur || 0,
+      statTm: br.techmanager || 0,
     };
     Object.keys(map).forEach((id) => {
       const el = document.getElementById(id);
@@ -1043,6 +1046,9 @@ const SAC_ADMIN_DASHBOARD = (function () {
         FORBIDDEN: "Accès refusé — connectez-vous en tant que Super Admin.",
         SUPERADMIN_LIMIT:
           "Limite atteinte : maximum 2 comptes Super Admin autorisés. Supprimez un compte existant pour en créer un autre.",
+        DB_ROLE_CONSTRAINT:
+          "La base de données n'accepte pas encore ce rôle — redéployez l'API (API-1 sur Render) puis réessayez.",
+        CREATE_FAILED: "Le serveur n'a pas confirmé la création du compte. Vérifiez les logs API.",
       };
       return map[code] || err?.message || "Création impossible.";
     }
@@ -1435,6 +1441,9 @@ const SAC_ADMIN_DASHBOARD = (function () {
       }
       try {
         const created = await SAC_INSTITUTIONAL.create(session, payload);
+        if (!created?.email) {
+          throw new Error("Réponse serveur invalide — le compte n'a pas été enregistré.");
+        }
         if (
           role === "universite" &&
           payload.facultySections?.length &&

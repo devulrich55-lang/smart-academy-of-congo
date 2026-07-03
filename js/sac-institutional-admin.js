@@ -66,6 +66,8 @@ const SAC_INSTITUTIONAL = (function () {
   function roleBadgeClass(role) {
     if (role === "superadmin") return "badge-super";
     if (role === "ministere") return "badge-min";
+    if (role === "developpeur") return "badge-dev";
+    if (role === "techmanager") return "badge-tm";
     return "badge-uni";
   }
 

@@ -251,6 +251,8 @@ body[data-ws-role="universite"] {
 .badge-super { background: #7c3aed; color: #fff; font-size: 0.7rem; padding: 0.2rem 0.55rem; border-radius: 100px; font-weight: 700; }
 .badge-min { background: #1e40af; color: #fff; font-size: 0.7rem; padding: 0.2rem 0.55rem; border-radius: 100px; font-weight: 700; }
 .badge-uni { background: var(--uni); color: #fff; font-size: 0.7rem; padding: 0.2rem 0.55rem; border-radius: 100px; font-weight: 700; }
+.badge-dev { background: #4338ca; color: #fff; font-size: 0.7rem; padding: 0.2rem 0.55rem; border-radius: 100px; font-weight: 700; }
+.badge-tm { background: #9333ea; color: #fff; font-size: 0.7rem; padding: 0.2rem 0.55rem; border-radius: 100px; font-weight: 700; }
 
 .ws-toolbar { display: flex; flex-wrap: wrap; gap: 0.65rem; align-items: center; margin-bottom: 1rem; }
 
