@@ -267,6 +267,7 @@ const SAC_EVOMONITOR = (function () {
   }
 
   function incidentStatusUi(inc) {
+    if (!inc) return { label: "—", pill: "em-pill--open" };
     if (!INTEL) {
       if (inc.status === "acknowledged") return { label: "Pris en charge", pill: "em-pill--ack" };
       if (inc.status === "resolved") return { label: "Résolu", pill: "em-pill--resolved" };
@@ -280,24 +281,26 @@ const SAC_EVOMONITOR = (function () {
     const tbody = document.getElementById("emIncidentsBody");
     const count = document.getElementById("emOpenIncidents");
     const mttrEl = document.getElementById("emMttrStat");
+    const list = (items || []).filter(Boolean);
     if (count && lastOverview) {
       const open = (lastOverview.incidents && lastOverview.incidents.open) || 0;
       count.textContent = String(open);
       count.hidden = open <= 0;
     }
     if (INTEL && mttrEl) {
-      const mttr = INTEL.computeMttr(items);
+      const mttr = INTEL.computeMttr(list);
       mttrEl.textContent = mttr != null ? "MTTR moyen : " + fmtDuration(mttr) : "MTTR : —";
     }
     if (!tbody) return;
-    if (!items.length) {
+    if (!list.length) {
       tbody.innerHTML = '<tr><td colspan="7" class="em-empty">Aucun incident enregistré.</td></tr>';
       return;
     }
-    tbody.innerHTML = items
+    tbody.innerHTML = list
       .map((inc) => {
         const st = incidentStatusUi(inc);
-        const meta = INTEL ? INTEL.getIncidentMeta()[inc.id] : {};
+        const meta =
+          INTEL && inc.id ? INTEL.getIncidentMeta()[inc.id] || {} : {};
         const assignee = meta.assignee || inc.assignee || "—";
         return (
           "<tr>" +
@@ -668,7 +671,12 @@ const SAC_EVOMONITOR = (function () {
       await SAC_API.ensureApiSession({ soft: true });
       const data = await SAC_API.getMonitorOverview({ notify: !!notify });
       lastLoadError = null;
-      renderOverview(data);
+      try {
+        renderOverview(data);
+      } catch (renderErr) {
+        console.error("[EvoMonitor] renderOverview", renderErr);
+        toast("Erreur d'affichage : " + (renderErr.message || renderErr));
+      }
       if (AIOPS && AIOPS.syncFromOverview) {
         AIOPS.syncFromOverview(lastOverview, null, { onToast: toast });
       }
