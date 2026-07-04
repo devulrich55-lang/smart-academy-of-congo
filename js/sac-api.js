@@ -1869,11 +1869,11 @@ const SAC_API = (function () {
   async function getMonitorOverview(options) {
     const opts = options || {};
     const q = opts.notify ? "?notify=true" : "";
-    return request("/admin/monitor/overview" + q);
+    return request("/admin/monitor/overview" + q, { softAuth: true });
   }
 
   async function getMonitorSecurityPulse() {
-    return request("/admin/monitor/security-pulse");
+    return request("/admin/monitor/security-pulse", { softAuth: true });
   }
 
   async function listMonitorIncidents(limit) {

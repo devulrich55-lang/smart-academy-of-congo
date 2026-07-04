@@ -448,9 +448,24 @@ const SAC_EVOMONITOR = (function () {
     return String(n);
   }
 
+  function canPollSecurityPulse() {
+    const session =
+      typeof SAC_SESSION !== "undefined" && SAC_SESSION.getSession
+        ? SAC_SESSION.getSession()
+        : null;
+    if (!session || session.role !== "superadmin") return false;
+    if (typeof SAC_API === "undefined" || !SAC_API.getMonitorSecurityPulse) return false;
+    if (typeof SAC_API.hasAuthTokens === "function" && !SAC_API.hasAuthTokens()) return false;
+    return true;
+  }
+
   async function pollSecurityPulse() {
-    if (typeof SAC_API === "undefined" || !SAC_API.getMonitorSecurityPulse) return;
+    if (!canPollSecurityPulse()) return;
     try {
+      if (typeof SAC_API.ensureApiSession === "function") {
+        await SAC_API.ensureApiSession({ soft: true });
+      }
+      if (typeof SAC_API.hasAuthTokens === "function" && !SAC_API.hasAuthTokens()) return;
       const pulse = await SAC_API.getMonitorSecurityPulse();
       if (pulse && pulse.newAlerts > 0) {
         toast("🛡️ " + pulse.newAlerts + " alerte(s) sécurité détectée(s)");
