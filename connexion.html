@@ -37,6 +37,7 @@
   <link rel="stylesheet" href="css/theme.css" />
   <link rel="stylesheet" href="css/connexion.css" />
   <link rel="stylesheet" href="css/mobile.css" />
+  <link rel="stylesheet" href="css/sac-native-picker.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />
@@ -202,6 +203,7 @@
   </main>
 
   <script src="js/sac-universities.js?v=20260702a"></script>
+  <script src="js/sac-native-picker.js?v=20260704a"></script>
   <script src="js/sac-identity.js?v=20260702a"></script>
   <script src="js/sac-tariffs.js?v=20260702a"></script>
   <script src="js/sac-section-approval.js?v=20260702a"></script>
@@ -720,6 +722,9 @@
         universiteSelect.appendChild(opt);
       }
       universiteSelect.value = code;
+      if (typeof SAC_NATIVE_PICKER !== "undefined") {
+        SAC_NATIVE_PICKER.syncTrigger(universiteSelect);
+      }
     }
 
     function resolveLoginUniversite(idVal) {

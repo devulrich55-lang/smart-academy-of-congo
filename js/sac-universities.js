@@ -143,7 +143,12 @@ const SAC_UNIVERSITIES = (function () {
         el.innerHTML = optionsHtml(sel, { emptyLabel, includeAutre });
       });
     };
-    return hydrateFromApi().finally(run);
+    return hydrateFromApi().finally(() => {
+      run();
+      if (typeof SAC_NATIVE_PICKER !== "undefined") {
+        SAC_NATIVE_PICKER.enhanceAll(document, selectors);
+      }
+    });
   }
 
   function optionsHtmlForCountry(countryCode, selectedId, opts = {}) {
@@ -181,6 +186,9 @@ const SAC_UNIVERSITIES = (function () {
         emptyLabel: el.dataset.emptyLabel || "— Choisir —",
       });
     });
+    if (typeof SAC_NATIVE_PICKER !== "undefined") {
+      SAC_NATIVE_PICKER.enhanceAll(document, selector);
+    }
   }
 
   function normKey(value) {
