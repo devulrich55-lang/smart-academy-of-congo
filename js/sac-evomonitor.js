@@ -322,9 +322,9 @@ const SAC_EVOMONITOR = (function () {
           "</small></td>" +
           "<td>" +
           '<span class="em-pill ' +
-          st.pill +
+          (st?.pill || "em-pill--open") +
           '">' +
-          esc(st.label) +
+          esc(st?.label || "—") +
           "</span>" +
           "</td>" +
           "<td><small>" +
@@ -510,7 +510,16 @@ const SAC_EVOMONITOR = (function () {
     }
   }
 
+  function isClientBugError(err) {
+    if (AIOPS && AIOPS.isClientBugError) return AIOPS.isClientBugError(err);
+    const msg = String(err?.message || err || "");
+    return /cannot read propert|undefined \(reading|is not a function/i.test(msg);
+  }
+
   function formatOverviewError(err) {
+    if (isClientBugError(err)) {
+      return "Bug d'affichage corrigé — rechargez avec Ctrl+F5";
+    }
     if (!err) return "API inaccessible";
     if (err.status === 401 || err.code === "AUTH_REQUIRED" || err.code === "TOKEN_EXPIRED") {
       return "Session expirée — déconnectez-vous et reconnectez-vous";
@@ -675,12 +684,25 @@ const SAC_EVOMONITOR = (function () {
         renderOverview(data);
       } catch (renderErr) {
         console.error("[EvoMonitor] renderOverview", renderErr);
-        toast("Erreur d'affichage : " + (renderErr.message || renderErr));
+        if (!isClientBugError(renderErr)) {
+          lastLoadError = renderErr;
+        }
+        toast(
+          isClientBugError(renderErr)
+            ? "Bug d'affichage — Ctrl+F5 pour appliquer le correctif."
+            : "Erreur d'affichage : " + (renderErr.message || renderErr)
+        );
       }
+      if (AIOPS && AIOPS.clearOutageState) AIOPS.clearOutageState();
       if (AIOPS && AIOPS.syncFromOverview) {
         AIOPS.syncFromOverview(lastOverview, null, { onToast: toast });
       }
     } catch (err) {
+      if (isClientBugError(err)) {
+        toast("Bug d'affichage — Ctrl+F5 pour recharger EvoMonitor.");
+        if (AIOPS && AIOPS.clearOutageState) AIOPS.clearOutageState();
+        return;
+      }
       lastLoadError = err;
       const errLabel = formatOverviewError(err);
       toast(errLabel);

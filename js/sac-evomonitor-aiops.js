@@ -98,7 +98,35 @@ const SAC_EVOMONITOR_AIOPS = (function () {
     return '<span class="em-ai-badge em-ai-badge--rules">📋 Mode règles EvoMonitor</span>';
   }
 
+  function isClientBugError(err) {
+    const msg = String(err?.message || err || "");
+    return /cannot read propert|undefined \(reading|is not a function|syntaxerror|unexpected token/i.test(msg);
+  }
+
+  function clearOutageState() {
+    lastOutageState = { overview: lastOutageState?.overview || null, error: null, at: Date.now() };
+    lastAiOpsAlertKey = "";
+    updateNavBadge(0);
+    writeState({ at: Date.now(), alertCount: 0, summary: "", offline: false });
+  }
+
   function detectOutageFromError(err) {
+    if (isClientBugError(err)) {
+      return {
+        severity: "warning",
+        service: "platform",
+        title: "Bug d'affichage EvoMonitor (corrigé)",
+        message:
+          "Erreur JavaScript locale — pas une panne API. Rechargez avec Ctrl+F5 pour appliquer le correctif.",
+        explanation: "Le tableau a rencontré un bug d'affichage (assignee). Correctif déployé côté frontend.",
+        fixes: ["Ctrl+F5 sur EvoMonitor", "Vider le cache navigateur", "Actualiser le tableau de santé"],
+        correctiveCode: "// Correctif appliqué dans sac-evomonitor.js — meta incident || {}",
+        confidence: 0.95,
+        source: "rules",
+        kind: "active_anomaly",
+        actions: ["Recharger la page (Ctrl+F5)", "Actualiser le tableau"],
+      };
+    }
     const msg = String(err?.message || err || "API inaccessible");
     return {
       severity: "critical",
@@ -161,7 +189,11 @@ const SAC_EVOMONITOR_AIOPS = (function () {
   function buildLocalPredictions(overview, error) {
     const predictions = [];
     const srcOverview = overview || lastOutageState?.overview || null;
-    if (error) predictions.push(detectOutageFromError(error));
+    const outageErr = error && !isClientBugError(error) ? error : null;
+    if (outageErr) predictions.push(detectOutageFromError(outageErr));
+    else if (error && isClientBugError(error)) {
+      predictions.push(detectOutageFromError(error));
+    }
     if (srcOverview) {
       if (typeof SAC_EVOMONITOR_INTEL !== "undefined") {
         const local = SAC_EVOMONITOR_INTEL.predictAnomalies(
@@ -190,11 +222,13 @@ const SAC_EVOMONITOR_AIOPS = (function () {
     return {
       predictions: predictions,
       count: predictions.length,
-      summary: error
+      summary: outageErr
         ? "🚨 Panne active : " +
-          (error.message || "API inaccessible") +
+          (outageErr.message || "API inaccessible") +
           ". Surveillance locale activée."
-        : critical
+        : error && isClientBugError(error)
+          ? "⚠️ Bug d'affichage corrigé — rechargez avec Ctrl+F5."
+          : critical
           ? critical + " alerte(s) critique(s) détectée(s)."
           : predictions.length
             ? predictions.length + " signal(s) à surveiller."
@@ -273,10 +307,11 @@ const SAC_EVOMONITOR_AIOPS = (function () {
   let lastAiOpsAlertKey = "";
 
   async function syncFromOverview(overview, error, callbacks) {
-    lastOutageState = { overview: overview || null, error: error || null, at: Date.now() };
-    const data = await fetchPredictionsSafe(overview, error);
+    const normalizedError = error && !isClientBugError(error) ? error : null;
+    lastOutageState = { overview: overview || null, error: normalizedError, at: Date.now() };
+    const data = await fetchPredictionsSafe(overview, normalizedError);
     lastPredictions = data;
-    const alertCount = countAlerts(data, error);
+    const alertCount = countAlerts(data, normalizedError);
     updateNavBadge(alertCount);
     writeState({
       at: Date.now(),
@@ -291,12 +326,12 @@ const SAC_EVOMONITOR_AIOPS = (function () {
     const critical = (data.predictions || []).filter(function (p) {
       return p.severity === "critical";
     }).length;
-    const alertKey = error
-      ? "err:" + (error.message || "")
+    const alertKey = normalizedError
+      ? "err:" + (normalizedError.message || "")
       : "sig:" + critical + ":" + alertCount + ":" + (data.summary || "").slice(0, 40);
-    if (error || alertCount > 0) {
-      const analysis = error
-        ? detectOutageFromError(error)
+    if (normalizedError || alertCount > 0) {
+      const analysis = normalizedError
+        ? detectOutageFromError(normalizedError)
         : (data.predictions || []).find(function (p) { return p.severity === "critical"; }) ||
           data.predictions?.[0];
       if (analysis) {
@@ -305,7 +340,11 @@ const SAC_EVOMONITOR_AIOPS = (function () {
           callbacks.onToast("Ticket auto " + (ticket.ticketNumber || "") + " créé (panne détectée).");
           lastAiOpsAlertKey = alertKey;
         } else if (callbacks?.onToast && alertKey !== lastAiOpsAlertKey) {
-          callbacks.onToast("🚨 Centre IA : " + (error ? "panne API" : alertCount + " signal(s)") + " — consultez Prédictions.");
+          callbacks.onToast(
+            "🚨 Centre IA : " +
+              (normalizedError ? "panne API" : alertCount + " signal(s)") +
+              " — consultez Prédictions."
+          );
           lastAiOpsAlertKey = alertKey;
         }
       }
@@ -603,20 +642,24 @@ const SAC_EVOMONITOR_AIOPS = (function () {
     aiOpsPanelMounted = true;
     const cb = callbacks || {};
     const lastErr = cb.getLastError ? cb.getLastError() : null;
+    const showOutageBanner = lastErr && !isClientBugError(lastErr);
     const cachedOverview = cb.getLastOverview ? cb.getLastOverview() : null;
-    if (!lastOutageState?.error && lastErr) {
+    if (!lastOutageState?.error && showOutageBanner) {
       lastOutageState = { overview: cachedOverview, error: lastErr, at: Date.now() };
     } else if (cachedOverview && !lastOutageState?.overview) {
       lastOutageState = Object.assign({}, lastOutageState || {}, { overview: cachedOverview, at: Date.now() });
     }
 
     root.innerHTML =
-      (lastErr
+      (showOutageBanner
         ? '<div class="em-panel em-panel--alert em-empty--warn" id="emAiOpsOutageBanner">' +
           "<strong>🚨 Panne active détectée</strong><p>" +
           esc(lastErr.message || "API inaccessible") +
           "</p></div>"
-        : "") +
+        : lastErr && isClientBugError(lastErr)
+          ? '<div class="em-panel em-panel--alert" style="border-color:rgba(245,158,11,.4)">' +
+            "<strong>ℹ️ Correctif disponible</strong><p>Rechargez avec <strong>Ctrl+F5</strong> — bug assignee corrigé.</p></div>"
+          : "") +
       '<div class="em-aiops-grid">' +
       '<div class="em-panel" id="emAiOpsStatus"><p class="em-empty">Chargement du Centre IA…</p></div>' +
       '<div id="emAiOpsPredictions"></div>' +
@@ -671,7 +714,7 @@ const SAC_EVOMONITOR_AIOPS = (function () {
       );
     }
 
-    if (lastErr && root.querySelector("#emAiErrorMsg")) {
+    if (root.querySelector("#emAiErrorMsg") && lastErr && !isClientBugError(lastErr)) {
       root.querySelector("#emAiErrorMsg").value = lastErr.message || "";
       if (root.querySelector("#emAiService")) root.querySelector("#emAiService").value = "api";
     }
@@ -785,6 +828,8 @@ const SAC_EVOMONITOR_AIOPS = (function () {
     syncFromOverview,
     runWatchdog,
     restoreState,
+    clearOutageState,
+    isClientBugError,
     analyze,
     fetchPredictions,
     fetchTickets,
