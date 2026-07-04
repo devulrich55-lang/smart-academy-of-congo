@@ -36,6 +36,156 @@ const SAC_EVOMONITOR_AIOPS = (function () {
     return '<span class="em-ai-badge em-ai-badge--rules">📋 Mode règles EvoMonitor</span>';
   }
 
+  function detectOutageFromError(err) {
+    const msg = String(err?.message || err || "API inaccessible");
+    return {
+      severity: "critical",
+      service: "api",
+      title: "API EvoMonitor inaccessible",
+      message: msg,
+      explanation:
+        "Le Centre IA n'a pas pu joindre l'API de supervision. Panne probable ou service Render en veille.",
+      fixes: [
+        "Vérifier le statut Render (API-1)",
+        "Relancer un warm-up API",
+        "Consulter les logs Render",
+        "Créer un ticket développeur",
+      ],
+      correctiveCode:
+        "# Vérifier health\nGET /api/health\n\n# Redémarrer le service sur Render si cold start bloqué",
+      confidence: 0.85,
+      source: "rules",
+      kind: "active_anomaly",
+      actions: [
+        "Ping API / health",
+        "Réveiller l'API (warm-up)",
+        "Redémarrer le service Render",
+      ],
+    };
+  }
+
+  function buildLocalPredictions(overview, error) {
+    const predictions = [];
+    if (error) predictions.push(detectOutageFromError(error));
+    if (overview && typeof SAC_EVOMONITOR_INTEL !== "undefined") {
+      const local = SAC_EVOMONITOR_INTEL.predictAnomalies(
+        overview,
+        SAC_EVOMONITOR_INTEL.getHistory()
+      );
+      local.forEach(function (p) {
+        if (!predictions.some((x) => x.title === p.title)) predictions.push(p);
+      });
+    }
+    const critical = predictions.filter(function (p) {
+      return p.severity === "critical";
+    }).length;
+    return {
+      predictions: predictions,
+      count: predictions.length,
+      summary: error
+        ? "🚨 Panne active : " +
+          (error.message || "API inaccessible") +
+          ". Surveillance locale activée."
+        : critical
+          ? critical + " alerte(s) critique(s) détectée(s)."
+          : predictions.length
+            ? predictions.length + " signal(s) à surveiller."
+            : "Aucune panne prévue à court terme.",
+      source: "rules",
+      offline: !!error,
+      healthScore: overview?.healthScore,
+    };
+  }
+
+  async function fetchPredictionsSafe(overview, error) {
+    if (typeof SAC_API !== "undefined" && SAC_API.getAiOpsPredictions) {
+      try {
+        return await SAC_API.getAiOpsPredictions();
+      } catch (err) {
+        return buildLocalPredictions(overview, err);
+      }
+    }
+    return buildLocalPredictions(overview, error);
+  }
+
+  function updateNavBadge(count) {
+    const badge = document.getElementById("emAiOpsAlert");
+    if (!badge) return;
+    const n = Number(count) || 0;
+    badge.textContent = String(n);
+    badge.hidden = n <= 0;
+  }
+
+  async function maybeAutoTicket(analysis) {
+    if (!analysis || analysis.severity !== "critical") return null;
+    const key =
+      "em_aiops_autoticket_" +
+      String(analysis.title || "outage")
+        .slice(0, 48)
+        .replace(/\W+/g, "_");
+    try {
+      const last = sessionStorage.getItem(key);
+      if (last && Date.now() - Number(last) < 3600000) return null;
+    } catch {
+      /* ignore */
+    }
+    try {
+      const ticket = await createTicket({
+        title: "[Auto] " + (analysis.title || "Incident EvoMonitor"),
+        description: analysis.explanation || analysis.message || "",
+        severity: analysis.severity || "critical",
+        service: analysis.service || "api",
+        analysis: analysis,
+        correctiveCode: analysis.correctiveCode || "",
+        errorContext: { errorMessage: analysis.message || analysis.title, service: analysis.service },
+      });
+      try {
+        sessionStorage.setItem(key, String(Date.now()));
+      } catch {
+        /* ignore */
+      }
+      return ticket;
+    } catch {
+      return null;
+    }
+  }
+
+  let lastOutageState = null;
+  let aiOpsPanelMounted = false;
+  let lastAiOpsAlertKey = "";
+
+  async function syncFromOverview(overview, error, callbacks) {
+    lastOutageState = { overview: overview || null, error: error || null, at: Date.now() };
+    const data = await fetchPredictionsSafe(overview, error);
+    lastPredictions = data;
+    const critical = (data.predictions || []).filter(function (p) {
+      return p.severity === "critical";
+    }).length;
+    updateNavBadge(critical + (error ? 1 : 0));
+
+    const predEl = document.getElementById("emAiOpsPredictions");
+    if (predEl && aiOpsPanelMounted) renderPredictions(predEl, data);
+
+    const alertKey = error ? "err:" + (error.message || "") : "crit:" + critical;
+    if (error || critical > 0) {
+      const analysis = error ? detectOutageFromError(error) : data.predictions?.[0];
+      if (analysis) {
+        const ticket = await maybeAutoTicket(analysis);
+        if (ticket && callbacks?.onToast) {
+          callbacks.onToast("Ticket auto " + (ticket.ticketNumber || "") + " créé (panne détectée).");
+          lastAiOpsAlertKey = alertKey;
+        } else if (callbacks?.onToast && alertKey !== lastAiOpsAlertKey) {
+          callbacks.onToast("🚨 Centre IA : panne détectée — consultez Prédictions.");
+          lastAiOpsAlertKey = alertKey;
+        }
+      }
+    } else {
+      lastAiOpsAlertKey = "";
+      updateNavBadge(0);
+    }
+    return data;
+  }
+
   async function fetchStatus() {
     if (typeof SAC_API !== "undefined" && SAC_API.getAiOpsStatus) {
       return await SAC_API.getAiOpsStatus();
@@ -77,11 +227,11 @@ const SAC_EVOMONITOR_AIOPS = (function () {
     };
   }
 
-  async function fetchPredictions() {
-    if (typeof SAC_API !== "undefined" && SAC_API.getAiOpsPredictions) {
-      return await SAC_API.getAiOpsPredictions();
-    }
-    return { predictions: [], summary: "Prédictions indisponibles (API hors ligne)." };
+  async function fetchPredictions(overview, error) {
+    return fetchPredictionsSafe(
+      overview != null ? overview : lastOutageState?.overview,
+      error != null ? error : lastOutageState?.error
+    );
   }
 
   async function fetchTickets() {
@@ -203,7 +353,11 @@ const SAC_EVOMONITOR_AIOPS = (function () {
             )
             .join("") +
           "</div>"
-        : '<p class="em-empty">✅ Aucun signal de panne imminente.</p>') +
+        : data?.offline || /panne|indisponible|critique|alerte|hors ligne|🚨/i.test(summary)
+          ? '<p class="em-empty em-empty--warn">⚠️ ' +
+            esc(summary || "Signaux de panne détectés — analyse recommandée.") +
+            "</p>"
+          : '<p class="em-empty">✅ Aucun signal de panne imminente.</p>') +
       "</div>";
 
     host.querySelectorAll(".em-ai-analyze-pred").forEach(function (btn) {
@@ -284,6 +438,7 @@ const SAC_EVOMONITOR_AIOPS = (function () {
 
   async function renderAiOpsPanel(root, callbacks) {
     if (!root) return;
+    aiOpsPanelMounted = true;
     const cb = callbacks || {};
     root.innerHTML =
       '<div class="em-aiops-grid">' +
@@ -328,10 +483,10 @@ const SAC_EVOMONITOR_AIOPS = (function () {
     }
 
     try {
-      const preds = await fetchPredictions();
+      const preds = await fetchPredictions(lastOutageState?.overview, lastOutageState?.error);
       renderPredictions(predEl, preds);
-    } catch {
-      predEl.innerHTML = "<p class='em-empty'>Prédictions indisponibles.</p>";
+    } catch (err) {
+      renderPredictions(predEl, buildLocalPredictions(lastOutageState?.overview, err));
     }
 
     try {
@@ -440,12 +595,17 @@ const SAC_EVOMONITOR_AIOPS = (function () {
 
   return {
     renderAiOpsPanel,
+    syncFromOverview,
     analyze,
     fetchPredictions,
     fetchTickets,
     createTicket,
+    detectOutageFromError,
     getLastAnalysis: function () {
       return lastAnalysis;
+    },
+    getLastPredictions: function () {
+      return lastPredictions;
     },
   };
 })();

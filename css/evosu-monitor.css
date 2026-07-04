@@ -459,6 +459,13 @@
   font-size: 0.88rem;
 }
 
+.em-empty--warn {
+  color: #b45309;
+  background: rgba(245, 158, 11, 0.1);
+  border-radius: 10px;
+  font-weight: 600;
+}
+
 .em-actions {
   margin-top: 1rem;
 }

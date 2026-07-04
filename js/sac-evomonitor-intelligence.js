@@ -94,8 +94,80 @@ const SAC_EVOMONITOR_INTEL = (function () {
     return history.filter((h) => h.t >= cutoff);
   }
 
-  function predictAnomalies(overview, history) {
+  function detectImmediateOutage(overview) {
     const preds = [];
+    if (!overview) return preds;
+
+    if (overview.status === "critical") {
+      preds.push({
+        severity: "critical",
+        service: "platform",
+        title: "État système critique",
+        message:
+          overview.statusLabel ||
+          "Le tableau de santé signale une panne active sur la plateforme.",
+        actions: [
+          "Consulter l'onglet Incidents",
+          "Lancer l'auto-healing (SATA)",
+          "Analyser dans le Centre IA",
+        ],
+        kind: "active_anomaly",
+      });
+    }
+
+    const db = overview.database || {};
+    if (db.connected === false) {
+      preds.push({
+        severity: "critical",
+        service: "database",
+        title: "Base de données hors ligne",
+        message: "La connexion à la base de données est interrompue.",
+        actions: ["Tester reconnexion DB", "Vérifier MySQL Render", "Créer un ticket développeur"],
+        kind: "active_anomaly",
+      });
+    }
+
+    const net = overview.network || {};
+    if (net.internetAvailable === false) {
+      preds.push({
+        severity: "critical",
+        service: "network",
+        title: "Connexion réseau indisponible",
+        message: "Le serveur ne peut pas joindre Internet ou l'API externe.",
+        actions: ["Vérifier Render / DNS", "Ping API health"],
+        kind: "active_anomaly",
+      });
+    }
+
+    const failRate = Number(net.failureRate);
+    if (failRate >= 15) {
+      preds.push({
+        severity: "critical",
+        service: "network",
+        title: "Taux d'échec API élevé",
+        message: "Environ " + failRate.toFixed(1) + "% des requêtes échouent actuellement.",
+        actions: ["Consulter les logs", "Analyser avec le Centre IA"],
+        kind: "active_anomaly",
+      });
+    }
+
+    const hs = Number(overview.healthScore);
+    if (Number.isFinite(hs) && hs > 0 && hs < 40) {
+      preds.push({
+        severity: "critical",
+        service: "platform",
+        title: "Score de santé très bas",
+        message: "Score actuel : " + hs + "/100 — intervention recommandée.",
+        actions: ["Actualiser le tableau", "Ouvrir Centre IA → Prédictions"],
+        kind: "active_anomaly",
+      });
+    }
+
+    return preds;
+  }
+
+  function predictAnomalies(overview, history) {
+    const preds = detectImmediateOutage(overview);
     const hist = history || getHistory();
     if (hist.length < 3) return preds;
 

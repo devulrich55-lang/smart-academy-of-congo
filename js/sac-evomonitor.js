@@ -12,6 +12,7 @@ const SAC_EVOMONITOR = (function () {
   let securityTimer = null;
   let liveTimer = null;
   let lastOverview = null;
+  let lastLoadError = null;
   let logsCache = [];
   let logFilters = { q: "", category: "all", level: "all" };
 
@@ -474,14 +475,38 @@ const SAC_EVOMONITOR = (function () {
       }
       await SAC_API.ensureApiSession({ soft: true });
       const data = await SAC_API.getMonitorOverview({ notify: !!notify });
+      lastLoadError = null;
       renderOverview(data);
+      if (AIOPS && AIOPS.syncFromOverview) {
+        AIOPS.syncFromOverview(data, null, { onToast: toast });
+      }
     } catch (err) {
+      lastLoadError = err;
       toast(err.message || "Impossible de charger les métriques.");
       const hero = document.getElementById("emHeroStatus");
       if (hero) {
         hero.className = "em-hero-status em-status--critical";
         hero.innerHTML =
           '<span class="em-hero-status__icon">🔴</span><div><strong>Panne critique</strong><span>API inaccessible</span></div>';
+      }
+      const outage =
+        AIOPS && AIOPS.detectOutageFromError
+          ? [AIOPS.detectOutageFromError(err)]
+          : [
+              {
+                severity: "critical",
+                service: "api",
+                title: "API EvoMonitor inaccessible",
+                message: err.message || "Impossible de joindre l'API.",
+                kind: "active_anomaly",
+              },
+            ];
+      renderAnomalies(outage);
+      if (INTEL) {
+        INTEL.dispatchAlert({ severity: "critical", message: "Panne API — " + (err.message || "inaccessible") }, toast);
+      }
+      if (AIOPS && AIOPS.syncFromOverview) {
+        AIOPS.syncFromOverview(null, err, { onToast: toast });
       }
     } finally {
       if (btn) {
