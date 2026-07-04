@@ -1931,6 +1931,10 @@ const SAC_API = (function () {
     });
   }
 
+  async function getMonitorAlertsStatus() {
+    return request("/admin/monitor/alerts/status", { softAuth: true });
+  }
+
   async function runMonitorSimulation(scenario) {
     return request("/admin/monitor/simulate", {
       method: "POST",
@@ -2507,6 +2511,7 @@ const SAC_API = (function () {
     triggerMonitorHeal,
     sendMonitorAlert,
     testMonitorAlerts,
+    getMonitorAlertsStatus,
     runMonitorSimulation,
     getAiOpsStatus,
     analyzeAiOpsError,

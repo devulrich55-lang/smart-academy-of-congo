@@ -813,11 +813,42 @@ const SAC_EVOMONITOR_INTEL = (function () {
 
     const succeeded = (apiResult && apiResult.succeeded) || 0;
     const tested = (apiResult && apiResult.tested) || apiChannels.length;
-    const summary =
+    let summary =
       apiChannels.length && apiResult
         ? succeeded + "/" + tested + " canal(aux) serveur OK"
         : "Notification locale OK";
-    if (toastFn) toastFn("✅ Test alertes — " + summary);
+
+    if (apiResult && apiResult.results && apiResult.results.length) {
+      const failed = apiResult.results.filter(function (r) {
+        return !r.ok;
+      });
+      if (failed.length) {
+        const hints = failed
+          .map(function (r) {
+            return (r.channel || "?") + ": " + (r.note || "échec");
+          })
+          .join(" · ");
+        summary = succeeded + "/" + tested + " OK — " + hints;
+        if (toastFn) toastFn("⚠️ " + summary.slice(0, 220));
+        return { ok: succeeded > 0, apiResult: apiResult, summary: summary };
+      }
+    }
+
+    if (succeeded === 0 && apiChannels.indexOf("whatsapp") >= 0 && SAC_API.getMonitorAlertsStatus) {
+      try {
+        const st = await SAC_API.getMonitorAlertsStatus();
+        if (st && st.infobip && !st.infobip.configured) {
+          summary =
+            "WhatsApp: ajoutez INFOBIP_API_KEY et INFOBIP_BASE_URL sur Render, puis redéployez l'API.";
+          if (toastFn) toastFn("⚠️ " + summary);
+          return { ok: false, apiResult: apiResult, summary: summary };
+        }
+      } catch {
+        /* ignore */
+      }
+    }
+
+    if (toastFn) toastFn(succeeded === tested ? "✅ Test alertes — " + summary : "⚠️ Test alertes — " + summary);
     return { ok: true, apiResult: apiResult, summary: summary };
   }
 
