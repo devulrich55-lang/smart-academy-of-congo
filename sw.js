@@ -38,6 +38,19 @@ self.addEventListener("activate", (event) => {
   );
 });
 
+self.addEventListener("message", (event) => {
+  if (!event.data || event.data.type !== "EVOMONITOR_PUSH") return;
+  const { title, body, tag, icon } = event.data;
+  event.waitUntil(
+    self.registration.showNotification(title || "EvoMonitor", {
+      body: body || "",
+      tag: tag || "evomonitor-alert",
+      icon: icon || "/evo-uni.jpeg",
+      badge: icon || "/evo-uni.jpeg",
+    })
+  );
+});
+
 self.addEventListener("fetch", (event) => {
   const req = event.request;
   const url = new URL(req.url);

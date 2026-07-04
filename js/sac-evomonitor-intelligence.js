@@ -661,6 +661,7 @@ const SAC_EVOMONITOR_INTEL = (function () {
         push: false,
         telegramChatId: "",
         smsPhone: "",
+        whatsappPhone: "",
         minSeverity: "warning",
       },
       readJson(ALERT_CFG_KEY, {})
@@ -671,26 +672,153 @@ const SAC_EVOMONITOR_INTEL = (function () {
     writeJson(ALERT_CFG_KEY, Object.assign(getAlertConfig(), cfg || {}));
   }
 
+  const SEVERITY_RANK = { info: 1, warning: 2, critical: 3 };
+
+  function severityMeets(severity, minSeverity) {
+    const s = SEVERITY_RANK[String(severity || "info").toLowerCase()] || 1;
+    const m = SEVERITY_RANK[String(minSeverity || "warning").toLowerCase()] || 2;
+    return s >= m;
+  }
+
+  async function ensurePushPermission() {
+    if (!("Notification" in window)) return false;
+    if (Notification.permission === "granted") return true;
+    if (Notification.permission === "denied") return false;
+    try {
+      return (await Notification.requestPermission()) === "granted";
+    } catch {
+      return false;
+    }
+  }
+
+  async function showPushNotification(message, severity) {
+    if (!("Notification" in window)) return false;
+    if (Notification.permission !== "granted") {
+      const ok = await ensurePushPermission();
+      if (!ok) return false;
+    }
+    const title = "EvoMonitor — " + (severity || "alerte");
+    const opts = {
+      body: String(message || "Alerte EvoMonitor").slice(0, 240),
+      tag: "evomonitor-" + Date.now(),
+      icon: "/evo-uni.jpeg",
+      badge: "/evo-uni.jpeg",
+    };
+    if ("serviceWorker" in navigator) {
+      try {
+        const reg = await navigator.serviceWorker.ready;
+        await reg.showNotification(title, opts);
+        return true;
+      } catch {
+        /* fallback */
+      }
+    }
+    try {
+      new Notification(title, opts);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  function alertDispatchPayload(cfg, msg, sev, channel) {
+    return {
+      channel: channel,
+      message: msg,
+      severity: sev,
+      telegramChatId: cfg.telegramChatId,
+      smsPhone: cfg.smsPhone,
+      whatsappPhone: cfg.whatsappPhone || cfg.smsPhone,
+    };
+  }
+
+  async function sendMonitorChannel(cfg, channel, msg, sev) {
+    if (typeof SAC_API === "undefined" || !SAC_API.sendMonitorAlert) return null;
+    try {
+      return await SAC_API.sendMonitorAlert(alertDispatchPayload(cfg, msg, sev, channel));
+    } catch {
+      return null;
+    }
+  }
+
   async function dispatchAlert(payload, toastFn) {
     const cfg = getAlertConfig();
     const sev = payload.severity || "info";
     const msg = payload.message || payload.title || "Alerte EvoMonitor";
+    if (!severityMeets(sev, cfg.minSeverity)) return true;
+
     if (cfg.dashboard && toastFn) toastFn("🔔 " + msg);
-    if (cfg.email && typeof SAC_API !== "undefined" && SAC_API.getMonitorOverview) {
-      try {
-        await SAC_API.getMonitorOverview({ notify: true });
-      } catch {
+
+    if (cfg.push) {
+      showPushNotification(msg, sev).catch(function () {
         /* ignore */
-      }
+      });
     }
-    if (cfg.telegram && cfg.telegramChatId && typeof SAC_API !== "undefined" && SAC_API.sendMonitorAlert) {
-      try {
-        await SAC_API.sendMonitorAlert({ channel: "telegram", message: msg, severity: sev });
-      } catch {
-        /* backend optional */
-      }
+
+    if (cfg.email) {
+      await sendMonitorChannel(cfg, "email", msg, sev);
+    }
+    if (cfg.telegram && cfg.telegramChatId) {
+      await sendMonitorChannel(cfg, "telegram", msg, sev);
+    }
+    if (cfg.sms && cfg.smsPhone && sev === "critical") {
+      await sendMonitorChannel(cfg, "sms", msg, sev);
+    }
+    if (cfg.whatsapp && (cfg.whatsappPhone || cfg.smsPhone)) {
+      await sendMonitorChannel(cfg, "whatsapp", msg, sev);
     }
     return true;
+  }
+
+  async function testAlertChannels(toastFn) {
+    const cfg = getAlertConfig();
+    const msg =
+      "Test canaux EvoMonitor — " +
+      new Date().toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "medium" });
+    const channels = [];
+    if (cfg.dashboard) channels.push("dashboard");
+    if (cfg.email) channels.push("email");
+    if (cfg.telegram && cfg.telegramChatId) channels.push("telegram");
+    if (cfg.sms && cfg.smsPhone) channels.push("sms");
+    if (cfg.whatsapp && (cfg.whatsappPhone || cfg.smsPhone)) channels.push("whatsapp");
+    if (cfg.push) channels.push("push");
+
+    if (!channels.length) {
+      if (toastFn) toastFn("Activez au moins un canal d'alerte.");
+      return { ok: false, message: "Aucun canal activé." };
+    }
+
+    if (cfg.dashboard && toastFn) toastFn("🔔 Test — " + msg);
+    if (cfg.push) await showPushNotification(msg, "warning");
+
+    const apiChannels = channels.filter(function (c) {
+      return c !== "dashboard" && c !== "push";
+    });
+    let apiResult = null;
+    if (apiChannels.length && typeof SAC_API !== "undefined" && SAC_API.testMonitorAlerts) {
+      try {
+        apiResult = await SAC_API.testMonitorAlerts({
+          message: msg,
+          severity: "warning",
+          channels: apiChannels,
+          telegramChatId: cfg.telegramChatId,
+          smsPhone: cfg.smsPhone,
+          whatsappPhone: cfg.whatsappPhone || cfg.smsPhone,
+        });
+      } catch (err) {
+        if (toastFn) toastFn("Test API : " + (err.message || "échec"));
+        return { ok: false, message: err.message };
+      }
+    }
+
+    const succeeded = (apiResult && apiResult.succeeded) || 0;
+    const tested = (apiResult && apiResult.tested) || apiChannels.length;
+    const summary =
+      apiChannels.length && apiResult
+        ? succeeded + "/" + tested + " canal(aux) serveur OK"
+        : "Notification locale OK";
+    if (toastFn) toastFn("✅ Test alertes — " + summary);
+    return { ok: true, apiResult: apiResult, summary: summary };
   }
 
   const HEAL_ACTIONS = [
@@ -906,7 +1034,14 @@ const SAC_EVOMONITOR_INTEL = (function () {
       '<label class="em-channel-field">Téléphone SMS<input class="fi" name="smsPhone" value="' +
       esc(cfg.smsPhone) +
       '" placeholder="+243…" /></label>' +
-      '<button type="submit" class="btn btn--role">Enregistrer les canaux</button></form></div>' +
+      '<label class="em-channel-field">Téléphone WhatsApp<input class="fi" name="whatsappPhone" value="' +
+      esc(cfg.whatsappPhone || cfg.smsPhone) +
+      '" placeholder="+243…" /></label>' +
+      '<p class="em-hint">E-mail/Telegram/SMS/WhatsApp passent par l\'API Render (SMTP, bot Telegram, webhooks). Push = notification navigateur.</p>' +
+      '<div class="em-heal-actions">' +
+      '<button type="submit" class="btn btn--role">Enregistrer les canaux</button>' +
+      '<button type="button" class="btn btn--ghost" id="emTestAlertsBtn">Tester les canaux</button>' +
+      "</div></form></div>" +
       '<div class="em-panel"><h3>🔄 Auto-réparation</h3><div class="em-heal-actions">' +
       HEAL_ACTIONS.map(
         (a) =>
@@ -940,8 +1075,18 @@ const SAC_EVOMONITOR_INTEL = (function () {
         push: !!fd.get("push"),
         telegramChatId: String(fd.get("telegramChatId") || "").trim(),
         smsPhone: String(fd.get("smsPhone") || "").trim(),
+        whatsappPhone: String(fd.get("whatsappPhone") || "").trim(),
       });
+      if (fd.get("push") && callbacks.onToast) {
+        ensurePushPermission().then(function (ok) {
+          if (!ok) callbacks.onToast("Push : autorisez les notifications dans le navigateur.");
+        });
+      }
       if (callbacks.onToast) callbacks.onToast("Canaux d'alerte enregistrés.");
+    });
+
+    host.querySelector("#emTestAlertsBtn")?.addEventListener("click", function () {
+      testAlertChannels(callbacks.onToast);
     });
 
     host.querySelectorAll("[data-heal]").forEach(function (btn) {
@@ -1005,6 +1150,8 @@ const SAC_EVOMONITOR_INTEL = (function () {
     getAlertConfig,
     saveAlertConfig,
     dispatchAlert,
+    testAlertChannels,
+    ensurePushPermission,
     runAutoHeal,
     startSimulation,
     stopSimulation,

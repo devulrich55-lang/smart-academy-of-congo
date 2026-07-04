@@ -1919,6 +1919,15 @@ const SAC_API = (function () {
     return request("/admin/monitor/alerts/dispatch", {
       method: "POST",
       body: JSON.stringify(payload || {}),
+      softAuth: true,
+    });
+  }
+
+  async function testMonitorAlerts(payload) {
+    return request("/admin/monitor/alerts/test", {
+      method: "POST",
+      body: JSON.stringify(payload || {}),
+      softAuth: true,
     });
   }
 
@@ -2497,6 +2506,7 @@ const SAC_API = (function () {
     listMonitorLogs,
     triggerMonitorHeal,
     sendMonitorAlert,
+    testMonitorAlerts,
     runMonitorSimulation,
     getAiOpsStatus,
     analyzeAiOpsError,

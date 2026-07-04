@@ -952,6 +952,9 @@ const SAC_EVOMONITOR = (function () {
     if (typeof SAC_PORTAL !== "undefined") {
       SAC_PORTAL.applyBranding("superadmin");
     }
+    if (typeof SAC_PWA !== "undefined" && SAC_PWA.registerServiceWorker) {
+      SAC_PWA.registerServiceWorker();
+    }
 
     document.getElementById("emRefreshBtn")?.addEventListener("click", () => loadOverview());
     document.getElementById("emDiagBtn")?.addEventListener("click", () => runApiDiagnostics());
