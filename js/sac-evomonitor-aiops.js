@@ -126,30 +126,64 @@ const SAC_EVOMONITOR_AIOPS = (function () {
     };
   }
 
+  function appendOverviewSignals(predictions, overview) {
+    if (!overview) return predictions;
+    const open = Number(overview.incidents?.open);
+    if (open > 0) {
+      const title = open + " incident(s) ouvert(s)";
+      if (!predictions.some(function (p) { return p.title === title; })) {
+        predictions.push({
+          severity: open >= 5 ? "critical" : "warning",
+          service: "platform",
+          title: title,
+          message: "Incidents enregistrés dans EvoMonitor — intervention requise.",
+          actions: ["Ouvrir l'onglet Incidents", "Créer un ticket développeur"],
+          kind: "active_anomaly",
+        });
+      }
+    }
+    if (overview.status === "critical" || overview.status === "warning") {
+      const title = overview.status === "critical" ? "État système critique (cache)" : "État système dégradé (cache)";
+      if (!predictions.some(function (p) { return p.title.indexOf("État système") === 0; })) {
+        predictions.push({
+          severity: overview.status === "critical" ? "critical" : "warning",
+          service: "platform",
+          title: title,
+          message: overview.statusLabel || "Dernière mesure connue avant perte de sync API.",
+          actions: ["Actualiser", "Analyser avec l'IA"],
+          kind: "active_anomaly",
+        });
+      }
+    }
+    return predictions;
+  }
+
   function buildLocalPredictions(overview, error) {
     const predictions = [];
+    const srcOverview = overview || lastOutageState?.overview || null;
     if (error) predictions.push(detectOutageFromError(error));
-    if (overview) {
+    if (srcOverview) {
       if (typeof SAC_EVOMONITOR_INTEL !== "undefined") {
         const local = SAC_EVOMONITOR_INTEL.predictAnomalies(
-          overview,
+          srcOverview,
           SAC_EVOMONITOR_INTEL.getHistory()
         );
         local.forEach(function (p) {
           if (!predictions.some(function (x) { return x.title === p.title; })) predictions.push(p);
         });
       }
-      (overview.anomalies || []).forEach(function (a) {
+      (srcOverview.anomalies || []).forEach(function (a) {
         if (!a || !a.title) return;
         if (!predictions.some(function (x) { return x.title === a.title; })) {
           predictions.push(Object.assign({ kind: a.kind || "active_anomaly" }, a));
         }
       });
-      (overview._predictions || []).forEach(function (a) {
+      (srcOverview._predictions || []).forEach(function (a) {
         if (!a || !a.title) return;
         if (!predictions.some(function (x) { return x.title === a.title; })) predictions.push(a);
       });
     }
+    appendOverviewSignals(predictions, srcOverview);
     const critical = predictions.filter(function (p) {
       return p.severity === "critical";
     }).length;
@@ -167,7 +201,7 @@ const SAC_EVOMONITOR_AIOPS = (function () {
             : "Aucune panne prévue à court terme.",
       source: "rules",
       offline: !!error,
-      healthScore: overview?.healthScore,
+      healthScore: srcOverview?.healthScore,
     };
   }
 
@@ -568,7 +602,21 @@ const SAC_EVOMONITOR_AIOPS = (function () {
     if (!root) return;
     aiOpsPanelMounted = true;
     const cb = callbacks || {};
+    const lastErr = cb.getLastError ? cb.getLastError() : null;
+    const cachedOverview = cb.getLastOverview ? cb.getLastOverview() : null;
+    if (!lastOutageState?.error && lastErr) {
+      lastOutageState = { overview: cachedOverview, error: lastErr, at: Date.now() };
+    } else if (cachedOverview && !lastOutageState?.overview) {
+      lastOutageState = Object.assign({}, lastOutageState || {}, { overview: cachedOverview, at: Date.now() });
+    }
+
     root.innerHTML =
+      (lastErr
+        ? '<div class="em-panel em-panel--alert em-empty--warn" id="emAiOpsOutageBanner">' +
+          "<strong>🚨 Panne active détectée</strong><p>" +
+          esc(lastErr.message || "API inaccessible") +
+          "</p></div>"
+        : "") +
       '<div class="em-aiops-grid">' +
       '<div class="em-panel" id="emAiOpsStatus"><p class="em-empty">Chargement du Centre IA…</p></div>' +
       '<div id="emAiOpsPredictions"></div>' +
@@ -611,10 +659,21 @@ const SAC_EVOMONITOR_AIOPS = (function () {
     }
 
     try {
-      const preds = await fetchPredictions(lastOutageState?.overview, lastOutageState?.error);
+      const preds = await fetchPredictions(
+        lastOutageState?.overview || cachedOverview,
+        lastOutageState?.error || lastErr
+      );
       renderPredictions(predEl, preds);
     } catch (err) {
-      renderPredictions(predEl, buildLocalPredictions(lastOutageState?.overview, err));
+      renderPredictions(
+        predEl,
+        buildLocalPredictions(lastOutageState?.overview || cachedOverview, err || lastErr)
+      );
+    }
+
+    if (lastErr && root.querySelector("#emAiErrorMsg")) {
+      root.querySelector("#emAiErrorMsg").value = lastErr.message || "";
+      if (root.querySelector("#emAiService")) root.querySelector("#emAiService").value = "api";
     }
 
     try {

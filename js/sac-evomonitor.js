@@ -464,6 +464,49 @@ const SAC_EVOMONITOR = (function () {
     }
   }
 
+  function renderOutageState(err) {
+    const msg = err?.message || "API inaccessible";
+    const scoreEl = document.getElementById("emHealthScore");
+    if (scoreEl) scoreEl.innerHTML = scoreRing(0);
+    const moduleHost = document.getElementById("emModuleScores");
+    if (moduleHost) {
+      moduleHost.innerHTML =
+        '<div class="em-outage-modules">' +
+        '<p class="em-empty em-empty--warn">⚠️ Supervision interrompue — ' + esc(msg) + "</p>" +
+        (lastOverview?.incidents?.open
+          ? '<p class="em-meta">' + lastOverview.incidents.open + " incident(s) en cache (dernière sync).</p>"
+          : "") +
+        "</div>";
+    }
+    const updated = document.getElementById("emLastUpdate");
+    if (updated) updated.textContent = "Échec sync : " + fmtDate(new Date().toISOString());
+
+    const offlineMetrics =
+      metricCard("⚡", "Temps de réponse", "—", "API hors ligne", "em-metric--bad") +
+      metricCard("🖥️", "CPU", "—", "", "em-metric--bad") +
+      metricCard("🌐", "Latence", "—", "", "em-metric--bad") +
+      metricCard("🔌", "Base de données", "—", "Non vérifiable", "em-metric--bad");
+
+    ["emPerfGrid", "emPerfGrid2", "emDbGrid", "emNetGrid"].forEach(function (id) {
+      const el = document.getElementById(id);
+      if (el) el.innerHTML = offlineMetrics;
+    });
+
+    const openInc = lastOverview?.incidents?.open;
+    const count = document.getElementById("emOpenIncidents");
+    if (count && openInc > 0) {
+      count.textContent = String(openInc);
+      count.hidden = false;
+      count.title = "Incidents en cache — API monitor inaccessible";
+    }
+
+    const aiBadge = document.getElementById("emAiOpsAlert");
+    if (aiBadge) {
+      aiBadge.textContent = "1";
+      aiBadge.hidden = false;
+    }
+  }
+
   async function loadOverview(opts) {
     const notify = opts && opts.notify;
     const btn = document.getElementById("emRefreshBtn");
@@ -485,6 +528,7 @@ const SAC_EVOMONITOR = (function () {
     } catch (err) {
       lastLoadError = err;
       toast(err.message || "Impossible de charger les métriques.");
+      renderOutageState(err);
       const hero = document.getElementById("emHeroStatus");
       if (hero) {
         hero.className = "em-hero-status em-status--critical";
@@ -508,7 +552,10 @@ const SAC_EVOMONITOR = (function () {
         INTEL.dispatchAlert({ severity: "critical", message: "Panne API — " + (err.message || "inaccessible") }, toast);
       }
       if (AIOPS && AIOPS.syncFromOverview) {
-        AIOPS.syncFromOverview(null, err, { onToast: toast });
+        AIOPS.syncFromOverview(lastOverview, err, { onToast: toast });
+      }
+      if (document.getElementById("section-aiops")?.classList.contains("active")) {
+        renderAiOps();
       }
     } finally {
       if (btn) {
@@ -565,15 +612,40 @@ const SAC_EVOMONITOR = (function () {
   }
 
   function renderAiOps() {
-    if (!AIOPS) return;
-    AIOPS.renderAiOpsPanel(document.getElementById("emAiOpsPanel"), {
+    const panel = document.getElementById("emAiOpsPanel");
+    if (!panel) return;
+    if (!AIOPS || !AIOPS.renderAiOpsPanel) {
+      panel.innerHTML =
+        '<div class="em-panel em-empty--warn">' +
+        "<p><strong>Module Centre IA non chargé.</strong></p>" +
+        "<p>Rechargez avec Ctrl+F5 ou vérifiez la console (erreur JavaScript).</p></div>";
+      return;
+    }
+    panel.innerHTML = '<p class="em-empty">Chargement du Centre IA…</p>';
+    AIOPS.renderAiOpsPanel(panel, {
       onToast: toast,
+      getLastError: function () {
+        return lastLoadError;
+      },
+      getLastOverview: function () {
+        return lastOverview;
+      },
       getLastErrorLog: function () {
         const errors = logsCache.filter(function (l) {
           return l.level === "error" || l.level === "warn" || (l.action && String(l.action).includes("failed"));
         });
         return errors.length ? errors[0] : null;
       },
+    }).catch(function (renderErr) {
+      panel.innerHTML =
+        '<div class="em-panel">' +
+        '<p class="em-empty em-empty--warn">⚠️ Centre IA — erreur d\'affichage : ' +
+        esc(renderErr?.message || "inconnue") +
+        "</p>" +
+        (lastLoadError
+          ? '<p class="em-meta">Panne active : ' + esc(lastLoadError.message) + "</p>"
+          : "") +
+        '<button type="button" class="btn btn--ghost btn--xs" onclick="location.reload()">Recharger</button></div>';
     });
   }
 
