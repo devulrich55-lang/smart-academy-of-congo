@@ -477,6 +477,15 @@
   font-size: 0.82rem;
 }
 
+.em-panel--diag {
+  margin-top: 1rem;
+}
+
+.em-table--compact td {
+  font-size: 0.82rem;
+  padding: 0.45rem 0.65rem;
+}
+
 .em-actions {
   margin-top: 1rem;
 }

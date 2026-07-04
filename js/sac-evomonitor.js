@@ -507,6 +507,153 @@ const SAC_EVOMONITOR = (function () {
     }
   }
 
+  function formatOverviewError(err) {
+    if (!err) return "API inaccessible";
+    if (err.status === 401 || err.code === "AUTH_REQUIRED" || err.code === "TOKEN_EXPIRED") {
+      return "Session expirée — déconnectez-vous et reconnectez-vous";
+    }
+    if (err.status === 403 || err.code === "FORBIDDEN") {
+      return "Accès refusé — compte superadmin requis";
+    }
+    if (err.status === 404) {
+      return "Routes monitor absentes — redéployez API-1 (backend-python)";
+    }
+    if (err.status === 502 || err.status === 503 || err.status === 504) {
+      return "API-1 en veille ou surchargée (Render) — réessayez dans 60 s";
+    }
+    if (err.code === "NETWORK_ERROR") {
+      return err.message || "Connexion impossible";
+    }
+    return err.message || "Erreur supervision";
+  }
+
+  async function probeUrl(label, baseUrl, path, auth) {
+    const url = String(baseUrl || "").replace(/\/+$/, "") + path;
+    const started = Date.now();
+    try {
+      const headers = auth && typeof SAC_API !== "undefined" && SAC_API.getAccessToken
+        ? { Authorization: "Bearer " + (SAC_API.getAccessToken() || "") }
+        : {};
+      const res = await fetch(url, {
+        method: "GET",
+        credentials: "omit",
+        mode: "cors",
+        headers: headers,
+      });
+      let data = {};
+      try {
+        data = await res.json();
+      } catch {
+        data = {};
+      }
+      return {
+        label: label,
+        url: url,
+        ok: res.ok,
+        status: res.status,
+        ms: Date.now() - started,
+        data: data,
+      };
+    } catch (e) {
+      return {
+        label: label,
+        url: url,
+        ok: false,
+        status: 0,
+        ms: Date.now() - started,
+        error: e.message || String(e),
+      };
+    }
+  }
+
+  async function runApiDiagnostics() {
+    const host = document.getElementById("emApiDiag");
+    const btn = document.getElementById("emDiagBtn");
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = "Diagnostic…";
+    }
+    if (host) host.innerHTML = '<p class="em-empty">Diagnostic API en cours (peut prendre 60 s si cold start)…</p>';
+
+    const origin = window.location.origin.replace(/\/+$/, "");
+    const direct = "https://smart-academy-of-congo-api-1.onrender.com";
+    const apiBase =
+      (typeof SAC_API !== "undefined" && SAC_API.getBase && SAC_API.getBase()) ||
+      (typeof window !== "undefined" && window.SAC_API_BASE) ||
+      origin;
+
+    if (typeof SAC_API !== "undefined" && SAC_API.resolveApiBase) {
+      try {
+        await SAC_API.resolveApiBase(true);
+      } catch {
+        /* ignore */
+      }
+    }
+
+    const checks = [
+      await probeUrl("Health via site (proxy)", origin, "/api/health", false),
+      await probeUrl("Health API-1 direct", direct, "/api/health", false),
+      await probeUrl("Monitor overview (auth)", apiBase, "/api/admin/monitor/overview", true),
+      await probeUrl("Centre IA status (auth)", apiBase, "/api/admin/monitor/ai-ops/status", true),
+    ];
+
+    const lines = checks.map(function (c) {
+      const icon = c.ok ? "✅" : c.status === 401 ? "🔐" : c.status === 404 ? "⚠️" : "❌";
+      let detail = c.error || "HTTP " + c.status + " · " + c.ms + " ms";
+      if (c.data?.database) detail += " · DB " + c.data.database;
+      if (c.data?.ok === false) detail += " · ok=false";
+      if (c.status === 401) detail = "401 — reconnectez-vous (JWT expiré)";
+      if (c.status === 404) detail = "404 — route absente, redéployez API-1";
+      if (c.status === 502 || c.status === 503) detail = c.status + " — API Render en veille ou crash";
+      return (
+        "<tr><td>" + icon + " " + esc(c.label) + "</td><td><code>" + esc(detail) + "</code></td></tr>"
+      );
+    });
+
+    const healthProxy = checks[0];
+    const healthDirect = checks[1];
+    const monitor = checks[2];
+    const aiOps = checks[3];
+
+    let verdict = "";
+    if (!healthProxy.ok && !healthDirect.ok) {
+      verdict = "🔴 API-1 semble hors ligne ou en cold start prolongé.";
+    } else if (healthProxy.ok && monitor.status === 401) {
+      verdict = "🔐 API joignable — session EvoMonitor expirée. Déconnectez-vous puis reconnectez-vous.";
+    } else if (healthProxy.ok && monitor.status === 404) {
+      verdict = "⚠️ API up mais routes /admin/monitor/* manquantes — commit backend non déployé sur API-1.";
+    } else if (healthProxy.ok && aiOps.status === 404) {
+      verdict = "⚠️ Monitor OK mais Centre IA (ai-ops) absent — déployez commit 161e650+ sur API-1.";
+    } else if (healthProxy.ok && monitor.ok) {
+      verdict = "✅ Chaîne API + monitor opérationnelle. Si le tableau échoue encore, Ctrl+F5.";
+    } else if (healthDirect.ok && !healthProxy.ok) {
+      verdict = "⚠️ API-1 OK mais proxy frontend (congoat) ne répond pas — vérifiez le service Node Render.";
+    } else {
+      verdict = "Diagnostic partiel — voir détail ci-dessous.";
+    }
+
+    if (host) {
+      host.innerHTML =
+        '<div class="em-panel em-panel--diag">' +
+        "<h3>🔬 Diagnostic API Render</h3>" +
+        '<p class="em-ai-summary">' + esc(verdict) + "</p>" +
+        '<p class="em-meta">Base client : <code>' + esc(apiBase) + "</code></p>" +
+        '<table class="em-table em-table--compact"><tbody>' +
+        lines.join("") +
+        "</tbody></table>" +
+        '<p class="em-hint">Render API-1 : vérifiez ALLOWED_ORIGINS inclut <code>' +
+        esc(origin) +
+        "</code>, disque /data, CROSS_ORIGIN_AUTH=true, Manual Deploy après push backend.</p></div>";
+    }
+
+    toast(verdict.replace(/^[^\s]+\s*/, "").slice(0, 120));
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = "Diagnostiquer API";
+    }
+    return checks;
+  }
+
   async function loadOverview(opts) {
     const notify = opts && opts.notify;
     const btn = document.getElementById("emRefreshBtn");
@@ -527,17 +674,20 @@ const SAC_EVOMONITOR = (function () {
       }
     } catch (err) {
       lastLoadError = err;
-      toast(err.message || "Impossible de charger les métriques.");
+      const errLabel = formatOverviewError(err);
+      toast(errLabel);
       renderOutageState(err);
       const hero = document.getElementById("emHeroStatus");
       if (hero) {
         hero.className = "em-hero-status em-status--critical";
         hero.innerHTML =
-          '<span class="em-hero-status__icon">🔴</span><div><strong>Panne critique</strong><span>API inaccessible</span></div>';
+          '<span class="em-hero-status__icon">🔴</span><div><strong>Panne critique</strong><span>' +
+          esc(errLabel) +
+          "</span></div>";
       }
       const outage =
         AIOPS && AIOPS.detectOutageFromError
-          ? [AIOPS.detectOutageFromError(err)]
+          ? [Object.assign({}, AIOPS.detectOutageFromError(err), { message: errLabel })]
           : [
               {
                 severity: "critical",
@@ -759,6 +909,7 @@ const SAC_EVOMONITOR = (function () {
     }
 
     document.getElementById("emRefreshBtn")?.addEventListener("click", () => loadOverview());
+    document.getElementById("emDiagBtn")?.addEventListener("click", () => runApiDiagnostics());
     document.getElementById("emScanBtn")?.addEventListener("click", () => loadOverview({ notify: true }));
     document.getElementById("emDebugToggle")?.addEventListener("click", () => {
       if (!INTEL) return;

@@ -30,6 +30,7 @@
         <span id="emEpmBadge" class="em-epm-badge" hidden>0 EPM</span>
         <span id="emUserName" class="em-user"></span>
         <button type="button" class="btn btn--ghost btn--xs em-debug-toggle" id="emDebugToggle">🐛 Debug</button>
+        <button type="button" class="btn btn--ghost btn--xs" id="emDiagBtn">Diagnostiquer API</button>
         <button type="button" class="btn btn--ghost btn--xs" id="emRefreshBtn">Actualiser</button>
         <button type="button" class="theme-toggle" data-theme-toggle aria-label="Thème"></button>
         <button type="button" class="btn btn--ghost" id="btnLogout">Déconnexion</button>
@@ -76,6 +77,7 @@
         <div class="em-panel"><h3>Performance</h3><div class="em-metrics" id="emPerfGrid"></div></div>
         <div class="em-panel"><h3>Utilisateurs</h3><div class="em-metrics" id="emUsersGrid"></div></div>
       </div>
+      <div id="emApiDiag"></div>
     </section>
 
     <section class="page-section" id="section-live">
@@ -198,7 +200,7 @@
   <script src="js/sac-api.js?v=20260707"></script>
   <script src="js/sac-evomonitor-intelligence.js?v=20260708c"></script>
   <script src="js/sac-evomonitor-aiops.js?v=20260708c"></script>
-  <script src="js/sac-evomonitor.js?v=20260708c"></script>
+  <script src="js/sac-evomonitor.js?v=20260708d"></script>
   <script>
     document.addEventListener("DOMContentLoaded", function () {
       SAC_EVOMONITOR.init();
