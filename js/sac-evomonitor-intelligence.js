@@ -126,6 +126,59 @@ const SAC_EVOMONITOR_INTEL = (function () {
         kind: "active_anomaly",
       });
     }
+    if (Number(db.errors24h) >= 5) {
+      preds.push({
+        severity: Number(db.errors24h) >= 20 ? "critical" : "warning",
+        service: "database",
+        title: "Erreurs base de données (24 h)",
+        message: db.errors24h + " erreur(s) enregistrée(s) sur les dernières 24 h.",
+        actions: ["Lancer diagnostic DB", "Consulter les logs"],
+        kind: "active_anomaly",
+      });
+    }
+
+    if (overview.status === "warning") {
+      preds.push({
+        severity: "warning",
+        service: "platform",
+        title: "État système dégradé",
+        message:
+          overview.statusLabel ||
+          "Le tableau de santé signale une dégradation — surveillance renforcée.",
+        actions: ["Actualiser le tableau", "Consulter Anomalies", "Ouvrir Centre IA"],
+        kind: "active_anomaly",
+      });
+    }
+
+    (overview.anomalies || []).forEach(function (a) {
+      if (!a || !a.title) return;
+      if (preds.some(function (p) { return p.title === a.title; })) return;
+      preds.push(Object.assign({ kind: a.kind || "active_anomaly" }, a));
+    });
+
+    const openInc = Number(overview.incidents?.open);
+    if (openInc > 0) {
+      preds.push({
+        severity: openInc >= 3 ? "critical" : "warning",
+        service: "platform",
+        title: openInc + " incident(s) ouvert(s)",
+        message: "Des incidents sont en cours sur la plateforme.",
+        actions: ["Consulter l'onglet Incidents", "Assigner un responsable"],
+        kind: "active_anomaly",
+      });
+    }
+
+    const perf = overview.performance || {};
+    if (Number(perf.responseMs) >= 2500) {
+      preds.push({
+        severity: "warning",
+        service: "api",
+        title: "Temps de réponse API élevé",
+        message: "Réponse moyenne ~" + Math.round(Number(perf.responseMs)) + " ms.",
+        actions: ["Vérifier charge serveur", "Contrôler la base de données"],
+        kind: "active_anomaly",
+      });
+    }
 
     const net = overview.network || {};
     if (net.internetAvailable === false) {
@@ -140,9 +193,9 @@ const SAC_EVOMONITOR_INTEL = (function () {
     }
 
     const failRate = Number(net.failureRate);
-    if (failRate >= 15) {
+    if (failRate >= 8) {
       preds.push({
-        severity: "critical",
+        severity: failRate >= 15 ? "critical" : "warning",
         service: "network",
         title: "Taux d'échec API élevé",
         message: "Environ " + failRate.toFixed(1) + "% des requêtes échouent actuellement.",
@@ -152,11 +205,11 @@ const SAC_EVOMONITOR_INTEL = (function () {
     }
 
     const hs = Number(overview.healthScore);
-    if (Number.isFinite(hs) && hs > 0 && hs < 40) {
+    if (Number.isFinite(hs) && hs > 0 && hs < 60) {
       preds.push({
-        severity: "critical",
+        severity: hs < 40 ? "critical" : "warning",
         service: "platform",
-        title: "Score de santé très bas",
+        title: hs < 40 ? "Score de santé très bas" : "Score de santé dégradé",
         message: "Score actuel : " + hs + "/100 — intervention recommandée.",
         actions: ["Actualiser le tableau", "Ouvrir Centre IA → Prédictions"],
         kind: "active_anomaly",
@@ -934,6 +987,7 @@ const SAC_EVOMONITOR_INTEL = (function () {
     recordSnapshot,
     getHistory,
     predictAnomalies,
+    detectImmediateOutage,
     computeModuleScores,
     estimateEpm,
     renderModuleScores,

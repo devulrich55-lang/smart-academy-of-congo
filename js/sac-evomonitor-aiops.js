@@ -7,6 +7,68 @@ const SAC_EVOMONITOR_AIOPS = (function () {
   let lastAnalysis = null;
   let lastPredictions = null;
   let ticketsCache = [];
+  const STATE_KEY = "em_aiops_state_v1";
+
+  function readState() {
+    try {
+      const raw = localStorage.getItem(STATE_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  function writeState(payload) {
+    try {
+      localStorage.setItem(STATE_KEY, JSON.stringify(payload));
+    } catch {
+      /* ignore */
+    }
+  }
+
+  function mergePredictionLists() {
+    const out = [];
+    for (let i = 0; i < arguments.length; i++) {
+      const list = arguments[i] || [];
+      list.forEach(function (p) {
+        if (!p || !p.title) return;
+        if (!out.some(function (x) { return x.title === p.title && x.service === p.service; })) {
+          out.push(p);
+        }
+      });
+    }
+    return out;
+  }
+
+  function mergePredictionResults(local, remote) {
+    const predictions = mergePredictionLists(local?.predictions || [], remote?.predictions || []);
+    const critical = predictions.filter(function (p) { return p.severity === "critical"; }).length;
+    const warning = predictions.filter(function (p) { return p.severity === "warning"; }).length;
+    let summary = remote?.summary || local?.summary || "";
+    if (local?.offline) summary = local.summary;
+    else if ((critical || warning) && !/panne|critique|alerte|dégrad|incident|🚨/i.test(summary)) {
+      summary =
+        (critical ? critical + " alerte(s) critique(s)" : "") +
+        (critical && warning ? " · " : "") +
+        (warning ? warning + " avertissement(s)" : "") +
+        (summary ? ". " + summary : " détecté(s).");
+    }
+    return {
+      predictions: predictions,
+      count: predictions.length,
+      summary: summary || local?.summary || "Surveillance active.",
+      source: remote?.source || local?.source || "rules",
+      offline: !!(local?.offline || remote?.offline),
+      healthScore: remote?.healthScore ?? local?.healthScore,
+    };
+  }
+
+  function countAlerts(data, error) {
+    const preds = data?.predictions || [];
+    const critical = preds.filter(function (p) { return p.severity === "critical"; }).length;
+    const warning = preds.filter(function (p) { return p.severity === "warning"; }).length;
+    return critical + warning + (error ? 1 : 0);
+  }
 
   function esc(s) {
     const el = document.createElement("div");
@@ -67,13 +129,25 @@ const SAC_EVOMONITOR_AIOPS = (function () {
   function buildLocalPredictions(overview, error) {
     const predictions = [];
     if (error) predictions.push(detectOutageFromError(error));
-    if (overview && typeof SAC_EVOMONITOR_INTEL !== "undefined") {
-      const local = SAC_EVOMONITOR_INTEL.predictAnomalies(
-        overview,
-        SAC_EVOMONITOR_INTEL.getHistory()
-      );
-      local.forEach(function (p) {
-        if (!predictions.some((x) => x.title === p.title)) predictions.push(p);
+    if (overview) {
+      if (typeof SAC_EVOMONITOR_INTEL !== "undefined") {
+        const local = SAC_EVOMONITOR_INTEL.predictAnomalies(
+          overview,
+          SAC_EVOMONITOR_INTEL.getHistory()
+        );
+        local.forEach(function (p) {
+          if (!predictions.some(function (x) { return x.title === p.title; })) predictions.push(p);
+        });
+      }
+      (overview.anomalies || []).forEach(function (a) {
+        if (!a || !a.title) return;
+        if (!predictions.some(function (x) { return x.title === a.title; })) {
+          predictions.push(Object.assign({ kind: a.kind || "active_anomaly" }, a));
+        }
+      });
+      (overview._predictions || []).forEach(function (a) {
+        if (!a || !a.title) return;
+        if (!predictions.some(function (x) { return x.title === a.title; })) predictions.push(a);
       });
     }
     const critical = predictions.filter(function (p) {
@@ -98,14 +172,24 @@ const SAC_EVOMONITOR_AIOPS = (function () {
   }
 
   async function fetchPredictionsSafe(overview, error) {
+    const local = buildLocalPredictions(overview, error);
+    if (error) return local;
     if (typeof SAC_API !== "undefined" && SAC_API.getAiOpsPredictions) {
       try {
-        return await SAC_API.getAiOpsPredictions();
+        const remote = await SAC_API.getAiOpsPredictions();
+        return mergePredictionResults(local, remote);
       } catch (err) {
-        return buildLocalPredictions(overview, err);
+        return mergePredictionResults(local, buildLocalPredictions(overview, err));
       }
     }
-    return buildLocalPredictions(overview, error);
+    return local;
+  }
+
+  function restoreState() {
+    const saved = readState();
+    if (!saved || !saved.alertCount) return;
+    if (Date.now() - Number(saved.at || 0) > 45 * 60000) return;
+    updateNavBadge(saved.alertCount);
   }
 
   function updateNavBadge(count) {
@@ -158,32 +242,76 @@ const SAC_EVOMONITOR_AIOPS = (function () {
     lastOutageState = { overview: overview || null, error: error || null, at: Date.now() };
     const data = await fetchPredictionsSafe(overview, error);
     lastPredictions = data;
-    const critical = (data.predictions || []).filter(function (p) {
-      return p.severity === "critical";
-    }).length;
-    updateNavBadge(critical + (error ? 1 : 0));
+    const alertCount = countAlerts(data, error);
+    updateNavBadge(alertCount);
+    writeState({
+      at: Date.now(),
+      alertCount: alertCount,
+      summary: data.summary || "",
+      offline: !!(error || data.offline),
+    });
 
     const predEl = document.getElementById("emAiOpsPredictions");
     if (predEl && aiOpsPanelMounted) renderPredictions(predEl, data);
 
-    const alertKey = error ? "err:" + (error.message || "") : "crit:" + critical;
-    if (error || critical > 0) {
-      const analysis = error ? detectOutageFromError(error) : data.predictions?.[0];
+    const critical = (data.predictions || []).filter(function (p) {
+      return p.severity === "critical";
+    }).length;
+    const alertKey = error
+      ? "err:" + (error.message || "")
+      : "sig:" + critical + ":" + alertCount + ":" + (data.summary || "").slice(0, 40);
+    if (error || alertCount > 0) {
+      const analysis = error
+        ? detectOutageFromError(error)
+        : (data.predictions || []).find(function (p) { return p.severity === "critical"; }) ||
+          data.predictions?.[0];
       if (analysis) {
         const ticket = await maybeAutoTicket(analysis);
         if (ticket && callbacks?.onToast) {
           callbacks.onToast("Ticket auto " + (ticket.ticketNumber || "") + " créé (panne détectée).");
           lastAiOpsAlertKey = alertKey;
         } else if (callbacks?.onToast && alertKey !== lastAiOpsAlertKey) {
-          callbacks.onToast("🚨 Centre IA : panne détectée — consultez Prédictions.");
+          callbacks.onToast("🚨 Centre IA : " + (error ? "panne API" : alertCount + " signal(s)") + " — consultez Prédictions.");
           lastAiOpsAlertKey = alertKey;
         }
       }
     } else {
       lastAiOpsAlertKey = "";
       updateNavBadge(0);
+      writeState({ at: Date.now(), alertCount: 0, summary: "", offline: false });
     }
     return data;
+  }
+
+  async function runWatchdog(getOverview, getError, callbacks) {
+    let overview = typeof getOverview === "function" ? getOverview() : getOverview;
+    let error = typeof getError === "function" ? getError() : getError;
+
+    if (typeof SAC_API !== "undefined" && SAC_API.ping) {
+      try {
+        const ok = await SAC_API.ping({ attempts: 1, timeoutMs: 12000 });
+        if (!ok) {
+          error = error || new Error("Health check — API injoignable");
+        } else if (error && !overview) {
+          error = null;
+        }
+      } catch (pingErr) {
+        error = pingErr;
+      }
+    }
+
+    if (typeof SAC_API !== "undefined" && SAC_API.probeApiReachability && !error) {
+      try {
+        const probe = await SAC_API.probeApiReachability();
+        if (probe && !probe.ok && probe.scenario !== "NO_API") {
+          error = new Error(probe.message || "API inaccessible (" + (probe.scenario || "erreur") + ")");
+        }
+      } catch {
+        /* ignore */
+      }
+    }
+
+    return syncFromOverview(overview, error, callbacks);
   }
 
   async function fetchStatus() {
@@ -349,7 +477,7 @@ const SAC_EVOMONITOR_AIOPS = (function () {
                 esc(p.service || "api") +
                 '" data-severity="' +
                 esc(p.severity || "warning") +
-                '">Analyser avec l\'IA</button></article>"
+                '">Analyser avec l\'IA</button></article>'
             )
             .join("") +
           "</div>"
@@ -596,6 +724,8 @@ const SAC_EVOMONITOR_AIOPS = (function () {
   return {
     renderAiOpsPanel,
     syncFromOverview,
+    runWatchdog,
+    restoreState,
     analyze,
     fetchPredictions,
     fetchTickets,

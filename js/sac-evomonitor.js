@@ -7,10 +7,12 @@ const SAC_EVOMONITOR = (function () {
   const REFRESH_MS = 20000;
   const SECURITY_PULSE_MS = 20000;
   const LIVE_REFRESH_MS = 5000;
+  const AIOPS_WATCH_MS = 25000;
   let session = null;
   let timer = null;
   let securityTimer = null;
   let liveTimer = null;
+  let aiOpsTimer = null;
   let lastOverview = null;
   let lastLoadError = null;
   let logsCache = [];
@@ -478,7 +480,7 @@ const SAC_EVOMONITOR = (function () {
       lastLoadError = null;
       renderOverview(data);
       if (AIOPS && AIOPS.syncFromOverview) {
-        AIOPS.syncFromOverview(data, null, { onToast: toast });
+        AIOPS.syncFromOverview(lastOverview, null, { onToast: toast });
       }
     } catch (err) {
       lastLoadError = err;
@@ -596,10 +598,57 @@ const SAC_EVOMONITOR = (function () {
     }
   }
 
+  async function runAiOpsWatchdog() {
+    if (!AIOPS || !AIOPS.runWatchdog) return;
+    try {
+      const data = await AIOPS.runWatchdog(
+        function () { return lastOverview; },
+        function () { return lastLoadError; },
+        { onToast: toast }
+      );
+      if (data && data.offline && !lastLoadError) {
+        lastLoadError = new Error(data.summary || "Panne API détectée");
+      }
+      if (lastLoadError && data && !data.offline && (data.predictions || []).length === 0) {
+        lastLoadError = null;
+      }
+      if (lastLoadError) {
+        const hero = document.getElementById("emHeroStatus");
+        if (hero && !hero.className.includes("critical")) {
+          hero.className = "em-hero-status em-status--critical";
+          hero.innerHTML =
+            '<span class="em-hero-status__icon">🔴</span><div><strong>Panne critique</strong><span>API inaccessible</span></div>';
+        }
+        const outage =
+          AIOPS.detectOutageFromError
+            ? [AIOPS.detectOutageFromError(lastLoadError)]
+            : [];
+        if (outage.length) renderAnomalies(outage);
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+
+  function startAiOpsWatchdog() {
+    stopAiOpsWatchdog();
+    aiOpsTimer = setInterval(function () {
+      runAiOpsWatchdog();
+    }, AIOPS_WATCH_MS);
+  }
+
+  function stopAiOpsWatchdog() {
+    if (aiOpsTimer) {
+      clearInterval(aiOpsTimer);
+      aiOpsTimer = null;
+    }
+  }
+
   function startAutoRefresh() {
     stopAutoRefresh();
     timer = setInterval(() => loadOverview(), REFRESH_MS);
     securityTimer = setInterval(() => pollSecurityPulse(), SECURITY_PULSE_MS);
+    startAiOpsWatchdog();
   }
 
   function stopAutoRefresh() {
@@ -611,6 +660,7 @@ const SAC_EVOMONITOR = (function () {
       clearInterval(securityTimer);
       securityTimer = null;
     }
+    stopAiOpsWatchdog();
     stopLiveRefresh();
   }
 
@@ -677,8 +727,10 @@ const SAC_EVOMONITOR = (function () {
     });
 
     syncDebugToggle();
+    if (AIOPS && AIOPS.restoreState) AIOPS.restoreState();
     await loadOverview();
     pollSecurityPulse();
+    runAiOpsWatchdog();
     startAutoRefresh();
   }
 
