@@ -19,7 +19,7 @@
     // Proxy same-origin (server.js) — évite CORS et cold-start cross-origin
     window.SAC_API_BASE = origin;
   }
-  window.SAC_JS_BUILD = "20260705a";
+  window.SAC_JS_BUILD = "20260705b";
   window.SAC_PLATFORM_LOGO = "evo-uni.jpeg";
   window.SAC_PLATFORM_LOGO_ALT = "Evo-smartUni";
 
@@ -34,8 +34,20 @@
     return "js/sac-client-guard.js?v=" + window.SAC_JS_BUILD;
   }
 
+  function sacStorageScriptSrc() {
+    var scripts = document.getElementsByTagName("script");
+    for (var i = scripts.length - 1; i >= 0; i--) {
+      var src = scripts[i].src || "";
+      if (src.indexOf("sac-config.js") !== -1) {
+        return src.replace(/sac-config\.js(\?.*)?$/i, "sac-storage.js?v=" + window.SAC_JS_BUILD);
+      }
+    }
+    return "js/sac-storage.js?v=" + window.SAC_JS_BUILD;
+  }
+
   if (typeof document !== "undefined") {
     document.write('<script src="' + sacGuardScriptSrc() + '"><\/script>');
+    document.write('<script src="' + sacStorageScriptSrc() + '"><\/script>');
   }
 
   if (typeof document !== "undefined" && window.SAC_API_BASE) {

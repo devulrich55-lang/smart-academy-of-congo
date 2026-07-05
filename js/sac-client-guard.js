@@ -49,18 +49,33 @@ const SAC_CLIENT_GUARD = (function () {
     return { user: copy, changed: changed };
   }
 
+  function shouldKeepLocalUser(user) {
+    if (isLocalDev()) return true;
+    if (!isPlainObject(user)) return false;
+    if (user.serverSynced || user.authSource === "api") return false;
+    return true;
+  }
+
   function scrubUsersList(list) {
     if (!Array.isArray(list)) return { list: list, changed: false, count: 0 };
     var changed = false;
     var count = 0;
-    var next = list.map(function (u) {
+    var next = [];
+    for (var i = 0; i < list.length; i++) {
+      var u = list[i];
+      if (!shouldKeepLocalUser(u)) {
+        changed = true;
+        count++;
+        continue;
+      }
       var r = scrubUser(u);
       if (r.changed) {
         changed = true;
         count++;
       }
-      return r.user;
-    });
+      next.push(r.user);
+    }
+    if (!changed && next.length !== list.length) changed = true;
     return { list: next, changed: changed, count: count };
   }
 

@@ -11,9 +11,16 @@
     return "evosu_remember_" + portalId;
   }
 
+  function rememberStore() {
+    var h = (window.location && window.location.hostname) || "";
+    var local = h === "localhost" || h === "127.0.0.1" || h === "[::1]";
+    return local ? localStorage : sessionStorage;
+  }
+
   function loadRemembered(portalId, emailInput) {
     try {
-      const raw = localStorage.getItem(rememberKey(portalId));
+      var store = rememberStore();
+      const raw = store.getItem(rememberKey(portalId));
       if (!raw || !emailInput) return;
       const data = JSON.parse(raw);
       if (data.email) emailInput.value = data.email;
@@ -24,10 +31,14 @@
 
   function saveRemembered(portalId, email, remember) {
     try {
+      var store = rememberStore();
+      var key = rememberKey(portalId);
       if (remember && email) {
-        localStorage.setItem(rememberKey(portalId), JSON.stringify({ email: email }));
+        store.setItem(key, JSON.stringify({ email: email }));
+        if (store !== localStorage) localStorage.removeItem(key);
       } else {
-        localStorage.removeItem(rememberKey(portalId));
+        store.removeItem(key);
+        localStorage.removeItem(key);
       }
     } catch (_) {}
   }

@@ -37,7 +37,11 @@ const SAC_SESSION = (function () {
   }
 
   function saveSession(session) {
-    localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+    if (typeof SAC_STORAGE !== "undefined" && SAC_STORAGE.saveSessionMeta) {
+      SAC_STORAGE.saveSessionMeta(session);
+    } else {
+      localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+    }
     for (let i = 0; i < LEGACY_SESSION_KEYS.length; i++) {
       localStorage.removeItem(LEGACY_SESSION_KEYS[i]);
     }

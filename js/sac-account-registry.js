@@ -55,7 +55,13 @@ const SAC_ACCOUNT_REGISTRY = (function () {
       }
     });
     if (changed) {
-      localStorage.setItem("sac_users", JSON.stringify(users));
+      if (typeof SAC_IDENTITY !== "undefined" && SAC_IDENTITY.persistLocalUsers) {
+        SAC_IDENTITY.persistLocalUsers(users);
+      } else if (typeof SAC_STORAGE !== "undefined" && SAC_STORAGE.persistLocalUsers) {
+        SAC_STORAGE.persistLocalUsers(users);
+      } else {
+        localStorage.setItem("sac_users", JSON.stringify(users));
+      }
     }
   }
 

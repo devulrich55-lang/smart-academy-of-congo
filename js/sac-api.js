@@ -366,6 +366,15 @@ const SAC_API = (function () {
     }
   }
 
+  function persistSessionCache() {
+    if (!sessionCache) return null;
+    if (typeof SAC_STORAGE !== "undefined" && SAC_STORAGE.saveSessionMeta) {
+      return SAC_STORAGE.saveSessionMeta(sessionCache);
+    }
+    localStorage.setItem("sac_session", JSON.stringify(sessionCache));
+    return sessionCache;
+  }
+
   /** Compte connecté sans JWT (recteur / section locale) — ne pas effacer sac_session sur 401. */
   function isLocalOnlySession() {
     if (hasAuthTokens()) return false;
@@ -832,7 +841,7 @@ const SAC_API = (function () {
     });
     sessionCache = tagApiSession(data.session);
     saveApiTokens(data.accessToken, data.refreshToken);
-    localStorage.setItem("sac_session", JSON.stringify(sessionCache));
+    persistSessionCache();
     if (typeof SAC_ACCOUNT_REGISTRY !== "undefined" && SAC_ACCOUNT_REGISTRY.markSynced) {
       SAC_ACCOUNT_REGISTRY.markSynced(sessionCache.email);
     }
@@ -846,7 +855,7 @@ const SAC_API = (function () {
     });
     sessionCache = tagApiSession(data.session);
     saveApiTokens(data.accessToken, data.refreshToken);
-    localStorage.setItem("sac_session", JSON.stringify(sessionCache));
+    persistSessionCache();
     if (typeof SAC_ACCOUNT_REGISTRY !== "undefined" && SAC_ACCOUNT_REGISTRY.markSynced) {
       SAC_ACCOUNT_REGISTRY.markSynced(sessionCache.email);
     }
@@ -860,7 +869,7 @@ const SAC_API = (function () {
     });
     sessionCache = tagApiSession(data.session);
     saveApiTokens(data.accessToken, data.refreshToken);
-    localStorage.setItem("sac_session", JSON.stringify(sessionCache));
+    persistSessionCache();
 
     if (typeof SAC_ACCOUNT_REGISTRY !== "undefined" && SAC_ACCOUNT_REGISTRY.markSynced) {
       SAC_ACCOUNT_REGISTRY.markSynced(sessionCache.email);
@@ -907,7 +916,7 @@ const SAC_API = (function () {
       });
       sessionCache = tagApiSession(data.session);
       saveApiTokens(data.accessToken, data.refreshToken);
-      localStorage.setItem("sac_session", JSON.stringify(sessionCache));
+      persistSessionCache();
       return true;
     } catch {
       if (!opts || !opts.soft) {
@@ -937,7 +946,7 @@ const SAC_API = (function () {
       try {
         const data = await request("/auth/me", { softAuth: true });
         sessionCache = tagApiSession(data.session);
-        localStorage.setItem("sac_session", JSON.stringify(sessionCache));
+        persistSessionCache();
         return sessionCache;
       } catch {
         return null;
@@ -945,7 +954,7 @@ const SAC_API = (function () {
     }
     const data = await request("/auth/me");
     sessionCache = tagApiSession(data.session);
-    localStorage.setItem("sac_session", JSON.stringify(sessionCache));
+    persistSessionCache();
     return sessionCache;
   }
 

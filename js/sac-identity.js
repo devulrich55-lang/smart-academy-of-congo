@@ -192,6 +192,14 @@ const SAC_IDENTITY = (function () {
     }
   }
 
+  function persistLocalUsers(users) {
+    if (typeof SAC_STORAGE !== "undefined" && SAC_STORAGE.persistLocalUsers) {
+      return SAC_STORAGE.persistLocalUsers(users);
+    }
+    localStorage.setItem("sac_users", JSON.stringify(users || []));
+    return users || [];
+  }
+
   function checkRegistration(profile, existingUsers) {
     if (typeof SAC_UNIVERSITIES !== "undefined" && SAC_UNIVERSITIES.normalizeProfileCampus) {
       SAC_UNIVERSITIES.normalizeProfileCampus(profile);
@@ -385,7 +393,7 @@ const SAC_IDENTITY = (function () {
       if (idx >= 0) {
         users[idx] = { ...users[idx], passwordHash: user.passwordHash };
         delete users[idx].password;
-        localStorage.setItem("sac_users", JSON.stringify(users));
+        persistLocalUsers(users);
       }
     }
 
@@ -517,7 +525,7 @@ const SAC_IDENTITY = (function () {
         sigle: copy.sigle || users[idx].sigle,
         nomUniversite: copy.nomUniversite || users[idx].nomUniversite,
       };
-      localStorage.setItem("sac_users", JSON.stringify(users));
+      persistLocalUsers(users);
     }
     return { ...user, ...copy };
   }
@@ -593,6 +601,7 @@ const SAC_IDENTITY = (function () {
     validateMatricule,
     checkRegistration,
     getLocalUsers,
+    persistLocalUsers,
     personKey,
     ROLE_LABELS,
     roleLabelText,
