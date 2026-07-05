@@ -34,12 +34,46 @@ window.SAC_TECHMANAGER = (function () {
   }
 
   async function guard() {
+    if (typeof SAC_API !== "undefined") {
+      try {
+        await SAC_API.ensureApiSession({ soft: true });
+        const live = await SAC_API.me({ softAuth: true });
+        if (live && live.role !== "techmanager" && live.role !== "superadmin") {
+          window.location.replace(SAC_PORTAL.loginUrlForRole("techmanager"));
+          return null;
+        }
+      } catch (err) {
+        if (err && (err.code === "IP_BLOCKED" || err.status === 403)) {
+          toast(
+            err.code === "IP_BLOCKED"
+              ? "IP bloquée par le bouclier — attendez 1 h ou débloquez via une autre session."
+              : "Accès refusé — reconnectez-vous en Tech Manager ou Super Admin."
+          );
+        }
+      }
+    }
     const s = await SAC_SESSION.verifySession(null);
     if (!s || (s.role !== "techmanager" && s.role !== "superadmin")) {
       window.location.replace(SAC_PORTAL.loginUrlForRole("techmanager"));
       return null;
     }
     return s;
+  }
+
+  function shieldErrorMessage(err) {
+    if (!err) return "Impossible de charger le bouclier.";
+    if (err.code === "IP_BLOCKED" || /bloqué par le bouclier/i.test(String(err.message || ""))) {
+      return (
+        "Votre IP est bloquée par le bouclier (score élevé). Attendez ~1 h ou débloquez l'IP depuis une session autorisée."
+      );
+    }
+    if (err.status === 403 || err.code === "FORBIDDEN") {
+      return "Accès refusé — déconnectez-vous puis reconnectez-vous avec un compte Tech Manager ou Super Admin.";
+    }
+    if (err.status === 401 || err.code === "AUTH_REQUIRED" || err.code === "TOKEN_EXPIRED") {
+      return "Session expirée — déconnectez-vous puis reconnectez-vous.";
+    }
+    return err.message || "Impossible de charger le bouclier.";
   }
 
   async function loadTickets(filter) {
@@ -352,6 +386,9 @@ window.SAC_TECHMANAGER = (function () {
     }
     host.innerHTML = "<p class='dc-empty'>Chargement du bouclier…</p>";
     try {
+      if (typeof SAC_API.ensureApiSession === "function") {
+        await SAC_API.ensureApiSession();
+      }
       const results = await Promise.all([
         SAC_API.getTechManagerShieldOverview(),
         SAC_API.getTechManagerShieldTrends(24),
@@ -581,8 +618,22 @@ window.SAC_TECHMANAGER = (function () {
     } catch (err) {
       host.innerHTML =
         "<h1 class='page-title'>Bouclier anti-attaque</h1><p class='dc-empty'>" +
-        esc(err.message || "Impossible de charger le bouclier.") +
+        esc(shieldErrorMessage(err)) +
         "</p>";
+      if (err && (err.status === 403 || err.status === 401)) {
+        host.innerHTML +=
+          '<p style="margin-top:0.75rem"><button type="button" class="btn btn--ghost btn--xs" id="tmShieldRelogin">Se reconnecter</button></p>';
+        const relogin = document.getElementById("tmShieldRelogin");
+        if (relogin) {
+          relogin.addEventListener("click", function () {
+            if (typeof SAC_SESSION !== "undefined" && SAC_SESSION.logout) {
+              SAC_SESSION.logout(SAC_PORTAL.loginUrlForRole("techmanager"));
+            } else {
+              window.location.href = "techmanager/";
+            }
+          });
+        }
+      }
     }
   }
 
