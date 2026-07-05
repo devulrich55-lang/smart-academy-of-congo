@@ -349,8 +349,8 @@
   <script src="js/sac-identity.js"></script>
   <script src="js/sac-phone-input.js?v=20260625b"></script>
   <script src="js/sac-section-approval.js"></script>
-  <script src="js/sac-session.js?v=20260705f"></script>
-  <script src="js/sac-api.js?v=20260705f"></script>
+  <script src="js/sac-session.js?v=20260705g"></script>
+  <script src="js/sac-api.js?v=20260705g"></script>
   <script src="js/sac-tariffs.js?v=20260622"></script>
   <script src="js/sac-university-logo.js"></script>
   <script src="js/sac-courses.js"></script>
@@ -371,6 +371,74 @@
   <script src="js/sac-video-live.js"></script>
   <script src="js/sac-presence.js"></script>
   <script src="js/sac-social.js?v=20260703e"></script>
+  <script>
+    (function initProfShellSync() {
+      function readLocalSession() {
+        try {
+          return JSON.parse(localStorage.getItem("sac_session") || "null");
+        } catch {
+          return null;
+        }
+      }
+
+      function paintProfileHint(session) {
+        if (!session) return;
+        var name =
+          session.displayName ||
+          (session.prenom && session.nom ? session.prenom + " " + session.nom : "") ||
+          session.identifiant ||
+          "";
+        if (!name) return;
+        var profileName = document.getElementById("profileName");
+        var userName = document.getElementById("userName");
+        var profileMeta = document.getElementById("profileMeta");
+        if (profileName) profileName.textContent = name;
+        if (userName) userName.textContent = name;
+        if (profileMeta && session.universite) profileMeta.textContent = session.universite;
+      }
+
+      function switchProfSection(id) {
+        if (!id) return;
+        document.querySelectorAll(".nav-tab").forEach(function (x) {
+          x.classList.remove("active");
+        });
+        document.querySelectorAll(".page-section").forEach(function (x) {
+          x.classList.remove("active");
+        });
+        document.querySelector('[data-section="' + id + '"]')?.classList.add("active");
+        document.getElementById("section-" + id)?.classList.add("active");
+        window.__sacProfActiveSection = id;
+        window.dispatchEvent(new CustomEvent("sac-prof-section", { detail: { id: id } }));
+      }
+
+      paintProfileHint(readLocalSession());
+
+      document.querySelector(".nav-tabs")?.addEventListener("click", function (ev) {
+        var tab = ev.target.closest(".nav-tab[data-section]");
+        if (tab) switchProfSection(tab.dataset.section);
+      });
+      document.body.addEventListener("click", function (ev) {
+        var goto = ev.target.closest("[data-goto]");
+        if (goto) switchProfSection(goto.dataset.goto);
+      });
+
+      var btnLogout = document.getElementById("btnLogout");
+      if (btnLogout) {
+        btnLogout.addEventListener("click", function () {
+          if (typeof SAC_SESSION !== "undefined" && SAC_SESSION.logout) {
+            SAC_SESSION.logout("connexion.html?role=professeur");
+            return;
+          }
+          localStorage.removeItem("sac_session");
+          sessionStorage.removeItem("sac_access_token");
+          sessionStorage.removeItem("sac_refresh_token");
+          window.location.replace("connexion.html?role=professeur");
+        });
+      }
+
+      window.__SAC_PROF_SWITCH = switchProfSection;
+    })();
+  </script>
   <script>
     (async function () {
       if (typeof SAC_API !== "undefined" && SAC_API.wakeServer) {
@@ -441,26 +509,6 @@
       let gradesUi = null;
       let presenceByClass = {};
       let totalOnlineStudents = 0;
-
-      document.querySelectorAll(".nav-tab").forEach((t) => {
-        t.addEventListener("click", () => showSection(t.dataset.section));
-      });
-      document.querySelectorAll("[data-goto]").forEach((b) => {
-        b.addEventListener("click", () => showSection(b.dataset.goto));
-      });
-      document.querySelectorAll("[data-act-focus]").forEach((b) => {
-        b.addEventListener("click", () => {
-          showSection("activite");
-          setActFilter(b.dataset.actFocus);
-        });
-      });
-      document.querySelectorAll("[data-act-filter]").forEach((btn) => {
-        btn.addEventListener("click", () => setActFilter(btn.dataset.actFilter));
-      });
-      document.addEventListener("sac-campus-back", () => showSection("accueil"));
-      document.getElementById("btnLogout").addEventListener("click", () => {
-        SAC_SESSION.logout("connexion.html?role=professeur");
-      });
 
       function escapeHtml(s) {
         const d = document.createElement("div");
@@ -784,14 +832,10 @@
         }
       }
 
-      function showSection(id) {
+      function enrichSection(id) {
         if (id !== "reseau" && typeof SAC_SOCIAL !== "undefined" && SAC_SOCIAL.clearMessengerMode) {
           SAC_SOCIAL.clearMessengerMode();
         }
-        document.querySelectorAll(".nav-tab").forEach((x) => x.classList.remove("active"));
-        document.querySelectorAll(".page-section").forEach((x) => x.classList.remove("active"));
-        document.querySelector(`[data-section="${id}"]`)?.classList.add("active");
-        document.getElementById("section-" + id)?.classList.add("active");
         if (id === "profil" || id === "activite" || id === "accueil") renderAllActivity();
         if (id === "documents" || id === "accueil") renderRecentPublications();
         if (id === "notes") {
@@ -820,6 +864,32 @@
         if (id === "annonces") renderAnnouncements();
         if (id === "chef-section") renderChefSectionWorkspace();
       }
+
+      function showSection(id) {
+        if (typeof window.__SAC_PROF_SWITCH === "function") {
+          window.__SAC_PROF_SWITCH(id);
+        } else {
+          document.querySelectorAll(".nav-tab").forEach((x) => x.classList.remove("active"));
+          document.querySelectorAll(".page-section").forEach((x) => x.classList.remove("active"));
+          document.querySelector(`[data-section="${id}"]`)?.classList.add("active");
+          document.getElementById("section-" + id)?.classList.add("active");
+          enrichSection(id);
+        }
+      }
+
+      window.addEventListener("sac-prof-section", (ev) => {
+        if (ev.detail?.id) enrichSection(ev.detail.id);
+      });
+      document.querySelectorAll("[data-act-filter]").forEach((btn) => {
+        btn.addEventListener("click", () => setActFilter(btn.dataset.actFilter));
+      });
+      document.querySelectorAll("[data-act-focus]").forEach((b) => {
+        b.addEventListener("click", () => {
+          showSection("activite");
+          setActFilter(b.dataset.actFocus);
+        });
+      });
+      document.addEventListener("sac-campus-back", () => showSection("accueil"));
 
       function renderChefSectionWorkspace() {
         if (!SAC_NOMINATIONS.isSectionHead(session)) return;
@@ -935,6 +1005,9 @@
       renderProfile(session);
       renderAllActivity();
       renderAnnouncements();
+      if (window.__sacProfActiveSection) {
+        enrichSection(window.__sacProfActiveSection);
+      }
 
       SAC_initPublisherPage({
         session,

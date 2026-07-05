@@ -19,7 +19,7 @@
     // Proxy same-origin (server.js) — évite CORS et cold-start cross-origin
     window.SAC_API_BASE = origin;
   }
-  window.SAC_JS_BUILD = "20260705f";
+  window.SAC_JS_BUILD = "20260705g";
   window.SAC_PLATFORM_LOGO = "evo-uni.jpeg";
   window.SAC_PLATFORM_LOGO_ALT = "Evo-smartUni";
 

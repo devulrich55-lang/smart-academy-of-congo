@@ -403,18 +403,8 @@ const SAC_SESSION = (function () {
     return syncSessionWithAccount(requiredRole);
   }
 
-  /**
-   * Garde d'entrée dashboard — vérifie le rôle et l'authentification serveur.
-   */
-  async function guard(requiredRole) {
-    let session = await resolveNavigationSession(requiredRole);
-    if (!session) {
-      session = await verifySession(requiredRole);
-    }
-    if (!session) {
-      window.location.replace(loginUrl(requiredRole));
-      return null;
-    }
+  function finishGuard(session, requiredRole) {
+    if (!session) return null;
     if (typeof SAC_PORTAL !== "undefined" && SAC_PORTAL.redirectIfWrongRole(session)) {
       return null;
     }
@@ -427,6 +417,51 @@ const SAC_SESSION = (function () {
       return enriched;
     }
     return session;
+  }
+
+  function backgroundSessionSync(requiredRole) {
+    if (typeof SAC_API === "undefined" || typeof SAC_API.me !== "function") return;
+    void SAC_API.ensureOnline(false, { maxWaitMs: 6000 })
+      .then(function (online) {
+        if (!online) return null;
+        return SAC_API.me({ soft: true, timeoutMs: 8000 });
+      })
+      .then(function (serverSession) {
+        if (!serverSession) return;
+        const local = getSession();
+        saveSession(Object.assign({}, local || {}, serverSession));
+        clearPostRegistration();
+      })
+      .catch(function () {});
+  }
+
+  /**
+   * Garde d'entrée dashboard — vérifie le rôle et l'authentification serveur.
+   */
+  async function guard(requiredRole) {
+    const local = getSession();
+
+    if (requiredRole && local && local.role !== requiredRole) {
+      clearSession();
+      window.location.replace(loginUrl(requiredRole));
+      return null;
+    }
+
+    if (local?.identifiant && (!requiredRole || local.role === requiredRole)) {
+      const synced = syncSessionWithAccount(requiredRole) || local;
+      backgroundSessionSync(requiredRole);
+      return finishGuard(synced, requiredRole);
+    }
+
+    let session = await resolveNavigationSession(requiredRole);
+    if (!session) {
+      session = await verifySession(requiredRole);
+    }
+    if (!session) {
+      window.location.replace(loginUrl(requiredRole));
+      return null;
+    }
+    return finishGuard(session, requiredRole);
   }
 
   /** Déconnexion unique — seul moyen d'effacer la session */

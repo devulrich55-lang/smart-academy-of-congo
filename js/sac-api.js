@@ -411,7 +411,7 @@ const SAC_API = (function () {
 
   async function request(path, options = {}) {
     if (isRenderFrontend() && !baseResolved) await resolveApiBase();
-    const timeoutMs = options.timeoutMs || 45000;
+    const timeoutMs = options.timeoutMs || (options.softAuth ? 8000 : 45000);
     const fetchOpts = { ...options };
     delete fetchOpts.timeoutMs;
     let res;
@@ -982,7 +982,10 @@ const SAC_API = (function () {
   async function me(opts) {
     if (opts && opts.soft) {
       try {
-        const data = await request("/auth/me", { softAuth: true });
+        const data = await request("/auth/me", {
+          softAuth: true,
+          timeoutMs: (opts && opts.timeoutMs) || 8000,
+        });
         sessionCache = tagApiSession(data.session);
         persistSessionCache();
         return sessionCache;
