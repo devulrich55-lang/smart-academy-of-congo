@@ -15,6 +15,7 @@ const SAC_EVOMONITOR = (function () {
   let aiOpsTimer = null;
   let lastOverview = null;
   let lastLoadError = null;
+  let lastShieldSnapshot = null;
   let logsCache = [];
   let logFilters = { q: "", category: "all", level: "all" };
 
@@ -210,6 +211,7 @@ const SAC_EVOMONITOR = (function () {
     renderIncidents((enriched.incidents && enriched.incidents.recent) || []);
     renderAlerts(enriched);
     renderSecurityBanner(enriched);
+    renderShieldCorrelate(enriched);
 
     if (INTEL) {
       INTEL.renderLiveDashboard(document.getElementById("emLiveCharts"), enriched, INTEL.getHistory());
@@ -459,6 +461,154 @@ const SAC_EVOMONITOR = (function () {
     return true;
   }
 
+  async function fetchShieldSnapshot() {
+    if (typeof SAC_API === "undefined" || !SAC_API.getTechManagerShieldOverview) {
+      return null;
+    }
+    if (typeof SAC_API.hasAuthTokens === "function" && !SAC_API.hasAuthTokens()) {
+      return null;
+    }
+    try {
+      if (typeof SAC_API.ensureApiSession === "function") {
+        await SAC_API.ensureApiSession({ soft: true });
+      }
+      const results = await Promise.all([
+        SAC_API.getTechManagerShieldOverview(),
+        SAC_API.getTechManagerShieldTrends(24),
+      ]);
+      lastShieldSnapshot = {
+        overview: results[0] || {},
+        trends: results[1] || {},
+        fetchedAt: new Date().toISOString(),
+        error: null,
+      };
+    } catch (err) {
+      lastShieldSnapshot = {
+        overview: null,
+        trends: null,
+        fetchedAt: new Date().toISOString(),
+        error: err,
+      };
+    }
+    return lastShieldSnapshot;
+  }
+
+  function computeCorrelatedRisk(monitorData, snap) {
+    let score = 0;
+    const users = (monitorData && monitorData.users) || {};
+    const alerts = (monitorData && monitorData.alerts) || {};
+    const failed = users.failedLogins24h || 0;
+    const openSec = alerts.openSecurityIncidents || 0;
+    const ov = snap && snap.overview;
+
+    if (failed >= 20) score += 30;
+    else if (failed >= 5) score += 15;
+    if (openSec >= 3) score += 35;
+    else if (openSec >= 1) score += 20;
+    if (ov) {
+      if ((ov.blockedActive || 0) >= 10) score += 20;
+      else if ((ov.blockedActive || 0) >= 1) score += 10;
+      if ((ov.honeypot24h || 0) >= 5) score += 20;
+      else if ((ov.honeypot24h || 0) >= 1) score += 12;
+      if ((ov.events24h || 0) >= 100) score += 10;
+      if ((ov.avgScore24h || 0) >= 60) score += 8;
+    }
+
+    score = Math.min(100, score);
+    if (score >= 55) return { level: "critical", label: "Élevé", score: score };
+    if (score >= 25) return { level: "warning", label: "Modéré", score: score };
+    return { level: "ok", label: "Faible", score: score };
+  }
+
+  function shieldCorrelateHtml(monitorData, snap, compact) {
+    const risk = computeCorrelatedRisk(monitorData, snap);
+    const users = (monitorData && monitorData.users) || {};
+    const alerts = (monitorData && monitorData.alerts) || {};
+    const ov = snap && snap.overview;
+    const trends = (snap && snap.trends) || {};
+    const topPaths = trends.topPaths || [];
+
+    if (snap && snap.error && !ov) {
+      const msg =
+        snap.error.status === 403 || snap.error.code === "FORBIDDEN"
+          ? "Bouclier réservé au Tech Manager — corrélation partielle (EvoMonitor seul)."
+          : "Bouclier indisponible — redeployez l'API ou vérifiez la session superadmin.";
+      return (
+        '<div class="em-panel em-shield-correlate' +
+        (compact ? " em-shield-correlate--compact" : "") +
+        '">' +
+        "<h3>🔗 Corrélation sécurité</h3>" +
+        '<p class="em-shield-correlate__unavail">' +
+        esc(msg) +
+        "</p>" +
+        '<div class="em-shield-correlate__grid">' +
+        metricCard("🔐", "Échecs connexion (24 h)", fmtNum(users.failedLogins24h || 0)) +
+        metricCard("🛡️", "Alertes sécurité", fmtNum(alerts.openSecurityIncidents || 0)) +
+        "</div></div>"
+      );
+    }
+
+    let pathsHtml = "";
+    if (topPaths.length) {
+      pathsHtml =
+        '<div class="em-shield-correlate__paths"><strong>Top chemins attaqués (24 h)</strong><ul>' +
+        topPaths
+          .slice(0, compact ? 3 : 5)
+          .map(function (p) {
+            return "<li><code>" + esc(p.path) + "</code> — " + esc(p.count) + " hit(s)</li>";
+          })
+          .join("") +
+        "</ul></div>";
+    }
+
+    return (
+      '<div class="em-panel em-shield-correlate' +
+      (compact ? " em-shield-correlate--compact" : "") +
+      '">' +
+      '<div class="em-shield-correlate__head">' +
+      "<h3>🔗 Corrélation sécurité · EvoMonitor + Bouclier</h3>" +
+      '<span class="em-shield-correlate__risk em-shield-correlate__risk--' +
+      risk.level +
+      '">Risque ' +
+      esc(risk.label) +
+      " · " +
+      risk.score +
+      "/100</span></div>" +
+      '<div class="em-shield-correlate__grid">' +
+      metricCard("🔐", "Échecs connexion (24 h)", fmtNum(users.failedLogins24h || 0)) +
+      metricCard("🚨", "Incidents sécurité", fmtNum(alerts.openSecurityIncidents || 0)) +
+      metricCard("🛡️", "Événements Bouclier (24 h)", fmtNum(ov ? ov.events24h : "—")) +
+      metricCard("🚫", "IP bloquées", fmtNum(ov ? ov.blockedActive : "—")) +
+      metricCard("🍯", "Honeypot (24 h)", fmtNum(ov ? ov.honeypot24h : "—")) +
+      metricCard("📊", "Score moyen attaques", fmtNum(ov ? ov.avgScore24h : "—")) +
+      "</div>" +
+      pathsHtml +
+      '<p class="em-shield-correlate__meta">Mis à jour : ' +
+      esc(fmtDate(snap && snap.fetchedAt)) +
+      (ov && ov.enabled === false ? " · Bouclier désactivé côté API" : "") +
+      "</p></div>"
+    );
+  }
+
+  function renderShieldCorrelate(monitorData) {
+    const host = document.getElementById("emShieldCorrelate");
+    const snap = lastShieldSnapshot;
+    if (host) {
+      host.innerHTML = shieldCorrelateHtml(monitorData || lastOverview || {}, snap, false);
+    }
+
+    const quick = document.getElementById("emQuickPreview");
+    if (!quick) return;
+    let compact = quick.querySelector(".em-shield-correlate--compact");
+    const html = shieldCorrelateHtml(monitorData || lastOverview || {}, snap, true);
+    if (!compact) {
+      compact = document.createElement("div");
+      compact.className = "em-shield-correlate-wrap";
+      quick.insertBefore(compact, quick.firstChild);
+    }
+    compact.innerHTML = html;
+  }
+
   async function pollSecurityPulse() {
     if (!canPollSecurityPulse()) return;
     try {
@@ -477,6 +627,8 @@ const SAC_EVOMONITOR = (function () {
         }
         await loadOverview();
       }
+      await fetchShieldSnapshot();
+      if (lastOverview) renderShieldCorrelate(lastOverview);
     } catch {
       /* ignore */
     }
@@ -712,6 +864,9 @@ const SAC_EVOMONITOR = (function () {
       if (AIOPS && AIOPS.syncFromOverview) {
         AIOPS.syncFromOverview(lastOverview, null, { onToast: toast });
       }
+      fetchShieldSnapshot().then(function () {
+        if (lastOverview) renderShieldCorrelate(lastOverview);
+      });
     } catch (err) {
       if (isClientBugError(err)) {
         toast("Bug d'affichage — Ctrl+F5 pour recharger EvoMonitor.");
