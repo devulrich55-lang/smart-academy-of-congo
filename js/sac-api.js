@@ -221,10 +221,8 @@ const SAC_API = (function () {
       return BASE;
     }
 
-    if (proxyOrigin) {
-      BASE = proxyOrigin;
-      if (typeof window !== "undefined") window.SAC_API_BASE = proxyOrigin;
-    }
+    BASE = RENDER_API_DIRECT;
+    if (typeof window !== "undefined") window.SAC_API_BASE = RENDER_API_DIRECT;
     baseResolved = true;
     return BASE;
   }
@@ -409,6 +407,23 @@ const SAC_API = (function () {
     });
   }
 
+  function proxyOriginHint() {
+    if (typeof window === "undefined") return "";
+    return String(
+      window.SAC_API_PROXY_ORIGIN || window.location.origin || ""
+    ).replace(/\/+$/, "");
+  }
+
+  function switchToDirectApiIfProxyBroken() {
+    const proxy = proxyOriginHint();
+    if (!proxy || BASE !== proxy || BASE === RENDER_API_DIRECT) return false;
+    BASE = RENDER_API_DIRECT;
+    if (typeof window !== "undefined") window.SAC_API_BASE = RENDER_API_DIRECT;
+    baseResolved = true;
+    online = null;
+    return true;
+  }
+
   async function request(path, options = {}) {
     if (isRenderFrontend() && !baseResolved) await resolveApiBase();
     const timeoutMs = options.timeoutMs || (options.softAuth ? 8000 : 45000);
@@ -428,6 +443,9 @@ const SAC_API = (function () {
         }),
       }, timeoutMs);
     } catch (netErr) {
+      if (switchToDirectApiIfProxyBroken()) {
+        return request(path, options);
+      }
       const err = new Error(networkErrorMessage(netErr));
       err.code = "NETWORK_ERROR";
       throw err;
@@ -438,6 +456,13 @@ const SAC_API = (function () {
       data = await res.json();
     } catch {
       /* non-json */
+    }
+
+    if (
+      (res.status === 404 || res.status === 502 || res.status === 503) &&
+      switchToDirectApiIfProxyBroken()
+    ) {
+      return request(path, options);
     }
 
     if (res.status === 401 && path !== "/auth/login" && path !== "/auth/refresh" && path !== "/auth/forgot-password" && path !== "/auth/reset-password") {

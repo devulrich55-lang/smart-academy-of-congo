@@ -16,10 +16,9 @@
   if (isHostedFrontend(host)) {
     var origin = window.location.origin.replace(/\/+$/, "");
     window.SAC_API_PROXY_ORIGIN = origin;
-    // Proxy same-origin (server.js) — évite CORS et cold-start cross-origin
-    window.SAC_API_BASE = origin;
+    // resolveApiBase() teste le proxy puis bascule sur l'API directe si besoin
   }
-  window.SAC_JS_BUILD = "20260705h";
+  window.SAC_JS_BUILD = "20260705i";
   window.SAC_PLATFORM_LOGO = "evo-uni.jpeg";
   window.SAC_PLATFORM_LOGO_ALT = "Evo-smartUni";
 

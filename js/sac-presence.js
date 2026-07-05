@@ -75,6 +75,12 @@ const SAC_PRESENCE = (function () {
     await SAC_API.pingPresence(buildPayload(activeSession));
   }
 
+  async function sessionLooksOnline() {
+    if (typeof SAC_API.me !== "function") return false;
+    const profile = await SAC_API.me({ soft: true, timeoutMs: 10000 });
+    return !!profile;
+  }
+
   async function heartbeat(session, hooks) {
     if (!isApiReady()) return;
     const activeSession = liveSession(session);
@@ -88,7 +94,7 @@ const SAC_PRESENCE = (function () {
         safeCall(hooks?.onSelfOnline, true);
         return;
       } catch {
-        /* réveil API Render puis nouvel essai */
+        /* ping échoué — tenter réveil API puis repli /auth/me */
       }
 
       if (typeof SAC_API.wakeServer === "function") {
@@ -97,10 +103,28 @@ const SAC_PRESENCE = (function () {
         await SAC_API.ensureOnline(true, { maxWaitMs: 25000 });
       }
 
-      await tryPing(activeSession);
-      safeCall(hooks?.onSelfOnline, true);
-    } catch {
+      await ensureAuthForPresence();
+
+      try {
+        await tryPing(activeSession);
+        safeCall(hooks?.onSelfOnline, true);
+        return;
+      } catch {
+        /* repli : session API valide = en ligne pour l'utilisateur */
+      }
+
+      if (await sessionLooksOnline()) {
+        safeCall(hooks?.onSelfOnline, true);
+        return;
+      }
+
       safeCall(hooks?.onSelfOnline, false);
+    } catch {
+      if (await sessionLooksOnline().catch(function () { return false; })) {
+        safeCall(hooks?.onSelfOnline, true);
+      } else {
+        safeCall(hooks?.onSelfOnline, false);
+      }
     }
   }
 
