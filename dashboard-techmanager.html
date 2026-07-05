@@ -9,7 +9,7 @@
   <script src="js/sac-theme.js"></script>
   <link rel="stylesheet" href="css/dashboard.css" />
   <link rel="stylesheet" href="css/theme.css" />
-  <link rel="stylesheet" href="css/devcenter.css?v=20260713" />
+  <link rel="stylesheet" href="css/devcenter.css?v=20260714" />
   <meta name="theme-color" content="#0f766e" />
 </head>
 <body class="devcenter-dashboard tm-dashboard">
@@ -45,14 +45,17 @@
     <section class="page-section" id="tm-stats"><div class="dc-panel tm-section-panel" id="tmStatsPanel"></div></section>
     <section class="page-section" id="tm-shield"><div class="dc-panel tm-section-panel" id="tmShieldPanel"></div></section>
   </main>
-  <script src="js/sac-session.js?v=20260713"></script>
-  <script src="js/sac-api.js?v=20260713"></script>
-  <script src="js/sac-techmanager.js?v=20260713"></script>
   <script>
     (function () {
       "use strict";
 
-      var SCRIPT_ERR = false;
+      var TM_ASSET = "20260714";
+      var TM_SCRIPTS = [
+        "js/sac-session.js?v=" + TM_ASSET,
+        "js/sac-api.js?v=" + TM_ASSET,
+        "js/sac-techmanager.js?v=" + TM_ASSET,
+      ];
+      var loadErrors = [];
 
       function tmToast(msg) {
         var el = document.getElementById("tmToast");
@@ -61,7 +64,7 @@
         el.classList.add("dc-toast--show");
         setTimeout(function () {
           el.classList.remove("dc-toast--show");
-        }, 5000);
+        }, 6000);
       }
 
       function tmShowView(view) {
@@ -92,23 +95,133 @@
         return null;
       }
 
-      function tmBindFallback() {
+      function loadScript(url, tryPlain) {
+        return new Promise(function (resolve) {
+          var src = tryPlain ? url.split("?")[0] : url;
+          var s = document.createElement("script");
+          s.src = src;
+          s.async = false;
+          s.onload = function () {
+            resolve(true);
+          };
+          s.onerror = function () {
+            if (!tryPlain) {
+              loadScript(url, true).then(resolve);
+              return;
+            }
+            loadErrors.push(src);
+            resolve(false);
+          };
+          document.body.appendChild(s);
+        });
+      }
+
+      function loadScriptsChain(index) {
+        if (index >= TM_SCRIPTS.length) return Promise.resolve();
+        return loadScript(TM_SCRIPTS[index], false).then(function () {
+          return loadScriptsChain(index + 1);
+        });
+      }
+
+      function tmHandleTab(view) {
+        if (typeof SAC_TECHMANAGER !== "undefined" && SAC_TECHMANAGER.handleTab) {
+          return SAC_TECHMANAGER.handleTab(view);
+        }
+        tmShowView(view);
+        if (typeof SAC_API === "undefined") {
+          tmToast("Scripts incomplets — Ctrl+Shift+R puis redeploy frontend.");
+          return Promise.resolve();
+        }
+        var host;
+        if (view === "board" || view === "review") {
+          host = document.getElementById("tmTicketsList");
+          if (host) host.innerHTML = "<p class='dc-empty'>Chargement…</p>";
+          var filter = view === "review" ? "review" : "all";
+          return SAC_API.listTechManagerTickets(filter, 150)
+            .then(function (data) {
+              var tickets = (data && data.tickets) || [];
+              if (!host) return;
+              host.innerHTML = tickets.length
+                ? tickets
+                    .map(function (t) {
+                      return (
+                        "<article class='dc-ticket'><code>" +
+                        (t.ticketNumber || "") +
+                        "</code> <strong>" +
+                        (t.title || "") +
+                        "</strong></article>"
+                      );
+                    })
+                    .join("")
+                : "<p class='dc-empty'>Aucun ticket.</p>";
+            })
+            .catch(function (err) {
+              if (host) {
+                host.innerHTML =
+                  "<p class='dc-empty'>" + ((err && err.message) || "Erreur API") + "</p>";
+              }
+            });
+        }
+        if (view === "team" && SAC_API.listTechManagerTeam) {
+          host = document.getElementById("tmTeamPanel");
+          if (host) host.innerHTML = "<p class='dc-empty'>Chargement…</p>";
+          return SAC_API.listTechManagerTeam()
+            .then(function (data) {
+              var devs = (data && data.developers) || [];
+              if (!host) return;
+              host.innerHTML =
+                "<h1 class='page-title'>Performances équipe</h1>" +
+                (devs.length
+                  ? devs
+                      .map(function (d) {
+                        return "<article class='dc-project-card'><h3>" + (d.displayName || "") + "</h3></article>";
+                      })
+                      .join("")
+                  : "<p class='dc-empty'>Aucun développeur.</p>");
+            })
+            .catch(function (err) {
+              if (host) {
+                host.innerHTML =
+                  "<p class='dc-empty'>" + ((err && err.message) || "Erreur API") + "</p>";
+              }
+            });
+        }
+        if (view === "stats" && SAC_API.getTechManagerStats) {
+          host = document.getElementById("tmStatsPanel");
+          if (host) host.innerHTML = "<p class='dc-empty'>Chargement…</p>";
+          return SAC_API.getTechManagerStats()
+            .then(function (data) {
+              var g = (data && data.global) || {};
+              if (!host) return;
+              host.innerHTML =
+                "<h1 class='page-title'>Statistiques</h1><p>Total : " + (g.total || 0) + "</p>";
+            })
+            .catch(function (err) {
+              if (host) {
+                host.innerHTML =
+                  "<p class='dc-empty'>" + ((err && err.message) || "Erreur API") + "</p>";
+              }
+            });
+        }
+        if (view === "shield") {
+          host = document.getElementById("tmShieldPanel");
+          if (host) {
+            host.innerHTML =
+              "<h1 class='page-title'>Bouclier</h1><p class='dc-empty'>Redeployez l'API si le bouclier est vide.</p>";
+          }
+        }
+        return Promise.resolve();
+      }
+
+      function tmBindUi() {
         var nav = document.querySelector(".dc-nav");
-        if (nav && !nav.dataset.tmFallback) {
-          nav.dataset.tmFallback = "1";
+        if (nav && !nav.dataset.tmBound) {
+          nav.dataset.tmBound = "1";
           nav.addEventListener("click", function (e) {
             var tab = tmFindTab(e.target, nav);
             if (!tab) return;
             e.preventDefault();
-            var view = tab.getAttribute("data-view") || "board";
-            if (typeof SAC_TECHMANAGER !== "undefined" && SAC_TECHMANAGER.handleTab) {
-              SAC_TECHMANAGER.handleTab(view);
-            } else {
-              tmShowView(view);
-              if (SCRIPT_ERR) {
-                tmToast("Module données indisponible — Ctrl+F5 ou redeploy frontend.");
-              }
-            }
+            tmHandleTab(tab.getAttribute("data-view") || "board");
           });
         }
         var refreshBtn = document.getElementById("tmRefreshBtn");
@@ -141,19 +254,23 @@
         }
       }
 
-      function markScriptError(label) {
-        SCRIPT_ERR = true;
-        tmToast("Erreur chargement " + label + " — Ctrl+F5");
+      function tmBoot() {
+        tmBindUi();
+        if (loadErrors.length) {
+          tmToast("Fichiers manquants : " + loadErrors.join(", "));
+        }
+        if (typeof SAC_TECHMANAGER !== "undefined" && SAC_TECHMANAGER.init) {
+          SAC_TECHMANAGER.init();
+        } else if (typeof SAC_API !== "undefined") {
+          tmToast("Mode secours actif — rechargez après deploy.");
+          tmHandleTab("board");
+        } else {
+          tmToast("Chargement incomplet — Ctrl+Shift+R");
+        }
       }
 
       document.addEventListener("DOMContentLoaded", function () {
-        tmBindFallback();
-        if (typeof SAC_SESSION === "undefined") markScriptError("session");
-        if (typeof SAC_API === "undefined") markScriptError("API");
-        if (typeof SAC_TECHMANAGER === "undefined") markScriptError("Tech Manager");
-        if (typeof SAC_TECHMANAGER !== "undefined" && SAC_TECHMANAGER.init) {
-          SAC_TECHMANAGER.init();
-        }
+        loadScriptsChain(0).then(tmBoot);
       });
     })();
   </script>

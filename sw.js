@@ -1,7 +1,7 @@
 /**
  * Service Worker Evo-smartUni — coque hors-ligne (shell statique)
  */
-const CACHE = "sac-pwa-v20260702c";
+const CACHE = "sac-pwa-v20260714";
 const SHELL = [
   "/",
   "/index.html",
@@ -82,6 +82,21 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
+  if (url.pathname.match(/\.js$/i)) {
+    event.respondWith(
+      fetch(req)
+        .then((res) => {
+          if (res && res.status === 200) {
+            const clone = res.clone();
+            caches.open(CACHE).then((cache) => cache.put(req, clone));
+          }
+          return res;
+        })
+        .catch(() => caches.match(req))
+    );
+    return;
+  }
+
   event.respondWith(
     caches.match(req).then((cached) => {
       const network = fetch(req)
@@ -89,7 +104,7 @@ self.addEventListener("fetch", (event) => {
           if (
             res &&
             res.status === 200 &&
-            url.pathname.match(/\.(css|js|png|jpg|jpeg|webp|ico|woff2?)$/i)
+            url.pathname.match(/\.(css|png|jpg|jpeg|webp|ico|woff2?)$/i)
           ) {
             const clone = res.clone();
             caches.open(CACHE).then((cache) => cache.put(req, clone));
