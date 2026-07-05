@@ -13,6 +13,38 @@ const API_TARGET =
   "https://smart-academy-of-congo-api-1.onrender.com";
 const PORT = Number(process.env.PORT) || 10000;
 
+const SECURITY_HEADERS = {
+  "X-Content-Type-Options": "nosniff",
+  "X-Frame-Options": "SAMEORIGIN",
+  "Referrer-Policy": "strict-origin-when-cross-origin",
+  "Permissions-Policy":
+    "camera=(self), microphone=(self), geolocation=(), payment=(), usb=()",
+  "X-XSS-Protection": "0",
+};
+
+const CSP_REPORT_ONLY = [
+  "default-src 'self'",
+  "script-src 'self' 'unsafe-inline' https://meet.jit.si https://8x8.vc",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  "img-src 'self' data: blob: https:",
+  "font-src 'self' https://fonts.gstatic.com data:",
+  "connect-src 'self' https: wss:",
+  "frame-src 'self' https:",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+].join("; ");
+
+app.use((req, res, next) => {
+  for (const [key, value] of Object.entries(SECURITY_HEADERS)) {
+    res.setHeader(key, value);
+  }
+  if (process.env.NODE_ENV === "production" || process.env.SAC_CSP_REPORT === "1") {
+    res.setHeader("Content-Security-Policy-Report-Only", CSP_REPORT_ONLY);
+  }
+  next();
+});
+
 function makeProxy(prefix) {
   return createProxyMiddleware({
     target: API_TARGET,
