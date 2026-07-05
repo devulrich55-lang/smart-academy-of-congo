@@ -349,8 +349,8 @@
   <script src="js/sac-identity.js"></script>
   <script src="js/sac-phone-input.js?v=20260625b"></script>
   <script src="js/sac-section-approval.js"></script>
-  <script src="js/sac-session.js?v=20260705e"></script>
-  <script src="js/sac-api.js?v=20260705e"></script>
+  <script src="js/sac-session.js?v=20260705f"></script>
+  <script src="js/sac-api.js?v=20260705f"></script>
   <script src="js/sac-tariffs.js?v=20260622"></script>
   <script src="js/sac-university-logo.js"></script>
   <script src="js/sac-courses.js"></script>
@@ -381,8 +381,8 @@
 
       session = SAC_SESSION.syncSessionWithAccount("professeur") || session;
       if (typeof SAC_API !== "undefined") {
-        const online = await SAC_API.ensureOnline(false, { maxWaitMs: 15000 });
-        if (online) {
+        void SAC_API.ensureOnline(false, { maxWaitMs: 8000 }).then(async (online) => {
+          if (!online) return;
           try {
             const fresh = await SAC_API.me({ soft: true });
             if (fresh) {
@@ -398,10 +398,13 @@
           } catch {
             /* profil API indisponible — repli session locale */
           }
-        }
+        });
       }
-      await SAC_DATA.ensureReady();
-      await SAC_SECTIONS.ensureReady(session);
+
+      const bootTasks = Promise.all([
+        SAC_DATA.ensureReady(),
+        SAC_SECTIONS.ensureReady(session),
+      ]);
 
       const users = SAC_IDENTITY.getLocalUsers();
       const profUser = SAC_IDENTITY.findUserByLoginId(users, session.identifiant);
@@ -438,6 +441,26 @@
       let gradesUi = null;
       let presenceByClass = {};
       let totalOnlineStudents = 0;
+
+      document.querySelectorAll(".nav-tab").forEach((t) => {
+        t.addEventListener("click", () => showSection(t.dataset.section));
+      });
+      document.querySelectorAll("[data-goto]").forEach((b) => {
+        b.addEventListener("click", () => showSection(b.dataset.goto));
+      });
+      document.querySelectorAll("[data-act-focus]").forEach((b) => {
+        b.addEventListener("click", () => {
+          showSection("activite");
+          setActFilter(b.dataset.actFocus);
+        });
+      });
+      document.querySelectorAll("[data-act-filter]").forEach((btn) => {
+        btn.addEventListener("click", () => setActFilter(btn.dataset.actFilter));
+      });
+      document.addEventListener("sac-campus-back", () => showSection("accueil"));
+      document.getElementById("btnLogout").addEventListener("click", () => {
+        SAC_SESSION.logout("connexion.html?role=professeur");
+      });
 
       function escapeHtml(s) {
         const d = document.createElement("div");
@@ -904,28 +927,7 @@
         if (SAC_NOMINATIONS.isSectionHead(session)) renderChefSectionWorkspace();
       });
 
-      document.querySelectorAll("[data-act-filter]").forEach((btn) => {
-        btn.addEventListener("click", () => setActFilter(btn.dataset.actFilter));
-      });
-      document.addEventListener("sac-campus-back", () => showSection("accueil"));
-
-      document.querySelectorAll(".nav-tab").forEach((t) => {
-        t.addEventListener("click", () => showSection(t.dataset.section));
-      });
-      document.querySelectorAll("[data-goto]").forEach((b) => {
-        b.addEventListener("click", () => showSection(b.dataset.goto));
-      });
-      document.querySelectorAll("[data-act-focus]").forEach((b) => {
-        b.addEventListener("click", () => {
-          showSection("activite");
-          setActFilter(b.dataset.actFocus);
-        });
-      });
-
-      document.getElementById("btnLogout").addEventListener("click", () => {
-        SAC_SESSION.logout("connexion.html?role=professeur");
-      });
-
+      await bootTasks;
       await applyCampusTariffToProfile();
       if (typeof SAC_GRADES.loadStudentsFromApi === "function") {
         await SAC_GRADES.loadStudentsFromApi(session);

@@ -112,7 +112,7 @@ const SAC_DATA = (function () {
     if (!readyPromise) {
       readyPromise = (async () => {
         if (typeof SAC_API !== "undefined") {
-          useApi = await SAC_API.ensureOnline();
+          useApi = await SAC_API.ensureOnline(false, { maxWaitMs: 8000 });
           if (useApi) {
             try {
               await refreshFromServer();

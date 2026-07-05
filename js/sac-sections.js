@@ -367,7 +367,7 @@ const SAC_SECTIONS = (function () {
 
   async function isApiOnline() {
     if (typeof SAC_API === "undefined") return false;
-    return SAC_API.ensureOnline();
+    return SAC_API.ensureOnline(false, { maxWaitMs: 8000 });
   }
 
   function mergeSectionsIntoCache(incoming) {

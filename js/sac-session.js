@@ -130,8 +130,9 @@ const SAC_SESSION = (function () {
 
   function scheduleSessionSync(local) {
     if (typeof SAC_API === "undefined" || typeof SAC_API.me !== "function") return;
-    SAC_API.me()
+    SAC_API.me({ soft: true })
       .then((serverSession) => {
+        if (!serverSession) return;
         saveSession({
           ...serverSession,
           payment: local.payment || serverSession.payment,
@@ -285,7 +286,7 @@ const SAC_SESSION = (function () {
 
     if (typeof SAC_API !== "undefined") {
       try {
-        const online = await SAC_API.ensureOnline();
+        const online = await SAC_API.ensureOnline(false, { maxWaitMs: 10000 });
         if (online && typeof SAC_API.me === "function") {
           const serverSession = await SAC_API.me({ soft: true });
           if (serverSession) {
@@ -303,9 +304,10 @@ const SAC_SESSION = (function () {
     return synced;
   }
 
-  function canKeepApiSessionLocal(session) {
+  function canKeepApiSessionLocal(session, requiredRole) {
     if (!session?.identifiant) return false;
-    if (!isServerSession(session)) return false;
+    if (requiredRole && session.role !== requiredRole) return false;
+    if (session.authSource === "api" || isServerSession(session)) return true;
     if (typeof SAC_API !== "undefined" && typeof SAC_API.hasAuthTokens === "function") {
       return SAC_API.hasAuthTokens();
     }
@@ -360,12 +362,16 @@ const SAC_SESSION = (function () {
         return local;
       }
 
-      if (local && canKeepApiSessionLocal(local)) {
+      if (local && canKeepApiSessionLocal(local, requiredRole)) {
         return local;
       }
 
       if (canKeepLocalSession(local, requiredRole)) {
         return syncSessionWithAccount(requiredRole) || local;
+      }
+
+      if (local?.identifiant && (!requiredRole || local.role === requiredRole)) {
+        return local;
       }
 
       clearSession();
@@ -380,7 +386,7 @@ const SAC_SESSION = (function () {
         clearSession();
         return null;
       }
-      if (canKeepApiSessionLocal(local)) {
+      if (canKeepApiSessionLocal(local, requiredRole)) {
         return local;
       }
       if (canKeepLocalSession(local, requiredRole)) {
@@ -401,7 +407,10 @@ const SAC_SESSION = (function () {
    * Garde d'entrée dashboard — vérifie le rôle et l'authentification serveur.
    */
   async function guard(requiredRole) {
-    const session = await verifySession(requiredRole);
+    let session = await resolveNavigationSession(requiredRole);
+    if (!session) {
+      session = await verifySession(requiredRole);
+    }
     if (!session) {
       window.location.replace(loginUrl(requiredRole));
       return null;
@@ -421,23 +430,16 @@ const SAC_SESSION = (function () {
   }
 
   /** Déconnexion unique — seul moyen d'effacer la session */
-  async function logout(redirectTo) {
+  function logout(redirectTo) {
     const target = redirectTo || "index.html";
-    if (typeof SAC_API !== "undefined" && typeof SAC_API.logout === "function") {
-      try {
-        await Promise.race([
-          SAC_API.logout(),
-          new Promise(function (resolve) {
-            setTimeout(resolve, 3000);
-          }),
-        ]);
-      } catch {
-        /* ignore */
-      }
-    }
     clearSession();
-    if (typeof SAC_API !== "undefined" && typeof SAC_API.clearClientSession === "function") {
-      SAC_API.clearClientSession({ force: true });
+    if (typeof SAC_API !== "undefined") {
+      if (typeof SAC_API.clearClientSession === "function") {
+        SAC_API.clearClientSession({ force: true });
+      }
+      if (typeof SAC_API.logout === "function") {
+        Promise.resolve(SAC_API.logout()).catch(function () {});
+      }
     }
     window.location.replace(target);
   }
