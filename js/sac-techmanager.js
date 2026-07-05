@@ -13,8 +13,12 @@ const SAC_TECHMANAGER = (function () {
 
   function esc(s) {
     const el = document.createElement("div");
-    el.textContent = String(s ?? "");
+    el.textContent = String(s != null ? s : "");
     return el.innerHTML;
+  }
+
+  function on(el, event, fn) {
+    if (el) el.addEventListener(event, fn);
   }
 
   function toast(msg) {
@@ -126,7 +130,7 @@ const SAC_TECHMANAGER = (function () {
         : "") +
       "</div>";
     host.querySelector("[name=priority]").value = t.priority || "medium";
-    host.querySelector("#tmAssignForm")?.addEventListener("submit", async function (e) {
+    on(host.querySelector("#tmAssignForm"), "submit", async function (e) {
       e.preventDefault();
       const fd = new FormData(e.target);
       try {
@@ -141,22 +145,22 @@ const SAC_TECHMANAGER = (function () {
         toast(err.message);
       }
     });
-    host.querySelector("[data-act='validate']")?.addEventListener("click", async function () {
+    on(host.querySelector("[data-act='validate']"), "click", async function () {
       await SAC_API.validateTechManagerTicket(t.id, { approve: true });
       toast("Correction validée.");
       await refresh();
     });
-    host.querySelector("[data-act='reject']")?.addEventListener("click", async function () {
+    on(host.querySelector("[data-act='reject']"), "click", async function () {
       await SAC_API.validateTechManagerTicket(t.id, { approve: false });
       toast("Renvoyé au développeur.");
       await refresh();
     });
-    host.querySelector("[data-act='production']")?.addEventListener("click", async function () {
+    on(host.querySelector("[data-act='production']"), "click", async function () {
       await SAC_API.approveTechManagerProduction(t.id);
       toast("Mise en production.");
       await refresh();
     });
-    host.querySelector("[data-act='resolve']")?.addEventListener("click", async function () {
+    on(host.querySelector("[data-act='resolve']"), "click", async function () {
       await SAC_API.resolveTechManagerTicket(t.id);
       toast("Ticket clos.");
       await refresh();
@@ -234,17 +238,18 @@ const SAC_TECHMANAGER = (function () {
       const statusClass = overview.enabled ? "tm-shield-status--on" : "tm-shield-status--off";
       const statusText = overview.enabled ? "Actif" : "Désactivé";
 
+      const thresholds = overview.thresholds || {};
       host.innerHTML =
         "<h1 class='page-title'>Bouclier anti-attaque</h1>" +
         "<p class='page-desc'>Scoring temps réel, blocage IP et pièges honeypot — visible uniquement ici.</p>" +
         "<p class='tm-shield-meta'>Mis à jour : " +
         esc(overview.updatedAt || "—") +
         " · Seuils : ralenti " +
-        esc(overview.thresholds?.throttle) +
+        esc(thresholds.throttle) +
         " · blocage " +
-        esc(overview.thresholds?.block) +
+        esc(thresholds.block) +
         " · honeypot " +
-        esc(overview.thresholds?.honeypot) +
+        esc(thresholds.honeypot) +
         "</p>" +
         '<span class="tm-shield-status ' +
         statusClass +
@@ -418,7 +423,8 @@ const SAC_TECHMANAGER = (function () {
       s.classList.remove("active");
     });
     const targetId = sectionMap[view] || "tm-board";
-    document.getElementById(targetId)?.classList.add("active");
+    const target = document.getElementById(targetId);
+    if (target) target.classList.add("active");
     if (view === "shield") startShieldPolling();
     else stopShieldPolling();
   }
@@ -448,37 +454,60 @@ const SAC_TECHMANAGER = (function () {
     }
   }
 
-  function bindTabs() {
-    document.querySelectorAll(".tm-tab").forEach(function (tab) {
-      tab.addEventListener("click", async function () {
-        const view = tab.dataset.view || "board";
-        showView(view);
-        try {
-          if (view === "review") await loadTickets("review");
-          else if (view === "board") await loadTickets("all");
-          else if (view === "team") await renderTeam();
-          else if (view === "stats") await renderStats();
-          else if (view === "shield") await renderShield();
-          if (view === "board" || view === "review") renderList();
-        } catch (err) {
-          toast(err.message || "Erreur lors du chargement.");
-        }
+  async function handleTab(view) {
+    showView(view);
+    try {
+      if (view === "review") await loadTickets("review");
+      else if (view === "board") await loadTickets("all");
+      else if (view === "team") await renderTeam();
+      else if (view === "stats") await renderStats();
+      else if (view === "shield") await renderShield();
+      if (view === "board" || view === "review") renderList();
+    } catch (err) {
+      toast(err.message || "Erreur lors du chargement.");
+    }
+  }
+
+  function bindControls() {
+    const nav = document.querySelector(".dc-nav");
+    if (nav && !nav.dataset.tmBound) {
+      nav.dataset.tmBound = "1";
+      nav.addEventListener("click", function (e) {
+        const tab = e.target.closest(".tm-tab");
+        if (!tab || !nav.contains(tab)) return;
+        e.preventDefault();
+        handleTab(tab.dataset.view || "board");
       });
+    }
+    on(document.getElementById("tmRefreshBtn"), "click", function () {
+      refresh().catch(function (err) {
+        toast(err.message || "Erreur actualisation.");
+      });
+    });
+    on(document.getElementById("btnLogout"), "click", function () {
+      SAC_SESSION.logout(SAC_PORTAL.siteUrl("techmanager/"));
     });
   }
 
   async function init() {
-    session = await guard();
-    if (!session) return;
-    document.getElementById("tmUserName").textContent =
-      [session.prenom, session.nom].filter(Boolean).join(" ") || session.email;
-    SAC_PORTAL.applyBranding("techmanager");
-    bindTabs();
-    await refresh();
-    document.getElementById("tmRefreshBtn")?.addEventListener("click", refresh);
-    document.getElementById("btnLogout")?.addEventListener("click", function () {
-      SAC_SESSION.logout(SAC_PORTAL.siteUrl("techmanager/"));
-    });
+    bindControls();
+    try {
+      session = await guard();
+      if (!session) return;
+      const nameEl = document.getElementById("tmUserName");
+      if (nameEl) {
+        nameEl.textContent =
+          [session.prenom, session.nom].filter(Boolean).join(" ") || session.email;
+      }
+      if (typeof SAC_PORTAL !== "undefined") {
+        SAC_PORTAL.applyBranding("techmanager");
+      }
+      refresh().catch(function (err) {
+        toast(err.message || "Impossible de charger les données.");
+      });
+    } catch (err) {
+      toast(err.message || "Erreur initialisation Tech Manager.");
+    }
   }
 
   return { init };

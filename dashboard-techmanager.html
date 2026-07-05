@@ -8,7 +8,8 @@
   <script src="js/sac-portal.js"></script>
   <script src="js/sac-theme.js"></script>
   <link rel="stylesheet" href="css/dashboard.css" />
-  <link rel="stylesheet" href="css/devcenter.css?v=20260711" />
+  <link rel="stylesheet" href="css/theme.css" />
+  <link rel="stylesheet" href="css/devcenter.css?v=20260712" />
   <meta name="theme-color" content="#0f766e" />
 </head>
 <body class="devcenter-dashboard tm-dashboard">
@@ -22,7 +23,7 @@
         <button type="button" class="btn btn--ghost" id="btnLogout">Déconnexion</button>
       </div>
     </div>
-    <nav class="nav-tabs dc-nav">
+    <nav class="nav-tabs dc-nav" aria-label="Tech Manager">
       <button type="button" class="nav-tab tm-tab active" data-view="board">📋 Tickets</button>
       <button type="button" class="nav-tab tm-tab" data-view="review">✅ À valider <span class="dc-count" id="tmReviewCount">0</span></button>
       <button type="button" class="nav-tab tm-tab" data-view="team">👥 Équipe</button>
@@ -44,9 +45,21 @@
     <section class="page-section" id="tm-stats"><div class="dc-panel tm-section-panel" id="tmStatsPanel"></div></section>
     <section class="page-section" id="tm-shield"><div class="dc-panel tm-section-panel" id="tmShieldPanel"></div></section>
   </main>
-  <script src="js/sac-session.js?v=20260710"></script>
-  <script src="js/sac-api.js?v=20260710"></script>
-  <script src="js/sac-techmanager.js?v=20260711"></script>
-  <script>document.addEventListener("DOMContentLoaded",function(){SAC_TECHMANAGER.init();});</script>
+  <script src="js/sac-session.js?v=20260712"></script>
+  <script src="js/sac-api.js?v=20260712"></script>
+  <script src="js/sac-techmanager.js?v=20260712"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      if (typeof SAC_TECHMANAGER === "undefined") {
+        var toastEl = document.getElementById("tmToast");
+        if (toastEl) {
+          toastEl.textContent = "Erreur chargement — rechargez avec Ctrl+F5";
+          toastEl.classList.add("dc-toast--show");
+        }
+        return;
+      }
+      SAC_TECHMANAGER.init();
+    });
+  </script>
 </body>
 </html>
