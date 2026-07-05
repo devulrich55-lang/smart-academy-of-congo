@@ -9,7 +9,7 @@
   <script src="js/sac-theme.js"></script>
   <link rel="stylesheet" href="css/dashboard.css" />
   <link rel="stylesheet" href="css/theme.css" />
-  <link rel="stylesheet" href="css/devcenter.css?v=20260716" />
+  <link rel="stylesheet" href="css/devcenter.css?v=20260717" />
   <meta name="theme-color" content="#0f766e" />
 </head>
 <body class="devcenter-dashboard tm-dashboard">
@@ -45,15 +45,23 @@
     <section class="page-section" id="tm-stats"><div class="dc-panel tm-section-panel" id="tmStatsPanel"></div></section>
     <section class="page-section" id="tm-shield"><div class="dc-panel tm-section-panel" id="tmShieldPanel"></div></section>
   </main>
-  <script src="js/sac-session.js?v=20260716"></script>
-  <script src="js/sac-api.js?v=20260716"></script>
-  <script src="js/sac-techmanager.js?v=20260716"></script>
+  <script src="js/sac-session.js?v=20260717"></script>
+  <script src="js/sac-api.js?v=20260717"></script>
+  <script src="js/sac-techmanager.js?v=20260717"></script>
   <script>
     (function () {
       "use strict";
 
       function tmModule() {
-        return window.SAC_TECHMANAGER;
+        if (window.SAC_TECHMANAGER) return window.SAC_TECHMANAGER;
+        if (typeof SAC_TECHMANAGER !== "undefined") return SAC_TECHMANAGER;
+        return null;
+      }
+
+      function tmApi() {
+        if (window.SAC_API) return window.SAC_API;
+        if (typeof SAC_API !== "undefined") return SAC_API;
+        return null;
       }
 
       function tmToast(msg) {
@@ -102,20 +110,21 @@
 
       function tmRenderShieldFallback() {
         var host = document.getElementById("tmShieldPanel");
-        if (!host || !window.SAC_API || typeof SAC_API.getTechManagerShieldOverview !== "function") {
+        var api = tmApi();
+        if (!host || !api || typeof api.getTechManagerShieldOverview !== "function") {
           if (host) {
             host.innerHTML =
-              "<h1 class='page-title'>Bouclier anti-attaque</h1><p class='dc-empty'>Module ou API indisponible — redeployez frontend + API puis Ctrl+Shift+R.</p>";
+              "<h1 class='page-title'>Bouclier anti-attaque</h1><p class='dc-empty'>Client API obsolète ou absent — redeployez le frontend puis Ctrl+Shift+R.<br><small>Si le message persiste, redeployez aussi l'API backend.</small></p>";
           }
           return Promise.resolve();
         }
         host.innerHTML = "<p class='dc-empty'>Chargement du bouclier…</p>";
         return Promise.all([
-          SAC_API.getTechManagerShieldOverview(),
-          SAC_API.getTechManagerShieldTrends(24),
-          SAC_API.listTechManagerShieldEvents(30),
-          SAC_API.listTechManagerShieldBlocked(),
-          SAC_API.getTechManagerShieldAlertsStatus(),
+          api.getTechManagerShieldOverview(),
+          api.getTechManagerShieldTrends(24),
+          api.listTechManagerShieldEvents(30),
+          api.listTechManagerShieldBlocked(),
+          api.getTechManagerShieldAlertsStatus(),
         ])
           .then(function (results) {
             var overview = results[0] || {};
@@ -231,7 +240,8 @@
           return mod.handleTab(view);
         }
         tmShowView(view);
-        if (typeof SAC_API === "undefined") {
+        var api = tmApi();
+        if (!api) {
           tmToast("Scripts incomplets — Ctrl+Shift+R puis redeploy frontend.");
           return Promise.resolve();
         }
@@ -240,7 +250,7 @@
           host = document.getElementById("tmTicketsList");
           if (host) host.innerHTML = "<p class='dc-empty'>Chargement…</p>";
           var filter = view === "review" ? "review" : "all";
-          return SAC_API.listTechManagerTickets(filter, 150)
+          return api.listTechManagerTickets(filter, 150)
             .then(function (data) {
               var tickets = (data && data.tickets) || [];
               if (!host) return;
@@ -265,10 +275,10 @@
               }
             });
         }
-        if (view === "team" && SAC_API.listTechManagerTeam) {
+        if (view === "team" && api.listTechManagerTeam) {
           host = document.getElementById("tmTeamPanel");
           if (host) host.innerHTML = "<p class='dc-empty'>Chargement…</p>";
-          return SAC_API.listTechManagerTeam()
+          return api.listTechManagerTeam()
             .then(function (data) {
               var devs = (data && data.developers) || [];
               if (!host) return;
@@ -289,10 +299,10 @@
               }
             });
         }
-        if (view === "stats" && SAC_API.getTechManagerStats) {
+        if (view === "stats" && api.getTechManagerStats) {
           host = document.getElementById("tmStatsPanel");
           if (host) host.innerHTML = "<p class='dc-empty'>Chargement…</p>";
-          return SAC_API.getTechManagerStats()
+          return api.getTechManagerStats()
             .then(function (data) {
               var g = (data && data.global) || {};
               if (!host) return;
@@ -359,7 +369,7 @@
         var mod = tmModule();
         if (mod && mod.init) {
           mod.init();
-        } else if (window.SAC_API) {
+        } else if (tmApi()) {
           tmToast("Mode secours actif — Ctrl+Shift+R si l'onglet Bouclier est incomplet.");
           tmHandleTab("board");
         } else {

@@ -483,3 +483,4 @@ const SAC_SESSION = (function () {
 
 /** Alias rétrocompatibilité (certains modules EVOSU_*) */
 const EVOSU_SESSION = SAC_SESSION;
+window.SAC_SESSION = SAC_SESSION;

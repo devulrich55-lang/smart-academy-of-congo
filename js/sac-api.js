@@ -2665,3 +2665,4 @@ const SAC_API = (function () {
     clearClientSession,
   };
 })();
+window.SAC_API = SAC_API;
