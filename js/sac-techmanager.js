@@ -1,7 +1,8 @@
 /**
  * Tech Manager — attribution, priorités, validation, stats équipe
  */
-window.SAC_TECHMANAGER = (function () {
+try {
+  window.SAC_TECHMANAGER = (function () {
   "use strict";
 
   let session = null;
@@ -601,7 +602,7 @@ window.SAC_TECHMANAGER = (function () {
                   esc((b.blockedUntil || "").slice(0, 19)) +
                   '</td><td><button type="button" class="btn btn--ghost btn--xs" data-unblock="' +
                   esc(b.ipHash) +
-                  '">Débloquer</button></td></tr>"
+                  '">Débloquer</button></td></tr>'
                 );
               })
               .join("") +
@@ -841,18 +842,23 @@ window.SAC_TECHMANAGER = (function () {
   }
 
   return { init, showView, handleTab, refresh, bindControls };
-})();
-
-(function tmAutoBoot() {
-  function boot() {
-    if (!document.getElementById("tmShieldPanel")) return;
-    if (window.SAC_TECHMANAGER && window.SAC_TECHMANAGER.init) {
-      window.SAC_TECHMANAGER.init();
-    }
-  }
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", boot);
-  } else {
-    boot();
-  }
-})();
+  })();
+} catch (tmErr) {
+  console.error("[SAC_TECHMANAGER]", tmErr);
+  window.SAC_TECHMANAGER = {
+    init: function () {
+      var t = document.getElementById("tmToast");
+      if (t) {
+        t.textContent =
+          "Erreur module Tech Manager : " + (tmErr && tmErr.message ? tmErr.message : tmErr);
+        t.classList.add("dc-toast--show");
+      }
+    },
+    showView: function () {},
+    handleTab: function () {},
+    refresh: function () {
+      return Promise.resolve();
+    },
+    bindControls: function () {},
+  };
+}

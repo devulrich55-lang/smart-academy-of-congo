@@ -1,7 +1,7 @@
 /**
  * Service Worker Evo-smartUni — coque hors-ligne (shell statique)
  */
-const CACHE = "sac-pwa-v20260721";
+const CACHE = "sac-pwa-v20260722";
 const SHELL = [
   "/",
   "/index.html",
@@ -86,7 +86,8 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(
       fetch(req)
         .then((res) => {
-          if (res && res.status === 200) {
+          const ct = (res.headers.get("content-type") || "").toLowerCase();
+          if (res && res.status === 200 && ct.includes("javascript")) {
             const clone = res.clone();
             caches.open(CACHE).then((cache) => cache.put(req, clone));
           }
