@@ -13,7 +13,18 @@ Checklist pour un déploiement **stable** sur **Render** (auth JWT, données per
 
 URLs de production (exemple) :
 
-- Frontend : `https://smart-academy-of-congo-dbfm.onrender.com`
+## URL officielle Render
+
+| Usage | URL |
+|-------|-----|
+| **Frontend Node (prod)** | https://smart-academy-of-congoat.onrender.com |
+| **API** | https://smart-academy-of-congo-api-1.onrender.com |
+
+Les anciennes URLs Static (`smart-academy-of-congo`, `dbfm`) redirigent vers **congoat** via `sac-config.js`.
+
+---
+
+- Frontend : `https://smart-academy-of-congoat.onrender.com`
 - API : `https://smart-academy-of-congo-api-1.onrender.com`
 
 Le frontend détecte automatiquement l’API via `js/sac-config.js` quand le hostname se termine par `.onrender.com`.
@@ -37,8 +48,8 @@ Vérifier : ouvrir la page d’accueil et la connexion.
 3. Variables d’environnement :
 
 ```
-ALLOWED_ORIGINS=https://smart-academy-of-congo-dbfm.onrender.com
-FRONTEND_URL=https://smart-academy-of-congo-dbfm.onrender.com
+ALLOWED_ORIGINS=https://smart-academy-of-congoat.onrender.com,https://www.evosmartuni.com,https://evosmartuni.com
+FRONTEND_URL=https://smart-academy-of-congoat.onrender.com
 DATABASE_PATH=/data/sac.db
 UPLOAD_DIR=/data/uploads
 COOKIE_SECURE=true
@@ -100,5 +111,6 @@ Les secrets JWT sont générés automatiquement par le Blueprint Render (`genera
 Vérification rapide :
 
 ```bash
-npm run check:health https://smart-academy-of-congo-dbfm.onrender.com
+npm run check:health https://smart-academy-of-congoat.onrender.com
+npm run check:node-deploy -- https://smart-academy-of-congoat.onrender.com
 ```

@@ -15,7 +15,7 @@
 | **Git / OneDrive** | ❌ Bloque les mises à jour |
 
 **URLs production :**
-- Site : `https://smart-academy-of-congo-dbfm.onrender.com`
+- Site : `https://smart-academy-of-congoat.onrender.com`
 - API : `https://smart-academy-of-congo-api-1.onrender.com`
 
 **Architecture — 2 dépôts Git séparés :**
@@ -258,14 +258,15 @@ cd "C:\dev\Smart-Academy-of-Congo"
 
 ### Cause
 `ALLOWED_ORIGINS` pointait vers la mauvaise URL :
-- ❌ `https://smart-academy-of-congo.onrender.com`
-- ✅ `https://smart-academy-of-congo-dbfm.onrender.com`
+- ✅ `https://smart-academy-of-congoat.onrender.com` (Web Service Node)
+- ❌ `https://smart-academy-of-congo.onrender.com` (Static legacy → redirige)
+- ❌ `https://smart-academy-of-congo-dbfm.onrender.com` (obsolète)
 
 ### Variables Render API (Environment)
 ```
 NODE_ENV=production
-ALLOWED_ORIGINS=https://smart-academy-of-congo-dbfm.onrender.com
-FRONTEND_URL=https://smart-academy-of-congo-dbfm.onrender.com
+ALLOWED_ORIGINS=https://smart-academy-of-congoat.onrender.com
+FRONTEND_URL=https://smart-academy-of-congoat.onrender.com
 CROSS_ORIGIN_AUTH=true
 COOKIE_SECURE=true
 DATABASE_BACKEND=sqlite

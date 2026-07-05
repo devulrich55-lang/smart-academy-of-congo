@@ -1,6 +1,6 @@
 /**
  * Vérifie qu'une URL frontend est bien un Web Service Node (pas Static Site).
- * Usage : node scripts/check-node-deploy.js https://smart-academy-of-congo.onrender.com
+ * Usage : node scripts/check-node-deploy.js https://smart-academy-of-congoat.onrender.com
  */
 const base = (process.argv[2] || "http://127.0.0.1:10000").replace(/\/+$/, "");
 

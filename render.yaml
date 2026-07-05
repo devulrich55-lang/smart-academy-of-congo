@@ -1,8 +1,7 @@
-# Blueprint Render — Web Service Node (OBLIGATOIRE pour D1 CSP + proxy /api)
-# Ne pas utiliser "Static Site" : server.js ne s'exécute pas en Static.
+# Blueprint Render — Web Service Node (URL officielle : smart-academy-of-congoat)
 services:
   - type: web
-    name: smart-academy-of-congo
+    name: smart-academy-of-congoat
     runtime: node
     plan: starter
     buildCommand: npm install

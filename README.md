@@ -37,7 +37,7 @@ Voir **[DEPLOYMENT.md](DEPLOYMENT.md)** pour Render, variables d'environnement e
 Vérification rapide après déploiement :
 
 ```bash
-npm run check:health https://smart-academy-of-congo-dbfm.onrender.com
+npm run check:health https://smart-academy-of-congoat.onrender.com
 ```
 
 ## Structure

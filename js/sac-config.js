@@ -1,16 +1,33 @@
 /**
  * Render frontend :
- * - Web Service Node (server.js) → proxy /api sur même origine (recommandé)
- * - Static Site → repli direct vers API-1 (nécessite CORS sur l'API)
+ * - Web Service Node (congoat) → proxy /api sur même origine
+ * - Static Site legacy → repli API directe (CORS)
  */
 (function () {
   if (typeof window === "undefined" || window.SAC_API_BASE) return;
   var host = window.location.hostname || "";
   var RENDER_API = "https://smart-academy-of-congo-api-1.onrender.com";
+  var RENDER_FRONTEND_CANONICAL = "https://smart-academy-of-congoat.onrender.com";
+  var LEGACY_RENDER_HOSTS = [
+    "smart-academy-of-congo.onrender.com",
+    "smart-academy-of-congo-dbfm.onrender.com",
+  ];
   var CUSTOM_DOMAINS = ["evosmartuni.com", "www.evosmartuni.com"];
+
+  if (LEGACY_RENDER_HOSTS.indexOf(host) !== -1) {
+    var target =
+      RENDER_FRONTEND_CANONICAL +
+      window.location.pathname +
+      window.location.search +
+      window.location.hash;
+    window.location.replace(target);
+    return;
+  }
+
   function isHostedFrontend(hostname) {
     if (!hostname) return false;
     if (CUSTOM_DOMAINS.indexOf(hostname) !== -1) return true;
+    if (hostname === "smart-academy-of-congoat.onrender.com") return true;
     return hostname.endsWith(".onrender.com") && hostname.indexOf("-api") === -1;
   }
   if (isHostedFrontend(host)) {
@@ -18,7 +35,8 @@
     window.SAC_API_PROXY_ORIGIN = origin;
     // resolveApiBase() teste le proxy puis bascule sur l'API directe si besoin
   }
-  window.SAC_JS_BUILD = "20260705j";
+  window.SAC_JS_BUILD = "20260705k";
+  window.SAC_RENDER_FRONTEND = RENDER_FRONTEND_CANONICAL;
   window.SAC_PLATFORM_LOGO = "evo-uni.jpeg";
   window.SAC_PLATFORM_LOGO_ALT = "Evo-smartUni";
 

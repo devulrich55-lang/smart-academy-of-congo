@@ -25,7 +25,7 @@ Guide pas à pas pour remplacer le site **Static** par un **Web Service Node** a
 
 | Champ | Valeur |
 |-------|--------|
-| **Name** | `smart-academy-of-congo-web` (ou un nom libre) |
+| **Name** | `smart-academy-of-congoat` |
 | **Region** | Oregon (comme l’API) |
 | **Runtime** | **Node** |
 | **Build Command** | `npm install` |
@@ -44,13 +44,13 @@ Guide pas à pas pour remplacer le site **Static** par un **Web Service Node** a
 
 ## Étape 2 — Tester le nouveau service
 
-Render affiche une URL, par ex. :
-`https://smart-academy-of-congo.onrender.com`
+Render affiche une URL officielle :
+`https://smart-academy-of-congoat.onrender.com`
 
 **Script automatique (après déploiement) :**
 
 ```bash
-npm run check:node-deploy -- https://VOTRE-URL.onrender.com
+npm run check:node-deploy -- https://smart-academy-of-congoat.onrender.com
 ```
 
 Attendu : ✅ `/health` mode node · ✅ CSP · ✅ `/api/health` proxy

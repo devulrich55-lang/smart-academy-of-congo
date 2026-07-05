@@ -7,13 +7,13 @@
 | **Site principal** | https://www.evosmartuni.com |
 | **Racine (redirection)** | https://evosmartuni.com → www |
 | **API (interne)** | https://smart-academy-of-congo-api-1.onrender.com |
-| **Render (secours)** | https://smart-academy-of-congoat.onrender.com |
+| **Render (production Node)** | https://smart-academy-of-congoat.onrender.com |
 
 ---
 
 ## Étape 1 — Render (frontend)
 
-1. [dashboard.render.com](https://dashboard.render.com) → service **smart-academy-of-congo**
+1. [dashboard.render.com](https://dashboard.render.com) → service **smart-academy-of-congoat**
 2. **Settings** → **Custom Domains** → **Add Custom Domain**
 3. Ajoutez :
    - `www.evosmartuni.com`
@@ -28,7 +28,7 @@ Exemple typique (vérifiez les valeurs **exactes** affichées par Render) :
 
 | Type | Nom / Host | Valeur |
 |------|------------|--------|
-| **CNAME** | `www` | `smart-academy-of-congo.onrender.com` (ou valeur Render) |
+| **CNAME** | `www` | `smart-academy-of-congoat.onrender.com` |
 | **A** | `@` | IP fournie par Render pour la racine |
 
 Ou si votre registrar propose **ALIAS / ANAME** pour `@` :
@@ -45,8 +45,8 @@ Vérification : https://www.evosmartuni.com doit afficher la page d’accueil Ev
 Service **smart-academy-of-congo-api-1** → **Environment** :
 
 ```
-ALLOWED_ORIGINS=https://www.evosmartuni.com,https://evosmartuni.com,https://smart-academy-of-congoat.onrender.com,https://smart-academy-of-congo-dbfm.onrender.com
-FRONTEND_URL=https://www.evosmartuni.com
+ALLOWED_ORIGINS=https://www.evosmartuni.com,https://evosmartuni.com,https://smart-academy-of-congoat.onrender.com
+FRONTEND_URL=https://smart-academy-of-congoat.onrender.com
 CROSS_ORIGIN_AUTH=true
 ```
 
