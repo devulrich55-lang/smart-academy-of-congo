@@ -12,6 +12,8 @@ window.SAC_TECHMANAGER = (function () {
   let shieldTimer = null;
   let shieldPulseTimer = null;
   let shieldPulseSince = null;
+  let initReady = false;
+  let initPromise = null;
 
   function esc(s) {
     const el = document.createElement("div");
@@ -356,7 +358,8 @@ window.SAC_TECHMANAGER = (function () {
   }
 
   async function refreshShieldPulse() {
-    if (currentView !== "shield") return;
+    if (currentView !== "shield" || !initReady) return;
+    if (typeof SAC_API.hasAuthTokens === "function" && !SAC_API.hasAuthTokens()) return;
     var live = document.getElementById("tmShieldLive");
     if (!live || !SAC_API || typeof SAC_API.getTechManagerShieldPulse !== "function") return;
     try {
@@ -386,6 +389,11 @@ window.SAC_TECHMANAGER = (function () {
     }
     host.innerHTML = "<p class='dc-empty'>Chargement du bouclier…</p>";
     try {
+      if (typeof SAC_API.hasAuthTokens === "function" && !SAC_API.hasAuthTokens()) {
+        host.innerHTML =
+          "<h1 class='page-title'>Bouclier anti-attaque</h1><p class='dc-empty'>Session requise — reconnectez-vous via le portail Tech Manager.</p>";
+        return;
+      }
       if (typeof SAC_API.ensureApiSession === "function") {
         await SAC_API.ensureApiSession();
       }
@@ -740,6 +748,13 @@ window.SAC_TECHMANAGER = (function () {
   }
 
   async function handleTab(view) {
+    if (!initReady) {
+      if (initPromise) await initPromise;
+      if (!initReady) {
+        toast("Authentification en cours — patientez…");
+        return;
+      }
+    }
     showView(view);
     try {
       if (view === "review") await loadTickets("review");
@@ -754,24 +769,31 @@ window.SAC_TECHMANAGER = (function () {
   }
 
   async function init() {
-    try {
-      bindControls();
-      session = await guard();
-      if (!session) return;
-      const nameEl = document.getElementById("tmUserName");
-      if (nameEl) {
-        nameEl.textContent =
-          [session.prenom, session.nom].filter(Boolean).join(" ") || session.email;
+    if (initPromise) return initPromise;
+    initPromise = (async function () {
+      try {
+        session = await guard();
+        if (!session) return false;
+        bindControls();
+        const nameEl = document.getElementById("tmUserName");
+        if (nameEl) {
+          nameEl.textContent =
+            [session.prenom, session.nom].filter(Boolean).join(" ") || session.email;
+        }
+        if (typeof SAC_PORTAL !== "undefined") {
+          SAC_PORTAL.applyBranding("techmanager");
+        }
+        initReady = true;
+        refresh().catch(function (err) {
+          toast(err.message || "Impossible de charger les données.");
+        });
+        return true;
+      } catch (err) {
+        toast(err.message || "Erreur initialisation Tech Manager.");
+        return false;
       }
-      if (typeof SAC_PORTAL !== "undefined") {
-        SAC_PORTAL.applyBranding("techmanager");
-      }
-      refresh().catch(function (err) {
-        toast(err.message || "Impossible de charger les données.");
-      });
-    } catch (err) {
-      toast(err.message || "Erreur initialisation Tech Manager.");
-    }
+    })();
+    return initPromise;
   }
 
   function bindControls() {
