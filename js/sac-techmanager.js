@@ -10,6 +10,8 @@ const SAC_TECHMANAGER = (function () {
   let selectedId = null;
   let currentView = "board";
   let shieldTimer = null;
+  let shieldPulseTimer = null;
+  let shieldPulseSince = null;
 
   function esc(s) {
     const el = document.createElement("div");
@@ -223,6 +225,120 @@ const SAC_TECHMANAGER = (function () {
     return map[action] || action;
   }
 
+  function renderHourlyChart(hourly) {
+    if (!hourly || !hourly.length) {
+      return '<p class="dc-empty">Pas encore de données horaires.</p>';
+    }
+    var max = 1;
+    hourly.forEach(function (h) {
+      if (h.total > max) max = h.total;
+    });
+    return (
+      '<div class="tm-shield-chart">' +
+      hourly
+        .map(function (h) {
+          var pct = Math.max(4, Math.round((h.total / max) * 100));
+          var label = (h.hour || "").slice(11, 13);
+          if (label) label += "h";
+          return (
+            '<div class="tm-shield-chart__bar" title="' +
+            esc(h.hour) +
+            " — " +
+            esc(h.total) +
+            ' total · bloc ' +
+            esc(h.block || 0) +
+            ' · honeypot ' +
+            esc(h.honeypot || 0) +
+            '"><span style="height:' +
+            pct +
+            '%"></span><em>' +
+            esc(label || "?") +
+            "</em></div>"
+          );
+        })
+        .join("") +
+      "</div>"
+    );
+  }
+
+  function bindShieldActions(host) {
+    host.querySelectorAll("[data-unblock]").forEach(function (btn) {
+      btn.addEventListener("click", async function () {
+        try {
+          await SAC_API.unblockTechManagerShieldIp(btn.dataset.unblock);
+          toast("IP débloquée.");
+          await renderShield();
+        } catch (err) {
+          toast(err.message || "Erreur déblocage");
+        }
+      });
+    });
+
+    var blockForm = host.querySelector("#tmShieldBlockForm");
+    if (blockForm) {
+      blockForm.addEventListener("submit", async function (ev) {
+        ev.preventDefault();
+        var fd = new FormData(blockForm);
+        var ip = String(fd.get("ip") || "").trim();
+        if (!ip) {
+          toast("Indiquez une IP.");
+          return;
+        }
+        var payload = { ip: ip, reason: String(fd.get("reason") || "manual_block").trim() };
+        var mins = String(fd.get("minutes") || "").trim();
+        if (mins) payload.minutes = parseInt(mins, 10);
+        try {
+          await SAC_API.blockTechManagerShieldIp(payload);
+          toast("IP bloquée.");
+          blockForm.reset();
+          await renderShield();
+        } catch (err) {
+          toast(err.message || "Erreur blocage");
+        }
+      });
+    }
+
+    var testBtn = host.querySelector("#tmShieldTestAlert");
+    if (testBtn) {
+      testBtn.addEventListener("click", async function () {
+        testBtn.disabled = true;
+        try {
+          var out = await SAC_API.testTechManagerShieldAlert();
+          var okEmail = out.email && out.email.ok;
+          var okWa = out.whatsapp && out.whatsapp.ok;
+          toast(
+            "Test envoyé — email " +
+              (okEmail ? "OK" : "échec") +
+              " · WhatsApp " +
+              (okWa ? "OK" : out.whatsapp && out.whatsapp.note ? out.whatsapp.note : "échec")
+          );
+        } catch (err) {
+          toast(err.message || "Erreur test alerte");
+        } finally {
+          testBtn.disabled = false;
+        }
+      });
+    }
+  }
+
+  async function refreshShieldPulse() {
+    if (currentView !== "shield") return;
+    var live = document.getElementById("tmShieldLive");
+    if (!live || !SAC_API || typeof SAC_API.getTechManagerShieldPulse !== "function") return;
+    try {
+      var pulse = await SAC_API.getTechManagerShieldPulse(shieldPulseSince);
+      if (pulse.updatedAt) shieldPulseSince = pulse.updatedAt;
+      live.textContent =
+        (pulse.newEvents || 0) +
+        " nouveaux événements · " +
+        (pulse.blockedActive || 0) +
+        " IP bloquées";
+      live.title = "Pulse depuis " + ((pulse.since || "").slice(11, 19) || "—");
+    } catch (err) {
+      /* pulse silencieux */
+    }
+  }
+
   async function renderShield() {
     const host = document.getElementById("tmShieldPanel");
     if (!host) return;
@@ -236,15 +352,33 @@ const SAC_TECHMANAGER = (function () {
     }
     host.innerHTML = "<p class='dc-empty'>Chargement du bouclier…</p>";
     try {
-      const overview = await SAC_API.getTechManagerShieldOverview();
-      const eventsData = await SAC_API.listTechManagerShieldEvents(40);
-      const blockedData = await SAC_API.listTechManagerShieldBlocked();
-      const honeypotData = await SAC_API.listTechManagerShieldHoneypot(30);
+      const results = await Promise.all([
+        SAC_API.getTechManagerShieldOverview(),
+        SAC_API.getTechManagerShieldTrends(24),
+        SAC_API.listTechManagerShieldEvents(40),
+        SAC_API.listTechManagerShieldBlocked(),
+        SAC_API.listTechManagerShieldHoneypot(30),
+        SAC_API.getTechManagerShieldAlertsStatus(),
+      ]);
+      const overview = results[0];
+      const trends = results[1];
+      const eventsData = results[2];
+      const blockedData = results[3];
+      const honeypotData = results[4];
+      const alertsStatus = results[5];
       const events = eventsData.events || [];
       const blocked = blockedData.blocked || [];
       const hits = honeypotData.hits || [];
+      const hourly = trends.hourly || [];
+      const topPaths = trends.topPaths || [];
+      const topIps = trends.topIps || [];
+      const recentAlerts = trends.recentAlerts || [];
       const statusClass = overview.enabled ? "tm-shield-status--on" : "tm-shield-status--off";
       const statusText = overview.enabled ? "Actif" : "Désactivé";
+      const alertsOn = alertsStatus.enabled;
+      const alertsClass = alertsOn ? "tm-shield-status--on" : "tm-shield-status--off";
+
+      shieldPulseSince = overview.updatedAt || new Date().toISOString();
 
       const thresholds = overview.thresholds || {};
       host.innerHTML =
@@ -259,6 +393,7 @@ const SAC_TECHMANAGER = (function () {
         " · honeypot " +
         esc(thresholds.honeypot) +
         "</p>" +
+        '<p id="tmShieldLive" class="tm-shield-live">Pulse en cours…</p>' +
         '<span class="tm-shield-status ' +
         statusClass +
         '">🛡 ' +
@@ -277,6 +412,98 @@ const SAC_TECHMANAGER = (function () {
         '<div class="dc-kpi"><strong>' +
         esc(overview.avgScore24h) +
         "</strong><span>Score moyen</span></div></div>" +
+        '<div class="tm-shield-section"><h2>Tendance 24h</h2>' +
+        renderHourlyChart(hourly) +
+        "</div>" +
+        '<div class="tm-shield-grid">' +
+        '<div class="tm-shield-section"><h2>Top chemins</h2>' +
+        (topPaths.length
+          ? '<table class="tm-shield-table"><thead><tr><th>Chemin</th><th>Hits</th><th>Max</th></tr></thead><tbody>' +
+            topPaths
+              .map(function (p) {
+                return (
+                  "<tr><td><span class='tm-shield-path'>" +
+                  esc(p.path) +
+                  "</span></td><td>" +
+                  esc(p.count) +
+                  '</td><td><span class="' +
+                  scoreClass(p.maxScore) +
+                  '">' +
+                  esc(p.maxScore) +
+                  "</span></td></tr>"
+                );
+              })
+              .join("") +
+            "</tbody></table>"
+          : '<p class="dc-empty">Aucun chemin suspect.</p>') +
+        "</div>" +
+        '<div class="tm-shield-section"><h2>Top IP</h2>' +
+        (topIps.length
+          ? '<table class="tm-shield-table"><thead><tr><th>IP</th><th>Hits</th><th>Max</th></tr></thead><tbody>' +
+            topIps
+              .map(function (ip) {
+                return (
+                  "<tr><td>" +
+                  esc(ip.ipMasked) +
+                  "</td><td>" +
+                  esc(ip.count) +
+                  '</td><td><span class="' +
+                  scoreClass(ip.maxScore) +
+                  '">' +
+                  esc(ip.maxScore) +
+                  "</span></td></tr>"
+                );
+              })
+              .join("") +
+            "</tbody></table>"
+          : '<p class="dc-empty">Aucune IP récurrente.</p>') +
+        "</div></div>" +
+        '<div class="tm-shield-section"><h2>Alertes automatiques</h2>' +
+        '<span class="tm-shield-status ' +
+        alertsClass +
+        '">' +
+        (alertsOn ? "Actives" : "Désactivées") +
+        "</span>" +
+        " · Seuil " +
+        esc(alertsStatus.minScore) +
+        " · Envoyées 24h : " +
+        esc(alertsStatus.sent24h) +
+        (alertsStatus.whatsappPhone
+          ? " · WhatsApp " + esc(alertsStatus.whatsappPhone)
+          : "") +
+        '<div class="tm-shield-actions">' +
+        '<button type="button" class="btn btn--ghost btn--xs" id="tmShieldTestAlert">Tester alertes</button>' +
+        "</div>" +
+        (recentAlerts.length
+          ? '<table class="tm-shield-table"><thead><tr><th>Heure</th><th>Action</th><th>IP</th><th>Score</th><th>Chemin</th></tr></thead><tbody>' +
+            recentAlerts
+              .map(function (a) {
+                return (
+                  "<tr><td>" +
+                  esc((a.createdAt || "").slice(11, 19)) +
+                  '</td><td><span class="tm-shield-action">' +
+                  esc(actionLabel(a.action)) +
+                  "</span></td><td>" +
+                  esc(a.ipMasked) +
+                  '</td><td><span class="' +
+                  scoreClass(a.score) +
+                  '">' +
+                  esc(a.score) +
+                  "</span></td><td><span class='tm-shield-path'>" +
+                  esc(a.path) +
+                  "</span></td></tr>"
+                );
+              })
+              .join("") +
+            "</tbody></table>"
+          : '<p class="dc-empty">Aucune alerte envoyée récemment.</p>') +
+        "</div>" +
+        '<div class="tm-shield-section"><h2>Bloquer une IP manuellement</h2>' +
+        '<form id="tmShieldBlockForm" class="dc-inline-form tm-shield-block-form">' +
+        '<input class="fi" name="ip" placeholder="Adresse IP" required />' +
+        '<input class="fi" name="reason" placeholder="Raison (optionnel)" />' +
+        '<input class="fi" name="minutes" type="number" min="5" max="1440" placeholder="Minutes" />' +
+        '<button type="submit" class="btn btn--role btn--xs">Bloquer</button></form></div>' +
         '<div class="tm-shield-section"><h2>Événements récents</h2>' +
         (events.length
           ? '<table class="tm-shield-table"><thead><tr><th>Heure</th><th>IP</th><th>Score</th><th>Action</th><th>Requête</th></tr></thead><tbody>' +
@@ -349,17 +576,8 @@ const SAC_TECHMANAGER = (function () {
           : '<p class="dc-empty">Aucun piège déclenché.</p>') +
         "</div>";
 
-      host.querySelectorAll("[data-unblock]").forEach(function (btn) {
-        btn.addEventListener("click", async function () {
-          try {
-            await SAC_API.unblockTechManagerShieldIp(btn.dataset.unblock);
-            toast("IP débloquée.");
-            await renderShield();
-          } catch (err) {
-            toast(err.message || "Erreur déblocage");
-          }
-        });
-      });
+      bindShieldActions(host);
+      refreshShieldPulse();
     } catch (err) {
       host.innerHTML =
         "<h1 class='page-title'>Bouclier anti-attaque</h1><p class='dc-empty'>" +
@@ -370,15 +588,23 @@ const SAC_TECHMANAGER = (function () {
 
   function startShieldPolling() {
     stopShieldPolling();
+    shieldPulseSince = new Date().toISOString();
     shieldTimer = setInterval(function () {
       if (currentView === "shield") renderShield();
-    }, 15000);
+    }, 20000);
+    shieldPulseTimer = setInterval(function () {
+      if (currentView === "shield") refreshShieldPulse();
+    }, 8000);
   }
 
   function stopShieldPolling() {
     if (shieldTimer) {
       clearInterval(shieldTimer);
       shieldTimer = null;
+    }
+    if (shieldPulseTimer) {
+      clearInterval(shieldPulseTimer);
+      shieldPulseTimer = null;
     }
   }
 

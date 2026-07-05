@@ -2135,6 +2135,34 @@ const SAC_API = (function () {
     );
   }
 
+  async function getTechManagerShieldPulse(since) {
+    const q = since ? "?since=" + encodeURIComponent(String(since)) : "";
+    return request("/admin/tech-manager/shield/pulse" + q);
+  }
+
+  async function getTechManagerShieldTrends(hours) {
+    const q = hours ? "?hours=" + encodeURIComponent(String(hours)) : "";
+    return request("/admin/tech-manager/shield/trends" + q);
+  }
+
+  async function getTechManagerShieldAlertsStatus() {
+    return request("/admin/tech-manager/shield/alerts/status");
+  }
+
+  async function testTechManagerShieldAlert() {
+    return request("/admin/tech-manager/shield/alerts/test", {
+      method: "POST",
+      body: JSON.stringify({}),
+    });
+  }
+
+  async function blockTechManagerShieldIp(payload) {
+    return request("/admin/tech-manager/shield/block", {
+      method: "POST",
+      body: JSON.stringify(payload || {}),
+    });
+  }
+
   async function listSocialNotifications() {
     const data = await request("/platform/social/notifications");
     return data?.notifications || [];
@@ -2573,6 +2601,11 @@ const SAC_API = (function () {
     listTechManagerShieldBlocked,
     listTechManagerShieldHoneypot,
     unblockTechManagerShieldIp,
+    getTechManagerShieldPulse,
+    getTechManagerShieldTrends,
+    getTechManagerShieldAlertsStatus,
+    testTechManagerShieldAlert,
+    blockTechManagerShieldIp,
     listSocialNotifications,
     markSocialNotificationRead,
     getSocialSettings,

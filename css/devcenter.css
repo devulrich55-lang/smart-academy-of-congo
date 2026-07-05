@@ -344,3 +344,47 @@
 .tm-shield-section h2 { font-size: 1rem; margin: 0 0 0.35rem; }
 .tm-shield-path { font-family: ui-monospace, monospace; font-size: 0.78rem; word-break: break-all; }
 .tm-shield-meta { font-size: 0.75rem; color: var(--muted, #64748b); margin-bottom: 0.5rem; }
+.tm-shield-live {
+  font-size: 0.78rem;
+  color: #0f766e;
+  font-weight: 600;
+  margin: 0.35rem 0 0.5rem;
+}
+.tm-shield-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+.tm-shield-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.35rem;
+  min-height: 120px;
+  padding: 0.5rem 0;
+  overflow-x: auto;
+}
+.tm-shield-chart__bar {
+  flex: 1 0 18px;
+  max-width: 28px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.25rem;
+}
+.tm-shield-chart__bar span {
+  display: block;
+  width: 100%;
+  min-height: 4px;
+  border-radius: 4px 4px 0 0;
+  background: linear-gradient(180deg, #14b8a6, #0f766e);
+}
+.tm-shield-chart__bar em {
+  font-style: normal;
+  font-size: 0.65rem;
+  color: var(--muted, #64748b);
+}
+.tm-shield-actions { margin-top: 0.5rem; }
+.tm-shield-block-form { flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem; }
+.tm-shield-block-form .fi { min-width: 140px; }
