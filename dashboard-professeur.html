@@ -369,7 +369,7 @@
   <script src="js/sac-webrtc-room.js?v=20260702c"></script>
   <script src="js/sac-live.js?v=20260702c"></script>
   <script src="js/sac-video-live.js"></script>
-  <script src="js/sac-presence.js"></script>
+  <script src="js/sac-presence.js?v=20260705h"></script>
   <script src="js/sac-social.js?v=20260703e"></script>
   <script>
     (function initProfShellSync() {
@@ -509,6 +509,13 @@
       let gradesUi = null;
       let presenceByClass = {};
       let totalOnlineStudents = 0;
+
+      if (typeof SAC_PRESENCE !== "undefined") {
+        SAC_PRESENCE.start(session, {
+          onSelfOnline: SAC_PRESENCE.bindSelfPresence("selfPresence", "profilePresence"),
+          onProfessorPresence: applyProfessorPresence,
+        });
+      }
 
       function escapeHtml(s) {
         const d = document.createElement("div");
@@ -1064,12 +1071,6 @@
         renderAllActivity();
       });
 
-      if (typeof SAC_PRESENCE !== "undefined") {
-        SAC_PRESENCE.start(session, {
-          onSelfOnline: SAC_PRESENCE.bindSelfPresence("selfPresence", "profilePresence"),
-          onProfessorPresence: applyProfessorPresence,
-        });
-      }
       if (typeof SAC_LIVE_CALL !== "undefined") {
         SAC_LIVE_CALL.init(session);
       }

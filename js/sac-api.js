@@ -625,7 +625,15 @@ const SAC_API = (function () {
       if (isCrossOriginApi() || force) {
         return wakeServer(Object.assign({}, wakeDefaults(!!force), options || {}));
       }
-      if (online === null) await ping(undefined);
+      if (isRenderFrontend() && online !== true) {
+        return wakeServer(
+          Object.assign(
+            { attempts: force ? 5 : 2, timeoutMs: force ? 55000 : 20000, delayMs: 3000 },
+            options || {}
+          )
+        );
+      }
+      if (online !== true) await ping(options);
       return online;
     };
 
@@ -2358,15 +2366,16 @@ const SAC_API = (function () {
       method: "POST",
       body: JSON.stringify(payload || {}),
       softAuth: true,
+      timeoutMs: 15000,
     });
   }
 
   async function getSectionPresence() {
-    return request("/platform/presence/section");
+    return request("/platform/presence/section", { softAuth: true, timeoutMs: 12000 });
   }
 
   async function getProfessorPresence() {
-    return request("/platform/presence/classes");
+    return request("/platform/presence/classes", { softAuth: true, timeoutMs: 12000 });
   }
 
   async function platformRequest(path, options = {}) {
