@@ -1,7 +1,7 @@
 /**
  * Tech Manager — attribution, priorités, validation, stats équipe
  */
-const SAC_TECHMANAGER = (function () {
+window.SAC_TECHMANAGER = (function () {
   "use strict";
 
   let session = null;
@@ -704,6 +704,7 @@ const SAC_TECHMANAGER = (function () {
 
   async function init() {
     try {
+      bindControls();
       session = await guard();
       if (!session) return;
       const nameEl = document.getElementById("tmUserName");
@@ -722,6 +723,56 @@ const SAC_TECHMANAGER = (function () {
     }
   }
 
-  return { init, showView, handleTab, refresh };
+  function bindControls() {
+    const nav = document.querySelector(".dc-nav");
+    if (nav && nav.dataset.tmSacBound !== "1") {
+      nav.dataset.tmSacBound = "1";
+      nav.addEventListener("click", function (e) {
+        const tab = e.target.closest(".tm-tab");
+        if (!tab) return;
+        e.preventDefault();
+        handleTab(tab.dataset.view || "board");
+      });
+    }
+    const refreshBtn = document.getElementById("tmRefreshBtn");
+    if (refreshBtn && refreshBtn.dataset.tmSacBound !== "1") {
+      refreshBtn.dataset.tmSacBound = "1";
+      refreshBtn.addEventListener("click", function () {
+        refresh().catch(function (err) {
+          toast(err.message || "Erreur actualisation.");
+        });
+      });
+    }
+    const logoutBtn = document.getElementById("btnLogout");
+    if (logoutBtn && logoutBtn.dataset.tmSacBound !== "1") {
+      logoutBtn.dataset.tmSacBound = "1";
+      logoutBtn.addEventListener("click", function () {
+        if (typeof SAC_SESSION !== "undefined" && SAC_SESSION.logout) {
+          const url =
+            typeof SAC_PORTAL !== "undefined"
+              ? SAC_PORTAL.siteUrl("techmanager/")
+              : "techmanager/";
+          SAC_SESSION.logout(url);
+        } else {
+          window.location.href = "techmanager/";
+        }
+      });
+    }
+  }
+
+  return { init, showView, handleTab, refresh, bindControls };
 })();
-window.SAC_TECHMANAGER = SAC_TECHMANAGER;
+
+(function tmAutoBoot() {
+  function boot() {
+    if (!document.getElementById("tmShieldPanel")) return;
+    if (window.SAC_TECHMANAGER && window.SAC_TECHMANAGER.init) {
+      window.SAC_TECHMANAGER.init();
+    }
+  }
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", boot);
+  } else {
+    boot();
+  }
+})();

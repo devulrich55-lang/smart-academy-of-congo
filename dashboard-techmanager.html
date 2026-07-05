@@ -9,7 +9,7 @@
   <script src="js/sac-theme.js"></script>
   <link rel="stylesheet" href="css/dashboard.css" />
   <link rel="stylesheet" href="css/theme.css" />
-  <link rel="stylesheet" href="css/devcenter.css?v=20260717" />
+  <link rel="stylesheet" href="css/devcenter.css?v=20260718" />
   <meta name="theme-color" content="#0f766e" />
 </head>
 <body class="devcenter-dashboard tm-dashboard">
@@ -45,18 +45,12 @@
     <section class="page-section" id="tm-stats"><div class="dc-panel tm-section-panel" id="tmStatsPanel"></div></section>
     <section class="page-section" id="tm-shield"><div class="dc-panel tm-section-panel" id="tmShieldPanel"></div></section>
   </main>
-  <script src="js/sac-session.js?v=20260717"></script>
-  <script src="js/sac-api.js?v=20260717"></script>
-  <script src="js/sac-techmanager.js?v=20260717"></script>
+  <script src="js/sac-session.js?v=20260718"></script>
+  <script src="js/sac-api.js?v=20260718"></script>
+  <script src="js/sac-techmanager.js?v=20260718"></script>
   <script>
     (function () {
       "use strict";
-
-      function tmModule() {
-        if (window.SAC_TECHMANAGER) return window.SAC_TECHMANAGER;
-        if (typeof SAC_TECHMANAGER !== "undefined") return SAC_TECHMANAGER;
-        return null;
-      }
 
       function tmApi() {
         if (window.SAC_API) return window.SAC_API;
@@ -235,9 +229,8 @@
       }
 
       function tmHandleTab(view) {
-        var mod = tmModule();
-        if (mod && mod.handleTab) {
-          return mod.handleTab(view);
+        if (window.SAC_TECHMANAGER && window.SAC_TECHMANAGER.handleTab) {
+          return window.SAC_TECHMANAGER.handleTab(view);
         }
         tmShowView(view);
         var api = tmApi();
@@ -337,9 +330,8 @@
         if (refreshBtn && !refreshBtn.dataset.tmBound) {
           refreshBtn.dataset.tmBound = "1";
           refreshBtn.addEventListener("click", function () {
-            var mod = tmModule();
-            if (mod && mod.refresh) {
-              mod.refresh().catch(function (err) {
+            if (window.SAC_TECHMANAGER && window.SAC_TECHMANAGER.refresh) {
+              window.SAC_TECHMANAGER.refresh().catch(function (err) {
                 tmToast((err && err.message) || "Erreur actualisation.");
               });
             } else {
@@ -365,12 +357,12 @@
       }
 
       function tmBoot() {
+        if (window.SAC_TECHMANAGER && window.SAC_TECHMANAGER.init) {
+          return;
+        }
         tmBindUi();
-        var mod = tmModule();
-        if (mod && mod.init) {
-          mod.init();
-        } else if (tmApi()) {
-          tmToast("Mode secours actif — Ctrl+Shift+R si l'onglet Bouclier est incomplet.");
+        if (tmApi()) {
+          tmToast("Mode secours actif — module Tech Manager absent.");
           tmHandleTab("board");
         } else {
           tmToast("Chargement incomplet — Ctrl+Shift+R");
