@@ -419,8 +419,15 @@ body.platform-library-mode .btn--ghost:hover {
 
 .lib-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  gap: 0.85rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+@media (min-width: 720px) {
+  .lib-grid {
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 0.85rem;
+  }
 }
 
 .lib-item {
@@ -814,4 +821,145 @@ body.platform-library-mode .btn--ghost:hover {
   background: var(--lib-accent) !important;
   color: #1a1410 !important;
   border: none;
+}
+
+/* ── Cartes boutique (style catalogue e-commerce) ── */
+.lib-shop-card {
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.lib-shop-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+}
+
+.lib-shop-card__cover {
+  position: relative;
+  aspect-ratio: 4 / 5;
+  background: #f1f5f9;
+  overflow: hidden;
+}
+
+.lib-shop-card__cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.lib-shop-card__placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  font-size: 2rem;
+  color: #94a3b8;
+}
+
+.lib-shop-badge {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  z-index: 2;
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  background: #111827;
+  color: #ffffff;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.lib-shop-badge--free {
+  background: #16a34a;
+}
+
+.lib-shop-card__body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  padding: 0.65rem 0.7rem 0.75rem;
+  gap: 0.35rem;
+}
+
+.lib-shop-card__title {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #111827;
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  min-height: 2.2em;
+}
+
+.lib-shop-card__prices {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  margin-top: auto;
+}
+
+.lib-shop-price-old {
+  font-size: 0.72rem;
+  color: #9ca3af;
+  text-decoration: line-through;
+}
+
+.lib-shop-price-current {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #dc2626;
+}
+
+.lib-shop-price-current--free {
+  color: #16a34a;
+}
+
+.lib-shop-btn {
+  display: block;
+  width: 100%;
+  margin-top: 0.45rem;
+  padding: 0.55rem 0.5rem;
+  border: none;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 0.76rem;
+  font-weight: 700;
+  text-align: center;
+  cursor: pointer;
+  transition: filter 0.15s;
+}
+
+.lib-shop-btn--buy {
+  background: #16a34a;
+  color: #ffffff;
+}
+
+.lib-shop-btn--read {
+  background: #15803d;
+  color: #ffffff;
+}
+
+.lib-shop-btn:hover {
+  filter: brightness(1.08);
+}
+
+.lib-shop-card--compact .lib-shop-card__title {
+  font-size: 0.78rem;
+}
+
+.lib-shop-card--compact .lib-shop-btn {
+  font-size: 0.72rem;
+  padding: 0.5rem 0.4rem;
 }

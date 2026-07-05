@@ -2439,6 +2439,16 @@ const SAC_API = (function () {
   }
 
   async function uploadFormData(path, formData, method, timeoutMs) {
+    if (isRenderFrontend() && !baseResolved) await resolveApiBase();
+    if (!BASE) {
+      const err = new Error("API indisponible — réessayez dans un instant.");
+      err.code = "NO_API_BASE";
+      throw err;
+    }
+    if (useBearerAuth() && !hasAuthTokens()) {
+      await ensureApiSession({ soft: true });
+    }
+
     const doUpload = async () =>
       fetchWithTimeout(`${BASE}/api${path}`, {
         method: method || "POST",

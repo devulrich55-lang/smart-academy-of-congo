@@ -168,13 +168,17 @@ const SAC_LIBRARY = (function () {
       authorRole: "ministere",
       accessType: isFree ? "free" : "paid",
       access: isFree ? "free" : "paid",
+      published: raw.published !== false,
+      originalPrice: Number(raw.originalPrice) > 0 ? Number(raw.originalPrice) : undefined,
+      original_price: Number(raw.originalPrice) > 0 ? Number(raw.originalPrice) : undefined,
     };
   }
 
   async function ensureLibraryAuth() {
     if (typeof SAC_API === "undefined") return;
-    if (SAC_API.ensureAuthTokens) {
-      const ok = await SAC_API.ensureAuthTokens();
+    await SAC_API.ensureOnline(true);
+    if (SAC_API.ensureApiSession) {
+      const ok = await SAC_API.ensureApiSession();
       if (!ok && SAC_API.hasAuthTokens && !SAC_API.hasAuthTokens()) {
         throw new Error("Session expirée — reconnectez-vous via le portail Ministère.");
       }
@@ -221,7 +225,34 @@ const SAC_LIBRARY = (function () {
 
   function formatBookPrice(item) {
     if (isBookFree(item)) return "Gratuit";
-    return bookPrice(item) + " " + bookCurrency(item);
+    return formatPriceAmount(bookPrice(item), bookCurrency(item)) + " " + bookCurrency(item);
+  }
+
+  function formatPriceAmount(amount, currency) {
+    const n = Number(amount);
+    if (!Number.isFinite(n)) return "0";
+    return n.toLocaleString("fr-FR", {
+      minimumFractionDigits: currency === "CDF" ? 2 : 2,
+      maximumFractionDigits: currency === "CDF" ? 2 : 2,
+    });
+  }
+
+  function bookOriginalPrice(item) {
+    if (isBookFree(item)) return 0;
+    const orig = Number(item.originalPrice ?? item.compareAtPrice ?? item.original_price);
+    const current = bookPrice(item);
+    return orig > current ? orig : 0;
+  }
+
+  function bookDiscountPercent(item) {
+    const orig = bookOriginalPrice(item);
+    const current = bookPrice(item);
+    if (!orig || orig <= current) return 0;
+    return Math.round((1 - current / orig) * 100);
+  }
+
+  function isPublishedBook(item) {
+    return !!item && item.published !== false;
   }
 
   function readPurchasesMap() {
@@ -408,80 +439,76 @@ const SAC_LIBRARY = (function () {
     const cover = absUrl(item.coverUrl || item.cover_url || "");
     const free = isBookFree(item);
     const owned = hasBookAccess(item, session);
-    const priceLabel = formatBookPrice(item);
-    const coverHtml = cover
-      ? '<div class="cover"><img src="' + esc(cover) + '" alt="" loading="lazy" /></div>'
-      : '<div class="cover">📘</div>';
-    const badge = free
-      ? '<span class="lib-access-badge lib-access-badge--free">Gratuit</span>'
-      : '<span class="lib-access-badge lib-access-badge--paid">' + esc(priceLabel) + "</span>";
+    const currency = bookCurrency(item);
+    const price = bookPrice(item);
+    const original = bookOriginalPrice(item);
+    const discount = bookDiscountPercent(item);
 
-    let actionHtml = "";
-    if (free || owned) {
-      actionHtml =
-        '<button type="button" class="lib-glass-btn" data-lib-read="' +
-        esc(item.id) +
-        '">📖 ' +
-        (free ? "Lire gratuitement" : "Lire") +
-        "</button>";
+    const coverInner = cover
+      ? '<img src="' + esc(cover) + '" alt="" loading="lazy" />'
+      : '<span class="lib-shop-card__placeholder">📘</span>';
+
+    const discountBadge =
+      !free && discount > 0
+        ? '<span class="lib-shop-badge">' + esc(discount) + "% OFF</span>"
+        : free
+          ? '<span class="lib-shop-badge lib-shop-badge--free">Gratuit</span>'
+          : "";
+
+    let pricesHtml = "";
+    if (free) {
+      pricesHtml = '<div class="lib-shop-card__prices"><span class="lib-shop-price-current lib-shop-price-current--free">Gratuit</span></div>';
     } else {
-      actionHtml =
-        '<button type="button" class="lib-glass-btn lib-glass-btn--buy" data-lib-buy="' +
-        esc(item.id) +
-        '">🛒 Acheter · ' +
-        esc(priceLabel) +
-        "</button>";
+      pricesHtml =
+        '<div class="lib-shop-card__prices">' +
+        (original
+          ? '<span class="lib-shop-price-old">' +
+            esc(formatPriceAmount(original, currency) + " " + currency) +
+            "</span>"
+          : "") +
+        '<span class="lib-shop-price-current">' +
+        esc(formatPriceAmount(price, currency) + " " + currency) +
+        "</span></div>";
     }
 
-    if (compact) {
-      const canOpen = (free || owned) && bookFileUrl(item);
-      if (canOpen) {
-        return (
-          '<a class="lib-book-card" href="' +
-          esc(bookFileUrl(item)) +
-          '" target="_blank" rel="noopener" data-lib-read="' +
-          esc(item.id) +
-          '">' +
-          badge +
-          coverHtml +
-          '<div class="lib-meta"><strong>' +
-          esc(item.title || "Ressource") +
-          "</strong><p>" +
-          esc(item.author || "—") +
-          "</p></div></a>"
-        );
-      }
-      return (
-        '<article class="lib-book-card lib-book-card--locked" data-lib-book="' +
-        esc(item.id) +
-        '">' +
-        badge +
-        coverHtml +
-        '<div class="lib-meta"><strong>' +
-        esc(item.title || "Ressource") +
-        "</strong><p>" +
-        esc(item.author || "—") +
-        "</p>" +
-        actionHtml +
-        "</div></article>"
-      );
+    let btnLabel = "Acheter maintenant";
+    let btnClass = "lib-shop-btn lib-shop-btn--buy";
+    let btnAttrs = ' type="button" data-lib-buy="' + esc(item.id) + '"';
+
+    if (free) {
+      btnLabel = "Lire gratuitement";
+      btnClass = "lib-shop-btn lib-shop-btn--read";
+      btnAttrs = ' type="button" data-lib-read="' + esc(item.id) + '"';
+    } else if (owned) {
+      btnLabel = "Lire maintenant";
+      btnClass = "lib-shop-btn lib-shop-btn--read";
+      btnAttrs = ' type="button" data-lib-read="' + esc(item.id) + '"';
     }
+
+    const cardClass = "lib-shop-card" + (compact ? " lib-shop-card--compact" : "");
 
     return (
-      '<article class="lib-item" data-lib-book="' +
+      '<article class="' +
+      cardClass +
+      '" data-lib-book="' +
       esc(item.id) +
       '">' +
-      badge +
-      coverHtml +
-      '<div class="lib-meta"><strong>' +
+      '<div class="lib-shop-card__cover">' +
+      coverInner +
+      discountBadge +
+      "</div>" +
+      '<div class="lib-shop-card__body">' +
+      '<h3 class="lib-shop-card__title">' +
       esc(item.title || "Ressource") +
-      "</strong><p>" +
-      esc(item.author || "—") +
-      "</p>" +
-      '<p class="lib-item-cat">' +
-      esc(categoryLabel(item.category)) +
-      "</p>" +
-      actionHtml +
+      "</h3>" +
+      pricesHtml +
+      '<button class="' +
+      btnClass +
+      '"' +
+      btnAttrs +
+      ">" +
+      esc(btnLabel) +
+      "</button>" +
       "</div></article>"
     );
   }
@@ -539,7 +566,7 @@ const SAC_LIBRARY = (function () {
         const online = await SAC_API.ensureOnline();
         if (online) {
           const data = await SAC_API.listDigitalLibrary(cc);
-          let items = data?.items || [];
+          let items = (data?.items || []).filter(isPublishedBook);
           items = filterByCountry(items, cc);
           cacheItems(items);
           return items;
@@ -548,7 +575,7 @@ const SAC_LIBRARY = (function () {
         /* fallback */
       }
     }
-    const cached = filterByCountry(readCache(), cc);
+    const cached = filterByCountry(readCache().filter(isPublishedBook), cc);
     if (cached.length) return cached;
     if (typeof SAC_PLATFORM !== "undefined" && SAC_PLATFORM.getLibrary) {
       try {
@@ -625,12 +652,26 @@ const SAC_LIBRARY = (function () {
     };
 
     let lastErr = null;
-    try {
-      const fd = new FormData();
-      fd.append("files", file);
-      return await tryUpload(() => SAC_API.uploadDigitalLibraryFile(fd));
-    } catch (err) {
-      lastErr = err;
+    const uploadAttempts = [
+      () => {
+        const fd = new FormData();
+        fd.append("files", file);
+        return SAC_API.uploadDigitalLibraryFile(fd);
+      },
+      () => {
+        const fd = new FormData();
+        fd.append("file", file);
+        return SAC_API.uploadDigitalLibraryFile(fd);
+      },
+    ];
+
+    for (const attempt of uploadAttempts) {
+      try {
+        return await tryUpload(attempt);
+      } catch (err) {
+        lastErr = err;
+        if (!isUploadAccessError(err)) break;
+      }
     }
 
     if (lastErr && isUploadAccessError(lastErr) && SAC_API.uploadHomeNewsMedia) {
@@ -709,8 +750,8 @@ const SAC_LIBRARY = (function () {
       '<label>Image de couverture (JPG, PNG, WebP)</label>' +
       '<input type="file" class="fi lib-cover-file" accept="image/jpeg,image/png,image/webp,image/*" />' +
       '<input class="fi lib-cover-url" placeholder="Ou URL de l\'image de couverture" style="margin-top:0.45rem;" />' +
-      '<div class="lib-cover-preview" style="display:none;margin-top:0.55rem;border:1px solid var(--border);border-radius:10px;overflow:hidden;max-width:180px;">' +
-      '<img class="lib-cover-preview-img" alt="Aperçu couverture" style="display:block;width:100%;height:220px;object-fit:cover;" />' +
+      '<div class="lib-cover-preview" style="display:none;margin-top:0.55rem;border:1px solid var(--border);border-radius:10px;overflow:hidden;max-width:240px;background:#fff;">' +
+      '<img class="lib-cover-preview-img" alt="Aperçu couverture" style="display:block;width:100%;height:240px;object-fit:cover;background:#f1f5f9;" />' +
       "</div></div>" +
       '<div class="fg" style="grid-column:1/-1;"><label>Fichier du livre (PDF, EPUB, DOC…) *</label><input type="file" class="fi lib-file" accept=".pdf,.epub,.doc,.docx" /></div>' +
       '<div class="fg" style="grid-column:1/-1;"><label>Ou lien direct du livre (URL)</label><input class="fi lib-url" placeholder="https://…" /></div>' +
@@ -720,6 +761,7 @@ const SAC_LIBRARY = (function () {
       "</div>" +
       '<div class="fg lib-price-wrap"><label>Prix de vente *</label><input class="fi lib-price" type="number" min="0.5" step="0.5" value="5" /></div>' +
       '<div class="fg lib-price-wrap"><label>Devise</label><select class="fi lib-currency"><option value="USD">USD</option><option value="CDF">CDF</option></select></div>' +
+      '<div class="fg lib-price-wrap lib-original-wrap"><label>Prix initial barré (promo, optionnel)</label><input class="fi lib-original-price" type="number" min="0" step="0.5" placeholder="Ex: 41384" /></div>' +
       '<div class="fg" style="grid-column:1/-1;"><label class="chk"><input type="checkbox" class="lib-published" checked /> Publier immédiatement dans la bibliothèque de ' +
       esc(countryLabel) +
       "</label></div>" +
@@ -743,6 +785,9 @@ const SAC_LIBRARY = (function () {
       priceWraps.forEach((el) => {
         el.style.display = free ? "none" : "";
       });
+      root.querySelectorAll(".lib-original-wrap").forEach((el) => {
+        el.style.display = free ? "none" : "";
+      });
     }
 
     freeCheckbox?.addEventListener("change", syncPriceFields);
@@ -752,23 +797,48 @@ const SAC_LIBRARY = (function () {
       return root.querySelector(sel);
     }
 
+    let coverBlobUrl = null;
+
+    function revokeCoverBlob() {
+      if (coverBlobUrl) {
+        URL.revokeObjectURL(coverBlobUrl);
+        coverBlobUrl = null;
+      }
+    }
+
     function showCoverPreview(url) {
       if (!url || !coverPreview || !coverPreviewImg) return;
-      coverPreviewImg.src = previewUrl(url);
       coverPreview.style.display = "block";
+      const src = previewUrl(url);
+      coverPreviewImg.onerror = () => {
+        if (/^(data:|blob:)/i.test(src)) return;
+        coverPreviewImg.removeAttribute("src");
+        coverPreview.style.display = "none";
+      };
+      coverPreviewImg.src = src;
     }
 
     function hideCoverPreview() {
+      revokeCoverBlob();
       if (coverPreview) coverPreview.style.display = "none";
       if (coverPreviewImg) coverPreviewImg.removeAttribute("src");
     }
 
     q(".lib-cover-file")?.addEventListener("change", (e) => {
       const file = e.target.files?.[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = () => showCoverPreview(reader.result);
-      reader.readAsDataURL(file);
+      revokeCoverBlob();
+      if (!file) {
+        hideCoverPreview();
+        return;
+      }
+      if (!file.type.startsWith("image/")) {
+        alert("Choisissez une image JPG, PNG ou WebP.");
+        e.target.value = "";
+        hideCoverPreview();
+        return;
+      }
+      coverBlobUrl = URL.createObjectURL(file);
+      showCoverPreview(coverBlobUrl);
     });
 
     q(".lib-cover-url")?.addEventListener("input", (e) => {
@@ -851,6 +921,7 @@ const SAC_LIBRARY = (function () {
             if (freeCheckbox) freeCheckbox.checked = isBookFree(item);
             if (q(".lib-price")) q(".lib-price").value = bookPrice(item);
             if (q(".lib-currency")) q(".lib-currency").value = bookCurrency(item);
+            if (q(".lib-original-price")) q(".lib-original-price").value = bookOriginalPrice(item) || "";
             syncPriceFields();
             formTitle.textContent = "Modifier le livre";
             btnSubmit.textContent = "Enregistrer";
@@ -913,6 +984,7 @@ const SAC_LIBRARY = (function () {
         isFree: !!freeCheckbox?.checked,
         price: freeCheckbox?.checked ? 0 : Number(q(".lib-price")?.value) || DEFAULT_BOOK_PRICE,
         currency: q(".lib-currency")?.value || DEFAULT_BOOK_CURRENCY,
+        originalPrice: freeCheckbox?.checked ? 0 : Number(q(".lib-original-price")?.value) || 0,
       };
 
       try {
@@ -920,6 +992,9 @@ const SAC_LIBRARY = (function () {
         if (coverFile) {
           const upCover = await uploadFile(coverFile);
           payload.coverUrl = upCover.fileUrl;
+          if (q(".lib-cover-url")) q(".lib-cover-url").value = upCover.fileUrl;
+          revokeCoverBlob();
+          showCoverPreview(upCover.fileUrl);
         }
 
         const file = q(".lib-file")?.files?.[0];
