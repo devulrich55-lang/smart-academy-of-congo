@@ -207,8 +207,8 @@
   <script src="js/sac-identity.js?v=20260702a"></script>
   <script src="js/sac-tariffs.js?v=20260702a"></script>
   <script src="js/sac-section-approval.js?v=20260702a"></script>
-  <script src="js/sac-session.js?v=20260702c"></script>
-  <script src="js/sac-api.js?v=20260702a"></script>
+  <script src="js/sac-session.js?v=20260705j"></script>
+  <script src="js/sac-api.js?v=20260705j"></script>
   <script src="js/sac-account-registry.js?v=20260702a"></script>
   <script>
     (async function () {
@@ -350,6 +350,9 @@
             )
           );
           return;
+        }
+        if (typeof SAC_API !== "undefined" && typeof SAC_API.ensureOnline === "function") {
+          await SAC_API.ensureOnline(false, { maxWaitMs: 15000 });
         }
         SAC_SESSION.saveSession(enriched);
         if (

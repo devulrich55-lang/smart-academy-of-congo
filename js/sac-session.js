@@ -513,6 +513,61 @@ const SAC_SESSION = (function () {
     return true;
   }
 
+  async function finalizeRegistrationRedirect(session, role, redirectTo) {
+    const merged = {
+      ...(session || {}),
+      role: role || session?.role,
+      authSource: session?.authSource || "api",
+      newAccount: true,
+    };
+
+    if (typeof SAC_API !== "undefined") {
+      try {
+        await SAC_API.ensureOnline(true, { maxWaitMs: 45000 });
+      } catch {
+        /* continuer avec session locale */
+      }
+
+      if (
+        typeof SAC_API.hasAuthTokens === "function" &&
+        !SAC_API.hasAuthTokens() &&
+        typeof SAC_API.ensureApiSession === "function"
+      ) {
+        await SAC_API.ensureApiSession({ soft: false });
+      }
+
+      if (
+        typeof SAC_API.hasAuthTokens === "function" &&
+        !SAC_API.hasAuthTokens()
+      ) {
+        return {
+          ok: false,
+          reason: "NO_TOKENS",
+          message:
+            "Compte créé, mais la session n'a pas pu être enregistrée sur cet appareil. " +
+            "Connectez-vous avec votre e-mail et votre mot de passe.",
+        };
+      }
+
+      if (typeof SAC_API.me === "function") {
+        try {
+          const fresh = await SAC_API.me({ soft: true, timeoutMs: 12000 });
+          if (fresh) Object.assign(merged, fresh);
+        } catch {
+          /* conserver merged */
+        }
+      }
+    }
+
+    saveSession(merged);
+    markPostRegistration(merged.role);
+    scheduleSessionSync(merged);
+
+    const target = redirectTo || dashboardUrl(merged.role);
+    window.location.replace(target);
+    return { ok: true };
+  }
+
   return {
     DASHBOARDS,
     getSession,
@@ -531,6 +586,7 @@ const SAC_SESSION = (function () {
     syncSessionWithAccount,
     guard,
     logout,
+    finalizeRegistrationRedirect,
     redirectIfAuthenticated,
   };
 })();

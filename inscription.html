@@ -1723,8 +1723,8 @@
   <script src="js/sac-phone-countries.js?v=20260625b"></script>
   <script src="js/sac-identity.js"></script>
   <script src="js/sac-phone-input.js?v=20260625b"></script>
-  <script src="js/sac-session.js?v=20260617d"></script>
-  <script src="js/sac-api.js?v=20260630i"></script>
+  <script src="js/sac-session.js?v=20260705j"></script>
+  <script src="js/sac-api.js?v=20260705j"></script>
   <script src="js/sac-account-registry.js?v=20260630a"></script>
   <script src="js/sac-mobile-money.js?v=20260629c"></script>
   <script src="js/sac-tariffs.js?v=20260701b"></script>
@@ -3225,15 +3225,26 @@
                 newAccount: true,
                 payment,
               };
-              SAC_SESSION.saveSession(apiSession);
-              SAC_SESSION.markPostRegistration(profile.role);
               await setupUniversityExtras(profile);
               const target = dashboards[profile.role];
               if (!target) {
                 alert("Rôle inconnu : " + profile.role);
                 return;
               }
-              window.location.replace(target);
+              const done = await SAC_SESSION.finalizeRegistrationRedirect(
+                apiSession,
+                profile.role,
+                target
+              );
+              if (!done?.ok) {
+                alert(
+                  done?.message ||
+                    "Compte créé. Connectez-vous depuis la page Connexion."
+                );
+                window.location.replace(
+                  "connexion.html?role=" + encodeURIComponent(profile.role)
+                );
+              }
               return;
             } catch (err) {
               if (SAC_API.isOnline()) {
