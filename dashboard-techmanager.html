@@ -9,7 +9,7 @@
   <script src="js/sac-theme.js"></script>
   <link rel="stylesheet" href="css/dashboard.css" />
   <link rel="stylesheet" href="css/theme.css" />
-  <link rel="stylesheet" href="css/devcenter.css?v=20260712" />
+  <link rel="stylesheet" href="css/devcenter.css?v=20260713" />
   <meta name="theme-color" content="#0f766e" />
 </head>
 <body class="devcenter-dashboard tm-dashboard">
@@ -45,21 +45,117 @@
     <section class="page-section" id="tm-stats"><div class="dc-panel tm-section-panel" id="tmStatsPanel"></div></section>
     <section class="page-section" id="tm-shield"><div class="dc-panel tm-section-panel" id="tmShieldPanel"></div></section>
   </main>
-  <script src="js/sac-session.js?v=20260712"></script>
-  <script src="js/sac-api.js?v=20260712"></script>
-  <script src="js/sac-techmanager.js?v=20260712"></script>
+  <script src="js/sac-session.js?v=20260713"></script>
+  <script src="js/sac-api.js?v=20260713"></script>
+  <script src="js/sac-techmanager.js?v=20260713"></script>
   <script>
-    document.addEventListener("DOMContentLoaded", function () {
-      if (typeof SAC_TECHMANAGER === "undefined") {
-        var toastEl = document.getElementById("tmToast");
-        if (toastEl) {
-          toastEl.textContent = "Erreur chargement — rechargez avec Ctrl+F5";
-          toastEl.classList.add("dc-toast--show");
-        }
-        return;
+    (function () {
+      "use strict";
+
+      var SCRIPT_ERR = false;
+
+      function tmToast(msg) {
+        var el = document.getElementById("tmToast");
+        if (!el) return;
+        el.textContent = msg;
+        el.classList.add("dc-toast--show");
+        setTimeout(function () {
+          el.classList.remove("dc-toast--show");
+        }, 5000);
       }
-      SAC_TECHMANAGER.init();
-    });
+
+      function tmShowView(view) {
+        var map = {
+          board: "tm-board",
+          review: "tm-board",
+          team: "tm-team",
+          stats: "tm-stats",
+          shield: "tm-shield",
+        };
+        var tabs = document.querySelectorAll(".tm-tab");
+        for (var i = 0; i < tabs.length; i++) {
+          tabs[i].classList.toggle("active", tabs[i].getAttribute("data-view") === view);
+        }
+        var sections = document.querySelectorAll(".page-section");
+        for (var j = 0; j < sections.length; j++) {
+          sections[j].classList.remove("active");
+        }
+        var target = document.getElementById(map[view] || "tm-board");
+        if (target) target.classList.add("active");
+      }
+
+      function tmFindTab(el, nav) {
+        while (el && el !== nav) {
+          if (el.classList && el.classList.contains("tm-tab")) return el;
+          el = el.parentElement;
+        }
+        return null;
+      }
+
+      function tmBindFallback() {
+        var nav = document.querySelector(".dc-nav");
+        if (nav && !nav.dataset.tmFallback) {
+          nav.dataset.tmFallback = "1";
+          nav.addEventListener("click", function (e) {
+            var tab = tmFindTab(e.target, nav);
+            if (!tab) return;
+            e.preventDefault();
+            var view = tab.getAttribute("data-view") || "board";
+            if (typeof SAC_TECHMANAGER !== "undefined" && SAC_TECHMANAGER.handleTab) {
+              SAC_TECHMANAGER.handleTab(view);
+            } else {
+              tmShowView(view);
+              if (SCRIPT_ERR) {
+                tmToast("Module données indisponible — Ctrl+F5 ou redeploy frontend.");
+              }
+            }
+          });
+        }
+        var refreshBtn = document.getElementById("tmRefreshBtn");
+        if (refreshBtn && !refreshBtn.dataset.tmBound) {
+          refreshBtn.dataset.tmBound = "1";
+          refreshBtn.addEventListener("click", function () {
+            if (typeof SAC_TECHMANAGER !== "undefined" && SAC_TECHMANAGER.refresh) {
+              SAC_TECHMANAGER.refresh().catch(function (err) {
+                tmToast((err && err.message) || "Erreur actualisation.");
+              });
+            } else {
+              window.location.reload();
+            }
+          });
+        }
+        var logoutBtn = document.getElementById("btnLogout");
+        if (logoutBtn && !logoutBtn.dataset.tmBound) {
+          logoutBtn.dataset.tmBound = "1";
+          logoutBtn.addEventListener("click", function () {
+            if (typeof SAC_SESSION !== "undefined" && SAC_SESSION.logout) {
+              var url =
+                typeof SAC_PORTAL !== "undefined"
+                  ? SAC_PORTAL.siteUrl("techmanager/")
+                  : "techmanager/";
+              SAC_SESSION.logout(url);
+            } else {
+              window.location.href = "techmanager/";
+            }
+          });
+        }
+      }
+
+      function markScriptError(label) {
+        SCRIPT_ERR = true;
+        tmToast("Erreur chargement " + label + " — Ctrl+F5");
+      }
+
+      document.addEventListener("DOMContentLoaded", function () {
+        tmBindFallback();
+        if (typeof SAC_SESSION === "undefined") markScriptError("session");
+        if (typeof SAC_API === "undefined") markScriptError("API");
+        if (typeof SAC_TECHMANAGER === "undefined") markScriptError("Tech Manager");
+        if (typeof SAC_TECHMANAGER !== "undefined" && SAC_TECHMANAGER.init) {
+          SAC_TECHMANAGER.init();
+        }
+      });
+    })();
   </script>
 </body>
 </html>

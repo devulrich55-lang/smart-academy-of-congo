@@ -226,6 +226,14 @@ const SAC_TECHMANAGER = (function () {
   async function renderShield() {
     const host = document.getElementById("tmShieldPanel");
     if (!host) return;
+    if (
+      !SAC_API ||
+      typeof SAC_API.getTechManagerShieldOverview !== "function"
+    ) {
+      host.innerHTML =
+        "<h1 class='page-title'>Bouclier anti-attaque</h1><p class='dc-empty'>API bouclier indisponible — redeployez le frontend et l'API puis Ctrl+F5.</p>";
+      return;
+    }
     host.innerHTML = "<p class='dc-empty'>Chargement du bouclier…</p>";
     try {
       const overview = await SAC_API.getTechManagerShieldOverview();
@@ -438,7 +446,7 @@ const SAC_TECHMANAGER = (function () {
     }
     try {
       await loadTeam();
-    } catch {
+    } catch (err) {
       /* équipe optionnelle pour la liste tickets */
     }
     const reviewEl = document.getElementById("tmReviewCount");
@@ -468,29 +476,7 @@ const SAC_TECHMANAGER = (function () {
     }
   }
 
-  function bindControls() {
-    const nav = document.querySelector(".dc-nav");
-    if (nav && !nav.dataset.tmBound) {
-      nav.dataset.tmBound = "1";
-      nav.addEventListener("click", function (e) {
-        const tab = e.target.closest(".tm-tab");
-        if (!tab || !nav.contains(tab)) return;
-        e.preventDefault();
-        handleTab(tab.dataset.view || "board");
-      });
-    }
-    on(document.getElementById("tmRefreshBtn"), "click", function () {
-      refresh().catch(function (err) {
-        toast(err.message || "Erreur actualisation.");
-      });
-    });
-    on(document.getElementById("btnLogout"), "click", function () {
-      SAC_SESSION.logout(SAC_PORTAL.siteUrl("techmanager/"));
-    });
-  }
-
   async function init() {
-    bindControls();
     try {
       session = await guard();
       if (!session) return;
@@ -510,5 +496,5 @@ const SAC_TECHMANAGER = (function () {
     }
   }
 
-  return { init };
+  return { init, showView, handleTab, refresh };
 })();
