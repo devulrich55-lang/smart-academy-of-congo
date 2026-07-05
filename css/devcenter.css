@@ -318,3 +318,28 @@
 .tm-submit { background: linear-gradient(135deg, #0f766e, #115e59) !important; }
 .tm-badge { background: rgba(15, 118, 110, 0.12); color: #115e59; }
 .tm-dashboard { background: #ecfdf5; }
+
+.tm-shield-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+.tm-shield-status--on { background: rgba(16, 185, 129, 0.15); color: #047857; }
+.tm-shield-status--off { background: rgba(239, 68, 68, 0.12); color: #b91c1c; }
+.tm-shield-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; margin-top: 0.75rem; }
+.tm-shield-table th,
+.tm-shield-table td { padding: 0.45rem 0.5rem; border-bottom: 1px solid var(--dc-line); text-align: left; vertical-align: top; }
+.tm-shield-table th { color: var(--muted, #64748b); font-weight: 600; }
+.tm-shield-score { display: inline-block; min-width: 2rem; padding: 0.1rem 0.4rem; border-radius: 6px; text-align: center; font-weight: 700; }
+.tm-shield-score--low { background: rgba(16, 185, 129, 0.15); color: #047857; }
+.tm-shield-score--mid { background: rgba(245, 158, 11, 0.18); color: #b45309; }
+.tm-shield-score--high { background: rgba(239, 68, 68, 0.15); color: #b91c1c; }
+.tm-shield-action { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.03em; font-weight: 700; }
+.tm-shield-section { margin-top: 1.25rem; }
+.tm-shield-section h2 { font-size: 1rem; margin: 0 0 0.35rem; }
+.tm-shield-path { font-family: ui-monospace, monospace; font-size: 0.78rem; word-break: break-all; }
+.tm-shield-meta { font-size: 0.75rem; color: var(--muted, #64748b); margin-bottom: 0.5rem; }
