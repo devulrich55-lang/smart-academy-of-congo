@@ -36,30 +36,37 @@ window.SAC_TECHMANAGER = (function () {
   }
 
   async function guard() {
-    if (typeof SAC_API !== "undefined") {
-      try {
-        await SAC_API.ensureApiSession({ soft: true });
-        const live = await SAC_API.me({ softAuth: true });
-        if (live && live.role !== "techmanager" && live.role !== "superadmin") {
-          window.location.replace(SAC_PORTAL.loginUrlForRole("techmanager"));
-          return null;
-        }
-      } catch (err) {
-        if (err && (err.code === "IP_BLOCKED" || err.status === 403)) {
-          toast(
-            err.code === "IP_BLOCKED"
-              ? "IP bloquée par le bouclier — attendez 1 h ou débloquez via une autre session."
-              : "Accès refusé — reconnectez-vous en Tech Manager ou Super Admin."
-          );
-        }
-      }
-    }
-    const s = await SAC_SESSION.verifySession(null);
-    if (!s || (s.role !== "techmanager" && s.role !== "superadmin")) {
+    if (typeof SAC_API === "undefined" || typeof SAC_SESSION === "undefined") {
       window.location.replace(SAC_PORTAL.loginUrlForRole("techmanager"));
       return null;
     }
-    return s;
+    try {
+      await SAC_API.ensureApiSession();
+      if (typeof SAC_API.hasAuthTokens === "function" && !SAC_API.hasAuthTokens()) {
+        SAC_SESSION.clearSession();
+        window.location.replace(SAC_PORTAL.loginUrlForRole("techmanager"));
+        return null;
+      }
+      const live = await SAC_API.me();
+      if (!live || (live.role !== "techmanager" && live.role !== "superadmin")) {
+        SAC_API.clearClientSession();
+        SAC_SESSION.clearSession();
+        window.location.replace(SAC_PORTAL.loginUrlForRole("techmanager"));
+        return null;
+      }
+      SAC_SESSION.saveSession(live);
+      return live;
+    } catch (err) {
+      SAC_API.clearClientSession();
+      SAC_SESSION.clearSession();
+      toast(
+        err && err.code === "IP_BLOCKED"
+          ? "IP bloquée par le bouclier — attendez 1 h."
+          : "Session invalide — reconnectez-vous."
+      );
+      window.location.replace(SAC_PORTAL.loginUrlForRole("techmanager"));
+      return null;
+    }
   }
 
   function shieldErrorMessage(err) {

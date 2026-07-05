@@ -1,7 +1,7 @@
 /**
  * Service Worker Evo-smartUni — coque hors-ligne (shell statique)
  */
-const CACHE = "sac-pwa-v20260720";
+const CACHE = "sac-pwa-v20260721";
 const SHELL = [
   "/",
   "/index.html",
