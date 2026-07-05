@@ -724,3 +724,4 @@ const SAC_TECHMANAGER = (function () {
 
   return { init, showView, handleTab, refresh };
 })();
+window.SAC_TECHMANAGER = SAC_TECHMANAGER;

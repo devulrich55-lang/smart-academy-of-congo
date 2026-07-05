@@ -9,7 +9,7 @@
   <script src="js/sac-theme.js"></script>
   <link rel="stylesheet" href="css/dashboard.css" />
   <link rel="stylesheet" href="css/theme.css" />
-  <link rel="stylesheet" href="css/devcenter.css?v=20260715" />
+  <link rel="stylesheet" href="css/devcenter.css?v=20260716" />
   <meta name="theme-color" content="#0f766e" />
 </head>
 <body class="devcenter-dashboard tm-dashboard">
@@ -45,17 +45,16 @@
     <section class="page-section" id="tm-stats"><div class="dc-panel tm-section-panel" id="tmStatsPanel"></div></section>
     <section class="page-section" id="tm-shield"><div class="dc-panel tm-section-panel" id="tmShieldPanel"></div></section>
   </main>
+  <script src="js/sac-session.js?v=20260716"></script>
+  <script src="js/sac-api.js?v=20260716"></script>
+  <script src="js/sac-techmanager.js?v=20260716"></script>
   <script>
     (function () {
       "use strict";
 
-      var TM_ASSET = "20260715";
-      var TM_SCRIPTS = [
-        "js/sac-session.js?v=" + TM_ASSET,
-        "js/sac-api.js?v=" + TM_ASSET,
-        "js/sac-techmanager.js?v=" + TM_ASSET,
-      ];
-      var loadErrors = [];
+      function tmModule() {
+        return window.SAC_TECHMANAGER;
+      }
 
       function tmToast(msg) {
         var el = document.getElementById("tmToast");
@@ -95,37 +94,141 @@
         return null;
       }
 
-      function loadScript(url, tryPlain) {
-        return new Promise(function (resolve) {
-          var src = tryPlain ? url.split("?")[0] : url;
-          var s = document.createElement("script");
-          s.src = src;
-          s.async = false;
-          s.onload = function () {
-            resolve(true);
-          };
-          s.onerror = function () {
-            if (!tryPlain) {
-              loadScript(url, true).then(resolve);
-              return;
-            }
-            loadErrors.push(src);
-            resolve(false);
-          };
-          document.body.appendChild(s);
-        });
+      function tmEsc(s) {
+        var el = document.createElement("div");
+        el.textContent = String(s != null ? s : "");
+        return el.innerHTML;
       }
 
-      function loadScriptsChain(index) {
-        if (index >= TM_SCRIPTS.length) return Promise.resolve();
-        return loadScript(TM_SCRIPTS[index], false).then(function () {
-          return loadScriptsChain(index + 1);
-        });
+      function tmRenderShieldFallback() {
+        var host = document.getElementById("tmShieldPanel");
+        if (!host || !window.SAC_API || typeof SAC_API.getTechManagerShieldOverview !== "function") {
+          if (host) {
+            host.innerHTML =
+              "<h1 class='page-title'>Bouclier anti-attaque</h1><p class='dc-empty'>Module ou API indisponible — redeployez frontend + API puis Ctrl+Shift+R.</p>";
+          }
+          return Promise.resolve();
+        }
+        host.innerHTML = "<p class='dc-empty'>Chargement du bouclier…</p>";
+        return Promise.all([
+          SAC_API.getTechManagerShieldOverview(),
+          SAC_API.getTechManagerShieldTrends(24),
+          SAC_API.listTechManagerShieldEvents(30),
+          SAC_API.listTechManagerShieldBlocked(),
+          SAC_API.getTechManagerShieldAlertsStatus(),
+        ])
+          .then(function (results) {
+            var overview = results[0] || {};
+            var trends = results[1] || {};
+            var events = (results[2] && results[2].events) || [];
+            var blocked = (results[3] && results[3].blocked) || [];
+            var alerts = results[4] || {};
+            var th = overview.thresholds || {};
+            host.innerHTML =
+              "<h1 class='page-title'>Bouclier anti-attaque</h1>" +
+              "<p class='page-desc'>Mode secours — données live via API.</p>" +
+              "<p class='tm-shield-meta'>Mis à jour : " +
+              tmEsc(overview.updatedAt || "—") +
+              " · Seuils : " +
+              tmEsc(th.throttle) +
+              " / " +
+              tmEsc(th.block) +
+              " / " +
+              tmEsc(th.honeypot) +
+              "</p>" +
+              '<span class="tm-shield-status ' +
+              (overview.enabled ? "tm-shield-status--on" : "tm-shield-status--off") +
+              '">🛡 ' +
+              (overview.enabled ? "Actif" : "Désactivé") +
+              "</span>" +
+              '<div class="dc-kpi-grid" style="margin-top:1rem">' +
+              '<div class="dc-kpi"><strong>' +
+              tmEsc(overview.events24h) +
+              "</strong><span>Événements 24h</span></div>" +
+              '<div class="dc-kpi"><strong>' +
+              tmEsc(overview.blockedActive) +
+              "</strong><span>IP bloquées</span></div>" +
+              '<div class="dc-kpi"><strong>' +
+              tmEsc(overview.honeypot24h) +
+              "</strong><span>Honeypot 24h</span></div>" +
+              '<div class="dc-kpi"><strong>' +
+              tmEsc(overview.avgScore24h) +
+              "</strong><span>Score moyen</span></div></div>" +
+              "<p class='tm-shield-meta'>Alertes : " +
+              (alerts.enabled ? "actives" : "off") +
+              " · envoyées 24h : " +
+              tmEsc(alerts.sent24h) +
+              "</p>" +
+              (events.length
+                ? '<div class="tm-shield-section"><h2>Événements récents</h2><table class="tm-shield-table"><thead><tr><th>Heure</th><th>IP</th><th>Score</th><th>Action</th><th>Requête</th></tr></thead><tbody>' +
+                  events
+                    .map(function (ev) {
+                      return (
+                        "<tr><td>" +
+                        tmEsc((ev.createdAt || "").slice(11, 19)) +
+                        "</td><td>" +
+                        tmEsc(ev.ipMasked) +
+                        "</td><td>" +
+                        tmEsc(ev.score) +
+                        "</td><td>" +
+                        tmEsc(ev.action) +
+                        "</td><td><span class='tm-shield-path'>" +
+                        tmEsc(ev.method) +
+                        " " +
+                        tmEsc(ev.path) +
+                        "</span></td></tr>"
+                      );
+                    })
+                    .join("") +
+                  "</tbody></table></div>"
+                : '<p class="dc-empty">Aucun événement récent.</p>') +
+              (blocked.length
+                ? '<div class="tm-shield-section"><h2>IP bloquées</h2><table class="tm-shield-table"><thead><tr><th>IP</th><th>Score</th><th>Raison</th><th>Jusqu\'à</th></tr></thead><tbody>' +
+                  blocked
+                    .map(function (b) {
+                      return (
+                        "<tr><td>" +
+                        tmEsc(b.ipMasked) +
+                        "</td><td>" +
+                        tmEsc(b.score) +
+                        "</td><td>" +
+                        tmEsc(b.reason) +
+                        "</td><td>" +
+                        tmEsc((b.blockedUntil || "").slice(0, 19)) +
+                        "</td></tr>"
+                      );
+                    })
+                    .join("") +
+                  "</tbody></table></div>"
+                : "") +
+              ((trends.topPaths || []).length
+                ? '<div class="tm-shield-section"><h2>Top chemins</h2><ul>' +
+                  trends.topPaths
+                    .map(function (p) {
+                      return (
+                        "<li><span class='tm-shield-path'>" +
+                        tmEsc(p.path) +
+                        "</span> — " +
+                        tmEsc(p.count) +
+                        " hits</li>"
+                      );
+                    })
+                    .join("") +
+                  "</ul></div>"
+                : "");
+          })
+          .catch(function (err) {
+            host.innerHTML =
+              "<h1 class='page-title'>Bouclier anti-attaque</h1><p class='dc-empty'>" +
+              tmEsc((err && err.message) || "Impossible de charger le bouclier — redeployez l'API.") +
+              "</p>";
+          });
       }
 
       function tmHandleTab(view) {
-        if (typeof SAC_TECHMANAGER !== "undefined" && SAC_TECHMANAGER.handleTab) {
-          return SAC_TECHMANAGER.handleTab(view);
+        var mod = tmModule();
+        if (mod && mod.handleTab) {
+          return mod.handleTab(view);
         }
         tmShowView(view);
         if (typeof SAC_API === "undefined") {
@@ -204,11 +307,7 @@
             });
         }
         if (view === "shield") {
-          host = document.getElementById("tmShieldPanel");
-          if (host) {
-            host.innerHTML =
-              "<h1 class='page-title'>Bouclier</h1><p class='dc-empty'>Redeployez l'API si le bouclier est vide.</p>";
-          }
+          return tmRenderShieldFallback();
         }
         return Promise.resolve();
       }
@@ -228,8 +327,9 @@
         if (refreshBtn && !refreshBtn.dataset.tmBound) {
           refreshBtn.dataset.tmBound = "1";
           refreshBtn.addEventListener("click", function () {
-            if (typeof SAC_TECHMANAGER !== "undefined" && SAC_TECHMANAGER.refresh) {
-              SAC_TECHMANAGER.refresh().catch(function (err) {
+            var mod = tmModule();
+            if (mod && mod.refresh) {
+              mod.refresh().catch(function (err) {
                 tmToast((err && err.message) || "Erreur actualisation.");
               });
             } else {
@@ -256,22 +356,18 @@
 
       function tmBoot() {
         tmBindUi();
-        if (loadErrors.length) {
-          tmToast("Fichiers manquants : " + loadErrors.join(", "));
-        }
-        if (typeof SAC_TECHMANAGER !== "undefined" && SAC_TECHMANAGER.init) {
-          SAC_TECHMANAGER.init();
-        } else if (typeof SAC_API !== "undefined") {
-          tmToast("Mode secours actif — rechargez après deploy.");
+        var mod = tmModule();
+        if (mod && mod.init) {
+          mod.init();
+        } else if (window.SAC_API) {
+          tmToast("Mode secours actif — Ctrl+Shift+R si l'onglet Bouclier est incomplet.");
           tmHandleTab("board");
         } else {
           tmToast("Chargement incomplet — Ctrl+Shift+R");
         }
       }
 
-      document.addEventListener("DOMContentLoaded", function () {
-        loadScriptsChain(0).then(tmBoot);
-      });
+      document.addEventListener("DOMContentLoaded", tmBoot);
     })();
   </script>
 </body>
