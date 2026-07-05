@@ -83,10 +83,17 @@
     try {
       await ensureApiReady(btn);
       btn.textContent = "Connexion…";
-      const session = await SAC_API.login(email, password, def.role, { adminPortal: true });
-      saveRemembered(portalId, email, remember);
-      SAC_SESSION.saveSession(session);
-      window.location.replace(SAC_PORTAL.portalDashboardUrl(def));
+      const loginResult = await SAC_API.login(email, password, def.role, { adminPortal: true });
+      const finish = async function (session) {
+        saveRemembered(portalId, email, remember);
+        SAC_SESSION.saveSession(session);
+        window.location.replace(SAC_PORTAL.portalDashboardUrl(def));
+      };
+      if (loginResult && loginResult.mfaRequired && typeof SAC_STAFF_MFA !== "undefined") {
+        await SAC_STAFF_MFA.completeStaffLogin(loginResult, form, finish);
+        return;
+      }
+      await finish(loginResult);
     } catch (err) {
       alert(err.message || "Identifiant ou mot de passe incorrect.");
     } finally {

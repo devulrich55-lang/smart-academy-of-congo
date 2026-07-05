@@ -839,6 +839,27 @@ const SAC_API = (function () {
         adminPortal: !!extra.adminPortal,
       }),
     });
+    if (data.mfaRequired && data.mfaChallenge) {
+      return {
+        mfaRequired: true,
+        mfaChallenge: data.mfaChallenge,
+        emailHint: data.emailHint || identifier,
+      };
+    }
+    sessionCache = tagApiSession(data.session);
+    saveApiTokens(data.accessToken, data.refreshToken);
+    persistSessionCache();
+    if (typeof SAC_ACCOUNT_REGISTRY !== "undefined" && SAC_ACCOUNT_REGISTRY.markSynced) {
+      SAC_ACCOUNT_REGISTRY.markSynced(sessionCache.email);
+    }
+    return sessionCache;
+  }
+
+  async function verifyStaffMfa(challenge, code) {
+    const data = await request("/auth/staff-mfa/verify", {
+      method: "POST",
+      body: JSON.stringify({ mfaChallenge: challenge, code: String(code || "").trim() }),
+    });
     sessionCache = tagApiSession(data.session);
     saveApiTokens(data.accessToken, data.refreshToken);
     persistSessionCache();
@@ -1885,6 +1906,20 @@ const SAC_API = (function () {
     return request("/admin/monitor/security-pulse", { softAuth: true });
   }
 
+  async function getMonitorShieldOverview() {
+    return request("/admin/monitor/shield/overview", { softAuth: true });
+  }
+
+  async function getMonitorShieldTrends(hours) {
+    const q = hours ? "?hours=" + encodeURIComponent(hours) : "";
+    return request("/admin/monitor/shield/trends" + q, { softAuth: true });
+  }
+
+  async function getMonitorShieldPulse(since) {
+    const q = since ? "?since=" + encodeURIComponent(since) : "";
+    return request("/admin/monitor/shield/pulse" + q, { softAuth: true });
+  }
+
   async function listMonitorIncidents(limit) {
     const params = limit ? "?limit=" + encodeURIComponent(String(limit)) : "";
     const data = await request("/admin/monitor/incidents" + params);
@@ -2462,6 +2497,7 @@ const SAC_API = (function () {
     isLocalDevHost,
     allowOfflineAuth,
     login,
+    verifyStaffMfa,
     register,
     provisionAccount,
     registerOrLogin,
@@ -2566,6 +2602,9 @@ const SAC_API = (function () {
     joinSocialStudyGroup,
     getMonitorOverview,
     getMonitorSecurityPulse,
+    getMonitorShieldOverview,
+    getMonitorShieldTrends,
+    getMonitorShieldPulse,
     listMonitorIncidents,
     resolveMonitorIncident,
     updateMonitorIncident,

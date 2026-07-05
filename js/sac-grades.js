@@ -21,6 +21,14 @@ const SAC_GRADES = (function () {
 
   function getAll() {
     try {
+      if (typeof SAC_STORAGE !== "undefined" && SAC_STORAGE.cacheGetJson) {
+        const raw = SAC_STORAGE.cacheGetJson(STORAGE_KEY, null);
+        if (raw) {
+          const deduped = dedupeGradesList(raw);
+          if (deduped.length !== raw.length) saveAll(deduped);
+          return deduped;
+        }
+      }
       const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
       const deduped = dedupeGradesList(raw);
       if (deduped.length !== raw.length) saveAll(deduped);
@@ -31,7 +39,12 @@ const SAC_GRADES = (function () {
   }
 
   function saveAll(list) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(dedupeGradesList(list)));
+    const data = dedupeGradesList(list);
+    if (typeof SAC_STORAGE !== "undefined" && SAC_STORAGE.cacheSetJson) {
+      SAC_STORAGE.cacheSetJson(STORAGE_KEY, data);
+      return;
+    }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   }
 
   function normEmail(email) {

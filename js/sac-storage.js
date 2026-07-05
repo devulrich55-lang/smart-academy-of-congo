@@ -232,10 +232,63 @@ const SAC_STORAGE = (function () {
     return report;
   }
 
+  function cacheStore() {
+    return isLocalDev() ? localStorage : sessionStorage;
+  }
+
+  function migrateCacheKeyFromLocal(key) {
+    if (isLocalDev()) return null;
+    try {
+      var legacy = localStorage.getItem(key);
+      if (legacy == null) return null;
+      sessionStorage.setItem(key, legacy);
+      localStorage.removeItem(key);
+      return legacy;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function cacheGetJson(key, fallback) {
+    try {
+      var store = cacheStore();
+      var raw = store.getItem(key);
+      if (raw == null && store !== localStorage) raw = migrateCacheKeyFromLocal(key);
+      if (raw == null) return fallback;
+      return JSON.parse(raw);
+    } catch (_) {
+      return fallback;
+    }
+  }
+
+  function cacheSetJson(key, value) {
+    try {
+      var store = cacheStore();
+      store.setItem(key, JSON.stringify(value));
+      if (!isLocalDev()) localStorage.removeItem(key);
+    } catch (_) {}
+  }
+
+  function cacheRemove(key) {
+    try {
+      cacheStore().removeItem(key);
+      localStorage.removeItem(key);
+    } catch (_) {}
+  }
+
+  function runCacheMigration() {
+    if (isLocalDev()) return;
+    var keys = TIERS.cache.concat(["sac_grades", "sac_documents", "sac_platform_grades"]);
+    for (var i = 0; i < keys.length; i++) migrateCacheKeyFromLocal(keys[i]);
+  }
+
+  runCacheMigration();
+
   function runMaintenance() {
     migrateLegacySessions();
     purgeLegacyUserStore();
     persistLocalUsers(getLocalUsers());
+    runCacheMigration();
     if (typeof SAC_CLIENT_GUARD !== "undefined" && SAC_CLIENT_GUARD.sanitizeExistingStorage) {
       SAC_CLIENT_GUARD.sanitizeExistingStorage();
     }
@@ -262,6 +315,9 @@ const SAC_STORAGE = (function () {
     audit: audit,
     runMaintenance: runMaintenance,
     isLocalDev: isLocalDev,
+    cacheGetJson: cacheGetJson,
+    cacheSetJson: cacheSetJson,
+    cacheRemove: cacheRemove,
   };
 })();
 

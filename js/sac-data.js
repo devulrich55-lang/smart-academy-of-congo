@@ -68,22 +68,30 @@ const SAC_DATA = (function () {
   }
 
   function initLocal() {
+    if (typeof SAC_STORAGE !== "undefined" && SAC_STORAGE.cacheGetJson) {
+      const parsed = SAC_STORAGE.cacheGetJson(STORAGE_KEY, null);
+      if (parsed) return parsed;
+    }
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_DOCS));
-      return JSON.parse(localStorage.getItem(STORAGE_KEY));
+      saveLocal(DEFAULT_DOCS);
+      return DEFAULT_DOCS.slice();
     }
     try {
       return JSON.parse(raw);
     } catch {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_DOCS));
-      return DEFAULT_DOCS;
+      saveLocal(DEFAULT_DOCS);
+      return DEFAULT_DOCS.slice();
     }
   }
 
   function saveLocal(docs) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(docs));
     cache = docs;
+    if (typeof SAC_STORAGE !== "undefined" && SAC_STORAGE.cacheSetJson) {
+      SAC_STORAGE.cacheSetJson(STORAGE_KEY, docs || []);
+      return;
+    }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(docs));
   }
 
   async function refreshFromServer() {

@@ -462,9 +462,11 @@ const SAC_EVOMONITOR = (function () {
   }
 
   async function fetchShieldSnapshot() {
-    if (typeof SAC_API === "undefined" || !SAC_API.getTechManagerShieldOverview) {
-      return null;
-    }
+    if (typeof SAC_API === "undefined") return null;
+    const overviewFn =
+      SAC_API.getMonitorShieldOverview || SAC_API.getTechManagerShieldOverview;
+    const trendsFn = SAC_API.getMonitorShieldTrends || SAC_API.getTechManagerShieldTrends;
+    if (!overviewFn) return null;
     if (typeof SAC_API.hasAuthTokens === "function" && !SAC_API.hasAuthTokens()) {
       return null;
     }
@@ -473,8 +475,8 @@ const SAC_EVOMONITOR = (function () {
         await SAC_API.ensureApiSession({ soft: true });
       }
       const results = await Promise.all([
-        SAC_API.getTechManagerShieldOverview(),
-        SAC_API.getTechManagerShieldTrends(24),
+        overviewFn(),
+        trendsFn ? trendsFn(24) : Promise.resolve({}),
       ]);
       lastShieldSnapshot = {
         overview: results[0] || {},

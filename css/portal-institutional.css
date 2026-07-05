@@ -321,3 +321,15 @@
     padding: 1.5rem;
   }
 }
+
+.sac-mfa-step p {
+  margin: 0 0 0.65rem;
+}
+
+.sac-mfa-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  margin-top: 0.75rem;
+}

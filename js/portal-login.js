@@ -128,19 +128,26 @@
           }
         }
 
-        let session = await SAC_API.login(email, password, def.role, extra);
-        if (def.requiresCountry) {
-          session = assertPortalCountry(session, countryCode);
+        let loginResult = await SAC_API.login(email, password, def.role, extra);
+        const finish = async function (session) {
+          if (def.requiresCountry) {
+            session = assertPortalCountry(session, countryCode);
+          }
+          if (countryCode && typeof SAC_AFRICA_COUNTRIES !== "undefined") {
+            SAC_AFRICA_COUNTRIES.setPortalCountry(def.id, countryCode);
+          }
+          SAC_SESSION.saveSession(session);
+          const target =
+            typeof SAC_PORTAL.portalDashboardUrl === "function"
+              ? SAC_PORTAL.portalDashboardUrl(def)
+              : SAC_PORTAL.dashboardUrl(session.role);
+          window.location.replace(target);
+        };
+        if (loginResult && loginResult.mfaRequired && typeof SAC_STAFF_MFA !== "undefined") {
+          await SAC_STAFF_MFA.completeStaffLogin(loginResult, form, finish);
+          return;
         }
-        if (countryCode && typeof SAC_AFRICA_COUNTRIES !== "undefined") {
-          SAC_AFRICA_COUNTRIES.setPortalCountry(def.id, countryCode);
-        }
-        SAC_SESSION.saveSession(session);
-        const target =
-          typeof SAC_PORTAL.portalDashboardUrl === "function"
-            ? SAC_PORTAL.portalDashboardUrl(def)
-            : SAC_PORTAL.dashboardUrl(session.role);
-        window.location.replace(target);
+        await finish(loginResult);
       } catch (err) {
         alert(err.message || "Identifiant ou mot de passe incorrect.");
       } finally {

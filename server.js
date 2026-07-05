@@ -35,11 +35,20 @@ const CSP_REPORT_ONLY = [
   "form-action 'self'",
 ].join("; ");
 
+const CSP_ENFORCE =
+  process.env.SAC_CSP_ENFORCE === "1" ||
+  (process.env.NODE_ENV === "production" && process.env.SAC_CSP_ENFORCE !== "false");
+const CSP_REPORT_ONLY_MODE =
+  process.env.SAC_CSP_REPORT === "1" ||
+  (process.env.NODE_ENV === "production" && !CSP_ENFORCE);
+
 app.use((req, res, next) => {
   for (const [key, value] of Object.entries(SECURITY_HEADERS)) {
     res.setHeader(key, value);
   }
-  if (process.env.NODE_ENV === "production" || process.env.SAC_CSP_REPORT === "1") {
+  if (CSP_ENFORCE) {
+    res.setHeader("Content-Security-Policy", CSP_REPORT_ONLY);
+  } else if (CSP_REPORT_ONLY_MODE) {
     res.setHeader("Content-Security-Policy-Report-Only", CSP_REPORT_ONLY);
   }
   next();
