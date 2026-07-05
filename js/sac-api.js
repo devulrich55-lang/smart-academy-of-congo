@@ -925,6 +925,18 @@ const SAC_API = (function () {
     return sessionCache;
   }
 
+  function isTransientApiError(err) {
+    const code = err && err.code;
+    const status = err && err.status;
+    return (
+      code === "NETWORK_ERROR" ||
+      status === 429 ||
+      status === 502 ||
+      status === 503 ||
+      status === 504
+    );
+  }
+
   async function refresh(opts) {
     try {
       const refreshToken = useBearerAuth()
@@ -934,14 +946,17 @@ const SAC_API = (function () {
         method: "POST",
         body: refreshToken ? JSON.stringify({ refreshToken }) : undefined,
         softAuth: !!(opts && opts.soft),
+        timeoutMs: opts && opts.timeoutMs ? opts.timeoutMs : 20000,
       });
       sessionCache = tagApiSession(data.session);
       saveApiTokens(data.accessToken, data.refreshToken);
       persistSessionCache();
       return true;
-    } catch {
+    } catch (err) {
       if (!opts || !opts.soft) {
-        clearClientSession();
+        if (!isTransientApiError(err)) {
+          clearClientSession();
+        }
       }
       return false;
     }
@@ -955,6 +970,8 @@ const SAC_API = (function () {
       await request("/auth/logout", {
         method: "POST",
         body: refreshToken ? JSON.stringify({ refreshToken }) : undefined,
+        timeoutMs: 3000,
+        softAuth: true,
       });
     } catch {
       /* ignore */

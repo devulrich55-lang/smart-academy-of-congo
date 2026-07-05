@@ -303,6 +303,15 @@ const SAC_SESSION = (function () {
     return synced;
   }
 
+  function canKeepApiSessionLocal(session) {
+    if (!session?.identifiant) return false;
+    if (!isServerSession(session)) return false;
+    if (typeof SAC_API !== "undefined" && typeof SAC_API.hasAuthTokens === "function") {
+      return SAC_API.hasAuthTokens();
+    }
+    return true;
+  }
+
   /**
    * Vérifie la session : JWT serveur obligatoire si l'API est joignable.
    */
@@ -315,7 +324,8 @@ const SAC_SESSION = (function () {
     }
 
     const apiOnline =
-      typeof SAC_API !== "undefined" && (await SAC_API.ensureOnline());
+      typeof SAC_API !== "undefined" &&
+      (await SAC_API.ensureOnline(false, { maxWaitMs: 12000 }));
 
     if (apiOnline) {
       if (local && isFreshApiRegistration(local, requiredRole)) {
@@ -324,8 +334,17 @@ const SAC_SESSION = (function () {
         return local;
       }
 
-      try {
-        const serverSession = await SAC_API.me();
+      let serverSession = null;
+      if (typeof SAC_API.me === "function") {
+        serverSession = await SAC_API.me({ soft: true });
+      }
+      if (!serverSession && typeof SAC_API.refresh === "function") {
+        const recovered = await SAC_API.refresh({ soft: true });
+        if (recovered && typeof SAC_API.me === "function") {
+          serverSession = await SAC_API.me({ soft: true });
+        }
+      }
+      if (serverSession) {
         if (requiredRole && serverSession.role !== requiredRole) {
           clearSession();
           return null;
@@ -333,57 +352,43 @@ const SAC_SESSION = (function () {
         saveSession(serverSession);
         clearPostRegistration();
         return serverSession;
-      } catch {
-        let recovered = false;
-        if (typeof SAC_API.refresh === "function") {
-          recovered = await SAC_API.refresh();
-        }
-        if (recovered) {
-          try {
-            const serverSession = await SAC_API.me();
-            if (requiredRole && serverSession.role !== requiredRole) {
-              clearSession();
-              return null;
-            }
-            saveSession(serverSession);
-            clearPostRegistration();
-            return serverSession;
-          } catch {
-            /* fall through */
-          }
-        }
+      }
 
-        if (local && isFreshApiRegistration(local, requiredRole)) {
-          saveSession(local);
-          scheduleSessionSync(local);
-          return local;
-        }
+      if (local && isFreshApiRegistration(local, requiredRole)) {
+        saveSession(local);
+        scheduleSessionSync(local);
+        return local;
+      }
 
-        if (
-          local &&
-          isServerSession(local) &&
-          typeof SAC_API.hasAuthTokens === "function" &&
-          SAC_API.hasAuthTokens()
-        ) {
-          return local;
-        }
+      if (local && canKeepApiSessionLocal(local)) {
+        return local;
+      }
 
-        if (canKeepLocalSession(local, requiredRole)) {
-          return syncSessionWithAccount(requiredRole) || local;
-        }
+      if (canKeepLocalSession(local, requiredRole)) {
+        return syncSessionWithAccount(requiredRole) || local;
+      }
 
+      clearSession();
+      if (typeof SAC_API !== "undefined" && typeof SAC_API.clearClientSession === "function") {
+        SAC_API.clearClientSession();
+      }
+      return null;
+    }
+
+    if (local?.identifiant) {
+      if (requiredRole && local.role !== requiredRole) {
         clearSession();
-        if (typeof SAC_API !== "undefined" && typeof SAC_API.clearClientSession === "function") {
-          SAC_API.clearClientSession();
-        }
         return null;
+      }
+      if (canKeepApiSessionLocal(local)) {
+        return local;
+      }
+      if (canKeepLocalSession(local, requiredRole)) {
+        return syncSessionWithAccount(requiredRole) || local;
       }
     }
 
     if (!allowLocalAuth()) {
-      if (local && canKeepLocalSession(local, requiredRole)) {
-        return syncSessionWithAccount(requiredRole) || local;
-      }
       if (local) clearSession();
       return null;
     }
@@ -417,16 +422,24 @@ const SAC_SESSION = (function () {
 
   /** Déconnexion unique — seul moyen d'effacer la session */
   async function logout(redirectTo) {
-    if (typeof SAC_API !== "undefined") {
+    const target = redirectTo || "index.html";
+    if (typeof SAC_API !== "undefined" && typeof SAC_API.logout === "function") {
       try {
-        await SAC_API.logout();
+        await Promise.race([
+          SAC_API.logout(),
+          new Promise(function (resolve) {
+            setTimeout(resolve, 3000);
+          }),
+        ]);
       } catch {
-        clearSession();
+        /* ignore */
       }
-    } else {
-      clearSession();
     }
-    window.location.href = redirectTo || "index.html";
+    clearSession();
+    if (typeof SAC_API !== "undefined" && typeof SAC_API.clearClientSession === "function") {
+      SAC_API.clearClientSession({ force: true });
+    }
+    window.location.replace(target);
   }
 
   async function redirectIfAuthenticated(preferredRole) {

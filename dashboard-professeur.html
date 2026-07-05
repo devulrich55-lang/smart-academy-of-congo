@@ -349,8 +349,8 @@
   <script src="js/sac-identity.js"></script>
   <script src="js/sac-phone-input.js?v=20260625b"></script>
   <script src="js/sac-section-approval.js"></script>
-  <script src="js/sac-session.js?v=20260702c"></script>
-  <script src="js/sac-api.js?v=20260617b"></script>
+  <script src="js/sac-session.js?v=20260705e"></script>
+  <script src="js/sac-api.js?v=20260705e"></script>
   <script src="js/sac-tariffs.js?v=20260622"></script>
   <script src="js/sac-university-logo.js"></script>
   <script src="js/sac-courses.js"></script>
@@ -373,25 +373,31 @@
   <script src="js/sac-social.js?v=20260703e"></script>
   <script>
     (async function () {
+      if (typeof SAC_API !== "undefined" && SAC_API.wakeServer) {
+        SAC_API.wakeServer({ attempts: 4, timeoutMs: 25000, delayMs: 4000 });
+      }
       let session = await SAC_SESSION.guard("professeur");
       if (!session) return;
 
       session = SAC_SESSION.syncSessionWithAccount("professeur") || session;
-      if (typeof SAC_API !== "undefined" && (await SAC_API.ensureOnline())) {
-        try {
-          const fresh = await SAC_API.me();
-          if (fresh) {
-            session = {
-              ...session,
-              ...fresh,
-              coursClasses: fresh.coursClasses || session.coursClasses || [],
-              displayName: fresh.displayName || session.displayName,
-              universite: fresh.universite || session.universite,
-            };
-            SAC_SESSION.saveSession(session);
+      if (typeof SAC_API !== "undefined") {
+        const online = await SAC_API.ensureOnline(false, { maxWaitMs: 15000 });
+        if (online) {
+          try {
+            const fresh = await SAC_API.me({ soft: true });
+            if (fresh) {
+              session = {
+                ...session,
+                ...fresh,
+                coursClasses: fresh.coursClasses || session.coursClasses || [],
+                displayName: fresh.displayName || session.displayName,
+                universite: fresh.universite || session.universite,
+              };
+              SAC_SESSION.saveSession(session);
+            }
+          } catch {
+            /* profil API indisponible — repli session locale */
           }
-        } catch {
-          /* profil API indisponible — repli session locale */
         }
       }
       await SAC_DATA.ensureReady();
@@ -917,7 +923,7 @@
       });
 
       document.getElementById("btnLogout").addEventListener("click", () => {
-        SAC_SESSION.logout("index.html");
+        SAC_SESSION.logout("connexion.html?role=professeur");
       });
 
       await applyCampusTariffToProfile();
@@ -988,9 +994,6 @@
           onSelfOnline: SAC_PRESENCE.bindSelfPresence("selfPresence", "profilePresence"),
           onProfessorPresence: applyProfessorPresence,
         });
-      }
-      if (typeof SAC_API !== "undefined" && SAC_API.wakeServer) {
-        SAC_API.wakeServer({ attempts: 4, timeoutMs: 40000, delayMs: 5000 });
       }
       if (typeof SAC_LIVE_CALL !== "undefined") {
         SAC_LIVE_CALL.init(session);
