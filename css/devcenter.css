@@ -318,6 +318,7 @@
 .tm-submit { background: linear-gradient(135deg, #0f766e, #115e59) !important; }
 .tm-badge { background: rgba(15, 118, 110, 0.12); color: #115e59; }
 .tm-dashboard { background: #ecfdf5; }
+.tm-section-panel { min-height: 320px; }
 
 .tm-shield-status {
   display: inline-flex;

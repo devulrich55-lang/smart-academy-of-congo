@@ -166,33 +166,41 @@ const SAC_TECHMANAGER = (function () {
   async function renderTeam() {
     const host = document.getElementById("tmTeamPanel");
     if (!host) return;
-    await loadTeam();
-    host.innerHTML =
-      "<h1 class='page-title'>Performances équipe</h1>" +
-      (team.length
-        ? team
-            .map(function (d) {
-              const p = d.performance || {};
-              return (
-                '<article class="dc-project-card"><h3>' +
-                esc(d.displayName) +
-                "</h3><p>" +
-                esc(d.fonction || "") +
-                "</p><p>" +
-                p.assignedTotal +
-                " assignés · " +
-                p.inProgress +
-                " en cours · " +
-                p.resolved +
-                " résolus · " +
-                p.resolutionRate +
-                "% · ⏱ " +
-                p.timeSpentMinutes +
-                " min</p></article>"
-              );
-            })
-            .join("")
-        : '<p class="dc-empty">Aucun développeur.</p>');
+    host.innerHTML = "<p class='dc-empty'>Chargement équipe…</p>";
+    try {
+      await loadTeam();
+      host.innerHTML =
+        "<h1 class='page-title'>Performances équipe</h1>" +
+        (team.length
+          ? team
+              .map(function (d) {
+                const p = d.performance || {};
+                return (
+                  '<article class="dc-project-card"><h3>' +
+                  esc(d.displayName) +
+                  "</h3><p>" +
+                  esc(d.fonction || "") +
+                  "</p><p>" +
+                  p.assignedTotal +
+                  " assignés · " +
+                  p.inProgress +
+                  " en cours · " +
+                  p.resolved +
+                  " résolus · " +
+                  p.resolutionRate +
+                  "% · ⏱ " +
+                  p.timeSpentMinutes +
+                  " min</p></article>"
+                );
+              })
+              .join("")
+          : '<p class="dc-empty">Aucun développeur.</p>');
+    } catch (err) {
+      host.innerHTML =
+        "<h1 class='page-title'>Performances équipe</h1><p class='dc-empty'>" +
+        esc(err.message || "Impossible de charger l'équipe.") +
+        "</p>";
+    }
   }
 
   function scoreClass(score) {
@@ -364,45 +372,69 @@ const SAC_TECHMANAGER = (function () {
   async function renderStats() {
     const host = document.getElementById("tmStatsPanel");
     if (!host) return;
-    const data = await SAC_API.getTechManagerStats();
-    const g = data.global || {};
-    host.innerHTML =
-      "<h1 class='page-title'>Statistiques de résolution</h1>" +
-      '<div class="dc-kpi-grid">' +
-      '<div class="dc-kpi"><strong>' +
-      g.total +
-      "</strong><span>Total tickets</span></div>" +
-      '<div class="dc-kpi"><strong>' +
-      g.open +
-      "</strong><span>Ouverts</span></div>" +
-      '<div class="dc-kpi"><strong>' +
-      g.resolved +
-      "</strong><span>Résolus</span></div>" +
-      '<div class="dc-kpi"><strong>' +
+    host.innerHTML = "<p class='dc-empty'>Chargement statistiques…</p>";
+    try {
+      const data = await SAC_API.getTechManagerStats();
+      const g = data.global || {};
+      host.innerHTML =
+        "<h1 class='page-title'>Statistiques de résolution</h1>" +
+        '<div class="dc-kpi-grid">' +
+        '<div class="dc-kpi"><strong>' +
+        g.total +
+        "</strong><span>Total tickets</span></div>" +
+        '<div class="dc-kpi"><strong>' +
+        g.open +
+        "</strong><span>Ouverts</span></div>" +
+        '<div class="dc-kpi"><strong>' +
+        g.resolved +
+        "</strong><span>Résolus</span></div>" +
+        '<div class="dc-kpi"><strong>' +
         g.resolutionRate +
         '%</strong><span>Taux global</span></div>' +
         '<div class="dc-kpi"><strong>' +
-      g.avgTimeMinutes +
-      " min</strong><span>Temps moyen</span></div></div>";
+        g.avgTimeMinutes +
+        " min</strong><span>Temps moyen</span></div></div>";
+    } catch (err) {
+      host.innerHTML =
+        "<h1 class='page-title'>Statistiques de résolution</h1><p class='dc-empty'>" +
+        esc(err.message || "Impossible de charger les statistiques.") +
+        "</p>";
+    }
   }
 
   function showView(view) {
     currentView = view;
+    const sectionMap = {
+      board: "tm-board",
+      review: "tm-board",
+      team: "tm-team",
+      stats: "tm-stats",
+      shield: "tm-shield",
+    };
     document.querySelectorAll(".tm-tab").forEach(function (t) {
       t.classList.toggle("active", t.dataset.view === view);
     });
-    document.getElementById("tm-board").classList.toggle("active", view === "board" || view === "review");
-    document.getElementById("tm-team").classList.toggle("active", view === "team");
-    document.getElementById("tm-stats").classList.toggle("active", view === "stats");
-    document.getElementById("tm-shield").classList.toggle("active", view === "shield");
+    document.querySelectorAll(".page-section").forEach(function (s) {
+      s.classList.remove("active");
+    });
+    const targetId = sectionMap[view] || "tm-board";
+    document.getElementById(targetId)?.classList.add("active");
     if (view === "shield") startShieldPolling();
     else stopShieldPolling();
   }
 
   async function refresh() {
     const filter = currentView === "review" ? "review" : "all";
-    await loadTickets(filter);
-    await loadTeam();
+    try {
+      await loadTickets(filter);
+    } catch (err) {
+      toast(err.message || "Impossible de charger les tickets.");
+    }
+    try {
+      await loadTeam();
+    } catch {
+      /* équipe optionnelle pour la liste tickets */
+    }
     const reviewEl = document.getElementById("tmReviewCount");
     if (reviewEl) {
       reviewEl.textContent = String(
@@ -411,7 +443,28 @@ const SAC_TECHMANAGER = (function () {
         }).length
       );
     }
-    renderList();
+    if (currentView === "board" || currentView === "review") {
+      renderList();
+    }
+  }
+
+  function bindTabs() {
+    document.querySelectorAll(".tm-tab").forEach(function (tab) {
+      tab.addEventListener("click", async function () {
+        const view = tab.dataset.view || "board";
+        showView(view);
+        try {
+          if (view === "review") await loadTickets("review");
+          else if (view === "board") await loadTickets("all");
+          else if (view === "team") await renderTeam();
+          else if (view === "stats") await renderStats();
+          else if (view === "shield") await renderShield();
+          if (view === "board" || view === "review") renderList();
+        } catch (err) {
+          toast(err.message || "Erreur lors du chargement.");
+        }
+      });
+    });
   }
 
   async function init() {
@@ -420,18 +473,8 @@ const SAC_TECHMANAGER = (function () {
     document.getElementById("tmUserName").textContent =
       [session.prenom, session.nom].filter(Boolean).join(" ") || session.email;
     SAC_PORTAL.applyBranding("techmanager");
+    bindTabs();
     await refresh();
-    document.querySelectorAll(".tm-tab").forEach(function (tab) {
-      tab.addEventListener("click", async function () {
-        showView(tab.dataset.view);
-        if (tab.dataset.view === "review") await loadTickets("review");
-        if (tab.dataset.view === "board") await loadTickets("all");
-        if (tab.dataset.view === "team") await renderTeam();
-        if (tab.dataset.view === "stats") await renderStats();
-        if (tab.dataset.view === "shield") await renderShield();
-        renderList();
-      });
-    });
     document.getElementById("tmRefreshBtn")?.addEventListener("click", refresh);
     document.getElementById("btnLogout")?.addEventListener("click", function () {
       SAC_SESSION.logout(SAC_PORTAL.siteUrl("techmanager/"));
