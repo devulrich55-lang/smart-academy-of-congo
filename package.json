@@ -2,11 +2,16 @@
   "name": "smart-academy-congo",
   "version": "1.0.0",
   "private": true,
-  "description": "Evo-smartUni — site web + proxy API (Render)",
+  "description": "Evo-smartUni — site web + proxy API (Render Web Service Node)",
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
-    "build": "echo Static frontend ready",
+    "build": "node -e \"require('fs').accessSync('server.js'); console.log('Node frontend ready')\"",
     "start": "node server.js",
     "check:health": "node scripts/check-health.js",
+    "check:node-deploy": "node scripts/check-node-deploy.js",
+    "check:frontend": "node scripts/check-health.js http://127.0.0.1:10000",
     "validate": "node scripts/validate-frontend.js"
   },
   "dependencies": {

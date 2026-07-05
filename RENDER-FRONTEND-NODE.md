@@ -45,7 +45,15 @@ Guide pas à pas pour remplacer le site **Static** par un **Web Service Node** a
 ## Étape 2 — Tester le nouveau service
 
 Render affiche une URL, par ex. :
-`https://smart-academy-of-congo-web.onrender.com`
+`https://smart-academy-of-congo.onrender.com`
+
+**Script automatique (après déploiement) :**
+
+```bash
+npm run check:node-deploy -- https://VOTRE-URL.onrender.com
+```
+
+Attendu : ✅ `/health` mode node · ✅ CSP · ✅ `/api/health` proxy
 
 ### Test 1 — Proxy API
 
@@ -113,7 +121,8 @@ FRONTEND_URL=https://VOTRE-URL-FRONTEND.onrender.com
 | Symptôme | Solution |
 |----------|----------|
 | Build failed | Logs → vérifier `npm install` et `package.json` |
-| `/api/health` 404 | Service encore **Static** → recréer en **Node** |
+| `/api/health` 404 | Service encore **Static Site** → recréer en **Web Service Node** (`npm start`) |
+| Pas de header CSP | Idem — `server.js` ne tourne pas ; vérifier `GET /health` → `"mode":"node"` |
 | Connexion échoue | Vérifier `API_PROXY_TARGET` sur le service Node |
 | « hors ligne » | Déconnexion / reconnexion pour obtenir les JWT |
 

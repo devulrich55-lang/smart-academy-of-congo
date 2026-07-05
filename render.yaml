@@ -1,14 +1,17 @@
-# Frontend — proxy /api vers l'API (évite CORS sur Render)
+# Blueprint Render — Web Service Node (OBLIGATOIRE pour D1 CSP + proxy /api)
+# Ne pas utiliser "Static Site" : server.js ne s'exécute pas en Static.
 services:
   - type: web
     name: smart-academy-of-congo
     runtime: node
+    plan: starter
     buildCommand: npm install
     startCommand: npm start
+    healthCheckPath: /health
     envVars:
+      - key: NODE_ENV
+        value: production
       - key: API_PROXY_TARGET
         value: https://smart-academy-of-congo-api-1.onrender.com
-    headers:
-      - path: /*
-        name: Cache-Control
-        value: public, max-age=0, must-revalidate
+      - key: SAC_CSP_ENFORCE
+        value: "true"

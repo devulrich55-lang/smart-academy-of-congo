@@ -1,6 +1,6 @@
 /**
  * Frontend Render — fichiers statiques + proxy /api vers l'API EvoSU.
- * Évite les blocages CORS entre dbfm.onrender.com et api-1.onrender.com.
+ * Web Service Node (npm start) — requis pour CSP D1 et proxy /api.
  */
 const express = require("express");
 const path = require("path");
@@ -8,10 +8,12 @@ const { createProxyMiddleware } = require("http-proxy-middleware");
 
 const app = express();
 const ROOT = __dirname;
-const API_TARGET =
+const API_TARGET = (
   process.env.API_PROXY_TARGET ||
-  "https://smart-academy-of-congo-api-1.onrender.com";
+  "https://smart-academy-of-congo-api-1.onrender.com"
+).replace(/\/+$/, "");
 const PORT = Number(process.env.PORT) || 10000;
+const IS_PROD = process.env.NODE_ENV === "production";
 
 const SECURITY_HEADERS = {
   "X-Content-Type-Options": "nosniff",
@@ -22,7 +24,7 @@ const SECURITY_HEADERS = {
   "X-XSS-Protection": "0",
 };
 
-const CSP_REPORT_ONLY = [
+const CSP_POLICY = [
   "default-src 'self'",
   "script-src 'self' 'unsafe-inline' https://meet.jit.si https://8x8.vc",
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
@@ -37,42 +39,64 @@ const CSP_REPORT_ONLY = [
 
 const CSP_ENFORCE =
   process.env.SAC_CSP_ENFORCE === "1" ||
-  (process.env.NODE_ENV === "production" && process.env.SAC_CSP_ENFORCE !== "false");
+  (IS_PROD && process.env.SAC_CSP_ENFORCE !== "false");
 const CSP_REPORT_ONLY_MODE =
   process.env.SAC_CSP_REPORT === "1" ||
-  (process.env.NODE_ENV === "production" && !CSP_ENFORCE);
+  (IS_PROD && !CSP_ENFORCE);
+
+app.set("trust proxy", 1);
 
 app.use((req, res, next) => {
   for (const [key, value] of Object.entries(SECURITY_HEADERS)) {
     res.setHeader(key, value);
   }
   if (CSP_ENFORCE) {
-    res.setHeader("Content-Security-Policy", CSP_REPORT_ONLY);
+    res.setHeader("Content-Security-Policy", CSP_POLICY);
   } else if (CSP_REPORT_ONLY_MODE) {
-    res.setHeader("Content-Security-Policy-Report-Only", CSP_REPORT_ONLY);
+    res.setHeader("Content-Security-Policy-Report-Only", CSP_POLICY);
   }
   next();
 });
 
-function makeProxy(prefix) {
-  return createProxyMiddleware({
-    target: API_TARGET,
-    changeOrigin: true,
-    secure: true,
-    xfwd: true,
-    methods: ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    // Express retire le préfixe (/api/health → /health) : on le remet pour l'API FastAPI
-    pathRewrite: (path) => prefix + path,
-    onProxyReq(proxyReq, req) {
-      if (req.headers.origin) {
-        proxyReq.setHeader("X-Forwarded-Host", req.headers.host);
-      }
-    },
+/** Santé Render — ne pas confondre avec /api/health (proxy API). */
+app.get("/health", (_req, res) => {
+  res.json({
+    ok: true,
+    service: "Evo-smartUni frontend",
+    mode: "node",
+    cspEnforce: CSP_ENFORCE,
+    apiTarget: API_TARGET,
   });
-}
+});
 
-app.use("/api", makeProxy("/api"));
-app.use("/uploads", makeProxy("/uploads"));
+const apiProxy = createProxyMiddleware({
+  target: API_TARGET,
+  changeOrigin: true,
+  secure: true,
+  xfwd: true,
+  pathFilter: (pathname) =>
+    pathname.startsWith("/api") || pathname.startsWith("/uploads"),
+  onProxyReq(proxyReq, req) {
+    if (req.headers.origin) {
+      proxyReq.setHeader("X-Forwarded-Host", req.headers.host);
+    }
+  },
+  onError(err, req, res) {
+    console.error("[proxy]", req.method, req.url, err.message);
+    if (!res.headersSent) {
+      res.writeHead(502, { "Content-Type": "application/json" });
+      res.end(
+        JSON.stringify({
+          ok: false,
+          error: "API_PROXY_ERROR",
+          message: "Proxy API indisponible — API en veille ou cible incorrecte.",
+        })
+      );
+    }
+  },
+});
+
+app.use(apiProxy);
 
 app.use(
   express.static(ROOT, {
@@ -112,7 +136,6 @@ for (const slug of PORTALS) {
 
 app.get("/telecharger", (_req, res) => res.redirect(301, "/app/"));
 app.get("/telecharger/", (_req, res) => res.redirect(301, "/app/"));
-
 app.get("/connexion-admin.html", (_req, res) => res.redirect(301, "/ministere/"));
 
 app.use((req, res, next) => {
@@ -122,6 +145,13 @@ app.use((req, res, next) => {
   res.sendFile(path.join(ROOT, "index.html"));
 });
 
-app.listen(PORT, () => {
-  console.log("EvoSU frontend on port", PORT, "→ API", API_TARGET);
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(
+    "EvoSU frontend Node on port",
+    PORT,
+    "→ API",
+    API_TARGET,
+    "| CSP enforce:",
+    CSP_ENFORCE
+  );
 });
