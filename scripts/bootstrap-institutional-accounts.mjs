@@ -2,15 +2,20 @@
 /**
  * Crée ou met à jour des comptes institutionnels via l'API Render.
  *
- * Usage (ne pas committer les mots de passe) :
+ * Usage PowerShell :
  *   $env:SUPERADMIN_EMAIL="djemcibamba@gmail.com"
  *   $env:SUPERADMIN_PASSWORD="votre-mot-de-passe"
- *   node scripts/bootstrap-institutional-accounts.mjs
+ *   $env:MINISTERE_PASSWORD="Ulrich11+"
+ *   $env:TECHMANAGER_PASSWORD="Ulrich11+"
+ *   # Optionnel si MFA e-mail : $env:STAFF_MFA_CODE="123456"
+ *   npm run bootstrap:accounts
  */
+import readline from "node:readline";
+
 const API_CANDIDATES = [
   process.env.SAC_API_BASE,
-  "https://smart-academy-of-congoat.onrender.com",
   "https://smart-academy-of-congo-api-1.onrender.com",
+  "https://smart-academy-of-congoat.onrender.com",
 ].filter(Boolean);
 
 let API_BASE = API_CANDIDATES[0] || "https://smart-academy-of-congo-api-1.onrender.com";
@@ -18,7 +23,7 @@ let API_BASE = API_CANDIDATES[0] || "https://smart-academy-of-congo-api-1.onrend
 const ACCOUNTS = [
   {
     role: "ministere",
-    email: process.env.MINISTERE_EMAIL || "ministere.esu@gmail.com",
+    email: process.env.MINISTERE_EMAIL || "ministere.esu1@gmail.com",
     password: process.env.MINISTERE_PASSWORD,
     prenom: process.env.MINISTERE_PRENOM || "Ministere",
     nom: process.env.MINISTERE_NOM || "ESU",
@@ -41,7 +46,7 @@ function errMessage(data, status) {
   if (detail && typeof detail === "object") {
     return detail.message || detail.error || JSON.stringify(detail);
   }
-  return data?.message || `HTTP ${status}`;
+  return data?.message || data?.error || `HTTP ${status}`;
 }
 
 async function api(path, options = {}, token) {
@@ -65,6 +70,7 @@ async function api(path, options = {}, token) {
   if (!res.ok) {
     const err = new Error(errMessage(data, res.status));
     err.status = res.status;
+    err.code = data?.error || data?.detail?.error;
     err.data = data;
     throw err;
   }
@@ -91,6 +97,19 @@ async function wakeApi() {
   throw lastErr || new Error("API injoignable — attendez le réveil Render puis réessayez.");
 }
 
+function promptMfaCode(hint) {
+  return new Promise((resolve) => {
+    const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+    rl.question(
+      "Code MFA (6 chiffres envoyé à " + (hint || "e-mail Super Admin") + ") : ",
+      (answer) => {
+        rl.close();
+        resolve(String(answer || "").trim());
+      }
+    );
+  });
+}
+
 async function login(identifier, password, role, extra = {}) {
   const data = await api("/auth/login", {
     method: "POST",
@@ -102,6 +121,31 @@ async function login(identifier, password, role, extra = {}) {
       countryCode: extra.countryCode || null,
     }),
   });
+
+  if (data.mfaRequired && data.mfaChallenge) {
+    let code = process.env.STAFF_MFA_CODE ? String(process.env.STAFF_MFA_CODE).trim() : "";
+    if (!code && process.stdin.isTTY) {
+      console.log("MFA requis pour le Super Admin — vérifiez la boîte mail", data.emailHint || identifier);
+      code = await promptMfaCode(data.emailHint);
+    }
+    if (!/^\d{6}$/.test(code)) {
+      throw new Error(
+        "Code MFA manquant ou invalide. Définissez STAFF_MFA_CODE=123456 ou relancez en mode interactif."
+      );
+    }
+    const verified = await api("/auth/staff-mfa/verify", {
+      method: "POST",
+      body: JSON.stringify({
+        mfaChallenge: data.mfaChallenge,
+        code,
+      }),
+    });
+    if (!verified.accessToken) {
+      throw new Error("MFA refusé — code expiré ou incorrect.");
+    }
+    return verified.accessToken;
+  }
+
   if (!data.accessToken) {
     throw new Error("Login sans jeton — vérifiez e-mail, mot de passe et rôle.");
   }
@@ -110,7 +154,14 @@ async function login(identifier, password, role, extra = {}) {
 
 async function createOrUpdate(token, payload) {
   const body = {
-    ...payload,
+    role: payload.role,
+    email: payload.email,
+    password: payload.password,
+    prenom: payload.prenom,
+    nom: payload.nom,
+    telephone: payload.telephone || "",
+    fonction: payload.fonction || "",
+    countryCode: payload.countryCode,
     country_code: payload.countryCode || payload.country_code,
   };
   return api(
@@ -139,12 +190,16 @@ async function main() {
 
   for (const acc of ACCOUNTS) {
     if (!acc.password) {
-      console.error("Mot de passe manquant pour", acc.email, "— définissez MINISTERE_PASSWORD / TECHMANAGER_PASSWORD.");
+      console.error(
+        "Mot de passe manquant pour",
+        acc.email,
+        "— définissez MINISTERE_PASSWORD / TECHMANAGER_PASSWORD."
+      );
       process.exit(1);
     }
   }
 
-  console.log("Réveil API…", API_BASE);
+  console.log("Réveil API…");
   await wakeApi();
 
   console.log("Connexion Super Admin…", saEmail);
@@ -179,11 +234,16 @@ async function main() {
   }
 
   console.log("\nTerminé.");
-  console.log("Ministère :", process.env.MINISTERE_EMAIL || "ministere.esu@gmail.com", "→ /ministere/");
+  console.log("Ministère :", process.env.MINISTERE_EMAIL || "ministere.esu1@gmail.com", "→ /ministere/");
   console.log("Tech Manager :", process.env.TECHMANAGER_EMAIL || "manager.tech001@gmail.com", "→ /techmanager/");
 }
 
 main().catch((err) => {
+  if (String(err?.message || "").includes("UNABLE_TO_VERIFY_LEAF_SIGNATURE")) {
+    console.error(
+      "Erreur TLS Node — relancez avec : $env:NODE_TLS_REJECT_UNAUTHORIZED='0' (dev uniquement)"
+    );
+  }
   console.error(err.message || err);
   process.exit(1);
 });
