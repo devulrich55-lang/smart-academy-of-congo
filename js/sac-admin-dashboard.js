@@ -23,7 +23,6 @@ const SAC_ADMIN_DASHBOARD = (function () {
   let institutionalSummaryCache = null;
   let onCreateFormRoleChange = null;
   let createAdminFormHandler = null;
-  let applyingSuperadminCreateLimit = false;
 
   function registerCreateAdminFormHandler(handler) {
     createAdminFormHandler = handler;
@@ -68,7 +67,7 @@ const SAC_ADMIN_DASHBOARD = (function () {
 
   function applySuperadminCreateLimit() {
     const newRole = document.getElementById("newRole");
-    if (!newRole || applyingSuperadminCreateLimit) return;
+    if (!newRole) return;
     const count = getSuperadminCount();
     const remaining = Math.max(0, MAX_SUPERADMIN_ACCOUNTS - count);
     const limitReached = remaining <= 0;
@@ -79,13 +78,9 @@ const SAC_ADMIN_DASHBOARD = (function () {
     const submitBtn = document.getElementById("btnCreateAdminSubmit");
 
     if (limitReached && newRole.value === "superadmin") {
-      applyingSuperadminCreateLimit = true;
-      try {
-        newRole.value = "ministere";
-        if (onCreateFormRoleChange) onCreateFormRoleChange();
-      } finally {
-        applyingSuperadminCreateLimit = false;
-      }
+      newRole.value = "ministere";
+      // UI seulement — évite applySuperadminCreateLimit → updateCreateFormForRole → …
+      if (onCreateFormRoleChange) onCreateFormRoleChange("ministere");
     }
 
     if (superOption) {
@@ -1217,8 +1212,8 @@ const SAC_ADMIN_DASHBOARD = (function () {
       }
     }
 
-    function updateCreateFormForRole() {
-      const role = newRole?.value || "ministere";
+    function syncCreateFormForRole(forcedRole) {
+      const role = forcedRole || newRole?.value || "ministere";
       if (ministereFields) ministereFields.hidden = role !== "ministere";
       if (superadminFields) superadminFields.hidden = role !== "superadmin";
       if (developpeurFields) developpeurFields.hidden = role !== "developpeur";
@@ -1277,9 +1272,13 @@ const SAC_ADMIN_DASHBOARD = (function () {
         if (list) list.innerHTML = "";
       }
       syncRolePanelFields(role);
+    }
+
+    function updateCreateFormForRole() {
+      syncCreateFormForRole();
       applySuperadminCreateLimit();
     }
-    onCreateFormRoleChange = updateCreateFormForRole;
+    onCreateFormRoleChange = syncCreateFormForRole;
 
     function createAdminFacultySectionRow() {
       const row = document.createElement("div");
