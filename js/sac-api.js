@@ -110,6 +110,9 @@ const SAC_API = (function () {
       "Étudiant introuvable sur le serveur — il doit d'abord terminer son inscription en ligne.",
     CORS_BLOCKED: "Origine non autorisée — contactez l'administrateur (CORS).",
     NETWORK_ERROR: "Connexion au serveur impossible — l'API se réveille, réessayez dans 1 minute.",
+    PAYLOAD_TOO_LARGE:
+      "Données trop volumineuses (logo ou formulaire) — réduisez l'image ou créez le compte sans logo.",
+    RATE_LIMITED: "Trop de tentatives — attendez quelques minutes puis réessayez.",
   };
 
   function apiErrorMessage(data, status) {
@@ -284,11 +287,55 @@ const SAC_API = (function () {
   /** Restaure les JWT (sessionStorage) si sac_session existe encore — indispensable sur Render. */
   async function ensureApiSession(opts) {
     if (!useBearerAuth()) return true;
-    if (hasAuthTokens()) return true;
-    const sess = getStoredSession();
-    if (!sess?.identifiant || sess.authSource === "local") return false;
-    if (!sessionStorage.getItem(TOKEN_REFRESH)) return false;
-    return refresh({ soft: !!(opts && opts.soft) });
+    const soft = !!(opts && opts.soft);
+    if (!hasAuthTokens()) {
+      const sess = getStoredSession();
+      if (!sess?.identifiant || sess.authSource === "local") return false;
+      if (!sessionStorage.getItem(TOKEN_REFRESH)) return false;
+      return refresh({ soft });
+    }
+    try {
+      await me({ soft: true, timeoutMs: (opts && opts.timeoutMs) || 8000 });
+      return true;
+    } catch {
+      const ok = await refresh({ soft });
+      if (ok) return true;
+      return soft ? hasAuthTokens() : false;
+    }
+  }
+
+  /** Valide ou renouvelle le JWT avant une écriture API (création compte institutionnel, etc.). */
+  async function ensureWritableApiSession(opts) {
+    if (!useBearerAuth()) return true;
+    const soft = !!(opts && opts.soft);
+    if (!(await ensureApiSession({ soft, timeoutMs: 12000 })) && !hasAuthTokens()) {
+      return false;
+    }
+    try {
+      await me({ soft: false, timeoutMs: (opts && opts.timeoutMs) || 15000 });
+      return true;
+    } catch {
+      const refreshed = await refresh({ soft: false });
+      if (!refreshed) return false;
+      try {
+        await me({ soft: false, timeoutMs: (opts && opts.timeoutMs) || 15000 });
+        return true;
+      } catch {
+        return false;
+      }
+    }
+  }
+
+  function parseInstitutionalAdminResponse(data, payload) {
+    const admin = data?.admin || data?.item || (data?.email ? data : null);
+    const email = (admin && admin.email) || data?.email || payload?.email || "";
+    if (!email && data?.ok !== true) return admin || data || null;
+    return Object.assign({}, admin && typeof admin === "object" ? admin : {}, {
+      email,
+      role: (admin && admin.role) || payload?.role,
+      ok: data?.ok !== false,
+      updated: !!(admin && admin.updated),
+    });
   }
 
   function apiCredentials() {
@@ -1527,19 +1574,28 @@ const SAC_API = (function () {
   }
 
   async function createInstitutionalAdmin(payload) {
-    if (useBearerAuth() && !hasAuthTokens()) {
-      const ok = await ensureApiSession();
-      if (!ok && !hasAuthTokens()) {
+    if (useBearerAuth()) {
+      const ok = await ensureWritableApiSession();
+      if (!ok) {
         const err = new Error("Session expirée — reconnectez-vous via le portail Super Admin.");
         err.code = "AUTH_REQUIRED";
         throw err;
       }
     }
+    const body = { ...payload };
+    if (body.logoUrl && String(body.logoUrl).length > 480000) {
+      delete body.logoUrl;
+      body._logoOmitted = true;
+    }
     const data = await request("/admin/institutional", {
       method: "POST",
-      body: JSON.stringify(payload),
+      body: JSON.stringify(body),
     });
-    return data?.admin || data?.item || data;
+    const parsed = parseInstitutionalAdminResponse(data, payload);
+    if (body._logoOmitted && parsed && typeof parsed === "object") {
+      parsed.logoOmitted = true;
+    }
+    return parsed;
   }
 
   async function seedInstitutionalFacultySections(payload) {
@@ -2561,6 +2617,7 @@ const SAC_API = (function () {
     resolveApiBase,
     ensureOnline,
     ensureApiSession,
+    ensureWritableApiSession,
     isOnline,
     isCrossOriginApi,
     isRenderFrontend,

@@ -1057,6 +1057,9 @@ const SAC_ADMIN_DASHBOARD = (function () {
         DB_ROLE_CONSTRAINT:
           "La base de données n'accepte pas encore ce rôle — redéployez l'API (API-1 sur Render) puis réessayez.",
         CREATE_FAILED: "Le serveur n'a pas confirmé la création du compte. Vérifiez les logs API.",
+        PAYLOAD_TOO_LARGE:
+          "Données trop volumineuses (logo) — réduisez l'image ou créez le compte sans logo.",
+        RATE_LIMITED: "Trop de tentatives — attendez quelques minutes puis réessayez.",
       };
       return map[code] || err?.message || "Création impossible.";
     }
@@ -1461,7 +1464,16 @@ const SAC_ADMIN_DASHBOARD = (function () {
         const logoFile = document.getElementById("newLogoUniversite")?.files?.[0];
         if (logoFile) {
           try {
-            payload.logoUrl = await SAC_UNIVERSITY_LOGO.fileToDataUrl(logoFile);
+            const dataUrl = await SAC_UNIVERSITY_LOGO.fileToDataUrl(logoFile);
+            if (dataUrl.length > 480000) {
+              const skipLogo = confirm(
+                "Le logo est trop volumineux pour l'envoi en une fois.\n\n" +
+                  "Créer le compte sans logo maintenant ? (vous pourrez l'ajouter plus tard)"
+              );
+              if (!skipLogo) return;
+            } else {
+              payload.logoUrl = dataUrl;
+            }
           } catch (logoErr) {
             alert(logoErr.message || "Logo invalide.");
             return;
@@ -1475,14 +1487,25 @@ const SAC_ADMIN_DASHBOARD = (function () {
         submitBtn.textContent = "Enregistrement…";
       }
       try {
-        if (typeof SAC_API !== "undefined" && SAC_API.ensureOnline) {
-          const online = await SAC_API.ensureOnline(true, { maxWaitMs: 60000 });
-          if (!online && !(typeof SAC_API.hasAuthTokens === "function" && SAC_API.hasAuthTokens())) {
-            throw new Error("Serveur injoignable — attendez le réveil de l'API puis réessayez.");
+        if (typeof SAC_API !== "undefined") {
+          if (SAC_API.ensureOnline) {
+            const online = await SAC_API.ensureOnline(true, { maxWaitMs: 60000 });
+            if (!online && !(typeof SAC_API.hasAuthTokens === "function" && SAC_API.hasAuthTokens())) {
+              throw new Error("Serveur injoignable — attendez le réveil de l'API puis réessayez.");
+            }
+          }
+          if (SAC_API.ensureWritableApiSession) {
+            const sessionOk = await SAC_API.ensureWritableApiSession();
+            if (!sessionOk) {
+              const err = new Error("Session expirée — reconnectez-vous via le portail Super Admin.");
+              err.code = "AUTH_REQUIRED";
+              throw err;
+            }
           }
         }
         const created = await SAC_INSTITUTIONAL.create(session, payload);
-        const createdEmail = created?.email || created?.admin?.email;
+        const createdEmail =
+          created?.email || created?.admin?.email || (created?.ok !== false && payload.email);
         if (!createdEmail) {
           throw new Error("Réponse serveur invalide — le compte n'a pas été enregistré.");
         }
@@ -1521,7 +1544,13 @@ const SAC_ADMIN_DASHBOARD = (function () {
             }
           }
         }
-        toast(created?.updated ? "Compte mis à jour." : "Compte créé avec succès.");
+        toast(
+          created?.logoOmitted
+            ? "Compte créé (logo omis — image trop volumineuse)."
+            : created?.updated
+              ? "Compte mis à jour."
+              : "Compte créé avec succès."
+        );
         e.target.reset();
         updateCreateFormForRole();
         resetAdminFacultySectionsList();
