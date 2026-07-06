@@ -113,6 +113,9 @@ const SAC_API = (function () {
     PAYLOAD_TOO_LARGE:
       "Données trop volumineuses (logo ou formulaire) — réduisez l'image ou créez le compte sans logo.",
     RATE_LIMITED: "Trop de tentatives — attendez quelques minutes puis réessayez.",
+    THROTTLED: "Trafic ralenti par le bouclier sécurité — attendez 30 secondes puis réessayez.",
+    IP_BLOCKED: "Accès bloqué temporairement — attendez 1 heure ou changez de réseau.",
+    INVALID_PAYLOAD: "Contenu rejeté par le serveur — vérifiez le mot de passe et les champs texte.",
   };
 
   function apiErrorMessage(data, status) {
@@ -307,21 +310,21 @@ const SAC_API = (function () {
   /** Valide ou renouvelle le JWT avant une écriture API (création compte institutionnel, etc.). */
   async function ensureWritableApiSession(opts) {
     if (!useBearerAuth()) return true;
-    const soft = !!(opts && opts.soft);
-    if (!(await ensureApiSession({ soft, timeoutMs: 12000 })) && !hasAuthTokens()) {
+    const timeoutMs = (opts && opts.timeoutMs) || 15000;
+    if (!(await ensureApiSession({ soft: true, timeoutMs })) && !hasAuthTokens()) {
       return false;
     }
     try {
-      await me({ soft: false, timeoutMs: (opts && opts.timeoutMs) || 15000 });
+      await me({ soft: true, timeoutMs });
       return true;
     } catch {
-      const refreshed = await refresh({ soft: false });
-      if (!refreshed) return false;
+      const refreshed = await refresh({ soft: true });
+      if (!refreshed) return hasAuthTokens();
       try {
-        await me({ soft: false, timeoutMs: (opts && opts.timeoutMs) || 15000 });
+        await me({ soft: true, timeoutMs });
         return true;
       } catch {
-        return false;
+        return hasAuthTokens();
       }
     }
   }
@@ -520,8 +523,12 @@ const SAC_API = (function () {
       if (!options.softAuth) {
         clearClientSession();
       }
+      const authPayload =
+        data && data.detail && typeof data.detail === "object" && !Array.isArray(data.detail)
+          ? data.detail
+          : data;
       const authErr = new Error(apiErrorMessage(data, 401) || ERROR_MESSAGES.AUTH_REQUIRED);
-      authErr.code = data.error || "AUTH_REQUIRED";
+      authErr.code = authPayload.error || data.error || "AUTH_REQUIRED";
       authErr.status = 401;
       authErr.sessionInvalid = !options.softAuth;
       throw authErr;
@@ -535,6 +542,9 @@ const SAC_API = (function () {
       const err = new Error(apiErrorMessage(data, res.status));
       err.code = payload.error || data.error;
       err.status = res.status;
+      if (res.status === 429) {
+        err.code = err.code || "RATE_LIMITED";
+      }
       if (payload.error === "USER_NOT_FOUND" || payload.error === "TOKEN_EXPIRED") {
         err.sessionInvalid = true;
         if (!options.softAuth) {

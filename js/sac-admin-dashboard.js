@@ -873,6 +873,26 @@ const SAC_ADMIN_DASHBOARD = (function () {
     const isMinistere = session.role === "ministere";
     const meta = ROLE_LABELS[session.role] || { label: session.role, icon: "🏛️" };
 
+    if (
+      isSuper &&
+      typeof SAC_API !== "undefined" &&
+      SAC_API.ensureWritableApiSession &&
+      (SAC_API.isRenderFrontend?.() || SAC_API.isCrossOriginApi?.())
+    ) {
+      const apiReady = await SAC_API.ensureWritableApiSession();
+      if (!apiReady) {
+        alert(
+          "Session API expirée — reconnectez-vous via le portail Super Admin pour créer des comptes."
+        );
+        const loginTarget =
+          typeof SAC_PORTAL !== "undefined"
+            ? SAC_PORTAL.loginUrlForRole("superadmin")
+            : "superadmin/index.html";
+        window.location.replace(loginTarget);
+        return null;
+      }
+    }
+
     document.body.dataset.wsRole = session.role;
 
     if (typeof SAC_PORTAL !== "undefined") {
@@ -1060,8 +1080,15 @@ const SAC_ADMIN_DASHBOARD = (function () {
         PAYLOAD_TOO_LARGE:
           "Données trop volumineuses (logo) — réduisez l'image ou créez le compte sans logo.",
         RATE_LIMITED: "Trop de tentatives — attendez quelques minutes puis réessayez.",
+        THROTTLED: "Trafic ralenti — attendez 30 secondes puis réessayez.",
+        IP_BLOCKED: "Accès bloqué temporairement par le bouclier sécurité — réessayez plus tard.",
+        INVALID_PAYLOAD: "Données rejetées — évitez les caractères spéciaux dans le mot de passe.",
       };
-      return map[code] || err?.message || "Création impossible.";
+      const base = map[code] || err?.message || "Création impossible.";
+      if (err?.status && !map[code] && err?.message) {
+        return base + " (HTTP " + err.status + ")";
+      }
+      return base;
     }
 
     function setFieldRequired(ids, required) {
