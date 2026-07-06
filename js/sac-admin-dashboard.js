@@ -23,17 +23,10 @@ const SAC_ADMIN_DASHBOARD = (function () {
   let institutionalSummaryCache = null;
   let onCreateFormRoleChange = null;
   let createAdminFormHandler = null;
-  let createAdminFormReadyResolve = null;
-  const createAdminFormReady = new Promise((resolve) => {
-    createAdminFormReadyResolve = resolve;
-  });
+  let applyingSuperadminCreateLimit = false;
 
   function registerCreateAdminFormHandler(handler) {
     createAdminFormHandler = handler;
-    if (typeof createAdminFormReadyResolve === "function") {
-      createAdminFormReadyResolve();
-      createAdminFormReadyResolve = null;
-    }
   }
 
   function bindCreateAdminFormEarly() {
@@ -43,23 +36,12 @@ const SAC_ADMIN_DASHBOARD = (function () {
       e.preventDefault();
       e.stopPropagation();
       if (typeof createAdminFormHandler !== "function") {
-        try {
-          await Promise.race([
-            createAdminFormReady,
-            new Promise((_, reject) =>
-              setTimeout(() => reject(new Error("CREATE_FORM_TIMEOUT")), 45000)
-            ),
-          ]);
-        } catch {
-          alert(
-            "Le formulaire n'a pas fini de se charger.\n\nRechargez la page (Ctrl+F5) puis réessayez."
-          );
-          return;
-        }
+        alert(
+          "Le tableau de bord se charge encore…\n\nAttendez 2–3 secondes puis réessayez."
+        );
+        return;
       }
-      if (typeof createAdminFormHandler === "function") {
-        await createAdminFormHandler(e);
-      }
+      await createAdminFormHandler(e);
     };
     if (form && !form.dataset.sacEarlyCreate) {
       form.dataset.sacEarlyCreate = "1";
@@ -86,7 +68,7 @@ const SAC_ADMIN_DASHBOARD = (function () {
 
   function applySuperadminCreateLimit() {
     const newRole = document.getElementById("newRole");
-    if (!newRole) return;
+    if (!newRole || applyingSuperadminCreateLimit) return;
     const count = getSuperadminCount();
     const remaining = Math.max(0, MAX_SUPERADMIN_ACCOUNTS - count);
     const limitReached = remaining <= 0;
@@ -96,13 +78,18 @@ const SAC_ADMIN_DASHBOARD = (function () {
     const superOption = newRole.querySelector('option[value="superadmin"]');
     const submitBtn = document.getElementById("btnCreateAdminSubmit");
 
-    if (superOption) {
-      superOption.disabled = limitReached;
-      if (limitReached && newRole.value === "superadmin") {
+    if (limitReached && newRole.value === "superadmin") {
+      applyingSuperadminCreateLimit = true;
+      try {
         newRole.value = "ministere";
         if (onCreateFormRoleChange) onCreateFormRoleChange();
-        return;
+      } finally {
+        applyingSuperadminCreateLimit = false;
       }
+    }
+
+    if (superOption) {
+      superOption.disabled = limitReached;
     }
 
     if (limitMsg) {
