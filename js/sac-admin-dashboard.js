@@ -23,6 +23,8 @@ const SAC_ADMIN_DASHBOARD = (function () {
   let institutionalSummaryCache = null;
   let onCreateFormRoleChange = null;
   let createAdminFormHandler = null;
+  let createFormBootstrapped = false;
+  let createFormBootstrapFn = null;
   let suppressCreateFormRoleChange = false;
   let applySuperadminLimitDepth = 0;
 
@@ -227,6 +229,9 @@ const SAC_ADMIN_DASHBOARD = (function () {
     }
     if (id === "sauvegarde") {
       loadBackupPanel();
+    }
+    if (id === "create" && typeof createFormBootstrapFn === "function") {
+      createFormBootstrapFn();
     }
   }
 
@@ -903,7 +908,9 @@ const SAC_ADMIN_DASHBOARD = (function () {
       renderPreviewCards(admins || [], 5);
       const countEl = document.getElementById("tableCount");
       if (countEl) countEl.textContent = filtered.length + " compte(s)";
-      queueMicrotask(() => applySuperadminCreateLimit());
+      if (createFormBootstrapped) {
+        queueMicrotask(() => applySuperadminCreateLimit());
+      }
       if (offline && !(admins || []).length && !summary) {
         renderInstitutionalUnavailable();
       } else if (error && !(admins || []).length) {
@@ -1297,6 +1304,15 @@ const SAC_ADMIN_DASHBOARD = (function () {
       syncCreateFormForRole();
       applySuperadminCreateLimit();
     }
+    createFormBootstrapFn = function bootstrapCreateFormIfNeeded() {
+      if (createFormBootstrapped) {
+        applySuperadminCreateLimit();
+        return;
+      }
+      createFormBootstrapped = true;
+      updateCreateFormForRole();
+    };
+
     onCreateFormRoleChange = syncCreateFormForRole;
 
     function createAdminFacultySectionRow() {
@@ -1435,8 +1451,6 @@ const SAC_ADMIN_DASHBOARD = (function () {
         document.getElementById("newLogoPreview")
       );
     }
-
-    queueMicrotask(() => updateCreateFormForRole());
 
     const adminCatLegend = document.getElementById("adminSectionCategoriesLegend");
     if (adminCatLegend && typeof SAC_SECTIONS !== "undefined" && SAC_SECTIONS.sectionCategoriesLegendHtml) {
