@@ -1528,7 +1528,12 @@ const SAC_API = (function () {
 
   async function createInstitutionalAdmin(payload) {
     if (useBearerAuth() && !hasAuthTokens()) {
-      await ensureApiSession({ soft: true });
+      const ok = await ensureApiSession();
+      if (!ok && !hasAuthTokens()) {
+        const err = new Error("Session expirée — reconnectez-vous via le portail Super Admin.");
+        err.code = "AUTH_REQUIRED";
+        throw err;
+      }
     }
     const data = await request("/admin/institutional", {
       method: "POST",

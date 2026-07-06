@@ -1043,8 +1043,11 @@ const SAC_ADMIN_DASHBOARD = (function () {
           "E-mail institutionnel invalide. Utilisez une adresse réelle (ex. agent@mesu.gouv.cd). Les adresses jetables sont refusées.",
         EMAIL_EXISTS: "Cet e-mail est déjà utilisé. Connectez-vous ou utilisez « Mot de passe oublié ».",
         MINISTRY_COUNTRY_EXISTS:
-          "Un compte Ministère existe déjà pour ce pays. Supprimez l'ancien compte ou choisissez un autre pays.",
+          "Un compte Ministère existe déjà pour ce pays. Supprimez l'ancien compte ou réessayez (mise à jour automatique si l'API est à jour).",
+        UNIVERSITY_CAMPUS_EXISTS:
+          "Un administrateur existe déjà pour cet établissement. Supprimez-le dans la liste des administrateurs avant d'en créer un nouveau.",
         INVALID_COUNTRY: "Pays invalide — choisissez un pays partenaire dans la liste.",
+        AUTH_REQUIRED: "Session expirée — reconnectez-vous via le portail Super Admin puis réessayez.",
         PHONE_EXISTS: "Ce numéro de téléphone est déjà lié à un compte.",
         IDENTITY_CONFLICT: "Cette identité est déjà enregistrée avec un autre rôle.",
         MULTI_ROLE: "Cette identité est déjà liée à un autre type de compte (étudiant, professeur…).",
@@ -1089,12 +1092,17 @@ const SAC_ADMIN_DASHBOARD = (function () {
       setFieldRequired(["devEmail", "devPassword", "devNomComplet"], role === "developpeur");
       setFieldRequired(["tmEmail", "tmPassword", "tmNomComplet"], role === "techmanager");
       setFieldRequired(
-        ["newEmail", "newPassword", "newPrenom", "newNom", "newTel", "newResponsable", "newCampusCatalog", "newCountry"],
+        ["newEmail", "newPassword", "newPrenom", "newNom", "newResponsable", "newCampusCatalog", "newCountry"],
         role === "universite"
       );
+      const telInput = document.getElementById("newTel");
+      if (telInput) {
+        telInput.required = false;
+        telInput.disabled = role !== "universite";
+      }
       const logoInput = document.getElementById("newLogoUniversite");
       if (logoInput) {
-        logoInput.required = role === "universite";
+        logoInput.required = false;
         logoInput.disabled = role !== "universite";
       }
     }
@@ -1206,19 +1214,19 @@ const SAC_ADMIN_DASHBOARD = (function () {
 
     function validateAdminFacultySections() {
       const sections = collectAdminFacultySections();
-      let ok =
-        sections.length > 0 &&
-        sections.every((s) => s.responsableNom && s.responsableNom.length >= 2);
-      let message = ok
-        ? ""
-        : sections.length
-          ? "Chaque section doit avoir un nom, un domaine et un responsable nommé."
-          : "Au moins une section est requise (un domaine = une section).";
-      if (ok && typeof SAC_SECTIONS !== "undefined" && SAC_SECTIONS.validateUniqueDomains) {
-        const domainCheck = SAC_SECTIONS.validateUniqueDomains(sections);
-        if (!domainCheck.ok) {
-          ok = false;
-          message = domainCheck.message;
+      let ok = true;
+      let message = "";
+      if (sections.length) {
+        ok = sections.every((s) => s.responsableNom && s.responsableNom.length >= 2);
+        message = ok
+          ? ""
+          : "Chaque section doit avoir un nom, un domaine et un responsable nommé.";
+        if (ok && typeof SAC_SECTIONS !== "undefined" && SAC_SECTIONS.validateUniqueDomains) {
+          const domainCheck = SAC_SECTIONS.validateUniqueDomains(sections);
+          if (!domainCheck.ok) {
+            ok = false;
+            message = domainCheck.message;
+          }
         }
       }
       const err = document.getElementById("adminFacultySectionsError");
@@ -1430,22 +1438,34 @@ const SAC_ADMIN_DASHBOARD = (function () {
           document.getElementById("adminFacultySectionsError")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
           return;
         }
-        const facultySections = collectAdminFacultySections();
+        let facultySections = collectAdminFacultySections();
+        const responsable = document.getElementById("newResponsable").value.trim();
+        if (!facultySections.length && responsable.length >= 3) {
+          facultySections = [
+            {
+              name: "Administration générale",
+              filiere: "Général",
+              responsableNom: responsable,
+            },
+          ];
+        }
         const campus = SAC_UNIVERSITIES.buildAdminCampusPayload(
           catalogId,
-          document.getElementById("newResponsable").value.trim()
+          responsable
         );
-        Object.assign(payload, campus, { facultySections, countryCode: uniCountry || campus.countryCode });
+        Object.assign(payload, campus, {
+          facultySections,
+          countryCode: uniCountry || campus.countryCode,
+          country_code: uniCountry || campus.countryCode,
+        });
         const logoFile = document.getElementById("newLogoUniversite")?.files?.[0];
-        if (!logoFile) {
-          alert("Importez le logo de l'université.");
-          return;
-        }
-        try {
-          payload.logoUrl = await SAC_UNIVERSITY_LOGO.fileToDataUrl(logoFile);
-        } catch (logoErr) {
-          alert(logoErr.message || "Logo invalide.");
-          return;
+        if (logoFile) {
+          try {
+            payload.logoUrl = await SAC_UNIVERSITY_LOGO.fileToDataUrl(logoFile);
+          } catch (logoErr) {
+            alert(logoErr.message || "Logo invalide.");
+            return;
+          }
         }
       }
       const submitBtn = document.getElementById("btnCreateAdminSubmit");
@@ -1501,7 +1521,7 @@ const SAC_ADMIN_DASHBOARD = (function () {
             }
           }
         }
-        toast("Compte créé avec succès.");
+        toast(created?.updated ? "Compte mis à jour." : "Compte créé avec succès.");
         e.target.reset();
         updateCreateFormForRole();
         resetAdminFacultySectionsList();

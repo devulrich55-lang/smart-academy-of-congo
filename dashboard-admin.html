@@ -365,7 +365,7 @@
                   <label for="minEmail">E-mail institutionnel *</label>
                   <input type="email" class="fi" id="minEmail" placeholder="agent@mesu.gouv.cd" autocomplete="off" />
                   <p class="ws-field-hint" style="margin:0.35rem 0 0;font-size:0.82rem;color:var(--muted);">
-                    Utilisez une adresse officielle (ex. <code>agent@mesu.gouv.cd</code>). Si l'e-mail existe déjà, le compte ne sera pas recréé.
+                    Si un compte existe déjà pour ce pays, il sera mis à jour avec le nouvel e-mail et mot de passe.
                   </p>
                 </div>
                 <div class="fg" style="grid-column:1/-1;">
@@ -476,8 +476,8 @@
                   <input type="text" class="fi" id="newNom" />
                 </div>
                 <div class="fg">
-                  <label for="newTel">Téléphone mobile *</label>
-                  <input type="tel" class="fi" id="newTel" placeholder="Numéro sans indicatif" />
+                  <label for="newTel">Téléphone mobile <span style="font-weight:400;color:var(--muted)">(optionnel)</span></label>
+                  <input type="tel" class="fi" id="newTel" placeholder="Ex. 085 184 8859" />
                 </div>
               </div>
               <div class="ws-form-grid" style="margin-top:0.85rem;">
@@ -522,13 +522,13 @@
                   + Ajouter une section / faculté
                 </button>
                 <span class="ws-field-error" id="adminFacultySectionsError" hidden>
-                  Au moins une section est requise (nom + filière + responsable).
+                  Corrigez les sections saisies (nom + filière + responsable) ou laissez vide pour une section par défaut.
                 </span>
               </div>
               <div class="fg ws-logo-upload">
-                <label for="newLogoUniversite">Logo de l'université *</label>
+                <label for="newLogoUniversite">Logo de l'université <span style="font-weight:400;color:var(--muted)">(optionnel)</span></label>
                 <input type="file" class="fi fi--file" id="newLogoUniversite" accept="image/png,image/jpeg,image/webp,image/svg+xml" />
-                <p class="ws-field-hint">PNG, JPG, WebP ou SVG — max. 2 Mo. Affiché sur les profils campus et les relevés de notes.</p>
+                <p class="ws-field-hint">PNG, JPG, WebP ou SVG — max. 2 Mo. Vous pourrez l'ajouter plus tard depuis le dashboard campus.</p>
                 <div class="ws-logo-preview" id="newLogoPreview" hidden></div>
               </div>
               </div>
@@ -742,9 +742,9 @@
   <script src="js/sac-phone-input.js?v=20260625b"></script>
   <script src="js/sac-sections.js"></script>
   <script src="js/sac-session.js"></script>
-  <script src="js/sac-api.js?v=20260706a"></script>
+  <script src="js/sac-api.js?v=20260706b"></script>
   <script src="js/sac-university-logo.js"></script>
-  <script src="js/sac-institutional-admin.js?v=20260706a"></script>
+  <script src="js/sac-institutional-admin.js?v=20260706b"></script>
   <link rel="stylesheet" href="css/webrtc-room.css?v=20260701c" />
   <script src="js/sac-live-call.js"></script>
   <script src="js/sac-webrtc-room.js?v=20260702b"></script>
@@ -756,7 +756,7 @@
   <script src="js/sac-platform-registry.js?v=20260625a"></script>
   <script src="js/sac-tariffs.js?v=20260623b"></script>
   <script src="js/sac-admin-activities.js?v=20260629a"></script>
-  <script src="js/sac-admin-dashboard.js?v=20260706a"></script>
+  <script src="js/sac-admin-dashboard.js?v=20260706b"></script>
   <script>
     SAC_ADMIN_DASHBOARD.init();
   </script>
