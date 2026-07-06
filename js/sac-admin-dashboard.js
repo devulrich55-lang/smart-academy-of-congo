@@ -23,6 +23,17 @@ const SAC_ADMIN_DASHBOARD = (function () {
   let institutionalSummaryCache = null;
   let onCreateFormRoleChange = null;
   let createAdminFormHandler = null;
+  let suppressCreateFormRoleChange = false;
+  let applySuperadminLimitDepth = 0;
+
+  function withSuppressedCreateFormRoleChange(fn) {
+    suppressCreateFormRoleChange = true;
+    try {
+      return fn();
+    } finally {
+      suppressCreateFormRoleChange = false;
+    }
+  }
 
   function registerCreateAdminFormHandler(handler) {
     createAdminFormHandler = handler;
@@ -66,6 +77,9 @@ const SAC_ADMIN_DASHBOARD = (function () {
   }
 
   function applySuperadminCreateLimit() {
+    if (applySuperadminLimitDepth > 4) return;
+    applySuperadminLimitDepth += 1;
+    try {
     const newRole = document.getElementById("newRole");
     if (!newRole) return;
     const count = getSuperadminCount();
@@ -78,14 +92,15 @@ const SAC_ADMIN_DASHBOARD = (function () {
     const submitBtn = document.getElementById("btnCreateAdminSubmit");
 
     if (limitReached && newRole.value === "superadmin") {
-      newRole.value = "ministere";
-      // UI seulement — évite applySuperadminCreateLimit → updateCreateFormForRole → …
-      if (onCreateFormRoleChange) onCreateFormRoleChange("ministere");
+      withSuppressedCreateFormRoleChange(() => {
+        newRole.value = "ministere";
+        if (onCreateFormRoleChange) onCreateFormRoleChange("ministere");
+      });
     }
 
-    if (superOption) {
-      superOption.disabled = limitReached;
-    }
+    withSuppressedCreateFormRoleChange(() => {
+      if (superOption) superOption.disabled = limitReached;
+    });
 
     if (limitMsg) {
       limitMsg.hidden = !limitReached;
@@ -127,6 +142,9 @@ const SAC_ADMIN_DASHBOARD = (function () {
       } else {
         submitBtn.disabled = false;
       }
+    }
+    } finally {
+      applySuperadminLimitDepth -= 1;
     }
   }
 
@@ -885,7 +903,7 @@ const SAC_ADMIN_DASHBOARD = (function () {
       renderPreviewCards(admins || [], 5);
       const countEl = document.getElementById("tableCount");
       if (countEl) countEl.textContent = filtered.length + " compte(s)";
-      applySuperadminCreateLimit();
+      queueMicrotask(() => applySuperadminCreateLimit());
       if (offline && !(admins || []).length && !summary) {
         renderInstitutionalUnavailable();
       } else if (error && !(admins || []).length) {
@@ -1275,6 +1293,7 @@ const SAC_ADMIN_DASHBOARD = (function () {
     }
 
     function updateCreateFormForRole() {
+      if (suppressCreateFormRoleChange) return;
       syncCreateFormForRole();
       applySuperadminCreateLimit();
     }
@@ -1417,7 +1436,7 @@ const SAC_ADMIN_DASHBOARD = (function () {
       );
     }
 
-    updateCreateFormForRole();
+    queueMicrotask(() => updateCreateFormForRole());
 
     const adminCatLegend = document.getElementById("adminSectionCategoriesLegend");
     if (adminCatLegend && typeof SAC_SECTIONS !== "undefined" && SAC_SECTIONS.sectionCategoriesLegendHtml) {
