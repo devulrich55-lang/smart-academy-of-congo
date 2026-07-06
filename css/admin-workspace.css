@@ -185,6 +185,14 @@ body[data-ws-role="universite"] {
 
 .ws-quick-actions { display: flex; flex-wrap: wrap; gap: 0.55rem; }
 .ws-quick-actions .btn--role { background: var(--ws-accent); color: #fff; border: none; }
+#btnCreateAdminSubmit.btn--role {
+  background: var(--ws-accent, #0c3d6e);
+  color: #fff;
+  border: none;
+  min-width: 12rem;
+}
+#btnCreateAdminSubmit.btn--role:disabled { opacity: 0.55; cursor: not-allowed; }
+#btnCreateAdminSubmit.btn--role:not(:disabled):hover { filter: brightness(1.06); }
 
 .ws-admin-cards { display: grid; gap: 0.65rem; }
 

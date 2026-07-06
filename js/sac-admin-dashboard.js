@@ -22,6 +22,60 @@ const SAC_ADMIN_DASHBOARD = (function () {
   const MAX_SUPERADMIN_ACCOUNTS = 2;
   let institutionalSummaryCache = null;
   let onCreateFormRoleChange = null;
+  let createAdminFormHandler = null;
+  let createAdminFormReadyResolve = null;
+  const createAdminFormReady = new Promise((resolve) => {
+    createAdminFormReadyResolve = resolve;
+  });
+
+  function registerCreateAdminFormHandler(handler) {
+    createAdminFormHandler = handler;
+    if (typeof createAdminFormReadyResolve === "function") {
+      createAdminFormReadyResolve();
+      createAdminFormReadyResolve = null;
+    }
+  }
+
+  function bindCreateAdminFormEarly() {
+    const form = document.getElementById("formCreateAdmin");
+    const btn = document.getElementById("btnCreateAdminSubmit");
+    const invokeCreate = async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (typeof createAdminFormHandler !== "function") {
+        try {
+          await Promise.race([
+            createAdminFormReady,
+            new Promise((_, reject) =>
+              setTimeout(() => reject(new Error("CREATE_FORM_TIMEOUT")), 45000)
+            ),
+          ]);
+        } catch {
+          alert(
+            "Le formulaire n'a pas fini de se charger.\n\nRechargez la page (Ctrl+F5) puis réessayez."
+          );
+          return;
+        }
+      }
+      if (typeof createAdminFormHandler === "function") {
+        await createAdminFormHandler(e);
+      }
+    };
+    if (form && !form.dataset.sacEarlyCreate) {
+      form.dataset.sacEarlyCreate = "1";
+      form.addEventListener("submit", invokeCreate, true);
+    }
+    if (btn) {
+      btn.type = "button";
+      if (!btn.dataset.sacEarlyCreate) {
+        btn.dataset.sacEarlyCreate = "1";
+        btn.addEventListener("click", invokeCreate);
+      }
+      if (btn.disabled && document.getElementById("newRole")?.value !== "superadmin") {
+        btn.disabled = false;
+      }
+    }
+  }
 
   function getSuperadminCount() {
     if (institutionalSummaryCache?.superadminCount != null) {
@@ -86,7 +140,11 @@ const SAC_ADMIN_DASHBOARD = (function () {
       formFields.style.pointerEvents = blockSuperForm ? "none" : "";
     }
     if (submitBtn) {
-      submitBtn.disabled = blockSuperForm;
+      if (newRole.value === "superadmin") {
+        submitBtn.disabled = blockSuperForm;
+      } else {
+        submitBtn.disabled = false;
+      }
     }
   }
 
@@ -890,7 +948,7 @@ const SAC_ADMIN_DASHBOARD = (function () {
       if (btn) btn.type = "button";
     }
     blockNativeCreateFormReload();
-    const meta = ROLE_LABELS[session.role] || { label: session.role, icon: "🏛️" };
+    bindCreateAdminFormEarly();
 
     if (
       isSuper &&
@@ -898,19 +956,20 @@ const SAC_ADMIN_DASHBOARD = (function () {
       SAC_API.ensureWritableApiSession &&
       (SAC_API.isRenderFrontend?.() || SAC_API.isCrossOriginApi?.())
     ) {
-      const apiReady = await SAC_API.ensureWritableApiSession();
-      if (!apiReady) {
-        alert(
-          "Session API expirée — reconnectez-vous via le portail Super Admin pour créer des comptes."
-        );
-        const loginTarget =
-          typeof SAC_PORTAL !== "undefined"
-            ? SAC_PORTAL.loginUrlForRole("superadmin")
-            : "superadmin/index.html";
-        window.location.replace(loginTarget);
-        return null;
-      }
+      SAC_API.ensureWritableApiSession()
+        .then((apiReady) => {
+          if (apiReady) return;
+          const banner = document.getElementById("apiStorageBanner");
+          if (banner) {
+            banner.hidden = false;
+            banner.textContent =
+              "Session API expirée — reconnectez-vous via le portail Super Admin pour créer des comptes.";
+          }
+        })
+        .catch(() => {});
     }
+
+    const meta = ROLE_LABELS[session.role] || { label: session.role, icon: "🏛️" };
 
     document.body.dataset.wsRole = session.role;
 
@@ -1631,16 +1690,8 @@ const SAC_ADMIN_DASHBOARD = (function () {
       }
     }
 
-    document.getElementById("formCreateAdmin")?.addEventListener("submit", (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      handleCreateAdminFormSubmit(e, session, isSuper);
-    });
-    document.getElementById("btnCreateAdminSubmit")?.addEventListener("click", (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      handleCreateAdminFormSubmit(e, session, isSuper);
-    });
+    registerCreateAdminFormHandler((e) => handleCreateAdminFormSubmit(e, session, isSuper));
+    bindCreateAdminFormEarly();
 
     [
       "platformCdfRate",
@@ -1711,5 +1762,14 @@ const SAC_ADMIN_DASHBOARD = (function () {
     return session;
   }
 
-  return { init, showSection, toast };
+  return { init, showSection, toast, bindCreateAdminFormEarly };
 })();
+
+if (typeof document !== "undefined") {
+  const bootCreateForm = () => SAC_ADMIN_DASHBOARD.bindCreateAdminFormEarly();
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", bootCreateForm);
+  } else {
+    bootCreateForm();
+  }
+}
