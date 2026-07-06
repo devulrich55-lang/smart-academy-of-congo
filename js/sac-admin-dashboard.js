@@ -1039,7 +1039,12 @@ const SAC_ADMIN_DASHBOARD = (function () {
         INVALID_PHONE: "Numéro de téléphone invalide.",
         INVALID_PASSWORD: "Mot de passe : 8 caractères minimum, une lettre et un chiffre, sans espace.",
         INVALID_PROFILE: "Nom invalide — utilisez des lettres (prénom et nom).",
+        INVALID_EMAIL:
+          "E-mail institutionnel invalide. Utilisez une adresse réelle (ex. agent@mesu.gouv.cd). Les adresses jetables sont refusées.",
         EMAIL_EXISTS: "Cet e-mail est déjà utilisé. Connectez-vous ou utilisez « Mot de passe oublié ».",
+        MINISTRY_COUNTRY_EXISTS:
+          "Un compte Ministère existe déjà pour ce pays. Supprimez l'ancien compte ou choisissez un autre pays.",
+        INVALID_COUNTRY: "Pays invalide — choisissez un pays partenaire dans la liste.",
         PHONE_EXISTS: "Ce numéro de téléphone est déjà lié à un compte.",
         IDENTITY_CONFLICT: "Cette identité est déjà enregistrée avec un autre rôle.",
         MULTI_ROLE: "Cette identité est déjà liée à un autre type de compte (étudiant, professeur…).",
@@ -1332,6 +1337,7 @@ const SAC_ADMIN_DASHBOARD = (function () {
           telephone: "",
           fonction: document.getElementById("minFonction")?.value.trim() || "",
           countryCode,
+          country_code: countryCode,
         };
       } else if (role === "superadmin") {
         if (getSuperadminCount() >= MAX_SUPERADMIN_ACCOUNTS) {
@@ -1456,7 +1462,8 @@ const SAC_ADMIN_DASHBOARD = (function () {
           }
         }
         const created = await SAC_INSTITUTIONAL.create(session, payload);
-        if (!created?.email) {
+        const createdEmail = created?.email || created?.admin?.email;
+        if (!createdEmail) {
           throw new Error("Réponse serveur invalide — le compte n'a pas été enregistré.");
         }
         if (

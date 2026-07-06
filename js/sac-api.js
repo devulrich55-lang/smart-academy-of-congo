@@ -1527,11 +1527,14 @@ const SAC_API = (function () {
   }
 
   async function createInstitutionalAdmin(payload) {
+    if (useBearerAuth() && !hasAuthTokens()) {
+      await ensureApiSession({ soft: true });
+    }
     const data = await request("/admin/institutional", {
       method: "POST",
       body: JSON.stringify(payload),
     });
-    return data.admin || data;
+    return data?.admin || data?.item || data;
   }
 
   async function seedInstitutionalFacultySections(payload) {

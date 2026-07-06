@@ -46,6 +46,10 @@ const SAC_INSTITUTIONAL = (function () {
 
   async function create(session, payload) {
     if (!session || session.role !== "superadmin") throw new Error("Accès refusé");
+    if (typeof SAC_API !== "undefined") {
+      if (SAC_API.ensureOnline) await SAC_API.ensureOnline(true);
+      if (SAC_API.ensureApiSession) await SAC_API.ensureApiSession();
+    }
     const created = await SAC_API.createInstitutionalAdmin(payload);
     if (payload.logoUrl && typeof SAC_UNIVERSITY_LOGO !== "undefined") {
       SAC_UNIVERSITY_LOGO.registerForUniversity({ ...payload, ...created });
