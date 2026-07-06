@@ -917,6 +917,19 @@ const SAC_ADMIN_DASHBOARD = (function () {
     const dashboardDataReady = loadDashboardData(session, isSuper);
     if (isSuper) startPresencePolling();
 
+    if (isSuper && typeof SAC_API !== "undefined" && SAC_API.getApiStorageHealth) {
+      SAC_API.getApiStorageHealth()
+        .then((storage) => {
+          const banner = document.getElementById("apiStorageBanner");
+          if (!banner || !storage) return;
+          const ephemeral =
+            storage.mode === "sqlite-ephemeral" ||
+            storage.persistentOnRenderDisk === false;
+          if (ephemeral) banner.hidden = false;
+        })
+        .catch(() => {});
+    }
+
     if (isSuper) {
       document.getElementById("tabCreate")?.removeAttribute("hidden");
       document.getElementById("tabTarifs")?.removeAttribute("hidden");
@@ -1077,6 +1090,8 @@ const SAC_ADMIN_DASHBOARD = (function () {
         DB_ROLE_CONSTRAINT:
           "La base de données n'accepte pas encore ce rôle — redéployez l'API (API-1 sur Render) puis réessayez.",
         CREATE_FAILED: "Le serveur n'a pas confirmé la création du compte. Vérifiez les logs API.",
+        CREATE_NOT_PERSISTED:
+          "Le compte n'apparaît pas sur le serveur — l'API Render doit utiliser un disque persistant (/data). Reconnectez-vous puis réessayez.",
         PAYLOAD_TOO_LARGE:
           "Données trop volumineuses (logo) — réduisez l'image ou créez le compte sans logo.",
         RATE_LIMITED: "Trop de tentatives — attendez quelques minutes puis réessayez.",
@@ -1531,11 +1546,10 @@ const SAC_ADMIN_DASHBOARD = (function () {
           }
         }
         const created = await SAC_INSTITUTIONAL.create(session, payload);
-        const createdEmail =
-          created?.email || created?.admin?.email || (created?.ok !== false && payload.email);
-        if (!createdEmail) {
-          throw new Error("Réponse serveur invalide — le compte n'a pas été enregistré.");
+        if (!created?.email || !created?.verified) {
+          throw new Error("Le compte n'a pas été enregistré sur le serveur.");
         }
+        const createdEmail = created.email;
         if (
           role === "universite" &&
           payload.facultySections?.length &&

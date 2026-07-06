@@ -116,6 +116,8 @@ const SAC_API = (function () {
     THROTTLED: "Trafic ralenti par le bouclier sécurité — attendez 30 secondes puis réessayez.",
     IP_BLOCKED: "Accès bloqué temporairement — attendez 1 heure ou changez de réseau.",
     INVALID_PAYLOAD: "Contenu rejeté par le serveur — vérifiez le mot de passe et les champs texte.",
+    CREATE_NOT_PERSISTED:
+      "Le compte n'a pas été retrouvé sur le serveur — base API éphémère ou session invalide.",
   };
 
   function apiErrorMessage(data, status) {
@@ -311,33 +313,53 @@ const SAC_API = (function () {
   async function ensureWritableApiSession(opts) {
     if (!useBearerAuth()) return true;
     const timeoutMs = (opts && opts.timeoutMs) || 15000;
-    if (!(await ensureApiSession({ soft: true, timeoutMs })) && !hasAuthTokens()) {
-      return false;
+    if (!hasAuthTokens()) {
+      const restored = await ensureApiSession({ soft: false, timeoutMs });
+      if (!restored || !hasAuthTokens()) return false;
     }
     try {
-      await me({ soft: true, timeoutMs });
+      await me({ soft: false, timeoutMs });
       return true;
     } catch {
-      const refreshed = await refresh({ soft: true });
-      if (!refreshed) return hasAuthTokens();
+      const refreshed = await refresh({ soft: false });
+      if (!refreshed) return false;
       try {
-        await me({ soft: true, timeoutMs });
+        await me({ soft: false, timeoutMs });
         return true;
       } catch {
-        return hasAuthTokens();
+        return false;
       }
     }
   }
 
   function parseInstitutionalAdminResponse(data, payload) {
-    const admin = data?.admin || data?.item || (data?.email ? data : null);
-    const email = (admin && admin.email) || data?.email || payload?.email || "";
-    if (!email && data?.ok !== true) return admin || data || null;
+    if (!data || data.ok !== true) return null;
+    const admin = data.admin || data.item || null;
+    const email =
+      (admin && admin.email) ||
+      data.email ||
+      (payload && payload.email) ||
+      "";
+    const id = (admin && admin.id) || data.id || null;
+    if (!email && !id) return null;
     return Object.assign({}, admin && typeof admin === "object" ? admin : {}, {
+      id: id || admin?.id,
       email,
-      role: (admin && admin.role) || payload?.role,
-      ok: data?.ok !== false,
+      role: (admin && admin.role) || (payload && payload.role),
+      ok: true,
       updated: !!(admin && admin.updated),
+    });
+  }
+
+  async function institutionalAdminExistsOnServer(email, role) {
+    const target = String(email || "").trim().toLowerCase();
+    if (!target) return false;
+    const data = await request("/admin/institutional");
+    const admins = data.admins || [];
+    return admins.some((a) => {
+      if (String(a.email || "").trim().toLowerCase() !== target) return false;
+      if (role && a.role !== role) return false;
+      return true;
     });
   }
 
@@ -1602,9 +1624,27 @@ const SAC_API = (function () {
       body: JSON.stringify(body),
     });
     const parsed = parseInstitutionalAdminResponse(data, payload);
+    if (!parsed || !parsed.email) {
+      const err = new Error("Réponse serveur invalide — le compte n'a pas été enregistré.");
+      err.code = "CREATE_FAILED";
+      throw err;
+    }
+    let verified = await institutionalAdminExistsOnServer(parsed.email, parsed.role || payload.role);
+    if (!verified) {
+      await new Promise((r) => setTimeout(r, 600));
+      verified = await institutionalAdminExistsOnServer(parsed.email, parsed.role || payload.role);
+    }
+    if (!verified) {
+      const err = new Error(
+        "Le compte n'apparaît pas sur le serveur après création — reconnectez-vous ou vérifiez que l'API Render utilise un disque persistant (/data)."
+      );
+      err.code = "CREATE_NOT_PERSISTED";
+      throw err;
+    }
     if (body._logoOmitted && parsed && typeof parsed === "object") {
       parsed.logoOmitted = true;
     }
+    parsed.verified = true;
     return parsed;
   }
 
@@ -2618,6 +2658,15 @@ const SAC_API = (function () {
     return online === true;
   }
 
+  async function getApiStorageHealth() {
+    try {
+      const data = await request("/health", { softAuth: true, timeoutMs: 15000 });
+      return (data && data.storage) || null;
+    } catch {
+      return null;
+    }
+  }
+
   return {
     ping,
     wakeServer,
@@ -2628,6 +2677,7 @@ const SAC_API = (function () {
     ensureOnline,
     ensureApiSession,
     ensureWritableApiSession,
+    getApiStorageHealth,
     isOnline,
     isCrossOriginApi,
     isRenderFrontend,

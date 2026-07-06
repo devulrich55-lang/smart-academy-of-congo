@@ -65,13 +65,12 @@ const SAC_INSTITUTIONAL = (function () {
       }
     }
     const created = await SAC_API.createInstitutionalAdmin(payload);
-    const result =
-      created && typeof created === "object"
-        ? { ...created }
-        : { email: payload?.email, role: payload?.role, ok: true };
-    if (!result.email && payload?.email) {
-      result.email = payload.email;
+    if (!created?.email || !created?.verified) {
+      const err = new Error("Le serveur n'a pas confirmé l'enregistrement du compte.");
+      err.code = "CREATE_FAILED";
+      throw err;
     }
+    const result = { ...created };
     if (result.email) {
       const key = String(result.email).toLowerCase();
       adminsCache = adminsCache.filter((a) => String(a.email || "").toLowerCase() !== key);
