@@ -871,6 +871,25 @@ const SAC_ADMIN_DASHBOARD = (function () {
 
     const isSuper = session.role === "superadmin";
     const isMinistere = session.role === "ministere";
+
+    function blockNativeCreateFormReload() {
+      const form = document.getElementById("formCreateAdmin");
+      const btn = document.getElementById("btnCreateAdminSubmit");
+      if (form && !form.dataset.sacBound) {
+        form.dataset.sacBound = "1";
+        form.addEventListener(
+          "submit",
+          (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            return false;
+          },
+          true
+        );
+      }
+      if (btn) btn.type = "button";
+    }
+    blockNativeCreateFormReload();
     const meta = ROLE_LABELS[session.role] || { label: session.role, icon: "🏛️" };
 
     if (
@@ -1360,8 +1379,7 @@ const SAC_ADMIN_DASHBOARD = (function () {
       adminCatLegend.innerHTML = SAC_SECTIONS.sectionCategoriesLegendHtml();
     }
 
-    document.getElementById("formCreateAdmin")?.addEventListener("submit", async (e) => {
-      e.preventDefault();
+    async function handleCreateAdminFormSubmit(e, session, isSuper) {
       if (!isSuper) {
         alert("Seul le Super Admin peut créer des comptes institutionnels.");
         return;
@@ -1592,7 +1610,7 @@ const SAC_ADMIN_DASHBOARD = (function () {
               ? "Compte mis à jour."
               : "Compte créé avec succès."
         );
-        e.target.reset();
+        document.getElementById("formCreateAdmin")?.reset();
         updateCreateFormForRole();
         resetAdminFacultySectionsList();
         const logoPreview = document.getElementById("newLogoPreview");
@@ -1611,6 +1629,17 @@ const SAC_ADMIN_DASHBOARD = (function () {
           submitBtn.textContent = submitBusy;
         }
       }
+    }
+
+    document.getElementById("formCreateAdmin")?.addEventListener("submit", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      handleCreateAdminFormSubmit(e, session, isSuper);
+    });
+    document.getElementById("btnCreateAdminSubmit")?.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      handleCreateAdminFormSubmit(e, session, isSuper);
     });
 
     [
