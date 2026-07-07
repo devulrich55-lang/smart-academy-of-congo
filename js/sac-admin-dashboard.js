@@ -21,12 +21,14 @@ const SAC_ADMIN_DASHBOARD = (function () {
   };
   const MAX_SUPERADMIN_ACCOUNTS = 2;
   let institutionalSummaryCache = null;
-  let onCreateFormRoleChange = null;
+  /** Sync UI formulaire création — ne doit jamais rappeler applySuperadminCreateLimit. */
+  let syncCreateFormUi = null;
   let createAdminFormHandler = null;
   let createFormBootstrapped = false;
   let createFormBootstrapFn = null;
   let suppressCreateFormRoleChange = false;
   let applySuperadminLimitDepth = 0;
+  let updateCreateFormForRoleDepth = 0;
 
   function withSuppressedCreateFormRoleChange(fn) {
     suppressCreateFormRoleChange = true;
@@ -96,7 +98,9 @@ const SAC_ADMIN_DASHBOARD = (function () {
     if (limitReached && newRole.value === "superadmin") {
       withSuppressedCreateFormRoleChange(() => {
         newRole.value = "ministere";
-        if (onCreateFormRoleChange) onCreateFormRoleChange("ministere");
+        if (typeof syncCreateFormUi === "function") {
+          syncCreateFormUi("ministere");
+        }
       });
     }
 
@@ -1301,19 +1305,24 @@ const SAC_ADMIN_DASHBOARD = (function () {
 
     function updateCreateFormForRole() {
       if (suppressCreateFormRoleChange) return;
-      syncCreateFormForRole();
-      applySuperadminCreateLimit();
+      if (updateCreateFormForRoleDepth > 4) return;
+      updateCreateFormForRoleDepth += 1;
+      try {
+        syncCreateFormForRole();
+        applySuperadminCreateLimit();
+      } finally {
+        updateCreateFormForRoleDepth -= 1;
+      }
     }
+    syncCreateFormUi = syncCreateFormForRole;
     createFormBootstrapFn = function bootstrapCreateFormIfNeeded() {
       if (createFormBootstrapped) {
-        applySuperadminCreateLimit();
+        queueMicrotask(() => applySuperadminCreateLimit());
         return;
       }
       createFormBootstrapped = true;
-      updateCreateFormForRole();
+      queueMicrotask(() => updateCreateFormForRole());
     };
-
-    onCreateFormRoleChange = syncCreateFormForRole;
 
     function createAdminFacultySectionRow() {
       const row = document.createElement("div");
