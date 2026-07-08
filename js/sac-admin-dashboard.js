@@ -938,7 +938,13 @@ const SAC_ADMIN_DASHBOARD = (function () {
   }
 
   async function init() {
-    const session = await SAC_SESSION.guard();
+    const portalRole =
+      typeof SAC_PORTAL !== "undefined" && typeof SAC_PORTAL.current === "function"
+        ? SAC_PORTAL.current()?.role
+        : null;
+    const requiredRole =
+      portalRole === "superadmin" || portalRole === "ministere" ? portalRole : null;
+    const session = await SAC_SESSION.guard(requiredRole);
     if (!session) return null;
     if (session.role !== "ministere" && session.role !== "superadmin") {
       window.location.replace(
@@ -1486,6 +1492,65 @@ const SAC_ADMIN_DASHBOARD = (function () {
       adminCatLegend.innerHTML = SAC_SECTIONS.sectionCategoriesLegendHtml();
     }
 
+    function buildLiteInstitutionalPayload(role) {
+      const defs = {
+        ministere: {
+          fullNameId: "minNomComplet",
+          emailId: "minEmail",
+          passwordId: "minPassword",
+          fonctionId: "minFonction",
+          countryId: "minCountry",
+          roleLabel: "du responsable ministère",
+        },
+        developpeur: {
+          fullNameId: "devNomComplet",
+          emailId: "devEmail",
+          passwordId: "devPassword",
+          fonctionId: "devFonction",
+          defaultFonction: "Développeur EvoSU",
+          roleLabel: "du développeur",
+        },
+        techmanager: {
+          fullNameId: "tmNomComplet",
+          emailId: "tmEmail",
+          passwordId: "tmPassword",
+          defaultFonction: "Responsable technique EvoSU",
+          roleLabel: "du responsable technique",
+        },
+      };
+      const cfg = defs[role];
+      if (!cfg) return null;
+
+      const fullName = document.getElementById(cfg.fullNameId)?.value.trim() || "";
+      if (!fullName || fullName.length < 3) {
+        alert("Indiquez le nom complet " + cfg.roleLabel + ".");
+        return false;
+      }
+      const { prenom, nom } = splitFullName(fullName);
+      const payload = {
+        role,
+        email: document.getElementById(cfg.emailId)?.value.trim() || "",
+        password: document.getElementById(cfg.passwordId)?.value || "",
+        prenom,
+        nom,
+        telephone: "",
+        fonction: cfg.defaultFonction || "",
+      };
+      if (cfg.fonctionId) {
+        payload.fonction = document.getElementById(cfg.fonctionId)?.value.trim() || cfg.defaultFonction || "";
+      }
+      if (cfg.countryId) {
+        const countryCode = document.getElementById(cfg.countryId)?.value?.trim() || "";
+        if (!countryCode) {
+          alert("Choisissez le pays du ministère.");
+          return false;
+        }
+        payload.countryCode = countryCode;
+        payload.country_code = countryCode;
+      }
+      return payload;
+    }
+
     async function handleCreateAdminFormSubmit(e, session, isSuper) {
       if (!isSuper) {
         alert("Seul le Super Admin peut créer des comptes institutionnels.");
@@ -1494,29 +1559,10 @@ const SAC_ADMIN_DASHBOARD = (function () {
       const role = newRole.value;
       let payload = { role };
 
-      if (role === "ministere") {
-        const full = document.getElementById("minNomComplet")?.value.trim() || "";
-        const { prenom, nom } = splitFullName(full);
-        if (!full || full.length < 3) {
-          alert("Indiquez le nom complet du responsable.");
-          return;
-        }
-        const countryCode = document.getElementById("minCountry")?.value?.trim() || "";
-        if (!countryCode) {
-          alert("Choisissez le pays du ministère.");
-          return;
-        }
-        payload = {
-          role,
-          email: document.getElementById("minEmail")?.value.trim() || "",
-          password: document.getElementById("minPassword")?.value || "",
-          prenom,
-          nom,
-          telephone: "",
-          fonction: document.getElementById("minFonction")?.value.trim() || "",
-          countryCode,
-          country_code: countryCode,
-        };
+      const litePayload = buildLiteInstitutionalPayload(role);
+      if (litePayload === false) return;
+      if (litePayload) {
+        payload = litePayload;
       } else if (role === "superadmin") {
         if (getSuperadminCount() >= MAX_SUPERADMIN_ACCOUNTS) {
           alert(
@@ -1539,38 +1585,6 @@ const SAC_ADMIN_DASHBOARD = (function () {
           prenom,
           nom,
           telephone: "",
-        };
-      } else if (role === "developpeur") {
-        const full = document.getElementById("devNomComplet")?.value.trim() || "";
-        const { prenom, nom } = splitFullName(full);
-        if (!full || full.length < 3) {
-          alert("Indiquez le nom complet du développeur.");
-          return;
-        }
-        payload = {
-          role,
-          email: document.getElementById("devEmail")?.value.trim() || "",
-          password: document.getElementById("devPassword")?.value || "",
-          prenom,
-          nom,
-          telephone: "",
-          fonction: document.getElementById("devFonction")?.value.trim() || "Développeur EvoSU",
-        };
-      } else if (role === "techmanager") {
-        const full = document.getElementById("tmNomComplet")?.value.trim() || "";
-        const { prenom, nom } = splitFullName(full);
-        if (!full || full.length < 3) {
-          alert("Indiquez le nom complet du responsable technique.");
-          return;
-        }
-        payload = {
-          role,
-          email: document.getElementById("tmEmail")?.value.trim() || "",
-          password: document.getElementById("tmPassword")?.value || "",
-          prenom,
-          nom,
-          telephone: "",
-          fonction: "Responsable technique EvoSU",
         };
       } else if (role === "universite") {
         payload = {
