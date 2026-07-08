@@ -2,7 +2,7 @@
  * Tableau de bord institutionnel — Ministère / Super Admin
  */
 const SAC_ADMIN_DASHBOARD = (function () {
-  const BUILD = "20260707b";
+  const BUILD = "20260708c";
   const PRESENCE_REFRESH_MS = 20000;
   const PRESENCE_ROLE_LABELS = {
     etudiant: "Étudiants",
@@ -957,6 +957,14 @@ const SAC_ADMIN_DASHBOARD = (function () {
 
     const isSuper = session.role === "superadmin";
     const isMinistere = session.role === "ministere";
+    const safeRun = (label, fn) => {
+      try {
+        return fn();
+      } catch (err) {
+        console.warn("[SAC_ADMIN_DASHBOARD] " + label + ":", err?.message || err);
+        return null;
+      }
+    };
 
     function blockNativeCreateFormReload() {
       const form = document.getElementById("formCreateAdmin");
@@ -1002,7 +1010,7 @@ const SAC_ADMIN_DASHBOARD = (function () {
     document.body.dataset.wsRole = session.role;
 
     if (typeof SAC_PORTAL !== "undefined") {
-      SAC_PORTAL.applyBranding(session.role);
+      safeRun("applyBranding", () => SAC_PORTAL.applyBranding(session.role));
       document.querySelector(".portal-logo-text")?.style && (document.querySelector(".portal-logo-text").style.display = "none");
       const home = document.getElementById("portalHomeLink");
       if (home) home.href = SAC_PORTAL.loginUrlForRole(session.role);
@@ -1094,7 +1102,9 @@ const SAC_ADMIN_DASHBOARD = (function () {
 
     if (isMinistere || isSuper) {
       if (typeof SAC_LIBRARY !== "undefined") {
-        SAC_LIBRARY.initMinistryPublisher(session, "libraryPublisherAccueil", { showList: false });
+        safeRun("initLibraryAccueil", () =>
+          SAC_LIBRARY.initMinistryPublisher(session, "libraryPublisherAccueil", { showList: false })
+        );
       }
     }
 
