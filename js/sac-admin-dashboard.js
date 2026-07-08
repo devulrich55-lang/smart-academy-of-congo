@@ -2,7 +2,7 @@
  * Tableau de bord institutionnel — Ministère / Super Admin
  */
 const SAC_ADMIN_DASHBOARD = (function () {
-  const BUILD = "20260708c";
+  const BUILD = "20260708d";
   const PRESENCE_REFRESH_MS = 20000;
   const PRESENCE_ROLE_LABELS = {
     etudiant: "Étudiants",
@@ -1131,12 +1131,13 @@ const SAC_ADMIN_DASHBOARD = (function () {
     document.getElementById("searchAdmins")?.addEventListener("input", onFilter);
     document.getElementById("filterRole")?.addEventListener("change", onFilter);
 
-    const newRole = document.getElementById("newRole");
-    const uniFields = document.getElementById("uniFields");
-    const ministereFields = document.getElementById("ministereFields");
-    const superadminFields = document.getElementById("superadminFields");
-    const developpeurFields = document.getElementById("developpeurFields");
-    const techmanagerFields = document.getElementById("techmanagerFields");
+    try {
+      const newRole = document.getElementById("newRole");
+      const uniFields = document.getElementById("uniFields");
+      const ministereFields = document.getElementById("ministereFields");
+      const superadminFields = document.getElementById("superadminFields");
+      const developpeurFields = document.getElementById("developpeurFields");
+      const techmanagerFields = document.getElementById("techmanagerFields");
 
     function splitFullName(full) {
       const parts = String(full || "")
@@ -1765,8 +1766,17 @@ const SAC_ADMIN_DASHBOARD = (function () {
       }
     }
 
-    registerCreateAdminFormHandler((e) => handleCreateAdminFormSubmit(e, session, isSuper));
-    bindCreateAdminFormEarly();
+      registerCreateAdminFormHandler((e) => handleCreateAdminFormSubmit(e, session, isSuper));
+      bindCreateAdminFormEarly();
+    } catch (createInitErr) {
+      console.warn(
+        "[SAC_ADMIN_DASHBOARD] create form init disabled:",
+        createInitErr?.message || createInitErr
+      );
+      createFormBootstrapped = false;
+      createFormBootstrapFn = null;
+      createAdminFormHandler = null;
+    }
 
     [
       "platformCdfRate",
