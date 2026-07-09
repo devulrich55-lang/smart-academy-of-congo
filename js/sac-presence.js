@@ -2,6 +2,9 @@ const SAC_PRESENCE = (function () {
   const HEARTBEAT_MS = 25000;
   const REFRESH_MS = 20000;
 
+  /** null = inconnu, false = route /presence absente sur l'API */
+  let presencePingAvailable = null;
+
   function isApiReady() {
     return typeof SAC_API !== "undefined" && typeof SAC_API.pingPresence === "function";
   }
@@ -58,28 +61,36 @@ const SAC_PRESENCE = (function () {
     return role === "section" || role === "assistant" || role === "universite";
   }
 
+  function isMissingPresenceRoute(err) {
+    const status = Number(err?.status);
+    return status === 404 || status === 405 || err?.code === "NOT_FOUND";
+  }
+
   async function ensureAuthForPresence() {
     if (typeof SAC_API.ensureWritableApiSession === "function") {
-      await SAC_API.ensureWritableApiSession({ soft: true, timeoutMs: 15000 });
-      return;
+      return SAC_API.ensureWritableApiSession({ soft: true, timeoutMs: 15000 });
     }
     if (typeof SAC_API.ensureApiSession === "function") {
-      await SAC_API.ensureApiSession({ soft: true });
+      return SAC_API.ensureApiSession({ soft: true, timeoutMs: 15000 });
     }
     if (
       typeof SAC_API.hasAuthTokens === "function" &&
       !SAC_API.hasAuthTokens() &&
       typeof SAC_API.refresh === "function"
     ) {
-      await SAC_API.refresh({ soft: true });
+      return SAC_API.refresh({ soft: true });
     }
+    return true;
   }
 
   async function tryPing(activeSession) {
     await SAC_API.pingPresence(buildPayload(activeSession));
+    presencePingAvailable = true;
   }
 
   async function sessionLooksOnline() {
+    const authed = await ensureAuthForPresence();
+    if (authed) return true;
     if (typeof SAC_API.me !== "function") return false;
     const profile = await SAC_API.me({ soft: true, timeoutMs: 10000 });
     return !!profile;
@@ -91,44 +102,39 @@ const SAC_PRESENCE = (function () {
     safeCall(hooks?.onSelfConnecting);
 
     try {
-      await ensureAuthForPresence();
-
-      try {
-        await tryPing(activeSession);
+      const sessionOk = await sessionLooksOnline();
+      if (sessionOk) {
         safeCall(hooks?.onSelfOnline, true);
+        if (presencePingAvailable !== false) {
+          try {
+            await tryPing(activeSession);
+          } catch (err) {
+            if (isMissingPresenceRoute(err)) {
+              presencePingAvailable = false;
+            }
+          }
+        }
         return;
-      } catch {
-        /* ping échoué — tenter réveil API puis repli /auth/me */
       }
 
       if (typeof SAC_API.wakeServer === "function") {
-        await SAC_API.wakeServer({ attempts: 3, timeoutMs: 22000, delayMs: 3500 });
+        await SAC_API.wakeServer({ attempts: 2, timeoutMs: 18000, delayMs: 2500 });
       } else if (typeof SAC_API.ensureOnline === "function") {
-        await SAC_API.ensureOnline(true, { maxWaitMs: 25000 });
+        await SAC_API.ensureOnline(true, { maxWaitMs: 20000 });
       }
 
-      await ensureAuthForPresence();
-
-      try {
-        await tryPing(activeSession);
-        safeCall(hooks?.onSelfOnline, true);
-        return;
-      } catch {
-        /* repli : session API valide = en ligne pour l'utilisateur */
-      }
-
-      if (await sessionLooksOnline()) {
+      const retryOk = await sessionLooksOnline();
+      if (retryOk) {
         safeCall(hooks?.onSelfOnline, true);
         return;
       }
 
       safeCall(hooks?.onSelfOnline, false);
     } catch {
-      if (await sessionLooksOnline().catch(function () { return false; })) {
-        safeCall(hooks?.onSelfOnline, true);
-      } else {
-        safeCall(hooks?.onSelfOnline, false);
-      }
+      const online = await sessionLooksOnline().catch(function () {
+        return false;
+      });
+      safeCall(hooks?.onSelfOnline, online);
     }
   }
 
@@ -136,20 +142,43 @@ const SAC_PRESENCE = (function () {
     if (!isApiReady()) return;
     const activeSession = liveSession(session);
     try {
-      await ensureAuthForPresence();
+      const sessionOk = await sessionLooksOnline();
       if (
         typeof SAC_API.hasAuthTokens === "function" &&
-        !SAC_API.hasAuthTokens()
+        !SAC_API.hasAuthTokens() &&
+        !sessionOk
       ) {
         return;
       }
+
       if (canFetchSectionPresence(activeSession?.role) && typeof SAC_API.getSectionPresence === "function") {
-        const data = await SAC_API.getSectionPresence();
-        safeCall(hooks?.onSectionPresence, data);
+        try {
+          const data = await SAC_API.getSectionPresence();
+          safeCall(hooks?.onSectionPresence, data);
+        } catch (err) {
+          if (sessionOk) {
+            safeCall(hooks?.onSectionPresence, {
+              onlineCount: 1,
+              fallback: true,
+              reason: isMissingPresenceRoute(err) ? "presence_route_missing" : "presence_fetch_failed",
+            });
+          }
+        }
       }
+
       if (activeSession?.role === "professeur" && typeof SAC_API.getProfessorPresence === "function") {
-        const data = await SAC_API.getProfessorPresence();
-        safeCall(hooks?.onProfessorPresence, data);
+        try {
+          const data = await SAC_API.getProfessorPresence();
+          safeCall(hooks?.onProfessorPresence, data);
+        } catch (err) {
+          if (sessionOk) {
+            safeCall(hooks?.onProfessorPresence, {
+              onlineCount: 1,
+              fallback: true,
+              reason: isMissingPresenceRoute(err) ? "presence_route_missing" : "presence_fetch_failed",
+            });
+          }
+        }
       }
     } catch {
       // silencieux: la vue continue de fonctionner même sans API.
@@ -190,5 +219,5 @@ const SAC_PRESENCE = (function () {
     };
   }
 
-  return { start, bindSelfPresence, bindSelfConnecting };
+  return { start, bindSelfPresence, bindSelfConnecting, sessionLooksOnline };
 })();
