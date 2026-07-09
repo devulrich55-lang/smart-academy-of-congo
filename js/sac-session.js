@@ -12,6 +12,7 @@ const SAC_SESSION = (function () {
     superadmin: "dashboard-admin.html",
     developpeur: "dashboard-devcenter.html",
     techmanager: "dashboard-techmanager.html",
+    auteur: "dashboard-evodigitalbooks.html",
   };
 
   const SESSION_KEY = "sac_session";

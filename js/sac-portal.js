@@ -136,6 +136,27 @@ const SAC_PORTAL = (function () {
       adminPortal: true,
       logoFile: "../" + PLATFORM_LOGO,
     },
+    evodigitalbooks: {
+      id: "evodigitalbooks",
+      role: "auteur",
+      slug: "evodigitalbooks",
+      title: "EvoDigitalBooks",
+      orgName: "EvoDigitalBooks — Espace auteurs",
+      hostHints: ["edb.", "evodigitalbooks."],
+      pathPrefix: "/evodigitalbooks",
+      accent: "#7c3aed",
+      accentDark: "#5b21b6",
+      themeColor: "#7c3aed",
+      icon: "📖",
+      emailPlaceholder: "auteur@exemple.cd",
+      btnLabel: "Accéder à mon espace auteur",
+      lead:
+        "Publiez et vendez vos livres numériques. Validation Super Admin, paiements Mobile Money (75 % auteur / 25 % plateforme).",
+      notice: "Créez un compte auteur si vous n'en avez pas encore. Limite : 3 appareils par compte.",
+      dashboard: "dashboard-evodigitalbooks.html",
+      adminPortal: false,
+      logoFile: "../" + PLATFORM_LOGO,
+    },
   };
 
   function normPath(path) {
@@ -195,6 +216,7 @@ const SAC_PORTAL = (function () {
     if (role === "evomonitor") return siteUrl("evomonitor/");
     if (role === "developpeur") return siteUrl("devcenter/");
     if (role === "techmanager") return siteUrl("techmanager/");
+    if (role === "auteur") return siteUrl("evodigitalbooks/");
     return siteUrl("connexion.html?role=" + encodeURIComponent(role || "etudiant"));
   }
 
@@ -214,6 +236,7 @@ const SAC_PORTAL = (function () {
       evomonitor: "dashboard-evomonitor.html",
       developpeur: "dashboard-devcenter.html",
       techmanager: "dashboard-techmanager.html",
+      auteur: "dashboard-evodigitalbooks.html",
     };
     return siteUrl(map[role] || "index.html");
   }

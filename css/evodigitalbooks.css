@@ -1,0 +1,109 @@
+/* EvoDigitalBooks — storefront & espace auteur */
+.edb-hero {
+  background: linear-gradient(135deg, #1a0f2e 0%, #3d1f6b 45%, #6b2d5b 100%);
+  color: #fff;
+  padding: 2.5rem 1.5rem 3rem;
+  border-radius: 0 0 1.5rem 1.5rem;
+  margin-bottom: 1.5rem;
+}
+.edb-hero h1 {
+  font-family: "Playfair Display", Georgia, serif;
+  font-size: clamp(1.75rem, 4vw, 2.5rem);
+  margin: 0 0 0.5rem;
+}
+.edb-hero p { opacity: 0.9; max-width: 42rem; margin: 0; }
+.edb-hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+}
+.edb-hero__badge {
+  display: inline-block;
+  background: rgba(255,255,255,0.15);
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  margin-top: 0.75rem;
+}
+.edb-section { margin-bottom: 2rem; }
+.edb-section h2 {
+  font-size: 1.15rem;
+  margin: 0 0 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid var(--edb-accent, #7c3aed);
+}
+.edb-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 1rem;
+}
+.edb-grid--compact { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+.edb-card {
+  background: var(--card, #fff);
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+.edb-card:hover {
+  box-shadow: 0 8px 24px rgba(124, 58, 237, 0.12);
+  transform: translateY(-2px);
+}
+.edb-card__cover {
+  position: relative;
+  aspect-ratio: 2/3;
+  background: linear-gradient(145deg, #f3e8ff, #ede9fe);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.edb-card__cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.edb-card__placeholder { font-size: 2.5rem; opacity: 0.5; }
+.edb-card__badge {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  font-size: 0.7rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 6px;
+  font-weight: 600;
+}
+.edb-card__badge--free { background: #16a34a; color: #fff; }
+.edb-card__badge--hot { background: #ea580c; color: #fff; left: auto; right: 0.5rem; }
+.edb-card__body { padding: 0.75rem; flex: 1; display: flex; flex-direction: column; }
+.edb-card__body h3 {
+  font-size: 0.92rem;
+  margin: 0 0 0.35rem;
+  line-height: 1.3;
+}
+.edb-card__author { font-size: 0.78rem; color: var(--muted, #64748b); margin: 0 0 0.35rem; }
+.edb-card__price { font-weight: 700; color: var(--edb-accent, #7c3aed); margin: 0 0 0.65rem; font-size: 0.88rem; }
+.edb-card__actions { margin-top: auto; }
+.edb-loading, .edb-empty { color: var(--muted); text-align: center; padding: 2rem; }
+.edb-pending {
+  text-align: center;
+  padding: 2.5rem 1.5rem;
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  border-radius: 12px;
+}
+.edb-form__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+.edb-fee-hint {
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin: 0.75rem 0 1rem;
+}
+.portal-page--edb { --portal-accent: #7c3aed; --portal-accent-dark: #5b21b6; }
+.portal-page--edb .portal-hero { background: linear-gradient(160deg, #1a0f2e, #4c1d95); }

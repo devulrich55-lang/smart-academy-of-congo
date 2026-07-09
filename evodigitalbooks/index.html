@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="description" content="EvoDigitalBooks — Publiez et vendez vos livres numériques sur Evo-smartUni" />
+  <title>EvoDigitalBooks — Portail auteur</title>
+  <script src="../js/sac-config.js"></script>
+  <script src="../js/sac-portal.js"></script>
+  <script src="../js/sac-theme.js"></script>
+  <link rel="icon" href="../evo-uni.jpeg" type="image/jpeg" />
+  <link rel="stylesheet" href="../css/logo.css" />
+  <link rel="stylesheet" href="../css/theme.css" />
+  <link rel="stylesheet" href="../css/portal-institutional.css" />
+  <link rel="stylesheet" href="../css/evodigitalbooks.css" />
+  <link rel="stylesheet" href="../css/mobile.css" />
+  <meta name="theme-color" content="#7c3aed" />
+</head>
+<body class="portal-page portal-page--pro portal-page--edb">
+  <header class="portal-header">
+    <a href="evodigitalbooks/" class="portal-brand logo">
+      <img src="../evo-uni.jpeg" alt="Evo-smartUni" class="logo__img portal-logo" width="52" height="52" />
+      <div><span class="portal-org-name">EvoDigitalBooks</span></div>
+    </a>
+    <a href="../evodigitalbooks.html" class="btn btn--ghost btn--sm">Catalogue public</a>
+    <button type="button" class="theme-toggle" data-theme-toggle aria-label="Thème"></button>
+  </header>
+
+  <main class="portal-main">
+    <div class="portal-shell">
+      <aside class="portal-hero">
+        <p class="portal-hero__institution"><span aria-hidden="true">📖</span> Evo-smartUni</p>
+        <h1>Publiez vos livres numériques</h1>
+        <p>
+          Espace auteur isolé, relié à la bibliothèque nationale. Vendez en Mobile Money
+          (75 % pour vous, 25 % plateforme) ou proposez des ouvrages gratuits.
+        </p>
+        <ul class="ws-guide" style="margin-top:1rem;font-size:0.88rem;">
+          <li>Création de compte auteur</li>
+          <li>Validation par le Super Admin</li>
+          <li>Publication couverture + fichier</li>
+          <li>Visibilité bibliothèque &amp; EvoDigitalBooks</li>
+        </ul>
+      </aside>
+      <section class="portal-card">
+        <div id="edbPortalTabs" style="display:flex;gap:0.5rem;margin-bottom:1rem;">
+          <button type="button" class="btn btn--role btn--sm" id="edbTabLogin">Connexion</button>
+          <button type="button" class="btn btn--ghost btn--sm" id="edbTabRegister">Créer un compte auteur</button>
+        </div>
+
+        <div id="edbLoginPanel">
+          <h2>Connexion auteur</h2>
+          <p class="subtitle">Accédez à votre espace de publication</p>
+          <form id="portalLoginForm" novalidate>
+            <div class="portal-field">
+              <label for="portalEmail">E-mail</label>
+              <input type="email" id="portalEmail" required autocomplete="username" placeholder="auteur@exemple.cd" />
+            </div>
+            <div class="portal-field">
+              <label for="portalPassword">Mot de passe</label>
+              <input type="password" id="portalPassword" required minlength="8" autocomplete="current-password" />
+            </div>
+            <p class="portal-forgot-wrap">
+              <a href="../mot-de-passe-oublie.html?portal=evodigitalbooks" class="portal-forgot">Mot de passe oublié ?</a>
+            </p>
+            <button type="submit" class="portal-submit" id="portalSubmit">Accéder à mon espace auteur</button>
+          </form>
+        </div>
+
+        <div id="edbRegisterPanel" hidden>
+          <h2>Inscription auteur</h2>
+          <p class="subtitle">Validation Super Admin sous 48 h</p>
+          <form id="edbRegisterForm" novalidate>
+            <div class="portal-field">
+              <label for="edbRegPenName">Nom d'auteur / plume *</label>
+              <input type="text" id="edbRegPenName" class="portal-input" required minlength="2" placeholder="Jean Mukendi" />
+            </div>
+            <div class="portal-field">
+              <label for="edbRegEmail">E-mail *</label>
+              <input type="email" id="edbRegEmail" class="portal-input" required placeholder="auteur@exemple.cd" />
+            </div>
+            <div class="portal-field">
+              <label for="edbRegPassword">Mot de passe *</label>
+              <input type="password" id="edbRegPassword" class="portal-input" required minlength="8" />
+            </div>
+            <div class="portal-field">
+              <label for="edbRegMobile">Mobile Money (réception paiements) *</label>
+              <input type="tel" id="edbRegMobile" class="portal-input" required placeholder="+243…" />
+              <p class="portal-field-hint">Les acheteurs paient via Orange / M-Pesa — vous recevez 75 % sur ce numéro.</p>
+            </div>
+            <div class="portal-field">
+              <label for="edbRegBio">Biographie courte</label>
+              <textarea id="edbRegBio" class="portal-input" rows="2" placeholder="Optionnel"></textarea>
+            </div>
+            <button type="submit" class="portal-submit">Demander un compte auteur</button>
+          </form>
+        </div>
+
+        <p class="portal-notice" style="margin-top:1rem;">
+          Pas encore de compte ? Cliquez sur <strong>Créer un compte auteur</strong>.
+          Limite : <strong>3 appareils</strong> par compte pour la lecture des livres achetés.
+        </p>
+      </section>
+    </div>
+  </main>
+
+  <script src="../js/sac-identity.js"></script>
+  <script src="../js/sac-session.js"></script>
+  <script src="../js/sac-api.js"></script>
+  <script src="../js/sac-evodigitalbooks.js"></script>
+  <script src="../js/portal-login.js"></script>
+  <script>
+    (function () {
+      const loginPanel = document.getElementById("edbLoginPanel");
+      const regPanel = document.getElementById("edbRegisterPanel");
+      document.getElementById("edbTabLogin")?.addEventListener("click", () => {
+        loginPanel.hidden = false;
+        regPanel.hidden = true;
+      });
+      document.getElementById("edbTabRegister")?.addEventListener("click", () => {
+        loginPanel.hidden = true;
+        regPanel.hidden = false;
+      });
+
+      document.getElementById("edbRegisterForm")?.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const btn = e.target.querySelector('button[type="submit"]');
+        if (btn) { btn.disabled = true; btn.textContent = "Envoi…"; }
+        try {
+          await SAC_EDB.registerAuthor({
+            penName: document.getElementById("edbRegPenName").value,
+            email: document.getElementById("edbRegEmail").value,
+            password: document.getElementById("edbRegPassword").value,
+            mobileMoney: document.getElementById("edbRegMobile").value,
+            bio: document.getElementById("edbRegBio").value,
+          });
+          alert(
+            "Demande enregistrée !\n\nLe Super Admin validera votre compte. Vous recevrez l'accès à la publication après approbation."
+          );
+          e.target.reset();
+          document.getElementById("edbTabLogin").click();
+        } catch (err) {
+          alert(err.message || "Inscription impossible.");
+        } finally {
+          if (btn) { btn.disabled = false; btn.textContent = "Demander un compte auteur"; }
+        }
+      });
+
+      if (location.search.includes("register=1")) {
+        document.getElementById("edbTabRegister")?.click();
+      }
+    })();
+  </script>
+</body>
+</html>

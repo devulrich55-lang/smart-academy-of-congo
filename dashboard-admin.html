@@ -60,6 +60,7 @@
       <button type="button" class="nav-tab active" data-section="accueil">Tableau de bord</button>
       <button type="button" class="nav-tab nav-tab--priority" data-section="administrateurs">👥 Administrateurs</button>
       <button type="button" class="nav-tab nav-tab--priority ws-only-super-hidden" data-section="validations" id="tabValidations" hidden>✅ Validations étudiants</button>
+      <button type="button" class="nav-tab nav-tab--priority ws-only-super-hidden" data-section="edb-auteurs" id="tabEdbAuthors" hidden>📖 Auteurs EvoDigitalBooks</button>
       <button type="button" class="nav-tab nav-tab--priority" data-section="activites">📋 Activités</button>
       <button type="button" class="nav-tab nav-tab--priority ws-only-ministere-hidden" data-section="publier" id="tabPublier">📢 Publier</button>
       <button type="button" class="nav-tab nav-tab--priority ws-only-ministere-hidden" data-section="bibliotheque" id="tabBibliotheque">📚 Bibliothèque numérique</button>
@@ -303,6 +304,22 @@
             </table>
           </div>
           <p class="empty-tasks" id="platformValidEmpty" style="display:none;">Aucun étudiant dans cette catégorie.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- EVO DIGITAL BOOKS — VALIDATION AUTEURS -->
+    <section class="page-section ws-only-super-hidden" id="section-edb-auteurs">
+      <h1 class="page-title">EvoDigitalBooks — Comptes auteurs</h1>
+      <p class="page-desc">
+        Validez les demandes d'inscription auteur avant publication. Les livres approuvés sont visibles dans
+        <a href="evodigitalbooks.html" target="_blank" rel="noopener">EvoDigitalBooks</a> et la bibliothèque nationale.
+        Paiements : <strong>75 % auteur</strong> sur Mobile Money · <strong>25 % plateforme</strong>.
+      </p>
+      <div class="panel panel--ws">
+        <div class="panel__head"><h2>Demandes en attente</h2></div>
+        <div class="panel__body" id="edbAuthorsValidationRoot">
+          <p class="page-desc" style="margin:0;color:var(--muted);">Chargement…</p>
         </div>
       </div>
     </section>
@@ -775,7 +792,8 @@
   <script src="js/sac-ministry-live.js"></script>
   <script src="js/sac-africa-countries.js?v=20260625c"></script>
   <script src="js/sac-home-news.js?v=20260625c"></script>
-  <script src="js/sac-library.js?v=20260705b"></script>
+  <script src="js/sac-library.js?v=20260710a"></script>
+  <script src="js/sac-evodigitalbooks.js?v=20260710a"></script>
   <script src="js/sac-careers.js?v=20260626"></script>
   <script src="js/sac-platform-registry.js?v=20260625a"></script>
   <script src="js/sac-tariffs.js?v=20260623b"></script>

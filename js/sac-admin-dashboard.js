@@ -272,6 +272,10 @@ const SAC_ADMIN_DASHBOARD = (function () {
     if (id === "validations") {
       renderPlatformValidations();
     }
+    if (id === "edb-auteurs" && typeof SAC_EDB !== "undefined") {
+      const session = SAC_SESSION.getSession();
+      SAC_EDB.mountAuthorValidation("edbAuthorsValidationRoot", session);
+    }
     if (id === "sauvegarde") {
       loadBackupPanel();
     }
@@ -1078,6 +1082,7 @@ const SAC_ADMIN_DASHBOARD = (function () {
       document.getElementById("tabCreate")?.removeAttribute("hidden");
       document.getElementById("tabTarifs")?.removeAttribute("hidden");
       document.getElementById("tabValidations")?.removeAttribute("hidden");
+      document.getElementById("tabEdbAuthors")?.removeAttribute("hidden");
       document.getElementById("tabSauvegarde")?.removeAttribute("hidden");
       document.getElementById("btnQuickTarifs")?.removeAttribute("hidden");
       document.getElementById("btnQuickValidations")?.removeAttribute("hidden");
@@ -1085,6 +1090,7 @@ const SAC_ADMIN_DASHBOARD = (function () {
       document.getElementById("section-create")?.classList.remove("ws-only-super-hidden");
       document.getElementById("section-tarifs")?.classList.remove("ws-only-super-hidden");
       document.getElementById("section-validations")?.classList.remove("ws-only-super-hidden");
+      document.getElementById("section-edb-auteurs")?.classList.remove("ws-only-super-hidden");
       document.getElementById("section-sauvegarde")?.classList.remove("ws-only-super-hidden");
       document.querySelectorAll(".ws-only-super-hidden").forEach((el) => el.classList.remove("ws-only-super-hidden"));
       document.querySelectorAll(".col-actions").forEach((c) => (c.style.display = ""));

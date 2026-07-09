@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="description" content="EvoDigitalBooks — Livres numériques gratuits et payants sur Evo-smartUni" />
+  <title>EvoDigitalBooks — Librairie numérique</title>
+  <script src="js/sac-config.js"></script>
+  <script src="js/sac-theme.js"></script>
+  <link rel="icon" href="evo-uni.jpeg" type="image/jpeg" />
+  <link rel="stylesheet" href="css/theme.css" />
+  <link rel="stylesheet" href="css/library-immersive.css?v=20260704" />
+  <link rel="stylesheet" href="css/evodigitalbooks.css" />
+  <link rel="stylesheet" href="css/mobile.css" />
+  <meta name="theme-color" content="#7c3aed" />
+  <style>:root { --edb-accent: #7c3aed; }</style>
+</head>
+<body class="platform-library-mode" style="--bg:#f8f6fc;">
+  <header class="lib-topbar" style="background:#1a0f2e;color:#fff;padding:0.75rem 1.25rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.75rem;">
+    <a href="index.html" class="logo" style="color:#fff;text-decoration:none;display:flex;align-items:center;gap:0.5rem;">
+      <img src="evo-uni.jpeg" alt="" width="40" height="40" style="border-radius:8px;" />
+      <strong>EvoDigitalBooks</strong>
+    </a>
+    <nav style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center;">
+      <a href="plateforme.html" class="btn btn--ghost btn--sm" style="color:#e9d5ff;">Bibliothèque nationale</a>
+      <a href="evodigitalbooks/" class="btn btn--ghost btn--sm" style="color:#e9d5ff;">Espace auteur</a>
+      <span id="edbUserLabel" style="font-size:0.85rem;opacity:0.85;"></span>
+      <button type="button" class="btn btn--role btn--sm" id="edbLoginBtn">Connexion</button>
+    </nav>
+  </header>
+
+  <main style="max-width:1100px;margin:0 auto;padding:0 1rem 3rem;">
+    <div class="edb-hero">
+      <span class="edb-hero__badge">Lié à la bibliothèque Evo-smartUni</span>
+      <h1>Livres numériques d'auteurs certifiés</h1>
+      <p>Nouveautés, best-sellers, ouvrages gratuits et payants. Paiement Mobile Money — fichier réservé aux acheteurs (max. 3 appareils par compte).</p>
+      <div class="edb-hero__actions">
+        <a href="evodigitalbooks/?register=1" class="btn btn--role">Devenir auteur</a>
+        <a href="#edbNew" class="btn btn--ghost" style="border-color:rgba(255,255,255,0.4);color:#fff;">Voir les nouveautés</a>
+      </div>
+    </div>
+
+    <div id="edbStoreRoot"></div>
+  </main>
+
+  <script src="js/sac-africa-countries.js"></script>
+  <script src="js/sac-identity.js"></script>
+  <script src="js/sac-session.js"></script>
+  <script src="js/sac-api.js"></script>
+  <script src="js/sac-mobile-money.js"></script>
+  <script src="js/sac-library.js"></script>
+  <script src="js/sac-evodigitalbooks.js"></script>
+  <script>
+    (async function () {
+      const session = SAC_SESSION.getSession();
+      const label = document.getElementById("edbUserLabel");
+      const loginBtn = document.getElementById("edbLoginBtn");
+      if (session?.identifiant) {
+        if (label) label.textContent = session.displayName || session.identifiant;
+        if (loginBtn) {
+          loginBtn.textContent = session.role === "auteur" ? "Mon espace" : "Déconnexion";
+          loginBtn.onclick = () => {
+            if (session.role === "auteur") {
+              location.href = "dashboard-evodigitalbooks.html";
+            } else {
+              SAC_SESSION.logout("evodigitalbooks.html");
+            }
+          };
+        }
+      } else if (loginBtn) {
+        loginBtn.onclick = () => { location.href = "connexion.html?role=etudiant&next=evodigitalbooks.html"; };
+      }
+
+      await SAC_EDB.mountStorefront("edbStoreRoot", session);
+      window.addEventListener("sac-edb-catalog-refresh", () => {
+        SAC_EDB.mountStorefront("edbStoreRoot", SAC_SESSION.getSession());
+      });
+      window.addEventListener("sac-edb-purchase", () => {
+        SAC_EDB.mountStorefront("edbStoreRoot", SAC_SESSION.getSession());
+      });
+    })();
+  </script>
+  <script src="js/sac-mobile.js" defer></script>
+</body>
+</html>

@@ -1842,6 +1842,33 @@ const SAC_API = (function () {
     return uploadFormData("/platform/library/upload", formData);
   }
 
+  async function registerEdbAuthor(payload) {
+    return request("/platform/edb/authors/register", {
+      method: "POST",
+      body: JSON.stringify(payload),
+      softAuth: true,
+    });
+  }
+
+  async function listPendingEdbAuthors() {
+    return request("/platform/edb/authors/pending");
+  }
+
+  async function approveEdbAuthor(email, payload) {
+    return request("/platform/edb/authors/" + encodeURIComponent(email) + "/status", {
+      method: "PATCH",
+      body: JSON.stringify(payload || {}),
+    });
+  }
+
+  async function recordEdbPurchase(payload) {
+    return request("/platform/edb/purchases", {
+      method: "POST",
+      body: JSON.stringify(payload || {}),
+      softAuth: true,
+    });
+  }
+
   async function listCampusDiplomasManage() {
     const data = await request("/platform/diplomas/manage");
     return data?.diplomas || [];
@@ -2780,6 +2807,10 @@ const SAC_API = (function () {
     updateDigitalLibraryBook,
     deleteDigitalLibraryBook,
     uploadDigitalLibraryFile,
+    registerEdbAuthor,
+    listPendingEdbAuthors,
+    approveEdbAuthor,
+    recordEdbPurchase,
     listCampusDiplomasManage,
     listMyDiplomas,
     issueDiploma,

@@ -276,6 +276,13 @@ const SAC_LIBRARY = (function () {
 
   function hasBookAccess(item, session) {
     if (!item) return false;
+    if (
+      item.source === "evodigitalbooks" &&
+      typeof SAC_EDB !== "undefined" &&
+      SAC_EDB.hasAccess
+    ) {
+      return SAC_EDB.hasAccess(item, session);
+    }
     if (isBookFree(item)) return true;
     return isBookPurchased(item.id, session);
   }
@@ -297,6 +304,14 @@ const SAC_LIBRARY = (function () {
 
   function openBookFile(item, session) {
     const url = bookFileUrl(item);
+    if (
+      item?.source === "evodigitalbooks" &&
+      typeof SAC_EDB !== "undefined" &&
+      SAC_EDB.openBook
+    ) {
+      SAC_EDB.openBook(item, session);
+      return;
+    }
     if (!url) {
       alert("Fichier indisponible pour ce livre.");
       return;
@@ -355,6 +370,13 @@ const SAC_LIBRARY = (function () {
   }
 
   async function openBookPurchaseDialog(item, session) {
+    if (
+      item?.source === "evodigitalbooks" &&
+      typeof SAC_EDB !== "undefined" &&
+      SAC_EDB.openPurchaseDialog
+    ) {
+      return SAC_EDB.openPurchaseDialog(item, session);
+    }
     if (!item || isBookFree(item)) {
       openBookFile(item, session);
       return;
@@ -561,30 +583,43 @@ const SAC_LIBRARY = (function () {
     const cc =
       countryCode ||
       (typeof SAC_AFRICA_COUNTRIES !== "undefined" ? SAC_AFRICA_COUNTRIES.getStoredCountry() : "");
+    let items = [];
     if (typeof SAC_API !== "undefined" && SAC_API.listDigitalLibrary) {
       try {
         const online = await SAC_API.ensureOnline();
         if (online) {
           const data = await SAC_API.listDigitalLibrary(cc);
-          let items = (data?.items || []).filter(isPublishedBook);
+          items = (data?.items || []).filter(isPublishedBook);
           items = filterByCountry(items, cc);
-          cacheItems(items);
-          return items;
         }
       } catch {
         /* fallback */
       }
     }
-    const cached = filterByCountry(readCache().filter(isPublishedBook), cc);
-    if (cached.length) return cached;
-    if (typeof SAC_PLATFORM !== "undefined" && SAC_PLATFORM.getLibrary) {
+    if (!items.length) {
+      const cached = filterByCountry(readCache().filter(isPublishedBook), cc);
+      if (cached.length) items = cached;
+    }
+    if (!items.length && typeof SAC_PLATFORM !== "undefined" && SAC_PLATFORM.getLibrary) {
       try {
-        return filterByCountry(await SAC_PLATFORM.getLibrary(), cc);
+        items = filterByCountry(await SAC_PLATFORM.getLibrary(), cc);
       } catch {
-        return [];
+        items = [];
       }
     }
-    return [];
+    if (typeof SAC_EDB !== "undefined" && SAC_EDB.listLibraryBooks) {
+      try {
+        const edb = await SAC_EDB.listLibraryBooks(cc);
+        const ids = new Set(items.map((x) => x.id));
+        edb.forEach((b) => {
+          if (!ids.has(b.id)) items.push(b);
+        });
+      } catch {
+        /* ignore */
+      }
+    }
+    if (items.length) cacheItems(items);
+    return items;
   }
 
   async function listManage(session) {
