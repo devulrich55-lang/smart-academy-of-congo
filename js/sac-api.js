@@ -1506,6 +1506,14 @@ const SAC_API = (function () {
     return request("/payments/campus");
   }
 
+  async function getCampusPaymentAggregator() {
+    return request("/payments/campus/aggregator");
+  }
+
+  async function getPlatformPaymentAggregator() {
+    return request("/payments/platform/aggregator");
+  }
+
   async function updatePaymentStatus(paymentId, payload) {
     return request("/payments/" + encodeURIComponent(paymentId), {
       method: "PATCH",
@@ -2750,6 +2758,8 @@ const SAC_API = (function () {
     getMobilePaymentStatus,
     confirmMobilePaymentPin,
     listCampusPayments,
+    getCampusPaymentAggregator,
+    getPlatformPaymentAggregator,
     updatePaymentStatus,
     listSections,
     upsertSection,

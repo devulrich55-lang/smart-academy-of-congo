@@ -82,6 +82,12 @@ const SAC_EVOMONITOR = (function () {
     if (id === "sata") renderSata();
     if (id === "aiops") renderAiOps();
     if (id === "debug") renderDebug();
+    if (id === "paiements") loadPaymentAggregator();
+  }
+
+  function loadPaymentAggregator() {
+    if (typeof SAC_PAYMENT_AGGREGATOR === "undefined" || !session) return;
+    SAC_PAYMENT_AGGREGATOR.mount("platformPaymentAggregatorRoot", session, "platform");
   }
 
   function scoreRing(score) {

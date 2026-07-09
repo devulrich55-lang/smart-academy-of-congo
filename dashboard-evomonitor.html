@@ -15,6 +15,7 @@
   <link rel="stylesheet" href="css/theme.css" />
   <link rel="stylesheet" href="css/admin-workspace.css" />
   <link rel="stylesheet" href="css/evosu-monitor.css?v=20260705c" />
+  <link rel="stylesheet" href="css/payments.css?v=20260709a" />
   <link rel="stylesheet" href="css/mobile.css" />
   <meta name="theme-color" content="#0e7490" />
 </head>
@@ -49,6 +50,7 @@
       <button type="button" class="nav-tab" data-section="incidents">Incidents <span class="em-nav-badge" id="emOpenIncidents">0</span></button>
       <button type="button" class="nav-tab" data-section="sata">🧠 SATA</button>
       <button type="button" class="nav-tab" data-section="aiops">🤖 Centre IA <span class="em-nav-badge em-nav-badge--sec" id="emAiOpsAlert" hidden>0</span></button>
+      <button type="button" class="nav-tab" data-section="paiements">💳 Paiements</button>
       <button type="button" class="nav-tab" data-section="debug">👨‍💻 Debug</button>
     </nav>
   </header>
@@ -190,6 +192,14 @@
       <div id="emAiOpsPanel"></div>
     </section>
 
+    <section class="page-section" id="section-paiements">
+      <h1 class="page-title">Agrégateur de paiements — plateforme</h1>
+      <p class="page-desc">Vue globale des transactions (inscription, frais académiques, Orange Money, M-Pesa, banque) classées par université.</p>
+      <div class="em-panel" id="platformPaymentAggregatorRoot">
+        <p class="em-empty">Chargement…</p>
+      </div>
+    </section>
+
     <section class="page-section" id="section-debug">
       <h1 class="page-title">Mode développeur</h1>
       <p class="page-desc">Stack traces, réponses API et rejeu de requêtes. Activez le bouton Debug dans l'en-tête.</p>
@@ -199,7 +209,9 @@
 
   <script src="js/sac-session.js?v=20260707"></script>
   <script src="js/sac-pwa.js"></script>
-  <script src="js/sac-api.js?v=20260709c"></script>
+  <script src="js/sac-api.js?v=20260709d"></script>
+  <script src="js/sac-payment-aggregator.js?v=20260709a"></script>
+  <script src="js/sac-universities.js"></script>
   <script src="js/sac-evomonitor-intelligence.js?v=20260709c"></script>
   <script src="js/sac-evomonitor-aiops.js?v=20260709b"></script>
   <script src="js/sac-evomonitor.js?v=20260705d"></script>
