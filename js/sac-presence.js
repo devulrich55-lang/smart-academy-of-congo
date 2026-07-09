@@ -59,6 +59,10 @@ const SAC_PRESENCE = (function () {
   }
 
   async function ensureAuthForPresence() {
+    if (typeof SAC_API.ensureWritableApiSession === "function") {
+      await SAC_API.ensureWritableApiSession({ soft: true, timeoutMs: 15000 });
+      return;
+    }
     if (typeof SAC_API.ensureApiSession === "function") {
       await SAC_API.ensureApiSession({ soft: true });
     }

@@ -766,6 +766,15 @@
 
 /* —— Agrégateur paiements (campus + EvoMonitor) —— */
 .pay-agg-panel { margin-top: 0.5rem; }
+.pay-agg-panel--compact .pay-agg-summary-grid {
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 0.5rem;
+}
+.pay-agg-panel--compact .pay-agg-foot {
+  margin-top: 0.65rem;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
 .pay-agg-toolbar {
   display: flex;
   flex-wrap: wrap;

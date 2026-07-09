@@ -213,6 +213,9 @@ const SAC_PAYMENT_AGGREGATOR = (function () {
       throw new Error("API agrégateur indisponible — actualisez la page (Ctrl+F5).");
     }
     await SAC_API.ensureOnline(true);
+    if (SAC_API.ensureWritableApiSession) {
+      await SAC_API.ensureWritableApiSession({ soft: true });
+    }
     return SAC_API.getCampusPaymentAggregator();
   }
 
@@ -372,8 +375,46 @@ const SAC_PAYMENT_AGGREGATOR = (function () {
     }
   }
 
+  async function mountSummary(rootId, session, options) {
+    const root = document.getElementById(rootId);
+    if (!root) return;
+    const onOpen =
+      typeof options?.onOpenFull === "function" ? options.onOpenFull : null;
+    root.innerHTML =
+      '<div class="pay-agg-loading">Chargement des paiements campus…</div>';
+    try {
+      const data = await loadCampus(session);
+      const s = data.summary || {};
+      root.innerHTML =
+        '<div class="pay-agg-panel pay-agg-panel--compact">' +
+        renderSummaryCards(s) +
+        renderCategoryChips(s) +
+        '<div style="display:flex;flex-wrap:wrap;gap:0.5rem;margin-top:0.75rem;">' +
+        '<button type="button" class="btn btn--role btn--sm pay-agg-open-full">Voir l\'agrégateur complet</button>' +
+        '<button type="button" class="btn btn--ghost btn--sm pay-agg-refresh-summary">Actualiser</button>' +
+        "</div>" +
+        '<p class="pay-agg-foot">Vue campus — onglet <strong>Campus &amp; frais</strong> pour le détail complet.</p>' +
+        "</div>";
+      root.querySelector(".pay-agg-open-full")?.addEventListener("click", () => {
+        if (onOpen) onOpen();
+      });
+      root.querySelector(".pay-agg-refresh-summary")?.addEventListener("click", () => {
+        mountSummary(rootId, session, options);
+      });
+    } catch (err) {
+      root.innerHTML =
+        '<p class="pay-agg-error">' +
+        esc(err.message || "Agrégateur indisponible.") +
+        " <button type=\"button\" class=\"btn btn--ghost btn--xs pay-agg-refresh-summary\">Réessayer</button></p>";
+      root.querySelector(".pay-agg-refresh-summary")?.addEventListener("click", () => {
+        mountSummary(rootId, session, options);
+      });
+    }
+  }
+
   return {
     mount,
+    mountSummary,
     loadCampus,
     loadPlatform,
     formatAmount,
