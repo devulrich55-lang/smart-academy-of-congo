@@ -351,7 +351,11 @@ const SAC_API = (function () {
     });
   }
 
-  async function institutionalAdminExistsOnServer(email, role) {
+  function normalizeCountryCode(value) {
+    return String(value || "").trim().toUpperCase();
+  }
+
+  async function institutionalAdminExistsOnServer(email, role, expected) {
     const target = String(email || "").trim().toLowerCase();
     if (!target) return false;
     const data = await request("/admin/institutional");
@@ -359,6 +363,11 @@ const SAC_API = (function () {
     return admins.some((a) => {
       if (String(a.email || "").trim().toLowerCase() !== target) return false;
       if (role && a.role !== role) return false;
+      const expectedCountry = normalizeCountryCode(expected?.countryCode || expected?.country_code);
+      if (expectedCountry) {
+        const serverCountry = normalizeCountryCode(a.countryCode || a.country_code);
+        if (serverCountry && serverCountry !== expectedCountry) return false;
+      }
       return true;
     });
   }
@@ -1629,14 +1638,23 @@ const SAC_API = (function () {
       err.code = "CREATE_FAILED";
       throw err;
     }
-    let verified = await institutionalAdminExistsOnServer(parsed.email, parsed.role || payload.role);
-    if (!verified) {
-      await new Promise((r) => setTimeout(r, 600));
-      verified = await institutionalAdminExistsOnServer(parsed.email, parsed.role || payload.role);
+    const expected = {
+      countryCode: body.countryCode || body.country_code || payload.countryCode || payload.country_code,
+    };
+    let verified = false;
+    const retries = [0, 700, 1400, 2200];
+    for (const waitMs of retries) {
+      if (waitMs > 0) await new Promise((r) => setTimeout(r, waitMs));
+      verified = await institutionalAdminExistsOnServer(
+        parsed.email,
+        parsed.role || payload.role,
+        expected
+      );
+      if (verified) break;
     }
     if (!verified) {
       const err = new Error(
-        "Le compte n'apparaît pas sur le serveur après création — reconnectez-vous ou vérifiez que l'API Render utilise un disque persistant (/data)."
+        "Le compte n'apparaît pas sur le serveur après création (ou pays incohérent) — reconnectez-vous puis vérifiez que l'API Render est à jour et persistante (/data)."
       );
       err.code = "CREATE_NOT_PERSISTED";
       throw err;
