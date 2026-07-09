@@ -2,7 +2,7 @@
  * Tableau de bord institutionnel — Ministère / Super Admin
  */
 const SAC_ADMIN_DASHBOARD = (function () {
-  const BUILD = "20260708d";
+  const BUILD = "20260709d";
   const PRESENCE_REFRESH_MS = 20000;
   const PRESENCE_ROLE_LABELS = {
     etudiant: "Étudiants",
@@ -57,14 +57,44 @@ const SAC_ADMIN_DASHBOARD = (function () {
   function bindCreateAdminFormEarly() {
     const form = document.getElementById("formCreateAdmin");
     const btn = document.getElementById("btnCreateAdminSubmit");
+
+    async function waitForCreateHandler(maxMs) {
+      const deadline = Date.now() + (maxMs || 45000);
+      while (typeof createAdminFormHandler !== "function") {
+        if (Date.now() >= deadline) return false;
+        await new Promise((r) => setTimeout(r, 150));
+      }
+      return true;
+    }
+
     const invokeCreate = async (e) => {
       e.preventDefault();
       e.stopPropagation();
       if (typeof createAdminFormHandler !== "function") {
-        alert(
-          "Le tableau de bord se charge encore…\n\nAttendez 2–3 secondes puis réessayez."
-        );
-        return;
+        if (btn) {
+          btn.disabled = true;
+          btn.textContent = "Initialisation…";
+        }
+        const ready = await waitForCreateHandler(45000);
+        if (btn && btn.textContent === "Initialisation…") {
+          btn.disabled = false;
+          const role = document.getElementById("newRole")?.value || "ministere";
+          const labels = {
+            ministere: "Créer le compte Ministère",
+            superadmin: "Créer le compte Super Admin",
+            universite: "Créer le compte campus",
+            developpeur: "Créer le compte développeur",
+            techmanager: "Créer le compte Tech Manager",
+          };
+          btn.textContent = labels[role] || "Créer le compte";
+        }
+        if (!ready || typeof createAdminFormHandler !== "function") {
+          alert(
+            "Le formulaire de création n'est pas prêt.\n\n" +
+              "Rechargez la page (Ctrl+F5). Si le problème persiste, vérifiez la console (F12) ou reconnectez-vous."
+          );
+          return;
+        }
       }
       await createAdminFormHandler(e);
     };
@@ -1480,27 +1510,34 @@ const SAC_ADMIN_DASHBOARD = (function () {
 
     document.getElementById("newCampusCatalog")?.addEventListener("change", fillAdminCampusFromCatalog);
 
-    initInstitutionCountrySelects();
+    try {
+      initInstitutionCountrySelects();
 
-    if (typeof SAC_UNIVERSITIES !== "undefined") {
-      const bootCountry = document.getElementById("newCountry")?.value || "CD";
-      if (typeof SAC_UNIVERSITIES.populateForCountry === "function") {
-        SAC_UNIVERSITIES.populateForCountry("#newCampusCatalog", bootCountry);
-      } else {
-        SAC_UNIVERSITIES.populateAll("#newCampusCatalog");
+      if (typeof SAC_UNIVERSITIES !== "undefined") {
+        const bootCountry = document.getElementById("newCountry")?.value || "CD";
+        if (typeof SAC_UNIVERSITIES.populateForCountry === "function") {
+          SAC_UNIVERSITIES.populateForCountry("#newCampusCatalog", bootCountry);
+        } else {
+          SAC_UNIVERSITIES.populateAll("#newCampusCatalog");
+        }
       }
-    }
 
-    if (typeof SAC_UNIVERSITY_LOGO !== "undefined") {
-      SAC_UNIVERSITY_LOGO.bindPreviewInput(
-        document.getElementById("newLogoUniversite"),
-        document.getElementById("newLogoPreview")
+      if (typeof SAC_UNIVERSITY_LOGO !== "undefined") {
+        SAC_UNIVERSITY_LOGO.bindPreviewInput(
+          document.getElementById("newLogoUniversite"),
+          document.getElementById("newLogoPreview")
+        );
+      }
+
+      const adminCatLegend = document.getElementById("adminSectionCategoriesLegend");
+      if (adminCatLegend && typeof SAC_SECTIONS !== "undefined" && SAC_SECTIONS.sectionCategoriesLegendHtml) {
+        adminCatLegend.innerHTML = SAC_SECTIONS.sectionCategoriesLegendHtml();
+      }
+    } catch (createExtrasErr) {
+      console.warn(
+        "[SAC_ADMIN_DASHBOARD] create form extras:",
+        createExtrasErr?.message || createExtrasErr
       );
-    }
-
-    const adminCatLegend = document.getElementById("adminSectionCategoriesLegend");
-    if (adminCatLegend && typeof SAC_SECTIONS !== "undefined" && SAC_SECTIONS.sectionCategoriesLegendHtml) {
-      adminCatLegend.innerHTML = SAC_SECTIONS.sectionCategoriesLegendHtml();
     }
 
     function buildLiteInstitutionalPayload(role) {
@@ -1766,16 +1803,17 @@ const SAC_ADMIN_DASHBOARD = (function () {
       }
     }
 
-      registerCreateAdminFormHandler((e) => handleCreateAdminFormSubmit(e, session, isSuper));
-      bindCreateAdminFormEarly();
+    registerCreateAdminFormHandler((e) => handleCreateAdminFormSubmit(e, session, isSuper));
+    bindCreateAdminFormEarly();
     } catch (createInitErr) {
       console.warn(
-        "[SAC_ADMIN_DASHBOARD] create form init disabled:",
+        "[SAC_ADMIN_DASHBOARD] create form init:",
         createInitErr?.message || createInitErr
       );
-      createFormBootstrapped = false;
-      createFormBootstrapFn = null;
-      createAdminFormHandler = null;
+      if (typeof createAdminFormHandler !== "function") {
+        createFormBootstrapped = false;
+        createFormBootstrapFn = null;
+      }
     }
 
     [
