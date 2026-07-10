@@ -589,16 +589,31 @@ const SAC_EDB = (function () {
     };
 
     if (typeof SAC_API !== "undefined" && SAC_API.createDigitalLibraryBook) {
+      await SAC_API.ensureOnline(true);
+      if (SAC_API.ensureWritableApiSession) {
+        const writable = await SAC_API.ensureWritableApiSession({ soft: false });
+        if (!writable) {
+          throw new Error("Session API expirée — déconnectez-vous et reconnectez-vous.");
+        }
+      } else if (SAC_API.ensureApiSession) {
+        const ok = await SAC_API.ensureApiSession();
+        if (!ok) throw new Error("Session API requise — reconnectez-vous.");
+      }
       try {
-        await SAC_API.ensureOnline(true);
-        if (SAC_API.ensureApiSession) await SAC_API.ensureApiSession();
         if (idx >= 0 && SAC_API.updateDigitalLibraryBook) {
           await SAC_API.updateDigitalLibraryBook(book.id, libPayload);
         } else {
           await SAC_API.createDigitalLibraryBook(libPayload);
         }
       } catch (err) {
-        console.warn("[SAC_EDB] library sync:", err.message || err);
+        const msg = err.message || "Erreur serveur lors de la publication.";
+        if (err.status === 413 || err.code === "FILE_TOO_LARGE") {
+          throw new Error("Fichier trop volumineux (max 50 Mo par fichier).");
+        }
+        if (err.status === 403) {
+          throw new Error("Accès refusé — compte auteur non validé ou session expirée.");
+        }
+        throw new Error(msg);
       }
     }
 
@@ -607,17 +622,28 @@ const SAC_EDB = (function () {
 
   async function uploadFile(file, kind) {
     if (!file) throw new Error("Fichier manquant.");
-    if (typeof SAC_LIBRARY !== "undefined" && SAC_LIBRARY.uploadFile) {
-      return SAC_LIBRARY.uploadFile(file, kind);
+    if (typeof SAC_API === "undefined") throw new Error("API indisponible.");
+    const online = await SAC_API.ensureOnline(true);
+    if (!online) throw new Error("Connexion API requise pour téléverser.");
+    if (SAC_API.ensureWritableApiSession) {
+      const writable = await SAC_API.ensureWritableApiSession({ soft: false });
+      if (!writable) throw new Error("Session expirée — reconnectez-vous.");
     }
-    if (typeof SAC_API !== "undefined" && SAC_API.uploadDigitalLibraryFile) {
-      const fd = new FormData();
-      fd.append("file", file);
-      fd.append("kind", kind || "book");
+    const fd = new FormData();
+    fd.append("files", file);
+    try {
       const data = await SAC_API.uploadDigitalLibraryFile(fd);
-      return data?.fileUrl || data?.url || "";
+      const url = data?.fileUrl || data?.url || "";
+      if (!url) throw new Error("Téléversement échoué — URL absente.");
+      return url;
+    } catch (err) {
+      if (err.status === 413 || err.code === "FILE_TOO_LARGE") {
+        throw new Error(
+          (kind === "book" ? "Livre" : "Couverture") + " trop volumineux (max 50 Mo)."
+        );
+      }
+      throw new Error(err.message || "Erreur serveur lors du téléversement.");
     }
-    throw new Error("Upload indisponible — connectez-vous à l'API.");
   }
 
   function sortBestsellers(books) {
@@ -851,6 +877,74 @@ const SAC_EDB = (function () {
     bindStoreActions(root, all, session);
   }
 
+  function authorDisplayName(session) {
+    return (
+      session?.penName ||
+      session?.displayName ||
+      [session?.prenom, session?.nom].filter(Boolean).join(" ") ||
+      session?.identifiant ||
+      "Auteur"
+    );
+  }
+
+  function computeAuthorStats(books) {
+    const sales = readSales();
+    let totalSales = 0;
+    let revenue = 0;
+    (books || []).forEach((b) => {
+      const s = sales[b.id] || 0;
+      totalSales += s;
+      if (!b.isFree) {
+        revenue += s * (Number(b.price) || 0) * AUTHOR_SHARE_RATE;
+      }
+    });
+    return {
+      published: (books || []).filter((b) => b.published !== false).length,
+      totalSales,
+      revenue: Math.round(revenue * 100) / 100,
+    };
+  }
+
+  function formatMoney(n, currency) {
+    return Number(n || 0).toLocaleString("fr-FR", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }) + " " + (currency || "USD");
+  }
+
+  function renderSalesBars(totalSales) {
+    const base = Math.max(1, totalSales);
+    const heights = [0.35, 0.55, 0.4, 0.7, 0.5, 0.85, 0.6].map((h) =>
+      Math.round(20 + h * Math.min(base, 40))
+    );
+    return heights
+      .map((h) => '<span class="edb-chart__bar" style="height:' + h + '%"></span>')
+      .join("");
+  }
+
+  function recentActivityItems(books) {
+    const items = [];
+    const sales = readSales();
+    (books || []).slice(0, 5).forEach((b) => {
+      items.push({
+        icon: "📘",
+        text: 'Livre « ' + b.title + ' » publié',
+        time: (b.updatedAt || b.createdAt || "").slice(0, 10),
+      });
+      if (sales[b.id]) {
+        items.push({
+          icon: "💰",
+          text: sales[b.id] + " vente(s) — « " + b.title + " »",
+          time: "Récent",
+        });
+      }
+    });
+    if (!items.length) {
+      items.push({ icon: "✨", text: "Publiez votre premier livre", time: "—" });
+    }
+    return items.slice(0, 6);
+  }
+
   async function mountAuthorPublisher(session, rootId) {
     const root = document.getElementById(rootId);
     if (!root) return;
@@ -865,36 +959,164 @@ const SAC_EDB = (function () {
         '<div class="edb-pending">' +
         "<h2>⏳ Validation en cours</h2>" +
         "<p>Votre compte auteur est en attente d'approbation par le Super Admin EvoSU. Vous pourrez publier dès validation.</p>" +
-        '<p><a href="../evodigitalbooks/">Retour au portail</a></p></div>';
+        '<p><a href="evodigitalbooks/">Retour au portail</a></p></div>';
       return;
     }
 
     await syncAuthorBooksFromApi(session);
-    await syncPurchasesFromApi(session);
-
+    const displayName = authorDisplayName(session);
     const books = getAuthorBooks(session);
+    const stats = computeAuthorStats(books);
+    const activity = recentActivityItems(books);
+
     root.innerHTML =
-      '<div class="edb-publish">' +
-      '<div class="panel panel--ws"><div class="panel__head"><h2>Publier un livre</h2></div><div class="panel__body">' +
-      '<p class="page-desc">Les ouvrages publiés apparaissent dans <strong>EvoDigitalBooks</strong> et la <strong>bibliothèque nationale</strong>. Commission plateforme : <strong>25 %</strong> — versement auteur sur votre Mobile Money.</p>' +
-      '<form id="edbPublishForm" class="edb-form">' +
-      '<div class="edb-form__grid">' +
-      '<div class="fg"><label>Titre *</label><input type="text" class="fi" id="edbTitle" required /></div>' +
+      '<div class="edb-dash">' +
+      '<aside class="edb-dash__sidebar">' +
+      '<div class="edb-dash__brand"><span class="edb-dash__logo">📖</span> EvoBooks</div>' +
+      '<div class="edb-dash__profile">' +
+      '<div class="edb-dash__avatar">' +
+      esc(displayName.charAt(0).toUpperCase()) +
+      "</div>" +
+      "<div><strong>" +
+      esc(displayName) +
+      '</strong><span class="edb-dash__badge">Auteur vérifié</span></div></div>' +
+      '<nav class="edb-dash__nav">' +
+      '<button type="button" class="edb-dash__nav-item is-active" data-edb-panel="dashboard">📊 Tableau de bord</button>' +
+      '<button type="button" class="edb-dash__nav-item" data-edb-panel="books">📚 Mes livres</button>' +
+      '<button type="button" class="edb-dash__nav-item" data-edb-panel="publish">➕ Ajouter un livre</button>' +
+      '<button type="button" class="edb-dash__nav-item" data-edb-panel="sales">🛒 Ventes</button>' +
+      '<a class="edb-dash__nav-item" href="evodigitalbooks.html">🌐 Catalogue public</a>' +
+      '<a class="edb-dash__nav-item" href="plateforme.html">🏛 Bibliothèque nationale</a>' +
+      "</nav>" +
+      '<div class="edb-dash__help"><p>Besoin d\'aide ?</p><a href="mailto:contact@evosmartuni.com" class="btn btn--ghost btn--sm">Support</a></div>' +
+      "</aside>" +
+      '<div class="edb-dash__main">' +
+      '<header class="edb-dash__header">' +
+      "<div><h1>Bienvenue, " +
+      esc(displayName) +
+      ' 👋</h1><p class="edb-dash__sub">Espace auteur EvoDigitalBooks</p></div>' +
+      '<div class="edb-dash__header-actions">' +
+      '<span class="edb-dash__pill">✓ Auteur vérifié</span>' +
+      '<button type="button" class="btn btn--ghost btn--sm" id="edbDashLogout">Déconnexion</button>' +
+      "</div></header>" +
+      '<section class="edb-panel" id="edbPanelDashboard">' +
+      '<div class="edb-stats">' +
+      '<article class="edb-stat"><span class="edb-stat__icon edb-stat__icon--purple">📚</span><div><em>Livres publiés</em><strong>' +
+      stats.published +
+      "</strong></div></article>" +
+      '<article class="edb-stat"><span class="edb-stat__icon edb-stat__icon--green">🛒</span><div><em>Ventes totales</em><strong>' +
+      stats.totalSales +
+      "</strong></div></article>" +
+      '<article class="edb-stat"><span class="edb-stat__icon edb-stat__icon--blue">💵</span><div><em>Revenus (75 %)</em><strong>' +
+      formatMoney(stats.revenue) +
+      "</strong></div></article>" +
+      '<article class="edb-stat"><span class="edb-stat__icon edb-stat__icon--orange">⭐</span><div><em>Commission plateforme</em><strong>25 %</strong></div></article>' +
+      "</div>" +
+      '<div class="edb-dash__grid">' +
+      '<div class="edb-card-panel"><h2>Aperçu des ventes</h2><div class="edb-chart">' +
+      renderSalesBars(stats.totalSales) +
+      '</div><p class="edb-chart__hint">Ventes enregistrées sur la plateforme</p></div>' +
+      '<div class="edb-card-panel"><h2>Activité récente</h2><ul class="edb-activity">' +
+      activity
+        .map(
+          (a) =>
+            "<li><span>" +
+            a.icon +
+            "</span><div><p>" +
+            esc(a.text) +
+            '</p><time>' +
+            esc(a.time) +
+            "</time></div></li>"
+        )
+        .join("") +
+      "</ul></div>" +
+      '<div class="edb-card-panel edb-card-panel--balance"><h2>Solde disponible</h2><p class="edb-balance">' +
+      formatMoney(stats.revenue) +
+      '</p><p class="edb-balance__hint">Versement sur votre Mobile Money (75 % des ventes)</p></div>' +
+      '<div class="edb-card-panel"><h2>Conseils pour vendre</h2><ul class="edb-tips">' +
+      "<li>✓ Ajoutez une belle couverture</li>" +
+      "<li>✓ Rédigez une description détaillée</li>" +
+      "<li>✓ Fixez un prix compétitif</li>" +
+      "<li>✓ Proposez un extrait gratuit</li>" +
+      "</ul></div></div></section>" +
+      '<section class="edb-panel" id="edbPanelBooks" hidden><div class="edb-card-panel"><h2>Mes livres</h2><div id="edbBooksTable"></div></div></section>' +
+      '<section class="edb-panel" id="edbPanelPublish" hidden><div class="edb-card-panel"><h2>Publier un livre</h2>' +
+      '<p class="edb-dash__sub">Visible dans EvoDigitalBooks et la bibliothèque nationale · 75 % auteur / 25 % plateforme</p>' +
+      '<form id="edbPublishForm" class="edb-form"><div class="edb-form__grid">' +
+      '<div class="fg"><label>Titre *</label><input type="text" class="fi" id="edbTitle" required minlength="2" /></div>' +
       '<div class="fg"><label>Catégorie *</label><select class="fi" id="edbCategory" required>' +
       categoriesSelectHtml() +
       "</select></div>" +
-      '<div class="fg" style="grid-column:1/-1;"><label>Description</label><textarea class="fi" id="edbDesc" rows="3"></textarea></div>' +
+      '<div class="fg" style="grid-column:1/-1"><label>Description</label><textarea class="fi" id="edbDesc" rows="3"></textarea></div>' +
       '<div class="fg"><label class="chk"><input type="checkbox" id="edbFree" /> Livre gratuit</label></div>' +
       '<div class="fg" id="edbPriceWrap"><label>Prix (USD) *</label><input type="number" class="fi" id="edbPrice" min="0.5" step="0.01" value="5" /></div>' +
       '<div class="fg"><label>Couverture *</label><input type="file" class="fi" id="edbCover" accept="image/*" required /></div>' +
-      '<div class="fg"><label>Fichier livre (PDF/EPUB) *</label><input type="file" class="fi" id="edbFile" accept=".pdf,.epub,application/pdf" required /></div>' +
+      '<div class="fg"><label>Fichier (PDF/EPUB, max 50 Mo) *</label><input type="file" class="fi" id="edbFile" accept=".pdf,.epub,application/pdf" required /></div>' +
       "</div>" +
-      '<p class="edb-fee-hint" id="edbFeeHint">Ex. prix 10 USD → vous recevez 7,50 USD · plateforme 2,50 USD</p>' +
-      '<button type="submit" class="btn btn--role">Publier dans la bibliothèque</button>' +
-      "</form></div></div>" +
-      '<div class="panel panel--ws" style="margin-top:1.25rem;"><div class="panel__head"><h2>Mes livres (' +
-      books.length +
-      ')</h2></div><div class="panel__body" id="edbMyBooks"></div></div></div>';
+      '<p class="edb-fee-hint" id="edbFeeHint"></p>' +
+      '<button type="submit" class="edb-btn-primary">Publier dans la bibliothèque</button></form></div></section>' +
+      '<section class="edb-panel" id="edbPanelSales" hidden><div class="edb-card-panel"><h2>Commandes & ventes</h2><p class="edb-empty">Les ventes Mobile Money apparaissent ici après achat. Revenus estimés : <strong>' +
+      formatMoney(stats.revenue) +
+      "</strong></p></div></section>" +
+      "</div></div>";
+
+    function showPanel(name) {
+      root.querySelectorAll(".edb-panel").forEach((p) => {
+        p.hidden = true;
+      });
+      const panel = document.getElementById(
+        "edbPanel" + name.charAt(0).toUpperCase() + name.slice(1)
+      );
+      if (panel) panel.hidden = false;
+      root.querySelectorAll(".edb-dash__nav-item[data-edb-panel]").forEach((btn) => {
+        btn.classList.toggle("is-active", btn.dataset.edbPanel === name);
+      });
+    }
+
+    root.querySelectorAll(".edb-dash__nav-item[data-edb-panel]").forEach((btn) => {
+      btn.addEventListener("click", () => showPanel(btn.dataset.edbPanel));
+    });
+
+    document.getElementById("edbDashLogout")?.addEventListener("click", () => {
+      if (typeof SAC_SESSION !== "undefined") SAC_SESSION.logout("evodigitalbooks/");
+    });
+
+    function renderBooksTable() {
+      const host = document.getElementById("edbBooksTable");
+      if (!host) return;
+      const list = getAuthorBooks(session);
+      const sales = readSales();
+      if (!list.length) {
+        host.innerHTML = '<p class="edb-empty">Aucune publication — ajoutez votre premier livre.</p>';
+        return;
+      }
+      host.innerHTML =
+        '<table class="edb-table"><thead><tr><th>Livre</th><th>Prix</th><th>Ventes</th><th>Revenus</th><th>Statut</th></tr></thead><tbody>' +
+        list
+          .map((b) => {
+            const s = sales[b.id] || 0;
+            const rev = b.isFree ? 0 : s * (Number(b.price) || 0) * AUTHOR_SHARE_RATE;
+            const cover = absUrl(b.coverUrl || b.cover_url);
+            return (
+              "<tr><td><div class=\"edb-table__book\">" +
+              (cover ? '<img src="' + esc(cover) + '" alt="" />' : "📖") +
+              "<div><strong>" +
+              esc(b.title) +
+              "</strong><span>" +
+              esc((b.createdAt || "").slice(0, 10)) +
+              "</span></div></div></td><td>" +
+              (b.isFree ? "Gratuit" : formatMoney(b.price, b.currency)) +
+              "</td><td>" +
+              s +
+              "</td><td>" +
+              formatMoney(rev, b.currency) +
+              '</td><td><span class="edb-status edb-status--ok">Publié</span></td></tr>'
+            );
+          })
+          .join("") +
+        "</tbody></table>";
+    }
+    renderBooksTable();
 
     const freeCb = document.getElementById("edbFree");
     const priceWrap = document.getElementById("edbPriceWrap");
@@ -909,36 +1131,14 @@ const SAC_EDB = (function () {
       }
       const f = splitFee(priceInp.value || 0);
       feeHint.textContent =
-        "Prix " +
-        f.total +
-        " USD → vous recevez " +
-        f.authorShare +
-        " USD · plateforme " +
-        f.platformFee +
-        " USD (25 %)";
+        "Prix " + f.total + " USD → vous " + f.authorShare + " USD · plateforme " + f.platformFee + " USD";
     }
-
     freeCb?.addEventListener("change", () => {
       if (priceWrap) priceWrap.hidden = !!freeCb.checked;
       updateFeeHint();
     });
     priceInp?.addEventListener("input", updateFeeHint);
     updateFeeHint();
-
-    function renderMyBooks() {
-      const host = document.getElementById("edbMyBooks");
-      if (!host) return;
-      const list = getAuthorBooks(session);
-      if (!list.length) {
-        host.innerHTML = '<p class="edb-empty">Aucune publication.</p>';
-        return;
-      }
-      host.innerHTML =
-        '<div class="edb-grid edb-grid--compact">' +
-        list.map((b) => renderBookCard(publicBookView(b, true), session, { author: true })).join("") +
-        "</div>";
-    }
-    renderMyBooks();
 
     document.getElementById("edbPublishForm")?.addEventListener("submit", async (e) => {
       e.preventDefault();
@@ -964,7 +1164,7 @@ const SAC_EDB = (function () {
         alert("Livre publié — visible dans EvoDigitalBooks et la bibliothèque.");
         e.target.reset();
         updateFeeHint();
-        renderMyBooks();
+        await mountAuthorPublisher(session, rootId);
       } catch (err) {
         alert(err.message || "Publication impossible.");
       } finally {
