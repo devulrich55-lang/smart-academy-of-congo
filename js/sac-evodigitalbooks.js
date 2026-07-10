@@ -350,30 +350,87 @@ const SAC_EDB = (function () {
     return author;
   }
 
+  function mergeAuthorsFromApi(apiAuthors) {
+    if (!Array.isArray(apiAuthors) || !apiAuthors.length) return;
+    const list = readAuthors();
+    const byEmail = {};
+    list.forEach((a) => {
+      byEmail[normEmail(a.email)] = a;
+    });
+    apiAuthors.forEach((a) => {
+      const key = normEmail(a.email);
+      if (!key) return;
+      byEmail[key] = { ...byEmail[key], ...a, email: key };
+    });
+    writeAuthors(Object.values(byEmail));
+  }
+
   async function listPendingAuthors() {
     if (typeof SAC_API !== "undefined" && SAC_API.listPendingEdbAuthors) {
       try {
         const online = await SAC_API.ensureOnline(false, { maxWaitMs: 15000 });
         if (online) {
+          if (SAC_API.ensureApiSession) await SAC_API.ensureApiSession({ soft: true });
           const data = await SAC_API.listPendingEdbAuthors();
-          return data?.authors || [];
+          const apiAuthors = data?.authors || [];
+          mergeAuthorsFromApi(apiAuthors);
+          return apiAuthors;
         }
-      } catch {
-        /* local */
+      } catch (err) {
+        console.warn("[SAC_EDB] pending API:", err.message || err);
       }
     }
     return readAuthors().filter((a) => a.status === "pending");
   }
 
-  async function setAuthorStatus(email, status, reviewerSession) {
+  async function setAuthorStatus(email, status, reviewerSession, authorHint) {
     const key = normEmail(email);
+    if (!key) throw new Error("E-mail invalide.");
+
+    let serverAuthor = null;
+
+    if (typeof SAC_API !== "undefined" && SAC_API.approveEdbAuthor) {
+      try {
+        await SAC_API.ensureOnline(true);
+        if (SAC_API.ensureApiSession) await SAC_API.ensureApiSession();
+        const data = await SAC_API.approveEdbAuthor(key, { status });
+        serverAuthor = data?.author || null;
+      } catch (err) {
+        const code = err.code || "";
+        if (code === "AUTHOR_NOT_FOUND" || err.status === 404) {
+          throw new Error(
+            "Auteur introuvable sur le serveur — vérifiez le déploiement API EvoDigitalBooks."
+          );
+        }
+        throw new Error(err.message || "Validation impossible sur le serveur.");
+      }
+    }
+
     const list = readAuthors();
     const idx = list.findIndex((a) => normEmail(a.email) === key);
-    if (idx < 0) throw new Error("Auteur introuvable.");
-    list[idx].status = status;
-    list[idx].reviewedAt = new Date().toISOString();
-    list[idx].reviewedBy = reviewerSession?.identifiant || "";
-    writeAuthors(list);
+    const now = new Date().toISOString();
+    const reviewer = reviewerSession?.identifiant || reviewerSession?.email || "";
+    let result;
+
+    if (idx >= 0) {
+      list[idx].status = status;
+      list[idx].reviewedAt = now;
+      list[idx].reviewedBy = reviewer;
+      if (serverAuthor) Object.assign(list[idx], serverAuthor);
+      writeAuthors(list);
+      result = list[idx];
+    } else {
+      result = {
+        ...(authorHint && typeof authorHint === "object" ? authorHint : {}),
+        ...(serverAuthor && typeof serverAuthor === "object" ? serverAuthor : {}),
+        email: key,
+        status,
+        reviewedAt: now,
+        reviewedBy: reviewer,
+      };
+      list.push(result);
+      writeAuthors(list);
+    }
 
     if (typeof SAC_IDENTITY !== "undefined") {
       const users = SAC_IDENTITY.getLocalUsers();
@@ -384,14 +441,7 @@ const SAC_EDB = (function () {
       }
     }
 
-    if (typeof SAC_API !== "undefined" && SAC_API.approveEdbAuthor) {
-      try {
-        await SAC_API.approveEdbAuthor(email, { status });
-      } catch (err) {
-        console.warn("[SAC_EDB] approve API:", err.message || err);
-      }
-    }
-    return list[idx];
+    return result;
   }
 
   function readPurchasesMap() {
@@ -931,6 +981,10 @@ const SAC_EDB = (function () {
     if (!root || session?.role !== "superadmin") return;
     root.innerHTML = '<p class="edb-loading">Chargement des demandes auteur…</p>';
     const pending = await listPendingAuthors();
+    const pendingByEmail = {};
+    pending.forEach((a) => {
+      pendingByEmail[normEmail(a.email)] = a;
+    });
     if (!pending.length) {
       root.innerHTML =
         '<p class="empty-tasks">Aucune demande auteur en attente.</p>';
@@ -963,7 +1017,8 @@ const SAC_EDB = (function () {
     root.querySelectorAll("[data-edb-approve]").forEach((btn) => {
       btn.addEventListener("click", async () => {
         try {
-          await setAuthorStatus(btn.dataset.edbApprove, "approved", session);
+          const email = btn.dataset.edbApprove;
+          await setAuthorStatus(email, "approved", session, pendingByEmail[normEmail(email)]);
           await mountAuthorValidation(rootId, session);
         } catch (err) {
           alert(err.message);
@@ -974,7 +1029,8 @@ const SAC_EDB = (function () {
       btn.addEventListener("click", async () => {
         if (!confirm("Refuser cette demande auteur ?")) return;
         try {
-          await setAuthorStatus(btn.dataset.edbReject, "rejected", session);
+          const email = btn.dataset.edbReject;
+          await setAuthorStatus(email, "rejected", session, pendingByEmail[normEmail(email)]);
           await mountAuthorValidation(rootId, session);
         } catch (err) {
           alert(err.message);
