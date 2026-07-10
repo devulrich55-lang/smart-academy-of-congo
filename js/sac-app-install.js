@@ -32,7 +32,7 @@
     return "desktop";
   }
 
-  function detectPlatform() {
+  function setActivePlatform(id) {
     activePlatform = id;
     document.querySelectorAll("[data-app-platform]").forEach(function (btn) {
       btn.classList.toggle("is-active", btn.dataset.appPlatform === id);
@@ -85,10 +85,10 @@
     if (platform === "desktop") {
       if (btn) {
         btn.style.display = "";
-        btn.disabled = !canInstall;
+        btn.disabled = false;
         btn.textContent = canInstall
           ? "💻 Installer Evo-smartUni sur PC"
-          : "Installation manuelle (voir ci-dessous)";
+          : "Voir comment installer sur PC";
       }
       if (badge) {
         badge.className = "app-install-badge" + (canInstall ? "" : " app-install-badge--warn");
