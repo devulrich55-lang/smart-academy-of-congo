@@ -524,6 +524,274 @@
   background: #dcfce7;
   color: #166534;
 }
+
+/* ——— Modal paiement Mobile Money ——— */
+.edb-pay-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 13000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+.edb-pay-modal[hidden] {
+  display: none !important;
+}
+.edb-pay-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 10, 30, 0.78);
+  backdrop-filter: blur(6px);
+}
+.edb-pay-modal__panel {
+  position: relative;
+  width: min(440px, 100%);
+  max-height: min(92vh, 720px);
+  overflow-y: auto;
+  background: #fff;
+  border-radius: 18px;
+  padding: 0 0 1.15rem;
+  box-shadow: 0 28px 80px rgba(76, 29, 149, 0.35);
+  border: 1px solid rgba(124, 58, 237, 0.15);
+}
+.edb-pay-modal__close {
+  position: absolute;
+  top: 0.65rem;
+  right: 0.75rem;
+  z-index: 2;
+  border: none;
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  font-size: 1.35rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.edb-pay-modal__header {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 1.35rem 1.25rem 1.1rem;
+  background: linear-gradient(135deg, #4c1d95 0%, #7c3aed 55%, #6d28d9 100%);
+  color: #fff;
+  border-radius: 18px 18px 0 0;
+}
+.edb-pay-modal__header h2 {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+.edb-pay-modal__sub {
+  margin: 0.2rem 0 0;
+  font-size: 0.8rem;
+  opacity: 0.88;
+}
+.edb-pay-modal__icon {
+  font-size: 1.75rem;
+  width: 2.75rem;
+  height: 2.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+}
+#edbPayMainStep,
+#edbPayPinStep {
+  padding: 0 1.25rem;
+}
+.edb-pay-book {
+  display: flex;
+  gap: 0.85rem;
+  align-items: center;
+  margin: 1.1rem 0 0.85rem;
+  padding: 0.75rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+}
+.edb-pay-book__cover {
+  width: 56px;
+  height: 78px;
+  flex-shrink: 0;
+  border-radius: 8px;
+  overflow: hidden;
+  background: linear-gradient(145deg, #ede9fe, #ddd6fe);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.edb-pay-book__cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.edb-pay-book__placeholder {
+  font-size: 1.5rem;
+}
+.edb-pay-book__meta h3 {
+  margin: 0 0 0.25rem;
+  font-size: 0.95rem;
+  line-height: 1.3;
+  color: #0f172a;
+}
+.edb-pay-book__meta p {
+  margin: 0;
+  font-size: 0.78rem;
+  color: #64748b;
+}
+.edb-pay-breakdown {
+  background: #faf5ff;
+  border: 1px solid #e9d5ff;
+  border-radius: 12px;
+  padding: 0.65rem 0.85rem;
+  margin-bottom: 1rem;
+}
+.edb-pay-breakdown__row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.4rem 0;
+  font-size: 0.86rem;
+  color: #334155;
+}
+.edb-pay-breakdown__row--total {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #5b21b6;
+  border-bottom: 1px solid #e9d5ff;
+  padding-bottom: 0.55rem;
+  margin-bottom: 0.25rem;
+}
+.edb-pay-breakdown__row--total strong {
+  font-size: 1.1rem;
+}
+.edb-pay-breakdown__row--muted {
+  font-size: 0.78rem;
+  color: #64748b;
+  padding-top: 0;
+  margin-top: -0.15rem;
+  padding-bottom: 0.35rem;
+}
+.edb-pay-mm {
+  font-family: ui-monospace, monospace;
+  font-size: 0.76rem;
+}
+.edb-pay-methods label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #475569;
+  margin-bottom: 0.4rem;
+}
+.edb-pay-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.85rem;
+}
+.edb-pay-tab {
+  flex: 1;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  background: #fff;
+  color: #334155;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 0.55rem 0.4rem;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.edb-pay-tab--active {
+  border-color: #7c3aed;
+  background: #f5f3ff;
+  color: #5b21b6;
+}
+.edb-pay-field {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #475569;
+  margin-bottom: 0.65rem;
+}
+.edb-pay-field input {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 0.4rem;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 0.7rem 0.85rem;
+  font: inherit;
+  font-size: 0.95rem;
+  background: #fff;
+  color: #0f172a;
+}
+.edb-pay-field input:focus {
+  outline: none;
+  border-color: #8b5cf6;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15);
+}
+.edb-pay-hint {
+  margin: 0 0 0.75rem;
+  font-size: 0.76rem;
+  color: #94a3b8;
+  line-height: 1.45;
+}
+.edb-pay-pin-lead {
+  margin: 1rem 0 0.75rem;
+  font-size: 0.88rem;
+  color: #475569;
+  line-height: 1.45;
+}
+.edb-pay-status {
+  margin: 0 0 0.65rem;
+  font-size: 0.84rem;
+  color: #6d28d9;
+  font-weight: 500;
+}
+.edb-pay-status--error {
+  color: #b91c1c;
+}
+.edb-pay-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  margin-top: 0.25rem;
+}
+.edb-pay-btn {
+  border: none;
+  border-radius: 10px;
+  padding: 0.7rem 1.15rem;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.edb-pay-btn--ghost {
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+}
+.edb-pay-btn--primary {
+  background: linear-gradient(135deg, #7c3aed, #5b21b6);
+  color: #fff;
+  flex: 1;
+  min-width: 140px;
+}
+.edb-pay-btn--primary:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+.edb-pay-btn--primary:hover:not(:disabled) {
+  filter: brightness(1.05);
+}
+
 @media (max-width: 900px) {
   .edb-dash {
     grid-template-columns: 1fr;

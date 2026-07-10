@@ -748,89 +748,279 @@ const SAC_EDB = (function () {
     window.open(url, "_blank", "noopener");
   }
 
+  function ensureEdbPurchaseModal() {
+    let modal = document.getElementById("edbPayModal");
+    if (modal) return modal;
+
+    modal = document.createElement("div");
+    modal.id = "edbPayModal";
+    modal.className = "edb-pay-modal";
+    modal.hidden = true;
+    modal.innerHTML =
+      '<div class="edb-pay-modal__backdrop" data-edb-pay-close></div>' +
+      '<div class="edb-pay-modal__panel" role="dialog" aria-modal="true" aria-labelledby="edbPayTitle">' +
+      '<button type="button" class="edb-pay-modal__close" data-edb-pay-close aria-label="Fermer">×</button>' +
+      '<div class="edb-pay-modal__header">' +
+      '<span class="edb-pay-modal__icon">💳</span>' +
+      '<div><h2 id="edbPayHeading">Acheter ce livre</h2><p class="edb-pay-modal__sub">Paiement sécurisé Mobile Money</p></div>' +
+      "</div>" +
+      '<div id="edbPayMainStep">' +
+      '<div class="edb-pay-book">' +
+      '<div class="edb-pay-book__cover" id="edbPayCover">📖</div>' +
+      '<div class="edb-pay-book__meta">' +
+      '<h3 id="edbPayTitle">—</h3>' +
+      '<p id="edbPayAuthor"></p>' +
+      "</div></div>" +
+      '<div class="edb-pay-breakdown">' +
+      '<div class="edb-pay-breakdown__row edb-pay-breakdown__row--total">' +
+      '<span>Total</span><strong id="edbPayTotal">—</strong></div>' +
+      '<div class="edb-pay-breakdown__row">' +
+      '<span>Auteur (75 %)</span><span id="edbPayAuthorShare">—</span></div>' +
+      '<div class="edb-pay-breakdown__row edb-pay-breakdown__row--muted">' +
+      '<span>Versement auteur</span><span id="edbPayAuthorMm" class="edb-pay-mm">—</span></div>' +
+      '<div class="edb-pay-breakdown__row">' +
+      '<span>Plateforme (25 %)</span><span id="edbPayPlatformFee">—</span></div>' +
+      "</div>" +
+      '<div class="edb-pay-methods">' +
+      "<label>Mode de paiement</label>" +
+      '<div class="edb-pay-tabs">' +
+      '<button type="button" class="edb-pay-tab edb-pay-tab--active" data-edb-pay-method="orange">🟠 Orange Money</button>' +
+      '<button type="button" class="edb-pay-tab" data-edb-pay-method="mpesa">📱 M-Pesa</button>' +
+      "</div></div>" +
+      '<label class="edb-pay-field">Votre numéro Mobile Money' +
+      '<input type="tel" id="edbPayPhone" placeholder="+243 8XX XXX XXX" autocomplete="tel" inputmode="tel" /></label>' +
+      '<p class="edb-pay-hint">Vous recevrez une demande de validation sur votre téléphone. Max. 3 appareils par compte.</p>' +
+      '<p class="edb-pay-status" id="edbPayStatus" hidden></p>' +
+      '<div class="edb-pay-actions">' +
+      '<button type="button" class="edb-pay-btn edb-pay-btn--ghost" data-edb-pay-close>Annuler</button>' +
+      '<button type="button" class="edb-pay-btn edb-pay-btn--primary" id="edbPayConfirm">Payer et lire</button>' +
+      "</div></div>" +
+      '<div id="edbPayPinStep" hidden>' +
+      '<p class="edb-pay-pin-lead">Entrez votre code PIN Mobile Money pour confirmer le paiement.</p>' +
+      '<label class="edb-pay-field">Code PIN' +
+      '<input type="password" id="edbPayPin" maxlength="8" inputmode="numeric" autocomplete="one-time-code" placeholder="••••" /></label>' +
+      '<p class="edb-pay-status" id="edbPayPinStatus" hidden></p>' +
+      '<div class="edb-pay-actions">' +
+      '<button type="button" class="edb-pay-btn edb-pay-btn--ghost" id="edbPayPinCancel">Retour</button>' +
+      '<button type="button" class="edb-pay-btn edb-pay-btn--primary" id="edbPayPinConfirm">Confirmer</button>' +
+      "</div></div>" +
+      "</div>";
+    document.body.appendChild(modal);
+
+    let activeMethod = "orange";
+    modal.querySelectorAll("[data-edb-pay-method]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        activeMethod = btn.dataset.edbPayMethod || "orange";
+        modal.querySelectorAll("[data-edb-pay-method]").forEach((b) => {
+          b.classList.toggle("edb-pay-tab--active", b === btn);
+        });
+      });
+    });
+    modal._getPayMethod = () => activeMethod;
+
+    modal.querySelectorAll("[data-edb-pay-close]").forEach((el) => {
+      el.addEventListener("click", () => {
+        modal.hidden = true;
+        showEdbPayStep(modal, "main");
+      });
+    });
+
+    return modal;
+  }
+
+  function showEdbPayStep(modal, step) {
+    const main = modal.querySelector("#edbPayMainStep");
+    const pin = modal.querySelector("#edbPayPinStep");
+    if (main) main.hidden = step !== "main";
+    if (pin) pin.hidden = step !== "pin";
+  }
+
+  function requestPinInModal(modal) {
+    return new Promise((resolve) => {
+      const pinInput = modal.querySelector("#edbPayPin");
+      const confirmBtn = modal.querySelector("#edbPayPinConfirm");
+      const cancelBtn = modal.querySelector("#edbPayPinCancel");
+      if (!pinInput || !confirmBtn || !cancelBtn) {
+        resolve("");
+        return;
+      }
+      pinInput.value = "";
+      showEdbPayStep(modal, "pin");
+      setTimeout(() => pinInput.focus(), 80);
+
+      function cleanup() {
+        confirmBtn.removeEventListener("click", onConfirm);
+        cancelBtn.removeEventListener("click", onCancel);
+        pinInput.removeEventListener("keydown", onKey);
+        showEdbPayStep(modal, "main");
+      }
+      function onConfirm() {
+        const pin = pinInput.value.trim();
+        cleanup();
+        resolve(pin);
+      }
+      function onCancel() {
+        cleanup();
+        resolve("");
+      }
+      function onKey(e) {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          onConfirm();
+        }
+      }
+      confirmBtn.addEventListener("click", onConfirm);
+      cancelBtn.addEventListener("click", onCancel);
+      pinInput.addEventListener("keydown", onKey);
+    });
+  }
+
+  function setEdbPayStatus(modal, message, isError) {
+    const el = modal.querySelector("#edbPayStatus");
+    if (!el) return;
+    if (!message) {
+      el.hidden = true;
+      el.textContent = "";
+      el.classList.remove("edb-pay-status--error");
+      return;
+    }
+    el.hidden = false;
+    el.textContent = message;
+    el.classList.toggle("edb-pay-status--error", !!isError);
+  }
+
   async function openPurchaseDialog(book, session) {
     if (!book || book.isFree) {
       openBook(book, session);
+      return;
+    }
+    if (!session?.identifiant && !session?.email) {
+      if (
+        confirm(
+          "Connectez-vous pour acheter ce livre et le lire sur vos appareils (max. 3 par compte)."
+        )
+      ) {
+        location.href =
+          "connexion.html?role=etudiant&next=" +
+          encodeURIComponent(location.pathname + location.search + location.hash);
+      }
       return;
     }
     const full = readBooks().find((b) => b.id === book.id) || book;
     const author = authorByEmail(full.authorEmail);
     const fees = splitFee(full.price);
     const mmReceiver = full.authorMobileMoney || author?.mobileMoney || "";
+    const currency = String(full.currency || "USD").toUpperCase();
+    const modal = ensureEdbPurchaseModal();
+    const confirmBtn = modal.querySelector("#edbPayConfirm");
+    const phoneInput = modal.querySelector("#edbPayPhone");
+    const coverEl = modal.querySelector("#edbPayCover");
 
-    const phone = prompt(
-      "Numéro Mobile Money (paiement) :\n\n" +
-        "Livre : " +
-        (full.title || "") +
-        "\nMontant : " +
-        fees.total +
-        " " +
-        (full.currency || "USD") +
-        "\n→ Auteur (" +
-        fees.authorShare +
-        " " +
-        (full.currency || "USD") +
-        ") : " +
-        mmReceiver +
-        "\n→ Plateforme (25 %) : " +
-        fees.platformFee +
-        " " +
-        (full.currency || "USD")
-    );
-    if (!phone) return;
-
-    try {
-      if (typeof SAC_MOBILE_MONEY !== "undefined" && SAC_MOBILE_MONEY.runFlow) {
-        const online = typeof SAC_API !== "undefined" && (await SAC_API.ensureOnline());
-        if (!online) throw new Error("Connexion API requise pour le paiement.");
-        const currency = String(full.currency || "USD").toUpperCase();
-        const amountCdf = currency === "CDF" ? fees.total : Math.round(fees.total * 2800);
-        await SAC_MOBILE_MONEY.runFlow({
-          provider: "orange",
-          payerPhone: phone,
-          amountCdf,
-          amountUsd: currency === "USD" ? fees.total : 0,
-          purpose: "evodigitalbooks",
-          email: session?.identifiant || session?.email || phone,
-          metadata: {
-            bookId: full.id,
-            bookTitle: full.title,
-            authorEmail: full.authorEmail,
-            authorMobileMoney: mmReceiver,
-            authorShare: fees.authorShare,
-            platformFee: fees.platformFee,
-            currency,
-            deviceId: getDeviceId(),
-          },
-          onPinPrompt() {
-            return prompt("Code PIN Mobile Money :") || "";
-          },
-        });
-      } else {
-        if (!confirm("Confirmer l'achat de « " + full.title + " » pour " + fees.total + " " + (full.currency || "USD") + " ?")) {
-          return;
-        }
-      }
-      const dev = registerDevice(session);
-      if (!dev.ok && dev.reason === "device_limit") {
-        throw new Error(
-          "Limite de " + MAX_DEVICES_PER_ACCOUNT + " appareils atteinte pour ce compte. Retirez un appareil ou contactez le support."
-        );
-      }
-      await recordPurchase(full.id, session, {
-        amount: fees.total,
-        authorShare: fees.authorShare,
-        platformFee: fees.platformFee,
-        authorMobileMoney: mmReceiver,
-        authorEmail: full.authorEmail || "",
-        currency: full.currency || "USD",
-      });
-      alert("Achat confirmé — vous pouvez maintenant lire le livre.");
-      openBook(full, session);
-      window.dispatchEvent(new CustomEvent("sac-edb-catalog-refresh"));
-    } catch (err) {
-      alert(err.message || "Paiement impossible.");
+    const cover = absUrl(full.coverUrl || full.cover_url);
+    if (coverEl) {
+      coverEl.innerHTML = cover
+        ? '<img src="' + esc(cover) + '" alt="" />'
+        : '<span class="edb-pay-book__placeholder">📖</span>';
     }
+    modal.querySelector("#edbPayTitle").textContent = full.title || "Livre";
+    modal.querySelector("#edbPayAuthor").textContent =
+      (full.author || "Auteur") + " · " + categoryLabel(full.category);
+    modal.querySelector("#edbPayTotal").textContent = formatMoney(fees.total, currency);
+    modal.querySelector("#edbPayAuthorShare").textContent = formatMoney(fees.authorShare, currency);
+    modal.querySelector("#edbPayPlatformFee").textContent = formatMoney(fees.platformFee, currency);
+    const mmEl = modal.querySelector("#edbPayAuthorMm");
+    if (mmEl) mmEl.textContent = mmReceiver || "—";
+    if (phoneInput) {
+      phoneInput.value =
+        session?.telephone || session?.phone || localStorage.getItem("sac_edb_last_mm") || "";
+    }
+    setEdbPayStatus(modal, "", false);
+    showEdbPayStep(modal, "main");
+    modal.hidden = false;
+
+    confirmBtn.onclick = async () => {
+      const phone = phoneInput?.value?.trim();
+      if (!phone) {
+        setEdbPayStatus(modal, "Indiquez votre numéro Mobile Money.", true);
+        phoneInput?.focus();
+        return;
+      }
+      localStorage.setItem("sac_edb_last_mm", phone);
+      confirmBtn.disabled = true;
+      setEdbPayStatus(modal, "Initialisation du paiement…", false);
+
+      try {
+        if (typeof SAC_MOBILE_MONEY !== "undefined" && SAC_MOBILE_MONEY.runFlow) {
+          const online = typeof SAC_API !== "undefined" && (await SAC_API.ensureOnline());
+          if (!online) throw new Error("Connexion API requise pour le paiement.");
+          const amountCdf = currency === "CDF" ? fees.total : Math.round(fees.total * 2800);
+          await SAC_MOBILE_MONEY.runFlow({
+            provider: modal._getPayMethod(),
+            payerPhone: phone,
+            amountCdf,
+            amountUsd: currency === "USD" ? fees.total : 0,
+            purpose: "evodigitalbooks",
+            email: session?.identifiant || session?.email || phone,
+            metadata: {
+              bookId: full.id,
+              bookTitle: full.title,
+              authorEmail: full.authorEmail,
+              authorMobileMoney: mmReceiver,
+              authorShare: fees.authorShare,
+              platformFee: fees.platformFee,
+              currency,
+              deviceId: getDeviceId(),
+            },
+            onProcessing() {
+              setEdbPayStatus(modal, "Connexion à l'opérateur…", false);
+            },
+            onWaitingOperator() {
+              setEdbPayStatus(modal, "Validez le paiement sur votre téléphone…", false);
+            },
+            async onPinPrompt() {
+              return requestPinInModal(modal);
+            },
+          });
+        } else {
+          if (
+            !confirm(
+              "Confirmer l'achat de « " +
+                full.title +
+                " » pour " +
+                formatMoney(fees.total, currency) +
+                " ?"
+            )
+          ) {
+            return;
+          }
+        }
+        const dev = registerDevice(session);
+        if (!dev.ok && dev.reason === "device_limit") {
+          throw new Error(
+            "Limite de " +
+              MAX_DEVICES_PER_ACCOUNT +
+              " appareils atteinte pour ce compte. Retirez un appareil ou contactez le support."
+          );
+        }
+        setEdbPayStatus(modal, "Enregistrement de l'achat…", false);
+        await recordPurchase(full.id, session, {
+          amount: fees.total,
+          authorShare: fees.authorShare,
+          platformFee: fees.platformFee,
+          authorMobileMoney: mmReceiver,
+          authorEmail: full.authorEmail || "",
+          currency,
+        });
+        modal.hidden = true;
+        setEdbPayStatus(modal, "", false);
+        openBook(full, session);
+        window.dispatchEvent(new CustomEvent("sac-edb-catalog-refresh"));
+      } catch (err) {
+        setEdbPayStatus(modal, err.message || "Paiement impossible.", true);
+      } finally {
+        confirmBtn.disabled = false;
+      }
+    };
   }
 
   async function mountStorefront(rootId, session) {
