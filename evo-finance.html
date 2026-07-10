@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Evo Finance — Evo-smartUni</title>
+  <script src="js/sac-config.js"></script>
+  <script src="js/sac-theme.js"></script>
+  <link rel="icon" href="evo-uni.jpeg" type="image/jpeg" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/theme.css" />
+  <link rel="stylesheet" href="css/payments.css" />
+  <link rel="stylesheet" href="css/evo-finance.css" />
+  <link rel="stylesheet" href="css/mobile.css" />
+  <meta name="theme-color" content="#0f766e" />
+</head>
+<body class="ef-page">
+  <div id="efRoot" class="ef-root">
+    <p class="ef-loading">Chargement d'Evo Finance…</p>
+  </div>
+
+  <script src="js/sac-universities.js"></script>
+  <script src="js/sac-session.js"></script>
+  <script src="js/sac-api.js"></script>
+  <script src="js/sac-payment-aggregator.js"></script>
+  <script src="js/sac-evo-finance.js"></script>
+  <script>
+    (async function () {
+      let session = null;
+      if (typeof SAC_SESSION !== "undefined") {
+        session =
+          (await SAC_SESSION.resolveNavigationSession?.()) ||
+          SAC_SESSION.getSession?.();
+      }
+      if (!session?.identifiant) {
+        window.location.replace("connexion-admin.html?next=" + encodeURIComponent("evo-finance.html"));
+        return;
+      }
+      const role = session.role;
+      if (role !== "superadmin" && role !== "universite") {
+        alert("Evo Finance est réservé au Super Admin et aux administrateurs université.");
+        window.location.replace("index.html");
+        return;
+      }
+      if (typeof SAC_API !== "undefined" && SAC_API.ensureWritableApiSession) {
+        await SAC_API.ensureWritableApiSession({ soft: true });
+      }
+      SAC_EVO_FINANCE.mount("efRoot", session);
+    })();
+  </script>
+  <script src="js/sac-mobile.js" defer></script>
+</body>
+</html>

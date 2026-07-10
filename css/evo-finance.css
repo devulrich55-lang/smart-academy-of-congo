@@ -1,0 +1,384 @@
+/* Evo Finance — hub financier Super Admin / campus */
+.ef-page {
+  margin: 0;
+  min-height: 100vh;
+  background: #0f172a;
+  color: #e2e8f0;
+  font-family: "DM Sans", system-ui, sans-serif;
+}
+.ef-loading {
+  text-align: center;
+  padding: 3rem;
+  color: #94a3b8;
+}
+.ef-shell {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  min-height: 100vh;
+}
+.ef-sidebar {
+  background: linear-gradient(180deg, #0c4a3e 0%, #134e4a 50%, #115e59 100%);
+  padding: 1.25rem 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+}
+.ef-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.5rem 0.65rem 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  margin-bottom: 0.5rem;
+}
+.ef-brand__icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.35rem;
+}
+.ef-brand strong {
+  display: block;
+  color: #fff;
+  font-size: 1.05rem;
+}
+.ef-brand span {
+  font-size: 0.72rem;
+  color: #99f6e4;
+}
+.ef-scope-badge {
+  margin: 0 0.65rem 0.75rem;
+  padding: 0.45rem 0.65rem;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  background: rgba(0, 0, 0, 0.2);
+  color: #ccfbf1;
+  line-height: 1.4;
+}
+.ef-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  flex: 1;
+}
+.ef-nav button {
+  text-align: left;
+  border: none;
+  background: transparent;
+  color: #a7f3d0;
+  padding: 0.6rem 0.75rem;
+  border-radius: 10px;
+  font: inherit;
+  font-size: 0.86rem;
+  cursor: pointer;
+}
+.ef-nav button:hover,
+.ef-nav button.is-active {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+.ef-nav button.is-disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.ef-sidebar__foot {
+  padding: 0.75rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+.ef-sidebar__foot a,
+.ef-sidebar__foot button {
+  font-size: 0.82rem;
+  color: #ccfbf1;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  padding: 0.45rem 0.65rem;
+  cursor: pointer;
+  text-decoration: none;
+  text-align: center;
+  font-family: inherit;
+}
+.ef-main {
+  padding: 1.25rem 1.5rem 2rem;
+  overflow-x: auto;
+  background: #f1f5f9;
+  color: #0f172a;
+}
+.ef-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.25rem;
+}
+.ef-header h1 {
+  margin: 0;
+  font-family: "Playfair Display", Georgia, serif;
+  font-size: 1.65rem;
+  color: #0f766e;
+}
+.ef-header p {
+  margin: 0.35rem 0 0;
+  color: #64748b;
+  font-size: 0.9rem;
+}
+.ef-header__meta {
+  text-align: right;
+  font-size: 0.82rem;
+  color: #64748b;
+}
+.ef-panel {
+  display: none;
+}
+.ef-panel.is-active {
+  display: block;
+}
+.ef-periods {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.65rem;
+  margin-bottom: 1.25rem;
+}
+.ef-period {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 0.85rem;
+  text-align: center;
+}
+.ef-period em {
+  display: block;
+  font-size: 0.72rem;
+  color: #64748b;
+  font-style: normal;
+  margin-bottom: 0.25rem;
+}
+.ef-period strong {
+  font-size: 1.1rem;
+  color: #0f766e;
+}
+.ef-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+.ef-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+.ef-card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 1rem 1.1rem;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+}
+.ef-card h2,
+.ef-card h3 {
+  margin: 0 0 0.75rem;
+  font-size: 1rem;
+  color: #0f172a;
+}
+.ef-card h3 {
+  font-size: 0.92rem;
+}
+.ef-revenue-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.ef-revenue-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.55rem 0;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 0.88rem;
+}
+.ef-revenue-list li:last-child {
+  border-bottom: none;
+}
+.ef-revenue-list strong {
+  color: #0f766e;
+}
+.ef-treasury-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem 0;
+  font-size: 0.88rem;
+  border-bottom: 1px dashed #e2e8f0;
+}
+.ef-treasury-row:last-child {
+  border-bottom: none;
+}
+.ef-treasury-row strong {
+  color: #0f766e;
+}
+.ef-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  height: 140px;
+  padding-top: 0.5rem;
+}
+.ef-chart__bar {
+  flex: 1;
+  background: linear-gradient(180deg, #14b8a6, #0f766e);
+  border-radius: 6px 6px 0 0;
+  min-height: 8px;
+}
+.ef-chart__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 0.65rem;
+  font-size: 0.78rem;
+  color: #64748b;
+}
+.ef-donut-legend {
+  display: grid;
+  gap: 0.4rem;
+}
+.ef-donut-legend div {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.84rem;
+}
+.ef-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.ef-table-wrap {
+  overflow-x: auto;
+}
+.ef-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.84rem;
+}
+.ef-table th {
+  text-align: left;
+  padding: 0.55rem 0.5rem;
+  color: #64748b;
+  border-bottom: 2px solid #e2e8f0;
+  font-weight: 600;
+}
+.ef-table td {
+  padding: 0.6rem 0.5rem;
+  border-bottom: 1px solid #f1f5f9;
+  vertical-align: top;
+}
+.ef-tag {
+  display: inline-block;
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+.ef-tag--ok {
+  background: #dcfce7;
+  color: #166534;
+}
+.ef-tag--wait {
+  background: #fef3c7;
+  color: #92400e;
+}
+.ef-tag--bad {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+.ef-security-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.ef-security-list li {
+  padding: 0.55rem 0;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 0.88rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.ef-placeholder {
+  padding: 1.25rem;
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  border-radius: 10px;
+  color: #64748b;
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+.ef-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+.ef-btn {
+  border: none;
+  border-radius: 10px;
+  padding: 0.55rem 0.9rem;
+  font: inherit;
+  font-size: 0.86rem;
+  font-weight: 600;
+  cursor: pointer;
+  background: linear-gradient(135deg, #14b8a6, #0f766e);
+  color: #fff;
+}
+.ef-btn--ghost {
+  background: #fff;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+}
+.ef-alert {
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  background: #ecfdf5;
+  border: 1px solid #6ee7b7;
+  color: #065f46;
+  font-size: 0.86rem;
+  margin-bottom: 1rem;
+}
+.ef-alert--warn {
+  background: #fffbeb;
+  border-color: #fcd34d;
+  color: #92400e;
+}
+@media (max-width: 1024px) {
+  .ef-shell {
+    grid-template-columns: 1fr;
+  }
+  .ef-sidebar {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .ef-nav {
+    flex-direction: row;
+    flex-wrap: wrap;
+    width: 100%;
+  }
+  .ef-periods {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .ef-grid-2,
+  .ef-grid-3 {
+    grid-template-columns: 1fr;
+  }
+}
