@@ -97,6 +97,20 @@ const SAC_MINISTRY_HUB = (function () {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...all, ...patch }));
   }
 
+  function resolveUniversityStatus(admin, statuses, key) {
+    const local = statuses[key];
+    if (local === "suspended") return "suspended";
+    if (admin?.verified === false || admin?.active === false) return "pending";
+    if (local === "pending") return "pending";
+    return "approved";
+  }
+
+  function statusTag(st) {
+    if (st === "suspended") return '<span class="mh-tag mh-tag--bad">Suspendu</span>';
+    if (st === "pending") return '<span class="mh-tag mh-tag--wait">En attente</span>';
+    return '<span class="mh-tag mh-tag--ok">Actif</span>';
+  }
+
   function injectNav(activeSection) {
     const nav = document.querySelector(".nav-tabs");
     if (!nav) return;
@@ -243,7 +257,7 @@ const SAC_MINISTRY_HUB = (function () {
     const statuses = store.universityStatus || {};
 
     root.innerHTML =
-      "<p class=\"page-desc\">Approuver, suspendre ou réactiver une université partenaire. Vérification des informations institutionnelles.</p>" +
+      "<p class=\"page-desc\">Approuver, suspendre ou réactiver une université partenaire. Le statut serveur (compte vérifié) est lu depuis l'API ; la suspension ministérielle est enregistrée dans le registre national EvoSU.</p>" +
       '<div class="mh-actions" style="margin-bottom:1rem">' +
       '<button type="button" class="btn btn--role" data-goto="administrateurs">👥 Voir tous les comptes campus</button></div>' +
       (universities.length
@@ -253,13 +267,8 @@ const SAC_MINISTRY_HUB = (function () {
           universities
             .map((u) => {
               const key = String(u.email || u.id || "").toLowerCase();
-              const st = statuses[key] || "approved";
-              const stLabel =
-                st === "suspended"
-                  ? '<span class="mh-tag mh-tag--bad">Suspendu</span>'
-                  : st === "pending"
-                    ? '<span class="mh-tag mh-tag--wait">En attente</span>'
-                    : '<span class="mh-tag mh-tag--ok">Actif</span>';
+              const st = resolveUniversityStatus(u, statuses, key);
+              const stLabel = statusTag(st);
               return (
                 "<tr data-uni-email=\"" +
                 esc(key) +
@@ -398,26 +407,55 @@ const SAC_MINISTRY_HUB = (function () {
 
   function mountMessaging(root, session) {
     root.innerHTML =
-      "<p class=\"page-desc\">Envoyer un message à toutes les universités ou cibler par province, établissement ou catégorie.</p>" +
+      "<p class=\"page-desc\">Envoyer un message à toutes les universités via le <strong>panneau public national</strong>, ou utiliser l'espace live pour les réunions.</p>" +
       '<div class="panel panel--ws"><div class="panel__head"><h2>Message national</h2></div>' +
       '<div class="panel__body"><div class="fg"><label>Titre</label><input class="fi" id="mhMsgTitle" placeholder="Objet du message" /></div>' +
       '<div class="fg"><label>Corps du message</label><textarea class="fi" id="mhMsgBody" rows="4" placeholder="Texte officiel…"></textarea></div>' +
-      '<div class="fg"><label>Ciblage</label><select class="fi" id="mhMsgTarget"><option value="all">Toutes les universités</option>' +
-      '<option value="province">Par province (bientôt)</option><option value="uni">Établissement précis (bientôt)</option></select></div>' +
-      '<button type="button" class="btn btn--role" id="mhMsgSend">Envoyer (brouillon local)</button>' +
-      '<p class="ws-field-hint" style="margin-top:0.5rem">Diffusion ciblée complète — prochaine version. Utilisez aussi l\'<button type="button" class="btn btn--ghost btn--xs" data-mh-goto="live">espace live</button> pour les réunions nationales.</p></div></div>' +
+      '<div class="fg"><label>Ciblage</label><select class="fi" id="mhMsgTarget"><option value="all">Toutes les universités (panneau public)</option>' +
+      '<option value="province" disabled>Par province (bientôt)</option><option value="uni" disabled>Établissement précis (bientôt)</option></select></div>' +
+      '<button type="button" class="btn btn--role" id="mhMsgSend">Publier sur le panneau national</button>' +
+      '<p class="ws-field-hint" style="margin-top:0.5rem">Le message apparaît sur la page d\'accueil publique. Pour une réunion : <button type="button" class="btn btn--ghost btn--xs" data-mh-goto="live">espace live</button>.</p></div></div>' +
       '<div id="mhLiveEmbed" style="margin-top:1rem"></div>';
 
-    root.querySelector("#mhMsgSend")?.addEventListener("click", () => {
-      const msgs = readStore().messages || [];
-      msgs.unshift({
-        title: root.querySelector("#mhMsgTitle")?.value || "Sans titre",
-        body: root.querySelector("#mhMsgBody")?.value || "",
-        target: root.querySelector("#mhMsgTarget")?.value || "all",
-        at: new Date().toISOString(),
-      });
-      writeStore({ messages: msgs.slice(0, 20) });
-      alert("Message enregistré en brouillon ministériel (local). Diffusion API à venir.");
+    root.querySelector("#mhMsgSend")?.addEventListener("click", async () => {
+      const title = root.querySelector("#mhMsgTitle")?.value?.trim() || "";
+      const body = root.querySelector("#mhMsgBody")?.value?.trim() || "";
+      if (title.length < 5) {
+        alert("Titre requis (minimum 5 caractères).");
+        return;
+      }
+      const excerpt =
+        body.length >= 10 ? body.slice(0, 400) : body || title + " — communication nationale du Ministère.";
+      if (excerpt.length < 10) {
+        alert("Message trop court (minimum 10 caractères).");
+        return;
+      }
+      const btn = root.querySelector("#mhMsgSend");
+      btn.disabled = true;
+      try {
+        if (typeof SAC_HOME_NEWS !== "undefined") {
+          await SAC_HOME_NEWS.create(session, {
+            category: "officiel",
+            title,
+            excerpt,
+            body: body || excerpt,
+            published: true,
+            countryCode: session.countryCode,
+          });
+          const msgs = readStore().messages || [];
+          msgs.unshift({ title, body, target: "all", at: new Date().toISOString(), published: true });
+          writeStore({ messages: msgs.slice(0, 20) });
+          root.querySelector("#mhMsgTitle").value = "";
+          root.querySelector("#mhMsgBody").value = "";
+          alert("Message publié sur le panneau public national.");
+          return;
+        }
+        throw new Error("Module de publication indisponible.");
+      } catch (err) {
+        alert(err.message || "Publication impossible.");
+      } finally {
+        btn.disabled = false;
+      }
     });
     root.querySelectorAll("[data-mh-goto]").forEach((btn) => {
       btn.addEventListener("click", () => {

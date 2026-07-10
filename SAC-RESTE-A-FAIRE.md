@@ -1,7 +1,20 @@
 # Evo-smartUni — État de la plateforme
 
-> Document de référence — mis à jour le **18 juin 2026**.  
+> Document de référence — mis à jour le **10 juillet 2026**.  
 > Bilan complet : ce qui marche, ce qui ne marche pas, ce qui reste à faire.
+
+### Mise à jour 10 juillet 2026
+
+| Élément | État |
+|---------|------|
+| Hub Ministère (10 modules) | ✅ Déployé — tableau de bord, communications, diplômes, messagerie (panneau public), rapports CSV |
+| Live Ministère | ✅ Corrigé (`SAC_MINISTRY_LIVE`, routes `/platform/live/sessions`) |
+| Bibliothèque compte Ministère | ✅ Retirée (réservée à la plateforme publique) |
+| Renouvellement inscription 30/07 | ✅ Code frontend + API local — vérifier déploiement API Render |
+| MFA staff | ✅ Désactivé par défaut en prod (mot de passe seul) |
+| Performances / inspections / plaintes / accréditations | ⏳ UI placeholder — API nationale à venir |
+| Statuts universités (suspendre) | ⚠️ Registre local + lecture `verified` API — blocage serveur à brancher |
+| Evo Finance paie employés | ⚠️ localStorage — agrégation revenus OK via API |
 
 ---
 

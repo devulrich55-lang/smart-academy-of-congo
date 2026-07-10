@@ -2,13 +2,25 @@
  * Espace live Ministère ↔ responsables universités (vidéo EvoSU + documents)
  * Réservé au rôle ministere (hôte) et universite (invités).
  */
-const EVOSU_MINISTRY_LIVE = (function () {
-  const STORAGE_KEY = "EVOSU_ministry_live";
+const SAC_MINISTRY_LIVE = (function () {
+  const STORAGE_KEY = "sac_ministry_live";
+  const LEGACY_STORAGE_KEY = "EVOSU_ministry_live";
   const TYPE = "ministry_universities";
+
+  const API = () => (typeof SAC_API !== "undefined" ? SAC_API : null);
+  const IDENTITY = () => (typeof SAC_IDENTITY !== "undefined" ? SAC_IDENTITY : null);
+  const INSTITUTIONAL = () => (typeof SAC_INSTITUTIONAL !== "undefined" ? SAC_INSTITUTIONAL : null);
+  const LIVE_CALL = () => (typeof SAC_LIVE_CALL !== "undefined" ? SAC_LIVE_CALL : null);
+  const WEBRTC = () => (typeof SAC_WEBRTC_ROOM !== "undefined" ? SAC_WEBRTC_ROOM : null);
 
   function read() {
     try {
-      return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+      const raw = localStorage.getItem(STORAGE_KEY) || localStorage.getItem(LEGACY_STORAGE_KEY) || "[]";
+      const list = JSON.parse(raw);
+      if (!localStorage.getItem(STORAGE_KEY) && localStorage.getItem(LEGACY_STORAGE_KEY)) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+      }
+      return list;
     } catch {
       return [];
     }
@@ -34,27 +46,38 @@ const EVOSU_MINISTRY_LIVE = (function () {
   }
 
   function displayName(s) {
-    if (typeof EVOSU_IDENTITY !== "undefined") return EVOSU_IDENTITY.getDisplayName(s);
+    const id = IDENTITY();
+    if (id) return id.getDisplayName(s);
     return [s?.prenom, s?.nom].filter(Boolean).join(" ") || s?.email || "Participant";
   }
 
   async function api(path, opts) {
-    if (typeof EVOSU_API === "undefined") return null;
-    if (!(await EVOSU_API.ensureOnline())) return null;
+    const sac = API();
+    if (!sac) return null;
+    if (!(await sac.ensureOnline())) return null;
     try {
-      return await EVOSU_API.platformRequest(path, opts);
+      return await sac.platformRequest(path, opts);
     } catch {
       return null;
     }
   }
 
+  function filterMinistryRows(rows) {
+    return (rows || []).filter((r) => r.type === TYPE || r.sessionType === TYPE);
+  }
+
   async function getUniAdmins(session) {
-    if (typeof EVOSU_INSTITUTIONAL !== "undefined" && session) {
-      const { admins } = await EVOSU_INSTITUTIONAL.load(session);
+    const inst = INSTITUTIONAL();
+    if (inst && session) {
+      const { admins } = await inst.load(session);
       return (admins || []).filter((a) => a.role === "universite");
     }
     try {
-      return JSON.parse(localStorage.getItem("EVOSU_users") || "[]").filter((u) => u.role === "universite");
+      const key =
+        typeof SAC_STORAGE !== "undefined" && SAC_STORAGE.KEYS?.users
+          ? SAC_STORAGE.KEYS.users
+          : "sac_users";
+      return JSON.parse(localStorage.getItem(key) || "[]").filter((u) => u.role === "universite");
     } catch {
       return [];
     }
@@ -74,9 +97,9 @@ const EVOSU_MINISTRY_LIVE = (function () {
   }
 
   async function listSessions(session) {
-    const data = await api("/platform/ministry/live");
-    let rows = data?.sessions || read();
-    rows = rows.filter((r) => r.type === TYPE);
+    const data = await api("/platform/live/sessions");
+    let rows = filterMinistryRows(data?.sessions || read());
+    if (!data?.sessions) rows = read().filter((r) => r.type === TYPE);
     if (!session) return rows;
     if (canHost(session)) return rows;
     if (session.role === "universite") {
@@ -98,6 +121,7 @@ const EVOSU_MINISTRY_LIVE = (function () {
     const allowedEmails = selected.map((a) => normEmail(a.email)).filter(Boolean);
     const body = {
       type: TYPE,
+      sessionType: TYPE,
       title: payload.title,
       agenda: payload.agenda || "",
       description: payload.description || "",
@@ -110,19 +134,19 @@ const EVOSU_MINISTRY_LIVE = (function () {
       hostEmail: normEmail(session.email || session.identifiant),
       hostName: displayName(session),
     };
-    const data = await api("/platform/ministry/live", { method: "POST", body: JSON.stringify(body) });
+    const data = await api("/platform/live/sessions", { method: "POST", body: JSON.stringify(body) });
     if (data?.session) return data.session;
 
     const id = uid("mnl");
     const row = {
       id,
       ...body,
-      roomName: "evosu-min-" + id.slice(-10),
+      roomName: "sac-min-" + id.slice(-10),
       status: "scheduled",
       documents: [],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      joinUrl: "evosu-min:" + "evosu-min-" + id.slice(-10),
+      joinUrl: "sac-min:" + "sac-min-" + id.slice(-10),
     };
     const list = read();
     list.unshift(row);
@@ -139,45 +163,44 @@ const EVOSU_MINISTRY_LIVE = (function () {
     return list[idx];
   }
 
+  function signalLiveStart(row) {
+    const lc = LIVE_CALL();
+    if (!lc) return;
+    lc.signalLiveStart({
+      kind: "ministry",
+      sessionId: row.id,
+      title: row.title,
+      hostName: row.hostName || "Ministère",
+      roomName: row.roomName,
+      invitedUniversities: row.invitedUniversities || row.allowedEmails,
+    });
+  }
+
   async function startSession(id, session) {
     if (!canHost(session)) throw new Error("Accès refusé");
-    const data = await api("/platform/ministry/live/" + id + "/start", { method: "POST" });
+    const data = await api("/platform/live/sessions/" + encodeURIComponent(id) + "/start", {
+      method: "POST",
+    });
     if (data?.session) {
-      if (typeof EVOSU_LIVE_CALL !== "undefined") {
-        EVOSU_LIVE_CALL.signalLiveStart({
-          kind: "ministry",
-          sessionId: data.session.id,
-          title: data.session.title,
-          hostName: data.session.hostName || "Ministère",
-          roomName: data.session.roomName,
-          invitedUniversities: data.session.invitedUniversities || data.session.allowedEmails,
-        });
-      }
+      signalLiveStart(data.session);
       return data.session;
     }
     const row = patchLocal(id, { status: "live", startedAt: new Date().toISOString() });
-    if (typeof EVOSU_LIVE_CALL !== "undefined") {
-      EVOSU_LIVE_CALL.signalLiveStart({
-        kind: "ministry",
-        sessionId: row.id,
-        title: row.title,
-        hostName: row.hostName || "Ministère",
-        roomName: row.roomName,
-        invitedUniversities: row.invitedUniversities || row.allowedEmails,
-      });
-    }
+    signalLiveStart(row);
     return row;
   }
 
   async function endSession(id, session) {
     if (!canHost(session)) throw new Error("Accès refusé");
-    const data = await api("/platform/ministry/live/" + id + "/end", { method: "POST" });
+    const data = await api("/platform/live/sessions/" + encodeURIComponent(id) + "/end", {
+      method: "POST",
+    });
     if (data?.session) return data.session;
     return patchLocal(id, { status: "ended", endedAt: new Date().toISOString() });
   }
 
   async function getSession(id) {
-    const data = await api("/platform/ministry/live/" + id);
+    const data = await api("/platform/live/sessions/" + encodeURIComponent(id));
     if (data?.session) return data.session;
     return read().find((r) => r.id === id) || null;
   }
@@ -194,7 +217,7 @@ const EVOSU_MINISTRY_LIVE = (function () {
       uploadedBy: displayName(user),
     };
     const documents = [entry, ...(row.documents || [])];
-    const data = await api("/platform/ministry/live/" + sessionId + "/documents", {
+    const data = await api("/platform/live/sessions/" + encodeURIComponent(sessionId) + "/documents", {
       method: "POST",
       body: JSON.stringify(entry),
     });
@@ -205,16 +228,17 @@ const EVOSU_MINISTRY_LIVE = (function () {
   async function uploadFile(sessionId, file, user) {
     let url = "";
     const name = file.name || "Document";
-    if (typeof EVOSU_API !== "undefined" && (await EVOSU_API.ensureOnline())) {
+    const sac = API();
+    if (sac && (await sac.ensureOnline())) {
       try {
-        const created = await EVOSU_API.createDocument(
+        const created = await sac.createDocument(
           { title: name, category: "ministry_live", sessionId },
           file
         );
         url =
           created?.url ||
           created?.mediaUrl ||
-          (created?.files?.[0]?.url) ||
+          created?.files?.[0]?.url ||
           "";
       } catch {
         /* fallback data URL */
@@ -235,7 +259,7 @@ const EVOSU_MINISTRY_LIVE = (function () {
     return { scheduled: "Programmé", live: "EN DIRECT", ended: "Terminé" }[s] || s;
   }
 
-  function renderDocsPanel(liveRow, user, isHost, onRefresh) {
+  function renderDocsPanel(liveRow, user, isHost) {
     const docs = liveRow.documents || [];
     return `
       <div class="min-live-side">
@@ -274,7 +298,7 @@ const EVOSU_MINISTRY_LIVE = (function () {
       if (!file) return;
       try {
         liveRow = await uploadFile(liveRow.id, file, user);
-        sideEl.innerHTML = renderDocsPanel(liveRow, user, isHost, null);
+        sideEl.innerHTML = renderDocsPanel(liveRow, user, isHost);
         bindDocsPanel(sideEl, liveRow, user, isHost, session, onClose);
       } catch (err) {
         alert(err.message || "Import impossible.");
@@ -286,7 +310,7 @@ const EVOSU_MINISTRY_LIVE = (function () {
       const name = prompt("Nom du document :", "Document partagé");
       if (!url || !name) return;
       liveRow = await addDocument(liveRow.id, { name, type: "LIEN", url }, user);
-      sideEl.innerHTML = renderDocsPanel(liveRow, user, isHost, null);
+      sideEl.innerHTML = renderDocsPanel(liveRow, user, isHost);
       bindDocsPanel(sideEl, liveRow, user, isHost, session, onClose);
     });
     sideEl.querySelector("[data-min-live-end]")?.addEventListener("click", async () => {
@@ -315,24 +339,28 @@ const EVOSU_MINISTRY_LIVE = (function () {
     }
     const isHost = canHost(session);
     document.getElementById("sacMinLiveTitle").textContent = liveRow.title;
-    const room = liveRow.roomName || "evosu-min-" + liveRow.id.slice(-10);
+    const room = liveRow.roomName || "sac-min-" + liveRow.id.slice(-10);
     const side = document.getElementById("sacMinLiveSide");
     side.innerHTML = renderDocsPanel(liveRow, session, isHost);
     bindDocsPanel(side, liveRow, session, isHost, session, closeRoom);
     document.getElementById("sacMinLiveClose").onclick = closeRoom;
     el.hidden = false;
     document.body.style.overflow = "hidden";
-    if (typeof EVOSU_WEBRTC_ROOM !== "undefined") {
-      EVOSU_WEBRTC_ROOM.attachToHost("sacMinLiveFrame", {
-        roomId: room,
-        displayName: userName || "EvoSU",
-        onLeave: closeRoom,
-      }).catch((err) => alert(err.message || "Salle live indisponible."));
+    const webrtc = WEBRTC();
+    if (webrtc) {
+      webrtc
+        .attachToHost("sacMinLiveFrame", {
+          roomId: room,
+          displayName: userName || "EvoSU",
+          onLeave: closeRoom,
+        })
+        .catch((err) => alert(err.message || "Salle live indisponible."));
     }
   }
 
   function closeRoom() {
-    if (typeof EVOSU_WEBRTC_ROOM !== "undefined") EVOSU_WEBRTC_ROOM.leave();
+    const webrtc = WEBRTC();
+    if (webrtc) webrtc.leave();
     const el = document.getElementById("sacMinLiveRoom");
     if (el) {
       el.hidden = true;
@@ -517,3 +545,8 @@ const EVOSU_MINISTRY_LIVE = (function () {
     canJoin,
   };
 })();
+
+if (typeof window !== "undefined") {
+  window.SAC_MINISTRY_LIVE = SAC_MINISTRY_LIVE;
+  window.EVOSU_MINISTRY_LIVE = SAC_MINISTRY_LIVE;
+}

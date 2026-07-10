@@ -5,8 +5,10 @@
  * Usage PowerShell :
  *   $env:SUPERADMIN_EMAIL="djemcibamba@gmail.com"
  *   $env:SUPERADMIN_PASSWORD="votre-mot-de-passe"
- *   $env:MINISTERE_PASSWORD="Ulrich11+"
- *   $env:TECHMANAGER_PASSWORD="Ulrich11+"
+ *   $env:MINISTERE_PASSWORD="votre-mot-de-passe"
+ *   $env:TECHMANAGER_PASSWORD="votre-mot-de-passe"
+ *   $env:DEV_EMAIL="developpeur01@gmail.com"
+ *   $env:DEV_PASSWORD="votre-mot-de-passe"
  *   # Optionnel si MFA e-mail : $env:STAFF_MFA_CODE="123456"
  *   npm run bootstrap:accounts
  */
@@ -29,6 +31,14 @@ const ACCOUNTS = [
     nom: process.env.MINISTERE_NOM || "ESU",
     countryCode: process.env.MINISTERE_COUNTRY || "CD",
     fonction: process.env.MINISTERE_FONCTION || "MESU — EvoSU",
+  },
+  {
+    role: "developpeur",
+    email: process.env.DEV_EMAIL || process.env.DEVELOPPEUR_EMAIL || "developpeur01@gmail.com",
+    password: process.env.DEV_PASSWORD || process.env.DEVELOPPEUR_PASSWORD,
+    prenom: process.env.DEV_PRENOM || "Dev",
+    nom: process.env.DEV_NOM || "EvoSU",
+    fonction: process.env.DEV_FONCTION || "Développeur EvoSU",
   },
   {
     role: "techmanager",
@@ -193,7 +203,7 @@ async function main() {
       console.error(
         "Mot de passe manquant pour",
         acc.email,
-        "— définissez MINISTERE_PASSWORD / TECHMANAGER_PASSWORD."
+        "— définissez MINISTERE_PASSWORD / DEV_PASSWORD / TECHMANAGER_PASSWORD."
       );
       process.exit(1);
     }
