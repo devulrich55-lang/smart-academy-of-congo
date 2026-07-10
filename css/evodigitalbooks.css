@@ -532,6 +532,22 @@
 body.edb-pay-open {
   overflow: hidden;
 }
+.edb-pay-overlay .pay-modal {
+  background: #fff;
+  color: #1e293b;
+}
+body.platform-library-mode .edb-pay-overlay .pay-modal {
+  background: #fff;
+  color: #1e293b;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.55);
+}
+body.platform-library-mode .edb-pay-overlay .pay-bank-card--dest {
+  color: #475569;
+}
+body.platform-library-mode .edb-pay-overlay .pay-modal__intro,
+body.platform-library-mode .edb-pay-overlay .pay-confirm-hint {
+  color: #64748b;
+}
 .edb-pay-overlay .pay-modal h3,
 .edb-pay-overlay .pay-modal__amount {
   color: #5b21b6;

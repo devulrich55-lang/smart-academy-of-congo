@@ -840,6 +840,16 @@ const SAC_EDB = (function () {
       "</div></div></div>";
     document.body.appendChild(modal);
 
+    if (!document.getElementById("edbPayModalStyles")) {
+      const fix = document.createElement("style");
+      fix.id = "edbPayModalStyles";
+      fix.textContent =
+        "#edbPayModal.pay-modal-overlay{position:fixed;inset:0;display:none;align-items:center;justify-content:center;padding:1rem;z-index:25000;background:rgba(15,23,42,.55)}" +
+        "#edbPayModal.pay-modal-overlay.open{display:flex!important}" +
+        "#edbPayModal.pay-modal-overlay[hidden]{display:none!important}";
+      document.head.appendChild(fix);
+    }
+
     let activeMethod = "orange";
     modal.querySelectorAll("[data-edb-pay-method]").forEach((btn) => {
       btn.addEventListener("click", () => {
