@@ -748,63 +748,96 @@ const SAC_EDB = (function () {
     window.open(url, "_blank", "noopener");
   }
 
+  function maskMmPhone(phone) {
+    const raw = String(phone || "").trim();
+    const d = raw.replace(/\D/g, "");
+    if (d.length < 8) return raw || "—";
+    const cc = d.length > 9 ? "+" + d.slice(0, 3) : "+243";
+    const local = d.length > 9 ? d.slice(3) : d;
+    if (local.length < 6) return raw;
+    return cc + " " + local.slice(0, 2) + "XXXXX" + local.slice(-5);
+  }
+
+  function renderEdbPayDest(modal, method, full, fees, mmReceiver, currency) {
+    const box = modal.querySelector("#edbPayDestInfo");
+    if (!box) return;
+    const provider = method === "mpesa" ? "M-Pesa (Vodacom)" : "Orange Money";
+    const masked = maskMmPhone(mmReceiver);
+    box.innerHTML =
+      "<div class='pay-dest-secure'><span class='pay-shield-badge'>Compte auteur</span></div>" +
+      "<strong>" +
+      esc(provider) +
+      "</strong><br/>Livre : <strong>" +
+      esc(full.title || "") +
+      "</strong><br/>Titulaire : <strong>" +
+      esc(full.author || "Auteur") +
+      "</strong><br/>Versement auteur (75 %) : <code class='pay-account-masked'>" +
+      esc(masked) +
+      "</code><br/><small>Commission plateforme EvoDigitalBooks (25 %) : " +
+      esc(formatMoney(fees.platformFee, currency)) +
+      " · Max. 3 appareils par compte</small>";
+  }
+
+  function openEdbPayModal(modal) {
+    modal.hidden = false;
+    modal.classList.add("open");
+    modal.setAttribute("aria-hidden", "false");
+    document.body.classList.add("edb-pay-open");
+  }
+
+  function closeEdbPayModal(modal) {
+    modal.classList.remove("open");
+    modal.hidden = true;
+    modal.setAttribute("aria-hidden", "true");
+    document.body.classList.remove("edb-pay-open");
+    showEdbPayStep(modal, "main");
+  }
+
   function ensureEdbPurchaseModal() {
     let modal = document.getElementById("edbPayModal");
     if (modal) return modal;
 
     modal = document.createElement("div");
     modal.id = "edbPayModal";
-    modal.className = "edb-pay-modal";
+    modal.className = "pay-modal-overlay edb-pay-overlay";
     modal.hidden = true;
+    modal.setAttribute("aria-hidden", "true");
     modal.innerHTML =
-      '<div class="edb-pay-modal__backdrop" data-edb-pay-close></div>' +
-      '<div class="edb-pay-modal__panel" role="dialog" aria-modal="true" aria-labelledby="edbPayTitle">' +
-      '<button type="button" class="edb-pay-modal__close" data-edb-pay-close aria-label="Fermer">×</button>' +
-      '<div class="edb-pay-modal__header">' +
-      '<span class="edb-pay-modal__icon">💳</span>' +
-      '<div><h2 id="edbPayHeading">Acheter ce livre</h2><p class="edb-pay-modal__sub">Paiement sécurisé Mobile Money</p></div>' +
+      '<div class="pay-modal pay-modal--wide edb-pay-slip" role="dialog" aria-modal="true" aria-labelledby="edbPayHeading">' +
+      '<div class="pay-modal__head">' +
+      "<div><h3 id=\"edbPayHeading\">Acheter ce livre</h3>" +
+      '<p class="pay-modal__fee-label" id="edbPayFeeLabel">—</p></div>' +
+      '<div class="pay-modal__amount" id="edbPayAmount">—</div></div>' +
+      '<p class="pay-modal__intro">Versement <strong>100 % en ligne</strong> via Mobile Money — ' +
+      "<strong>75 % vers l'auteur</strong> · <strong>25 % plateforme</strong> EvoDigitalBooks.</p>" +
+      '<div class="pay-methods pay-methods--bar pay-methods--edb" id="edbPayMethods">' +
+      '<button type="button" class="pay-method is-active" data-edb-pay-method="orange">🟠 Orange Money</button>' +
+      '<button type="button" class="pay-method" data-edb-pay-method="mpesa">📱 M-Pesa</button>' +
       "</div>" +
+      '<div id="edbPayDestInfo" class="pay-bank-card pay-bank-card--dest"></div>' +
       '<div id="edbPayMainStep">' +
-      '<div class="edb-pay-book">' +
-      '<div class="edb-pay-book__cover" id="edbPayCover">📖</div>' +
-      '<div class="edb-pay-book__meta">' +
-      '<h3 id="edbPayTitle">—</h3>' +
-      '<p id="edbPayAuthor"></p>' +
+      '<div class="pay-modal__fields pay-modal__fields--single">' +
+      '<div class="pay-confirm-box pay-modal__field">' +
+      '<label for="edbPayPhone">Votre numéro Mobile Money *</label>' +
+      '<input type="tel" class="fi" id="edbPayPhone" placeholder="+243 8XX XXX XXX" autocomplete="tel" inputmode="tel" />' +
+      "<p class=\"pay-confirm-hint\">Une demande de paiement sera envoyée sur votre téléphone pour validation.</p>" +
       "</div></div>" +
-      '<div class="edb-pay-breakdown">' +
-      '<div class="edb-pay-breakdown__row edb-pay-breakdown__row--total">' +
-      '<span>Total</span><strong id="edbPayTotal">—</strong></div>' +
-      '<div class="edb-pay-breakdown__row">' +
-      '<span>Auteur (75 %)</span><span id="edbPayAuthorShare">—</span></div>' +
-      '<div class="edb-pay-breakdown__row edb-pay-breakdown__row--muted">' +
-      '<span>Versement auteur</span><span id="edbPayAuthorMm" class="edb-pay-mm">—</span></div>' +
-      '<div class="edb-pay-breakdown__row">' +
-      '<span>Plateforme (25 %)</span><span id="edbPayPlatformFee">—</span></div>' +
-      "</div>" +
-      '<div class="edb-pay-methods">' +
-      "<label>Mode de paiement</label>" +
-      '<div class="edb-pay-tabs">' +
-      '<button type="button" class="edb-pay-tab edb-pay-tab--active" data-edb-pay-method="orange">🟠 Orange Money</button>' +
-      '<button type="button" class="edb-pay-tab" data-edb-pay-method="mpesa">📱 M-Pesa</button>' +
-      "</div></div>" +
-      '<label class="edb-pay-field">Votre numéro Mobile Money' +
-      '<input type="tel" id="edbPayPhone" placeholder="+243 8XX XXX XXX" autocomplete="tel" inputmode="tel" /></label>' +
-      '<p class="edb-pay-hint">Vous recevrez une demande de validation sur votre téléphone. Max. 3 appareils par compte.</p>' +
       '<p class="edb-pay-status" id="edbPayStatus" hidden></p>' +
-      '<div class="edb-pay-actions">' +
-      '<button type="button" class="edb-pay-btn edb-pay-btn--ghost" data-edb-pay-close>Annuler</button>' +
-      '<button type="button" class="edb-pay-btn edb-pay-btn--primary" id="edbPayConfirm">Payer et lire</button>' +
+      '<div class="pay-modal__actions">' +
+      '<button type="button" class="btn btn--primary" id="edbPayConfirm">Payer par Mobile Money</button>' +
+      '<button type="button" class="btn btn--ghost" data-edb-pay-close>Annuler</button>' +
       "</div></div>" +
       '<div id="edbPayPinStep" hidden>' +
-      '<p class="edb-pay-pin-lead">Entrez votre code PIN Mobile Money pour confirmer le paiement.</p>' +
-      '<label class="edb-pay-field">Code PIN' +
-      '<input type="password" id="edbPayPin" maxlength="8" inputmode="numeric" autocomplete="one-time-code" placeholder="••••" /></label>' +
+      '<div class="pay-confirm-box">' +
+      "<p class=\"edb-pay-pin-lead\">Entrez votre <strong>code PIN Mobile Money</strong> pour confirmer le paiement.</p>" +
+      '<label for="edbPayPin">Code PIN *</label>' +
+      '<input type="password" class="fi" id="edbPayPin" maxlength="8" inputmode="numeric" autocomplete="one-time-code" placeholder="••••" />' +
+      "</div>" +
       '<p class="edb-pay-status" id="edbPayPinStatus" hidden></p>' +
-      '<div class="edb-pay-actions">' +
-      '<button type="button" class="edb-pay-btn edb-pay-btn--ghost" id="edbPayPinCancel">Retour</button>' +
-      '<button type="button" class="edb-pay-btn edb-pay-btn--primary" id="edbPayPinConfirm">Confirmer</button>' +
-      "</div></div>" +
-      "</div>";
+      '<div class="pay-modal__actions">' +
+      '<button type="button" class="btn btn--primary" id="edbPayPinConfirm">Confirmer le paiement</button>' +
+      '<button type="button" class="btn btn--ghost" id="edbPayPinCancel">Retour</button>' +
+      "</div></div></div>";
     document.body.appendChild(modal);
 
     let activeMethod = "orange";
@@ -812,18 +845,30 @@ const SAC_EDB = (function () {
       btn.addEventListener("click", () => {
         activeMethod = btn.dataset.edbPayMethod || "orange";
         modal.querySelectorAll("[data-edb-pay-method]").forEach((b) => {
-          b.classList.toggle("edb-pay-tab--active", b === btn);
+          b.classList.toggle("is-active", b === btn);
         });
+        if (modal._payContext) {
+          const ctx = modal._payContext;
+          renderEdbPayDest(
+            modal,
+            activeMethod,
+            ctx.full,
+            ctx.fees,
+            ctx.mmReceiver,
+            ctx.currency
+          );
+        }
       });
     });
     modal._getPayMethod = () => activeMethod;
 
     modal.querySelectorAll("[data-edb-pay-close]").forEach((el) => {
-      el.addEventListener("click", () => {
-        modal.hidden = true;
-        showEdbPayStep(modal, "main");
-      });
+      el.addEventListener("click", () => closeEdbPayModal(modal));
     });
+    modal.addEventListener("click", (e) => {
+      if (e.target === modal) closeEdbPayModal(modal);
+    });
+    modal.querySelector(".pay-modal")?.addEventListener("click", (e) => e.stopPropagation());
 
     return modal;
   }
@@ -914,29 +959,22 @@ const SAC_EDB = (function () {
     const modal = ensureEdbPurchaseModal();
     const confirmBtn = modal.querySelector("#edbPayConfirm");
     const phoneInput = modal.querySelector("#edbPayPhone");
-    const coverEl = modal.querySelector("#edbPayCover");
 
-    const cover = absUrl(full.coverUrl || full.cover_url);
-    if (coverEl) {
-      coverEl.innerHTML = cover
-        ? '<img src="' + esc(cover) + '" alt="" />'
-        : '<span class="edb-pay-book__placeholder">📖</span>';
-    }
-    modal.querySelector("#edbPayTitle").textContent = full.title || "Livre";
-    modal.querySelector("#edbPayAuthor").textContent =
-      (full.author || "Auteur") + " · " + categoryLabel(full.category);
-    modal.querySelector("#edbPayTotal").textContent = formatMoney(fees.total, currency);
-    modal.querySelector("#edbPayAuthorShare").textContent = formatMoney(fees.authorShare, currency);
-    modal.querySelector("#edbPayPlatformFee").textContent = formatMoney(fees.platformFee, currency);
-    const mmEl = modal.querySelector("#edbPayAuthorMm");
-    if (mmEl) mmEl.textContent = mmReceiver || "—";
+    modal._payContext = { full, fees, mmReceiver, currency };
+    modal.querySelector("#edbPayFeeLabel").textContent =
+      (full.title || "Livre") + " — " + (full.author || "Auteur");
+    modal.querySelector("#edbPayAmount").textContent = formatMoney(fees.total, currency);
+    modal.querySelectorAll("[data-edb-pay-method]").forEach((b) => {
+      b.classList.toggle("is-active", b.dataset.edbPayMethod === "orange");
+    });
+    renderEdbPayDest(modal, "orange", full, fees, mmReceiver, currency);
     if (phoneInput) {
       phoneInput.value =
         session?.telephone || session?.phone || localStorage.getItem("sac_edb_last_mm") || "";
     }
     setEdbPayStatus(modal, "", false);
     showEdbPayStep(modal, "main");
-    modal.hidden = false;
+    openEdbPayModal(modal);
 
     confirmBtn.onclick = async () => {
       const phone = phoneInput?.value?.trim();
@@ -947,6 +985,7 @@ const SAC_EDB = (function () {
       }
       localStorage.setItem("sac_edb_last_mm", phone);
       confirmBtn.disabled = true;
+      confirmBtn.textContent = "Paiement en cours…";
       setEdbPayStatus(modal, "Initialisation du paiement…", false);
 
       try {
@@ -1012,6 +1051,7 @@ const SAC_EDB = (function () {
           currency,
         });
         modal.hidden = true;
+        closeEdbPayModal(modal);
         setEdbPayStatus(modal, "", false);
         openBook(full, session);
         window.dispatchEvent(new CustomEvent("sac-edb-catalog-refresh"));
@@ -1019,6 +1059,7 @@ const SAC_EDB = (function () {
         setEdbPayStatus(modal, err.message || "Paiement impossible.", true);
       } finally {
         confirmBtn.disabled = false;
+        confirmBtn.textContent = "Payer par Mobile Money";
       }
     };
   }
