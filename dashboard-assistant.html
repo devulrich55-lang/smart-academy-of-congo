@@ -206,6 +206,7 @@
   <script src="js/sac-universities.js"></script>
   <script src="js/sac-identity.js"></script>
   <script src="js/sac-section-approval.js"></script>
+  <script src="js/sac-enrollment-renewal.js"></script>
   <script src="js/sac-session.js?v=20260702c"></script>
   <script src="js/sac-api.js?v=20260617b"></script>
   <script src="js/sac-tariffs.js"></script>
@@ -387,15 +388,47 @@
         });
       }
 
+      function renderRenewalRow(row) {
+        const pay = row.payment || {};
+        const ref = pay.paymentReference || pay.transactionId || "—";
+        const amount =
+          pay.amountUsd != null ? pay.amountUsd + " " + (pay.currency || "USD") : "—";
+        return `<div class="task-row" data-renewal-id="${escapeHtml(row.id)}">
+          <div>
+            <strong>${escapeHtml(row.studentNom || row.studentEmail)}</strong>
+            <span style="font-size:0.78rem;color:var(--muted);margin-left:0.35rem;">Renouvellement ${escapeHtml(row.academicYear || "")}</span>
+            <div class="task-row__meta">${escapeHtml(row.studentEmail || "")} · ${escapeHtml(amount)} · Réf. ${escapeHtml(ref)}</div>
+          </div>
+          <div class="task-row__actions">
+            <button type="button" class="btn--ok btn--sm" data-verify-renewal="${escapeHtml(row.id)}">✓ Valider</button>
+          </div>
+        </div>`;
+      }
+
       async function renderPayments() {
         const list = SAC_TASKS.getPendingPayments();
+        const renewals = SAC_TASKS.getPendingRenewals();
         const el = document.getElementById("listPayments");
-        document.getElementById("countPayments").textContent = list.length + " dossier(s)";
-        if (!list.length) {
+        document.getElementById("countPayments").textContent =
+          list.length + renewals.length + " dossier(s)";
+        if (!list.length && !renewals.length) {
           el.innerHTML = '<p class="empty-tasks">Aucun paiement en attente de validation.</p>';
           return;
         }
-        el.innerHTML = list.map(renderPaymentRow).join("");
+        el.innerHTML =
+          renewals.map(renderRenewalRow).join("") + list.map(renderPaymentRow).join("");
+        el.querySelectorAll("[data-verify-renewal]").forEach((btn) => {
+          btn.addEventListener("click", async () => {
+            if (!confirm("Confirmer le renouvellement d'inscription ?")) return;
+            try {
+              await SAC_TASKS.verifyRenewal(btn.dataset.verifyRenewal);
+              await renderAllTasks();
+              alert("Renouvellement validé — l'utilisateur retrouve l'accès.");
+            } catch (e) {
+              alert(e.message);
+            }
+          });
+        });
         el.querySelectorAll("[data-verify]").forEach((btn) => {
           btn.addEventListener("click", async () => {
             if (!confirm("Confirmer la validation de ce paiement ?")) return;
@@ -498,6 +531,7 @@
 
       async function renderAllTasks() {
         await SAC_TASKS.refreshPayments(session);
+        await SAC_TASKS.refreshRenewals();
         renderTaskStats();
         await renderPayments();
         renderRegistrations();

@@ -416,20 +416,30 @@ const SAC_SESSION = (function () {
     return syncSessionWithAccount(requiredRole);
   }
 
-  function finishGuard(session, requiredRole) {
+  async function finishGuard(session, requiredRole) {
     if (!session) return null;
     if (typeof SAC_PORTAL !== "undefined" && SAC_PORTAL.redirectIfWrongRole(session)) {
       return null;
     }
+    let current = session;
     if (typeof SAC_SECTION_APPROVAL !== "undefined") {
-      const enriched = SAC_SECTION_APPROVAL.enrichSession(session);
-      if (SAC_SECTION_APPROVAL.shouldBlockDashboard(enriched)) {
-        SAC_SECTION_APPROVAL.redirectPending(enriched);
+      current = SAC_SECTION_APPROVAL.enrichSession(session);
+      if (SAC_SECTION_APPROVAL.shouldBlockDashboard(current)) {
+        SAC_SECTION_APPROVAL.redirectPending(current);
         return null;
       }
-      return enriched;
     }
-    return session;
+    if (typeof SAC_ENROLLMENT_RENEWAL !== "undefined") {
+      current = await SAC_ENROLLMENT_RENEWAL.refreshFromApi(current);
+      if (SAC_ENROLLMENT_RENEWAL.shouldBlockDashboard(current)) {
+        SAC_ENROLLMENT_RENEWAL.redirectToRenewal(current);
+        return null;
+      }
+      if (SAC_ENROLLMENT_RENEWAL.shouldShowBanner(current)) {
+        SAC_ENROLLMENT_RENEWAL.mountBanner(current);
+      }
+    }
+    return current;
   }
 
   function backgroundSessionSync(requiredRole) {
@@ -463,7 +473,7 @@ const SAC_SESSION = (function () {
     if (local?.identifiant && (!requiredRole || local.role === requiredRole)) {
       const synced = syncSessionWithAccount(requiredRole) || local;
       backgroundSessionSync(requiredRole);
-      return finishGuard(synced, requiredRole);
+      return await finishGuard(synced, requiredRole);
     }
 
     let session = await resolveNavigationSession(requiredRole);
@@ -474,7 +484,7 @@ const SAC_SESSION = (function () {
       window.location.replace(loginUrl(requiredRole));
       return null;
     }
-    return finishGuard(session, requiredRole);
+    return await finishGuard(session, requiredRole);
   }
 
   /** Déconnexion unique — seul moyen d'effacer la session */

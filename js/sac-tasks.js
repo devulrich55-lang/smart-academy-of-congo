@@ -108,17 +108,19 @@ const SAC_TASKS = (function () {
 
   function getSummary(session) {
     const payments = getPendingPayments();
+    const renewals = getPendingRenewals();
     const registrations = getRegistrationsToValidate(session);
     const openRecs = getOpenReclamations(session);
     const attestations = getAttestationRequests(session);
     const openOnly = openRecs.filter((r) => r.statut === "ouverte").length;
 
     return {
-      pendingPayments: payments.length,
+      pendingPayments: payments.length + renewals.length,
+      pendingRenewals: renewals.length,
       registrationsToValidate: registrations.length,
       openReclamations: openRecs.length,
       attestations: attestations.length,
-      totalPending: payments.length + openOnly,
+      totalPending: payments.length + renewals.length + openOnly,
     };
   }
 
@@ -207,6 +209,32 @@ const SAC_TASKS = (function () {
     return users[idx];
   }
 
+  let renewalsCache = [];
+
+  async function refreshRenewals() {
+    if (typeof SAC_API !== "undefined" && typeof SAC_API.listPendingEnrollmentRenewals === "function") {
+      try {
+        renewalsCache = (await SAC_API.listPendingEnrollmentRenewals()) || [];
+      } catch {
+        renewalsCache = [];
+      }
+    } else {
+      renewalsCache = [];
+    }
+    return renewalsCache;
+  }
+
+  function getPendingRenewals() {
+    return renewalsCache;
+  }
+
+  async function verifyRenewal(enrollmentId) {
+    if (typeof SAC_API === "undefined" || typeof SAC_API.verifyEnrollmentRenewal !== "function") {
+      throw new Error("Validation renouvellement indisponible — API requise.");
+    }
+    return SAC_API.verifyEnrollmentRenewal(enrollmentId);
+  }
+
   const ROLE_LABELS = {
     etudiant: "Étudiant",
     professeur: "Professeur",
@@ -217,8 +245,11 @@ const SAC_TASKS = (function () {
   return {
     campusCode,
     refreshPayments,
+    refreshRenewals,
     getSummary,
     getPendingPayments,
+    getPendingRenewals,
+    verifyRenewal,
     getRegistrationsToValidate,
     getOpenReclamations,
     getAttestationRequests,

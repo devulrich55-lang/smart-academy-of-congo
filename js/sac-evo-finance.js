@@ -429,10 +429,10 @@ const SAC_EVO_FINANCE = (function () {
 
   function renderSecurityPanel() {
     return (
-      '<div class="ef-alert">Accès Super Admin — portail Evo Finance. MFA recommandé à chaque connexion institutionnelle.</div>' +
+      '<div class="ef-alert">Accès Super Admin — portail Evo Finance. Connexion par e-mail et mot de passe (sans code e-mail à chaque session).</div>' +
       '<div class="ef-card"><h2>Sécurité financière</h2><ul class="ef-security-list">' +
       "<li>✅ Journal de toutes les opérations (transactions ci-dessous)</li>" +
-      "<li>✅ Validation 2FA Super Admin (connexion /superadmin/ et /evofinance/)</li>" +
+      "<li>✅ Réinitialisation mot de passe via « Mot de passe oublié » uniquement</li>" +
       "<li>⏳ Double validation pour les gros transferts (&gt; 500 USD) — à activer</li>" +
       "<li>⏳ Alertes activité inhabituelle — liaison EvoMonitor</li>" +
       "</ul>" +

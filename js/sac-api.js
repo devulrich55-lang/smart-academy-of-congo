@@ -1159,6 +1159,28 @@ const SAC_API = (function () {
     });
   }
 
+  async function getEnrollmentRenewalStatus() {
+    return request("/enrollments/renewal/status", { softAuth: true });
+  }
+
+  async function submitEnrollmentRenewal(payment) {
+    return request("/enrollments/renewal", {
+      method: "POST",
+      body: JSON.stringify({ payment }),
+    });
+  }
+
+  async function verifyEnrollmentRenewal(enrollmentId) {
+    return request("/enrollments/renewal/" + encodeURIComponent(enrollmentId) + "/verify", {
+      method: "POST",
+    });
+  }
+
+  async function listPendingEnrollmentRenewals() {
+    const data = await request("/enrollments/renewal/pending");
+    return data?.renewals || [];
+  }
+
   async function createSectionStudent(payload) {
     return request("/sections/students", {
       method: "POST",
@@ -2796,6 +2818,10 @@ const SAC_API = (function () {
     requestPasswordReset,
     resetPassword,
     resetPasswordWithCode,
+    getEnrollmentRenewalStatus,
+    submitEnrollmentRenewal,
+    verifyEnrollmentRenewal,
+    listPendingEnrollmentRenewals,
     createSectionStudent,
     createSectionHeadAccount,
     listSectionStudents,

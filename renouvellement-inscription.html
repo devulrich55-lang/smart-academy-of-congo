@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Renouvellement d'inscription — Evo-smartUni</title>
+  <script src="js/sac-config.js"></script>
+  <script src="js/sac-theme.js"></script>
+  <link rel="icon" href="evo-uni.jpeg" type="image/jpeg" />
+  <link rel="stylesheet" href="css/logo.css" />
+  <link rel="stylesheet" href="css/theme.css" />
+  <link rel="stylesheet" href="css/connexion.css" />
+  <link rel="stylesheet" href="css/mobile.css" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />
+  <meta name="theme-color" content="#003366" />
+  <style>
+    .renew-box {
+      padding: 1rem 1.1rem;
+      border-radius: 10px;
+      background: rgba(0, 51, 102, 0.06);
+      border: 1px solid rgba(0, 51, 102, 0.12);
+      margin-bottom: 1rem;
+      line-height: 1.55;
+    }
+    .renew-alert {
+      padding: 0.75rem 0.9rem;
+      border-radius: 8px;
+      background: #fff7ed;
+      border: 1px solid #f59e0b;
+      color: #92400e;
+      margin-bottom: 1rem;
+      font-size: 0.92rem;
+    }
+    .renew-blocked {
+      background: #fef2f2;
+      border-color: #ef4444;
+      color: #991b1b;
+    }
+    .renew-fee {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--primary, #003366);
+      margin: 0.5rem 0 1rem;
+    }
+    .renew-methods label {
+      display: block;
+      margin: 0.5rem 0;
+      cursor: pointer;
+    }
+    .renew-ref {
+      width: 100%;
+      margin-top: 0.75rem;
+      padding: 0.65rem 0.75rem;
+      border: 1px solid var(--border, #e2e8f0);
+      border-radius: 8px;
+      font: inherit;
+    }
+  </style>
+</head>
+<body class="auth-page">
+  <header class="auth-header">
+    <div class="auth-page__container auth-header__inner">
+      <a href="index.html" class="auth-header__logo logo">
+        <img src="evo-uni.jpeg" alt="Evo-smartUni" class="logo__img" width="44" height="44" />
+        <span class="logo__text">Evo-smartUni</span>
+      </a>
+      <a href="index.html" class="auth-header__link"><span aria-hidden="true">←</span> Accueil</a>
+    </div>
+  </header>
+
+  <main class="auth-main">
+    <div class="auth-page__container">
+      <section class="auth-card" style="max-width:560px;margin:0 auto;">
+        <div style="font-size:2.25rem;margin-bottom:0.5rem;">🔄</div>
+        <h1 style="font-family:'Playfair Display',serif;margin:0 0 0.75rem;">Renouvellement d'inscription</h1>
+        <p style="color:var(--muted);line-height:1.55;margin:0 0 1rem;">
+          Chaque année, avant le <strong>30 juillet</strong>, renouvelez votre abonnement plateforme.
+          Vos notes, documents et historique sont <strong>conservés</strong>.
+        </p>
+
+        <div id="renewAlert" class="renew-alert" hidden></div>
+
+        <div class="renew-box">
+          <p id="renewStatus" style="margin:0;">Chargement…</p>
+          <p id="renewDeadline" style="margin:0.75rem 0 0;font-size:0.9rem;color:var(--muted);"></p>
+        </div>
+
+        <div id="renewPaySection" hidden>
+          <h2 style="font-size:1.05rem;margin:0 0 0.5rem;">Paiement du renouvellement</h2>
+          <p class="renew-fee" id="renewFee">—</p>
+          <form id="renewForm">
+            <div class="renew-methods">
+              <label><input type="radio" name="method" value="bank_usd" checked /> Virement bancaire (USD)</label>
+              <label><input type="radio" name="method" value="bank_cdf" /> Virement bancaire (CDF)</label>
+              <label><input type="radio" name="method" value="orange_money" /> Orange Money</label>
+              <label><input type="radio" name="method" value="mpesa" /> M-Pesa</label>
+            </div>
+            <input class="renew-ref" type="text" id="renewReference" placeholder="Référence de transaction ou numéro de reçu" required />
+            <button type="submit" class="auth-submit" id="renewSubmit" style="margin-top:1rem;width:100%;">
+              Confirmer le paiement
+            </button>
+          </form>
+        </div>
+
+        <p id="renewPending" style="color:var(--muted);font-size:0.9rem;margin:1rem 0 0;" hidden>
+          Paiement enregistré — validation par l'assistant sous 24 h. Vous serez notifié par e-mail.
+        </p>
+
+        <div style="display:flex;flex-wrap:wrap;gap:0.65rem;margin-top:1.25rem;">
+          <a href="connexion.html" class="auth-link">Connexion</a>
+          <a href="#" id="renewDashboard" class="auth-link" hidden>Retour au tableau de bord</a>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script src="js/sac-api.js"></script>
+  <script src="js/sac-identity.js"></script>
+  <script src="js/sac-section-approval.js"></script>
+  <script src="js/sac-tariffs.js"></script>
+  <script src="js/sac-enrollment-renewal.js"></script>
+  <script src="js/sac-session.js"></script>
+  <script>
+    (function () {
+      const params = new URLSearchParams(window.location.search);
+      const roleParam = params.get("role") || "etudiant";
+      const alertEl = document.getElementById("renewAlert");
+      const statusEl = document.getElementById("renewStatus");
+      const deadlineEl = document.getElementById("renewDeadline");
+      const paySection = document.getElementById("renewPaySection");
+      const pendingEl = document.getElementById("renewPending");
+      const feeEl = document.getElementById("renewFee");
+      const form = document.getElementById("renewForm");
+      const dashLink = document.getElementById("renewDashboard");
+
+      const DASH = {
+        etudiant: "dashboard-etudiant.html",
+        professeur: "dashboard-professeur.html",
+        assistant: "dashboard-assistant.html",
+      };
+
+      function showAlert(text, blocked) {
+        alertEl.hidden = false;
+        alertEl.textContent = text;
+        alertEl.classList.toggle("renew-blocked", !!blocked);
+      }
+
+      async function init() {
+        let session = SAC_SESSION.getSession();
+        if (!session?.identifiant) {
+          window.location.replace("connexion.html?role=" + encodeURIComponent(roleParam));
+          return;
+        }
+        if (!SAC_ENROLLMENT_RENEWAL.requiresRenewal(session)) {
+          statusEl.textContent = "Ce compte ne nécessite pas de renouvellement annuel.";
+          return;
+        }
+
+        session = await SAC_ENROLLMENT_RENEWAL.refreshFromApi(session);
+        const r = session.enrollmentRenewal || SAC_ENROLLMENT_RENEWAL.computeLocalStatus(session);
+        const fee = SAC_ENROLLMENT_RENEWAL.getRenewalFee(session.role);
+
+        deadlineEl.textContent =
+          "Échéance annuelle : " +
+          SAC_ENROLLMENT_RENEWAL.formatDeadline(r.deadline) +
+          (r.daysUntilDeadline != null ? " (" + r.daysUntilDeadline + " jour(s) restants)" : "");
+
+        if (r.accessBlocked) {
+          showAlert(r.message || "Accès suspendu — renouvellement requis.", true);
+          statusEl.textContent =
+            "Année en cours : " + (r.accessYear || "—") + ". Payez pour réactiver votre compte.";
+          paySection.hidden = false;
+        } else if (r.warningActive || r.needsRenewalPayment) {
+          showAlert(r.message || "Pensez à renouveler votre inscription avant le 30 juillet.");
+          statusEl.textContent =
+            "Inscription active pour " +
+            (r.accessYear || "—") +
+            ". Renouvellement pour " +
+            (r.renewalYear || "—") +
+            " recommandé.";
+          paySection.hidden = false;
+          dashLink.hidden = false;
+          dashLink.href = DASH[session.role] || "connexion.html";
+        } else if (r.pendingPayment) {
+          statusEl.textContent = "Paiement en attente de validation.";
+          pendingEl.hidden = false;
+        } else if (r.enrollmentStatus === "active") {
+          statusEl.textContent = "Votre inscription " + (r.accessYear || "") + " est à jour.";
+          dashLink.hidden = false;
+          dashLink.href = DASH[session.role] || "connexion.html";
+        } else {
+          statusEl.textContent = r.message || "Statut de renouvellement indisponible.";
+          paySection.hidden = false;
+        }
+
+        feeEl.textContent =
+          fee.amount + " " + fee.currency + " — " + fee.label;
+
+        form.addEventListener("submit", async function (ev) {
+          ev.preventDefault();
+          const btn = document.getElementById("renewSubmit");
+          btn.disabled = true;
+          btn.textContent = "Envoi…";
+          const methodInput = form.querySelector('input[name="method"]:checked');
+          const method = methodInput ? methodInput.value : "bank_usd";
+          const reference = document.getElementById("renewReference").value.trim();
+          const payment = {
+            method: method,
+            amountUsd: fee.amount,
+            currency: fee.currency,
+            paymentReference: reference,
+            transactionId: reference,
+            status: method.indexOf("bank") === 0 ? "pending_verification" : "completed",
+            paidAt: new Date().toISOString(),
+            purpose: "enrollment_renewal",
+          };
+          try {
+            if (typeof SAC_API.submitEnrollmentRenewal === "function") {
+              await SAC_API.submitEnrollmentRenewal(payment);
+            }
+            pendingEl.hidden = false;
+            paySection.hidden = true;
+            showAlert("Paiement enregistré. Validation sous 24 h — vos données restent intactes.");
+            const refreshed = await SAC_ENROLLMENT_RENEWAL.refreshFromApi(session);
+            if (!refreshed.enrollmentRenewal?.accessBlocked && refreshed.enrollmentRenewal?.enrollmentStatus === "active") {
+              setTimeout(function () {
+                window.location.replace(DASH[session.role] || "connexion.html");
+              }, 1500);
+            }
+          } catch (err) {
+            alert(err.message || "Impossible d'enregistrer le paiement.");
+            btn.disabled = false;
+            btn.textContent = "Confirmer le paiement";
+          }
+        });
+      }
+
+      init();
+    })();
+  </script>
+</body>
+</html>
