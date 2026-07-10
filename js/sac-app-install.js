@@ -1,10 +1,12 @@
 /**
- * Page /app/ — installation Android (PWA Evo-smartUni)
+ * Page /app/ — installation PWA Evo-smartUni (PC, Android, iPhone)
  */
 (function () {
   "use strict";
 
   document.body.dataset.sacInstallPage = "1";
+
+  var activePlatform = "auto";
 
   function toast(msg) {
     var el = document.getElementById("appInstallToast");
@@ -20,18 +22,34 @@
     return window.location.origin.replace(/\/+$/, "") + "/app/";
   }
 
-  function isAndroid() {
-    return /Android/i.test(navigator.userAgent || "");
+  function detectPlatform() {
+    if (activePlatform !== "auto") return activePlatform;
+    if (typeof SAC_PWA !== "undefined") {
+      if (SAC_PWA.isIos && SAC_PWA.isIos()) return "ios";
+      if (SAC_PWA.isAndroid && SAC_PWA.isAndroid()) return "android";
+      if (SAC_PWA.isDesktopOs && SAC_PWA.isDesktopOs()) return "desktop";
+    }
+    return "desktop";
   }
 
-  function isIosDevice() {
-    return typeof SAC_PWA !== "undefined" && SAC_PWA.isIos && SAC_PWA.isIos();
+  function detectPlatform() {
+    activePlatform = id;
+    document.querySelectorAll("[data-app-platform]").forEach(function (btn) {
+      btn.classList.toggle("is-active", btn.dataset.appPlatform === id);
+    });
+    document.querySelectorAll("[data-app-panel]").forEach(function (panel) {
+      panel.hidden = panel.dataset.appPanel !== id;
+    });
+    updateUi();
   }
 
   function updateUi() {
+    var platform = detectPlatform();
     var btn = document.getElementById("btnInstallApp");
     var badge = document.getElementById("installStatusBadge");
     var steps = document.getElementById("installManualSteps");
+    var desktopSteps = document.getElementById("installDesktopSteps");
+    var iosSteps = document.getElementById("installIosSteps");
     var linkEl = document.getElementById("installShareLink");
     if (linkEl) linkEl.textContent = installUrl();
 
@@ -42,29 +60,54 @@
       }
       if (badge) {
         badge.className = "app-install-badge";
-        badge.textContent = "✓ Evo-smartUni est sur votre écran d'accueil";
+        badge.textContent = "✓ Evo-smartUni est installée sur cet appareil";
       }
-      return;
-    }
-
-    if (isIosDevice()) {
-      if (btn) btn.style.display = "none";
-      if (badge) {
-        badge.className = "app-install-badge app-install-badge--warn";
-        badge.textContent = "📱 iPhone : utilisez Safari → Partager → Sur l'écran d'accueil";
-      }
-      if (steps) steps.hidden = false;
+      if (steps) steps.hidden = true;
+      if (desktopSteps) desktopSteps.hidden = true;
+      if (iosSteps) iosSteps.hidden = true;
       return;
     }
 
     var canInstall = typeof SAC_PWA !== "undefined" && SAC_PWA.canInstall && SAC_PWA.canInstall();
+
+    if (platform === "ios") {
+      if (btn) btn.style.display = "none";
+      if (badge) {
+        badge.className = "app-install-badge app-install-badge--warn";
+        badge.textContent = "📱 iPhone : Safari → Partager → Sur l'écran d'accueil";
+      }
+      if (steps) steps.hidden = true;
+      if (desktopSteps) desktopSteps.hidden = true;
+      if (iosSteps) iosSteps.hidden = false;
+      return;
+    }
+
+    if (platform === "desktop") {
+      if (btn) {
+        btn.style.display = "";
+        btn.disabled = !canInstall;
+        btn.textContent = canInstall
+          ? "💻 Installer Evo-smartUni sur PC"
+          : "Installation manuelle (voir ci-dessous)";
+      }
+      if (badge) {
+        badge.className = "app-install-badge" + (canInstall ? "" : " app-install-badge--warn");
+        badge.textContent = canInstall
+          ? "Installation directe disponible — Chrome ou Edge recommandé"
+          : "Utilisez Chrome ou Edge sur PC, puis suivez les étapes ci-dessous";
+      }
+      if (steps) steps.hidden = true;
+      if (iosSteps) iosSteps.hidden = true;
+      if (desktopSteps) desktopSteps.hidden = canInstall;
+      return;
+    }
+
     if (btn) {
+      btn.style.display = "";
       btn.disabled = !canInstall;
       btn.textContent = canInstall
         ? "📲 Installer Evo-smartUni (Android)"
-        : isAndroid()
-          ? "Ouvrir dans Chrome pour installer"
-          : "Installer sur Android (Chrome)";
+        : "Ouvrir dans Chrome pour installer";
     }
     if (badge) {
       badge.className = "app-install-badge" + (canInstall ? "" : " app-install-badge--warn");
@@ -73,24 +116,36 @@
         : "Utilisez Chrome sur Android, puis le bouton ci-dessus";
     }
     if (steps) steps.hidden = canInstall;
+    if (desktopSteps) desktopSteps.hidden = true;
+    if (iosSteps) iosSteps.hidden = true;
   }
 
   function bindActions() {
     var btn = document.getElementById("btnInstallApp");
     var copyBtn = document.getElementById("btnCopyInstallLink");
-    var openBtn = document.getElementById("btnOpenLogin");
+
+    document.querySelectorAll("[data-app-platform]").forEach(function (tab) {
+      tab.addEventListener("click", function () {
+        setActivePlatform(tab.dataset.appPlatform);
+      });
+    });
 
     btn?.addEventListener("click", function () {
       if (typeof SAC_PWA === "undefined" || !SAC_PWA.promptInstall) {
-        toast("Ouvrez cette page dans Chrome sur Android.");
+        toast("Ouvrez cette page dans Chrome ou Edge.");
         return;
       }
       SAC_PWA.promptInstall().then(function (choice) {
         if (choice && choice.outcome === "accepted") {
-          toast("Application installée — ouvrez-la depuis l'écran d'accueil.");
+          toast("Application installée — ouvrez-la depuis le bureau ou le menu Démarrer.");
           updateUi();
         } else if (choice && choice.outcome === "unavailable") {
-          toast("Ouvrez ce lien dans Chrome : Menu ⋮ → Installer l'application");
+          var platform = detectPlatform();
+          if (platform === "desktop") {
+            toast("Chrome/Edge : menu ⋮ → Installer Evo-smartUni");
+          } else {
+            toast("Chrome : Menu ⋮ → Installer l'application");
+          }
         }
       });
     });
@@ -100,7 +155,7 @@
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(url).then(
           function () {
-            toast("Lien copié — partagez-le aux utilisateurs Android.");
+            toast("Lien copié — partagez-le pour installer l'application.");
           },
           function () {
             prompt("Copiez ce lien :", url);
@@ -110,17 +165,21 @@
         prompt("Copiez ce lien :", url);
       }
     });
-
-    openBtn?.addEventListener("click", function () {
-      window.location.href = "../connexion.html?source=app";
-    });
   }
 
   function init() {
-    updateUi();
+    var params = new URLSearchParams(window.location.search);
+    var forced = params.get("platform");
+    if (forced === "desktop" || forced === "android" || forced === "ios") {
+      activePlatform = forced;
+    }
+    var initial = detectPlatform();
+    setActivePlatform(initial);
     bindActions();
     if (typeof SAC_PWA !== "undefined" && SAC_PWA.onInstallReady) {
-      SAC_PWA.onInstallReady(updateUi);
+      SAC_PWA.onInstallReady(function () {
+        updateUi();
+      });
     }
     setTimeout(updateUi, 1500);
   }

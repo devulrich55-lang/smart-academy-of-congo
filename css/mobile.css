@@ -549,6 +549,22 @@ body {
   cursor: pointer;
 }
 
+.sac-install-banner__link {
+  flex-shrink: 0;
+  color: #c9a227;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-decoration: none;
+  padding: 0.35rem 0.5rem;
+}
+
+.sac-install-banner--desktop {
+  left: auto;
+  right: max(1rem, env(safe-area-inset-right));
+  bottom: max(1rem, env(safe-area-inset-bottom));
+  max-width: 420px;
+}
+
 /* ——— Navigation rapide bas d'écran (désactivée) ——— */
 .sac-mobile-quick-nav {
   display: none !important;

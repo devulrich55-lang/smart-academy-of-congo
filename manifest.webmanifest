@@ -1,7 +1,8 @@
 {
   "name": "Evo-smartUni",
   "short_name": "Evo-smartUni",
-  "description": "Plateforme académique : cours, notes, live, frais et réclamations.",
+  "description": "Plateforme académique : cours, notes, live, frais et réclamations. Installable sur PC et mobile.",
+  "id": "/",
   "start_url": "/connexion.html?source=pwa",
   "scope": "/",
   "display": "standalone",
@@ -45,9 +46,15 @@
       "icons": [{ "src": "/evo-uni.jpeg", "sizes": "192x192", "type": "image/jpeg" }]
     },
     {
-      "name": "Télécharger (Android)",
-      "short_name": "Android",
+      "name": "Télécharger l'application",
+      "short_name": "Télécharger",
       "url": "/app/",
+      "icons": [{ "src": "/evo-uni.jpeg", "sizes": "192x192", "type": "image/jpeg" }]
+    },
+    {
+      "name": "Installer sur PC",
+      "short_name": "PC",
+      "url": "/app/?platform=desktop",
       "icons": [{ "src": "/evo-uni.jpeg", "sizes": "192x192", "type": "image/jpeg" }]
     }
   ]

@@ -6,6 +6,7 @@
 
   var INSTALL_KEY = "sac_pwa_install_dismissed";
   var IOS_HINT_KEY = "sac_pwa_ios_hint_dismissed";
+  var DESKTOP_HINT_KEY = "sac_pwa_desktop_hint_dismissed";
   var deferredPrompt = null;
 
   function assetBase() {
@@ -75,6 +76,18 @@
     );
   }
 
+  function isAndroid() {
+    return /Android/i.test(navigator.userAgent || "");
+  }
+
+  function isMobileViewport() {
+    return window.matchMedia("(max-width: 768px)").matches;
+  }
+
+  function isDesktopOs() {
+    return !isIos() && !isAndroid();
+  }
+
   function removeBanner() {
     var el = document.getElementById("sacInstallBanner");
     if (el) el.remove();
@@ -82,8 +95,9 @@
 
   function showInstallBanner(kind) {
     if (isStandalone() || document.getElementById("sacInstallBanner")) return;
-    if (localStorage.getItem(INSTALL_KEY) === "1" && kind === "android") return;
+    if (localStorage.getItem(INSTALL_KEY) === "1" && (kind === "android" || kind === "mobile")) return;
     if (localStorage.getItem(IOS_HINT_KEY) === "1" && kind === "ios") return;
+    if (localStorage.getItem(DESKTOP_HINT_KEY) === "1" && kind === "desktop") return;
 
     var bar = document.createElement("div");
     bar.id = "sacInstallBanner";
@@ -97,6 +111,18 @@
         "<strong>Installer Evo-smartUni</strong>" +
         "<span>Sur iPhone : partage Safari → « Sur l'écran d'accueil »</span>" +
         "</div>" +
+        '<button type="button" class="sac-install-banner__close" aria-label="Fermer">✕</button>';
+    } else if (kind === "desktop") {
+      bar.classList.add("sac-install-banner--desktop");
+      bar.innerHTML =
+        '<div class="sac-install-banner__text">' +
+        "<strong>Installer Evo-smartUni sur PC</strong>" +
+        "<span>Application bureau — Windows, Mac ou Linux (Chrome / Edge)</span>" +
+        "</div>" +
+        '<button type="button" class="sac-install-banner__btn" id="sacInstallBtn">Installer</button>' +
+        '<a class="sac-install-banner__link" href="' +
+        assetBase() +
+        'app/">Guide</a>' +
         '<button type="button" class="sac-install-banner__close" aria-label="Fermer">✕</button>';
     } else {
       bar.innerHTML =
@@ -112,6 +138,7 @@
 
     bar.querySelector(".sac-install-banner__close").addEventListener("click", function () {
       if (kind === "ios") localStorage.setItem(IOS_HINT_KEY, "1");
+      else if (kind === "desktop") localStorage.setItem(DESKTOP_HINT_KEY, "1");
       else localStorage.setItem(INSTALL_KEY, "1");
       removeBanner();
     });
@@ -146,12 +173,17 @@
       e.preventDefault();
       deferredPrompt = e;
       window.dispatchEvent(new CustomEvent("sac-pwa-install-ready"));
-      if (window.matchMedia("(max-width: 768px)").matches && !document.body.dataset.sacInstallPage) {
-        showInstallBanner("android");
+      if (document.body.dataset.sacInstallPage) return;
+      if (isStandalone()) return;
+      if (isDesktopOs() && !isMobileViewport()) {
+        showInstallBanner("desktop");
+      } else if (isMobileViewport()) {
+        if (isIos()) showInstallBanner("ios");
+        else showInstallBanner("mobile");
       }
     });
 
-    if (isIos() && !isStandalone() && window.matchMedia("(max-width: 768px)").matches) {
+    if (isIos() && !isStandalone() && isMobileViewport()) {
       setTimeout(function () {
         showInstallBanner("ios");
       }, 2500);
@@ -180,6 +212,9 @@
     init: init,
     isStandalone: isStandalone,
     isIos: isIos,
+    isAndroid: isAndroid,
+    isDesktopOs: isDesktopOs,
+    isMobileViewport: isMobileViewport,
     assetBase: assetBase,
     canInstall: function () {
       return !!deferredPrompt;
