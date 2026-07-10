@@ -524,6 +524,30 @@
   background: #dcfce7;
   color: #166534;
 }
+.edb-table__actions {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+.edb-btn-del {
+  font-size: 0.75rem;
+  padding: 0.35rem 0.6rem;
+  border-radius: 8px;
+  border: 1px solid #fecaca;
+  background: #fef2f2;
+  color: #b91c1c;
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.edb-btn-del:hover {
+  background: #fee2e2;
+}
+.edb-btn-del:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
 
 /* ——— Bordereau paiement livre (modale centrée, style dashboard) ——— */
 .edb-pay-overlay {

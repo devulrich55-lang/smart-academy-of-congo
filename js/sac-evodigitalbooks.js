@@ -620,6 +620,61 @@ const SAC_EDB = (function () {
     return book;
   }
 
+  async function deleteAuthorBook(session, bookId) {
+    if (!isAuthorApproved(session)) {
+      throw new Error("Compte auteur non validé.");
+    }
+    const id = String(bookId || "").trim();
+    if (!id) throw new Error("Livre introuvable.");
+    const email = normEmail(session.identifiant || session.email);
+    const book = readBooks().find((b) => b.id === id);
+    if (!book) throw new Error("Livre introuvable.");
+    if (normEmail(book.authorEmail) !== email) {
+      throw new Error("Vous ne pouvez supprimer que vos propres publications.");
+    }
+
+    const sales = readSales()[id] || 0;
+    let confirmMsg =
+      "Supprimer « " +
+      (book.title || "ce livre") +
+      " » ?\n\nIl disparaîtra du catalogue EvoDigitalBooks et de la bibliothèque nationale.";
+    if (sales > 0) {
+      confirmMsg +=
+        "\n\n" +
+        sales +
+        " vente(s) déjà enregistrée(s) — les acheteurs conservent l'accès au fichier.";
+    }
+    confirmMsg += "\n\nVous pourrez republier une version corrigée ensuite.";
+    if (!confirm(confirmMsg)) return false;
+
+    if (typeof SAC_API !== "undefined" && SAC_API.deleteDigitalLibraryBook) {
+      await SAC_API.ensureOnline(true);
+      if (SAC_API.ensureWritableApiSession) {
+        const writable = await SAC_API.ensureWritableApiSession({ soft: false });
+        if (!writable) throw new Error("Session API expirée — reconnectez-vous.");
+      } else if (SAC_API.ensureApiSession) {
+        const ok = await SAC_API.ensureApiSession();
+        if (!ok) throw new Error("Session API requise — reconnectez-vous.");
+      }
+      try {
+        await SAC_API.deleteDigitalLibraryBook(id);
+      } catch (err) {
+        if (err.status === 403) {
+          throw new Error("Suppression refusée — vérifiez que vous êtes bien l'auteur.");
+        }
+        if (err.status === 404) {
+          /* déjà absent côté serveur */
+        } else {
+          throw new Error(err.message || "Suppression impossible sur le serveur.");
+        }
+      }
+    }
+
+    writeBooks(readBooks().filter((b) => b.id !== id));
+    window.dispatchEvent(new CustomEvent("sac-edb-catalog-refresh"));
+    return true;
+  }
+
   async function uploadFile(file, kind) {
     if (!file) throw new Error("Fichier manquant.");
     if (typeof SAC_API === "undefined") throw new Error("API indisponible.");
@@ -1280,7 +1335,9 @@ const SAC_EDB = (function () {
       "<li>✓ Fixez un prix compétitif</li>" +
       "<li>✓ Proposez un extrait gratuit</li>" +
       "</ul></div></div></section>" +
-      '<section class="edb-panel" id="edbPanelBooks" hidden><div class="edb-card-panel"><h2>Mes livres</h2><div id="edbBooksTable"></div></div></section>' +
+      '<section class="edb-panel" id="edbPanelBooks" hidden><div class="edb-card-panel"><h2>Mes livres</h2>' +
+      '<p class="edb-dash__sub">Supprimez une publication pour la retirer du catalogue, puis republiez une version corrigée depuis « Ajouter un livre ».</p>' +
+      '<div id="edbBooksTable"></div></div></section>' +
       '<section class="edb-panel" id="edbPanelPublish" hidden><div class="edb-card-panel edb-card-panel--publish"><h2>Publier un livre</h2>' +
       '<p class="edb-dash__sub">Visible dans EvoDigitalBooks et la bibliothèque nationale · 75 % auteur / 25 % plateforme</p>' +
       '<form id="edbPublishForm" class="edb-form edb-publish-form">' +
@@ -1350,7 +1407,7 @@ const SAC_EDB = (function () {
         return;
       }
       host.innerHTML =
-        '<table class="edb-table"><thead><tr><th>Livre</th><th>Prix</th><th>Ventes</th><th>Revenus</th><th>Statut</th></tr></thead><tbody>' +
+        '<table class="edb-table"><thead><tr><th>Livre</th><th>Prix</th><th>Ventes</th><th>Revenus</th><th>Statut</th><th>Actions</th></tr></thead><tbody>' +
         list
           .map((b) => {
             const s = sales[b.id] || 0;
@@ -1369,11 +1426,36 @@ const SAC_EDB = (function () {
               s +
               "</td><td>" +
               formatMoney(rev, b.currency) +
-              '</td><td><span class="edb-status edb-status--ok">Publié</span></td></tr>'
+              '</td><td><span class="edb-status edb-status--ok">Publié</span></td>' +
+              '<td><div class="edb-table__actions">' +
+              '<button type="button" class="edb-btn-del" data-edb-delete="' +
+              esc(b.id) +
+              '" title="Retirer du catalogue">🗑 Supprimer</button>' +
+              "</div></td></tr>"
             );
           })
           .join("") +
         "</tbody></table>";
+
+      host.querySelectorAll("[data-edb-delete]").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const bookId = btn.dataset.edbDelete;
+          if (!bookId) return;
+          btn.disabled = true;
+          try {
+            const removed = await deleteAuthorBook(session, bookId);
+            if (removed) {
+              await syncAuthorBooksFromApi(session);
+              renderBooksTable();
+              window.dispatchEvent(new CustomEvent("sac-edb-catalog-refresh"));
+            }
+          } catch (err) {
+            alert(err.message || "Suppression impossible.");
+          } finally {
+            btn.disabled = false;
+          }
+        });
+      });
     }
     renderBooksTable();
 
@@ -1523,6 +1605,7 @@ const SAC_EDB = (function () {
     listLibraryBooks,
     getAuthorBooks,
     publishBook,
+    deleteAuthorBook,
     hasAccess,
     recordPurchase,
     syncPurchasesFromApi,
