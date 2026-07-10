@@ -273,7 +273,7 @@ const SAC_EVO_FINANCE = (function () {
       "</tr></thead><tbody>" +
       "<tr><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td><span class=\"ef-tag ef-tag--wait\">À configurer</span></td></tr>" +
       "</tbody></table></div>" +
-      '<p class="ef-placeholder" style="margin-top:1rem">Historique des paiements employés — disponible après connexion au module paie EvoSU.</p></div>"
+      '<p class="ef-placeholder" style="margin-top:1rem">Historique des paiements employés — disponible après connexion au module paie EvoSU.</p></div>'
     );
   }
 
@@ -325,7 +325,7 @@ const SAC_EVO_FINANCE = (function () {
       '<button type="button" class="ef-btn ef-btn--ghost" disabled title="Bientôt">Export PDF</button>' +
       '<button type="button" class="ef-btn ef-btn--ghost" disabled title="Bientôt">Export Excel</button>' +
       "</div>" +
-      '<p class="ef-placeholder" style="margin-top:1rem">Les exports PDF/Excel seront disponibles dans une prochaine version. Le CSV contient toutes les colonnes de transaction.</p></div>"
+      '<p class="ef-placeholder" style="margin-top:1rem">Les exports PDF/Excel seront disponibles dans une prochaine version. Le CSV contient toutes les colonnes de transaction.</p></div>'
     );
   }
 
@@ -423,7 +423,7 @@ const SAC_EVO_FINANCE = (function () {
       '<div class="ef-card"><h2>Factures & reçus</h2>' +
       '<p class="ef-placeholder">Émission automatique de reçus étudiants et factures campus — module comptable en cours d\'intégration.</p>' +
       '<h3 style="margin-top:1rem">Taxes & audit</h3>' +
-      '<p class="ef-placeholder">Consolidation TVA et piste d\'audit complète — réservée Super Admin.</p></div></div>"
+      '<p class="ef-placeholder">Consolidation TVA et piste d\'audit complète — réservée Super Admin.</p></div></div>'
     );
   }
 
