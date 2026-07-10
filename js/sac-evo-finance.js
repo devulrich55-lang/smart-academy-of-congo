@@ -163,14 +163,20 @@ const SAC_EVO_FINANCE = (function () {
 
   async function loadData(session) {
     if (typeof SAC_API === "undefined") throw new Error("API indisponible.");
-    await SAC_API.ensureOnline(true);
+    const online = await SAC_API.ensureOnline(true, { maxWaitMs: 35000 });
+    if (!online) {
+      throw new Error(
+        "Serveur injoignable — l'API Render démarre (attendez 1 minute puis actualisez)."
+      );
+    }
     if (SAC_API.ensureWritableApiSession) {
-      await SAC_API.ensureWritableApiSession({ soft: true });
+      await SAC_API.ensureWritableApiSession({ soft: true, timeoutMs: 12000 });
     }
     if (!SAC_API.getPlatformPaymentAggregator) {
       throw new Error("Route agrégateur plateforme absente — redéployez l'API.");
     }
-    return SAC_API.getPlatformPaymentAggregator();
+    const data = await SAC_API.getPlatformPaymentAggregator();
+    return data;
   }
 
   function treasuryFromData(data) {
@@ -596,6 +602,19 @@ const SAC_EVO_FINANCE = (function () {
     );
   }
 
+  function renderLoadingPanel(message, withRetry) {
+    return (
+      '<div class="ef-card ef-card--loading">' +
+      '<p class="ef-loading-inline">' +
+      esc(message || "Chargement des données financières…") +
+      "</p>" +
+      (withRetry
+        ? '<button type="button" class="ef-btn" id="efRetryLoad">↻ Réessayer</button>'
+        : "") +
+      "</div>"
+    );
+  }
+
   async function mount(rootId, session) {
     const root = document.getElementById(rootId);
     if (!root || !session) return;
@@ -607,27 +626,13 @@ const SAC_EVO_FINANCE = (function () {
 
     state.session = session;
     state.scope = "platform";
-    root.innerHTML = '<p class="ef-loading">Chargement des données financières…</p>';
-
-    try {
-      state.data = await loadData(session);
-      if (!state.data.transactions && state.data.byUniversity) {
-        state.data.transactions = [];
-        (state.data.byUniversity || []).forEach((g) => {
-          (g.transactions || []).forEach((t) => state.data.transactions.push(t));
-        });
-      }
-      state.data.transactions = state.data.transactions || [];
-    } catch (err) {
-      root.innerHTML =
-        '<p class="ef-loading" style="color:#b91c1c">' +
-        esc(err.message || "Erreur de chargement") +
-        "</p>";
-      return;
-    }
-
-    root.innerHTML = shellHtml(session);
-    showPanel(root, "revenus");
+    root.innerHTML =
+      shellHtml(session).replace(
+        '<div id="efPanelHost" class="ef-panel is-active"></div>',
+        '<div id="efPanelHost" class="ef-panel is-active">' +
+          renderLoadingPanel("Réveil du serveur et chargement des finances…", false) +
+          "</div>"
+      );
 
     root.querySelectorAll(".ef-nav button").forEach((btn) => {
       btn.addEventListener("click", () => showPanel(root, btn.dataset.efPanel));
@@ -640,6 +645,35 @@ const SAC_EVO_FINANCE = (function () {
           : "evofinance/";
       if (typeof SAC_SESSION !== "undefined") SAC_SESSION.logout(target);
     });
+
+    const host = root.querySelector("#efPanelHost");
+    if (host) host.innerHTML = renderLoadingPanel("Chargement des données financières…", false);
+
+    try {
+      state.data = await loadData(session);
+      if (!state.data.transactions && state.data.byUniversity) {
+        state.data.transactions = [];
+        (state.data.byUniversity || []).forEach((g) => {
+          (g.transactions || []).forEach((t) => state.data.transactions.push(t));
+        });
+      }
+      state.data.transactions = state.data.transactions || [];
+    } catch (err) {
+      if (host) {
+        host.innerHTML =
+          '<div class="ef-card ef-card--loading">' +
+          '<p class="ef-loading-inline" style="color:#b91c1c">' +
+          esc(err.message || "Erreur de chargement") +
+          "</p>" +
+          '<button type="button" class="ef-btn" id="efRetryLoad">↻ Réessayer</button>' +
+          '<a class="ef-btn ef-btn--ghost" href="evofinance/" style="margin-left:0.5rem">Portail Evo Finance</a>' +
+          "</div>";
+        host.querySelector("#efRetryLoad")?.addEventListener("click", () => mount(rootId, session));
+      }
+      return;
+    }
+
+    showPanel(root, "revenus");
   }
 
   return { mount, loadData };

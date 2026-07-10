@@ -8,8 +8,17 @@
 }
 .ef-loading {
   text-align: center;
-  padding: 3rem;
+  padding: 3rem 1.25rem;
   color: #94a3b8;
+}
+.ef-loading-inline {
+  margin: 0 0 1rem;
+  color: #94a3b8;
+  line-height: 1.5;
+}
+.ef-card--loading {
+  text-align: center;
+  padding: 2rem 1.25rem;
 }
 .ef-shell {
   display: grid;
@@ -365,14 +374,24 @@
     grid-template-columns: 1fr;
   }
   .ef-sidebar {
-    flex-direction: row;
-    flex-wrap: wrap;
-    align-items: center;
+    flex-direction: column;
+    padding-bottom: 0.5rem;
   }
   .ef-nav {
     flex-direction: row;
     flex-wrap: wrap;
     width: 100%;
+    max-height: 42vh;
+    overflow-y: auto;
+  }
+  .ef-nav button {
+    flex: 1 1 calc(50% - 0.35rem);
+    min-width: 8.5rem;
+    font-size: 0.78rem;
+    padding: 0.55rem 0.5rem;
+  }
+  .ef-main {
+    min-height: 50vh;
   }
   .ef-periods {
     grid-template-columns: repeat(2, 1fr);
