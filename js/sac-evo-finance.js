@@ -23,10 +23,22 @@ const SAC_EVO_FINANCE = (function () {
     { id: "securite", icon: "🔒", label: "Sécurité financière" },
   ];
 
+  const EMPLOYEE_ROLES = ["developpeur", "techmanager", "superadmin"];
+
+  const EMPLOYEE_ROLE_LABELS = {
+    developpeur: "Développeur",
+    techmanager: "Tech Manager",
+    superadmin: "Superviseur EvoMonitor",
+  };
+
+  const PAYROLL_STORAGE_KEY = "ef_employee_payroll_v1";
+
   let state = {
     session: null,
     scope: "platform",
     data: null,
+    employees: [],
+    employeesError: null,
     panel: "revenus",
   };
 
@@ -179,6 +191,74 @@ const SAC_EVO_FINANCE = (function () {
     return data;
   }
 
+  function readPayrollConfig() {
+    try {
+      return JSON.parse(localStorage.getItem(PAYROLL_STORAGE_KEY) || "{}");
+    } catch {
+      return {};
+    }
+  }
+
+  function payrollForEmployee(email) {
+    const key = String(email || "").trim().toLowerCase();
+    const cfg = readPayrollConfig()[key] || {};
+    return {
+      salary: Number(cfg.salary) || 0,
+      bonus: Number(cfg.bonus) || 0,
+      deduction: Number(cfg.deduction) || 0,
+      autoPay: cfg.autoPay === true,
+    };
+  }
+
+  function savePayrollField(email, field, value) {
+    const key = String(email || "").trim().toLowerCase();
+    if (!key) return;
+    const all = readPayrollConfig();
+    const row = all[key] || {};
+    if (field === "autoPay") row.autoPay = !!value;
+    else row[field] = Number(value) || 0;
+    all[key] = row;
+    localStorage.setItem(PAYROLL_STORAGE_KEY, JSON.stringify(all));
+  }
+
+  async function loadEmployees(session) {
+    state.employeesError = null;
+    if (!session || session.role !== "superadmin") {
+      state.employees = [];
+      return [];
+    }
+    if (typeof SAC_API === "undefined" || typeof SAC_API.listInstitutionalAdmins !== "function") {
+      state.employeesError = "API institutionnelle indisponible.";
+      state.employees = [];
+      return [];
+    }
+    try {
+      if (SAC_API.ensureWritableApiSession) {
+        await SAC_API.ensureWritableApiSession({ soft: true, timeoutMs: 12000 });
+      }
+      const admins = await SAC_API.listInstitutionalAdmins();
+      const staff = (Array.isArray(admins) ? admins : []).filter((a) =>
+        EMPLOYEE_ROLES.includes(String(a.role || "").trim())
+      );
+      staff.sort((a, b) => {
+        const order = { superadmin: 0, techmanager: 1, developpeur: 2 };
+        const ra = order[a.role] ?? 9;
+        const rb = order[b.role] ?? 9;
+        if (ra !== rb) return ra - rb;
+        return String(a.displayName || a.email || "").localeCompare(
+          String(b.displayName || b.email || ""),
+          "fr"
+        );
+      });
+      state.employees = staff;
+      return staff;
+    } catch (err) {
+      state.employeesError = err.message || "Impossible de charger les employés.";
+      state.employees = [];
+      return [];
+    }
+  }
+
   function treasuryFromData(data) {
     const all = data.transactions || [];
     const confirmed = confirmedTx(all);
@@ -265,16 +345,105 @@ const SAC_EVO_FINANCE = (function () {
   }
 
   function renderEmployeesPanel() {
+    const list = state.employees || [];
+    const err = state.employeesError;
+
+    if (err) {
+      return (
+        '<div class="ef-alert ef-alert--warn">' +
+        esc(err) +
+        ' <a href="superadmin/">Créer les comptes dans Super Admin</a></div>' +
+        '<div class="ef-card"><p class="ef-placeholder">Aucun employé chargé.</p></div>'
+      );
+    }
+
+    if (!list.length) {
+      return (
+        '<div class="ef-alert ef-alert--warn">Aucun employé plateforme trouvé (Développeur, Tech Manager, Superviseur EvoMonitor).</div>' +
+        '<div class="ef-card"><h2>Liste des employés</h2>' +
+        '<p class="ef-placeholder">Créez les comptes via le tableau de bord <a href="superadmin/">Super Admin</a> ' +
+        "(section Créer un compte — rôles Développeur, Tech Manager ou Super Admin).</p></div>"
+      );
+    }
+
+    const rows = list
+      .map((emp) => {
+        const pay = payrollForEmployee(emp.email);
+        const roleLabel =
+          EMPLOYEE_ROLE_LABELS[emp.role] || emp.roleLabel || emp.role || "—";
+        const name = emp.displayName || [emp.prenom, emp.nom].filter(Boolean).join(" ") || emp.email;
+        const autoTag = pay.autoPay
+          ? '<span class="ef-tag ef-tag--ok">Activé</span>'
+          : '<span class="ef-tag ef-tag--wait">Manuel</span>';
+        return (
+          "<tr data-ef-employee=\"" +
+          esc(emp.email) +
+          "\">" +
+          "<td><strong>" +
+          esc(name) +
+          "</strong><br><small>" +
+          esc(emp.email) +
+          "</small></td>" +
+          "<td>" +
+          esc(roleLabel) +
+          "</td>" +
+          '<td><input type="number" min="0" step="1" class="ef-pay-input" data-pay-field="salary" value="' +
+          (pay.salary || "") +
+          '" placeholder="0" style="width:5.5rem;padding:0.35rem" /></td>' +
+          '<td><input type="number" min="0" step="1" class="ef-pay-input" data-pay-field="bonus" value="' +
+          (pay.bonus || "") +
+          '" placeholder="0" style="width:4.5rem;padding:0.35rem" /></td>' +
+          '<td><input type="number" min="0" step="1" class="ef-pay-input" data-pay-field="deduction" value="' +
+          (pay.deduction || "") +
+          '" placeholder="0" style="width:4.5rem;padding:0.35rem" /></td>' +
+          '<td><label style="display:flex;align-items:center;gap:0.35rem;font-size:0.85rem">' +
+          '<input type="checkbox" class="ef-pay-auto" ' +
+          (pay.autoPay ? "checked" : "") +
+          " /> " +
+          autoTag +
+          "</label></td>" +
+          "</tr>"
+        );
+      })
+      .join("");
+
     return (
-      '<div class="ef-alert ef-alert--warn">Module RH en préparation — configuration des salaires et paiements automatiques à venir.</div>' +
-      '<div class="ef-card"><h2>Liste des employés</h2>' +
+      '<div class="ef-alert">Équipe plateforme EvoSU — salaires enregistrés localement (module paie automatique à venir).</div>' +
+      '<div class="ef-card"><h2>Liste des employés (' +
+      list.length +
+      ")</h2>" +
       '<div class="ef-table-wrap"><table class="ef-table"><thead><tr>' +
-      "<th>Nom</th><th>Rôle</th><th>Salaire mensuel</th><th>Prime</th><th>Retenue</th><th>Paiement auto</th>" +
+      "<th>Nom</th><th>Rôle</th><th>Salaire mensuel (USD)</th><th>Prime</th><th>Retenue</th><th>Paiement auto</th>" +
       "</tr></thead><tbody>" +
-      "<tr><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td><span class=\"ef-tag ef-tag--wait\">À configurer</span></td></tr>" +
+      rows +
       "</tbody></table></div>" +
-      '<p class="ef-placeholder" style="margin-top:1rem">Historique des paiements employés — disponible après connexion au module paie EvoSU.</p></div>'
+      '<p class="ef-placeholder" style="margin-top:1rem">Historique des paiements employés — synchronisation bancaire en cours d\'intégration.</p></div>'
     );
+  }
+
+  function bindEmployeePayrollInputs(host) {
+    if (!host) return;
+    host.querySelectorAll(".ef-pay-input").forEach((input) => {
+      input.addEventListener("change", () => {
+        const row = input.closest("[data-ef-employee]");
+        const email = row?.getAttribute("data-ef-employee");
+        if (!email) return;
+        savePayrollField(email, input.dataset.payField, input.value);
+      });
+    });
+    host.querySelectorAll(".ef-pay-auto").forEach((box) => {
+      box.addEventListener("change", () => {
+        const row = box.closest("[data-ef-employee]");
+        const email = row?.getAttribute("data-ef-employee");
+        if (!email) return;
+        savePayrollField(email, "autoPay", box.checked);
+        const tag = row.querySelector(".ef-tag");
+        if (tag) {
+          tag.className = box.checked ? "ef-tag ef-tag--ok" : "ef-tag ef-tag--wait";
+          tag.textContent = box.checked ? "Activé" : "Manuel";
+        }
+      });
+    });
   }
 
   function renderTransfersPanel(list) {
@@ -547,16 +716,26 @@ const SAC_EVO_FINANCE = (function () {
     }
   }
 
-  function showPanel(root, panelId) {
+  async function showPanel(root, panelId) {
     state.panel = panelId;
     root.querySelectorAll(".ef-nav button").forEach((b) => {
       b.classList.toggle("is-active", b.dataset.efPanel === panelId);
     });
     const host = root.querySelector("#efPanelHost");
+    if (panelId === "employes" && state.session) {
+      if (host) {
+        host.innerHTML = renderLoadingPanel("Chargement de l'équipe plateforme…", false);
+      }
+      await loadEmployees(state.session);
+    }
     if (host) host.innerHTML = renderPanel(panelId);
     const title = root.querySelector("#efPanelTitle");
     const navItem = NAV.find((n) => n.id === panelId);
     if (title && navItem) title.textContent = navItem.label;
+
+    if (panelId === "employes") {
+      bindEmployeePayrollInputs(host);
+    }
 
     host?.querySelectorAll("[data-ef-export]").forEach((btn) => {
       btn.addEventListener("click", () => exportCsv(btn.dataset.efExport || "all"));
@@ -635,7 +814,9 @@ const SAC_EVO_FINANCE = (function () {
       );
 
     root.querySelectorAll(".ef-nav button").forEach((btn) => {
-      btn.addEventListener("click", () => showPanel(root, btn.dataset.efPanel));
+      btn.addEventListener("click", () => {
+        void showPanel(root, btn.dataset.efPanel);
+      });
     });
     root.querySelector("#efRefresh")?.addEventListener("click", () => mount(rootId, session));
     root.querySelector("#efLogout")?.addEventListener("click", () => {
@@ -658,6 +839,7 @@ const SAC_EVO_FINANCE = (function () {
         });
       }
       state.data.transactions = state.data.transactions || [];
+      await loadEmployees(session);
     } catch (err) {
       if (host) {
         host.innerHTML =
@@ -673,10 +855,10 @@ const SAC_EVO_FINANCE = (function () {
       return;
     }
 
-    showPanel(root, "revenus");
+    await showPanel(root, "revenus");
   }
 
-  return { mount, loadData };
+  return { mount, loadData, loadEmployees };
 })();
 
 if (typeof window !== "undefined") {
