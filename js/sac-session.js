@@ -509,6 +509,7 @@ const SAC_SESSION = (function () {
       const okRole =
         session.role === def.role ||
         (def.id === "evomonitor" && session.role === "superadmin") ||
+        (def.id === "evofinance" && session.role === "superadmin") ||
         (def.id === "devcenter" &&
           (session.role === "developpeur" || session.role === "superadmin")) ||
         (def.id === "techmanager" &&

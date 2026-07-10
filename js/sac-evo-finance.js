@@ -1,5 +1,5 @@
 /**
- * Evo Finance — hub financier (Super Admin plateforme · Admin université campus)
+ * Evo Finance — hub financier plateforme (Super Admin uniquement, portail /evofinance/)
  */
 const SAC_EVO_FINANCE = (function () {
   "use strict";
@@ -13,14 +13,14 @@ const SAC_EVO_FINANCE = (function () {
   ];
 
   const NAV = [
-    { id: "revenus", icon: "💰", label: "Revenus", platform: true, campus: true },
-    { id: "tresorerie", icon: "🏦", label: "Trésorerie", platform: true, campus: true },
-    { id: "employes", icon: "👥", label: "Paiement employés", platform: true, campus: false },
-    { id: "transferts", icon: "↔️", label: "Transferts", platform: true, campus: false },
-    { id: "rapports", icon: "📄", label: "Rapports", platform: true, campus: true },
-    { id: "stats", icon: "📊", label: "Statistiques", platform: true, campus: true },
-    { id: "comptabilite", icon: "📒", label: "Comptabilité", platform: true, campus: false },
-    { id: "securite", icon: "🔒", label: "Sécurité financière", platform: true, campus: false },
+    { id: "revenus", icon: "💰", label: "Revenus" },
+    { id: "tresorerie", icon: "🏦", label: "Trésorerie" },
+    { id: "employes", icon: "👥", label: "Paiement employés" },
+    { id: "transferts", icon: "↔️", label: "Transferts" },
+    { id: "rapports", icon: "📄", label: "Rapports" },
+    { id: "stats", icon: "📊", label: "Statistiques" },
+    { id: "comptabilite", icon: "📒", label: "Comptabilité" },
+    { id: "securite", icon: "🔒", label: "Sécurité financière" },
   ];
 
   let state = {
@@ -161,22 +161,16 @@ const SAC_EVO_FINANCE = (function () {
     return buckets;
   }
 
-  async function loadData(session, scope) {
+  async function loadData(session) {
     if (typeof SAC_API === "undefined") throw new Error("API indisponible.");
     await SAC_API.ensureOnline(true);
     if (SAC_API.ensureWritableApiSession) {
       await SAC_API.ensureWritableApiSession({ soft: true });
     }
-    if (scope === "platform") {
-      if (!SAC_API.getPlatformPaymentAggregator) {
-        throw new Error("Route agrégateur plateforme absente — redéployez l'API.");
-      }
-      return SAC_API.getPlatformPaymentAggregator();
+    if (!SAC_API.getPlatformPaymentAggregator) {
+      throw new Error("Route agrégateur plateforme absente — redéployez l'API.");
     }
-    if (!SAC_API.getCampusPaymentAggregator) {
-      throw new Error("Route agrégateur campus absente — redéployez l'API.");
-    }
-    return SAC_API.getCampusPaymentAggregator();
+    return SAC_API.getPlatformPaymentAggregator();
   }
 
   function treasuryFromData(data) {
@@ -428,23 +422,17 @@ const SAC_EVO_FINANCE = (function () {
   }
 
   function renderSecurityPanel() {
-    const mfa = state.session?.role === "superadmin";
     return (
-      '<div class="ef-alert">' +
-      (mfa
-        ? "Accès Super Admin — MFA recommandé à chaque connexion institutionnelle."
-        : "Vue campus limitée — aucun accès aux finances globales de la plateforme.") +
-      "</div>" +
+      '<div class="ef-alert">Accès Super Admin — portail Evo Finance. MFA recommandé à chaque connexion institutionnelle.</div>' +
       '<div class="ef-card"><h2>Sécurité financière</h2><ul class="ef-security-list">' +
       "<li>✅ Journal de toutes les opérations (transactions ci-dessous)</li>" +
-      "<li>" +
-      (mfa ? "✅" : "🔒") +
-      " Validation 2FA Super Admin (connexion /superadmin/)</li>" +
+      "<li>✅ Validation 2FA Super Admin (connexion /superadmin/ et /evofinance/)</li>" +
       "<li>⏳ Double validation pour les gros transferts (&gt; 500 USD) — à activer</li>" +
       "<li>⏳ Alertes activité inhabituelle — liaison EvoMonitor</li>" +
       "</ul>" +
       '<div class="ef-actions">' +
       '<a class="ef-btn ef-btn--ghost" href="dashboard-evomonitor.html">Ouvrir EvoMonitor</a>' +
+      '<a class="ef-btn ef-btn--ghost" href="evofinance/">Portail Evo Finance</a>' +
       "</div></div>" +
       '<div class="ef-card"><h2>Dernières opérations (audit)</h2>' +
       renderTxTable((state.data?.transactions || []).slice(0, 20)) +
@@ -461,7 +449,7 @@ const SAC_EVO_FINANCE = (function () {
   function renderTxTable(list, opts) {
     const rows = Array.isArray(list) ? list : [];
     if (!rows.length) return '<p class="ef-placeholder">Aucune transaction.</p>';
-    const showUni = state.scope === "platform" && !opts?.short;
+    const showUni = !opts?.short;
     return (
       '<div class="ef-table-wrap"><table class="ef-table"><thead><tr>' +
       (showUni ? "<th>Université</th>" : "") +
@@ -569,39 +557,30 @@ const SAC_EVO_FINANCE = (function () {
     });
   }
 
-  function shellHtml(session, scope) {
-    const isPlatform = scope === "platform";
-    const navItems = NAV.filter((n) => (isPlatform ? n.platform : n.campus));
+  function shellHtml(session) {
     return (
       '<div class="ef-shell">' +
       '<aside class="ef-sidebar">' +
       '<div class="ef-brand"><span class="ef-brand__icon">💎</span><div><strong>Evo Finance</strong><span>Trésorerie Evo-smartUni</span></div></div>' +
-      '<p class="ef-scope-badge">' +
-      (isPlatform
-        ? "🛡️ Vue plateforme — accès Super Admin uniquement"
-        : "🎓 Vue campus — " + esc(uniLabel(session.universite)) + " (vos revenus uniquement)") +
-      "</p>" +
+      '<p class="ef-scope-badge">🛡️ Vue plateforme — accès Super Admin uniquement</p>' +
       '<nav class="ef-nav" id="efNav">' +
-      navItems
-        .map(
-          (n) =>
-            '<button type="button" data-ef-panel="' +
-            n.id +
-            '" class="' +
-            (n.id === "revenus" ? "is-active" : "") +
-            '">' +
-            n.icon +
-            " " +
-            esc(n.label) +
-            "</button>"
-        )
-        .join("") +
+      NAV.map(
+        (n) =>
+          '<button type="button" data-ef-panel="' +
+          n.id +
+          '" class="' +
+          (n.id === "revenus" ? "is-active" : "") +
+          '">' +
+          n.icon +
+          " " +
+          esc(n.label) +
+          "</button>"
+      ).join("") +
       "</nav>" +
       '<div class="ef-sidebar__foot">' +
       '<button type="button" id="efRefresh">↻ Actualiser</button>' +
-      '<a href="' +
-      (isPlatform ? "dashboard-admin.html" : "dashboard-universite.html") +
-      '">← Retour dashboard</a>' +
+      '<a href="evofinance/">← Portail Evo Finance</a>' +
+      '<a href="superadmin/">🛡️ Super Admin</a>' +
       '<button type="button" id="efLogout">Déconnexion</button>' +
       "</div></aside>" +
       '<main class="ef-main">' +
@@ -620,14 +599,18 @@ const SAC_EVO_FINANCE = (function () {
   async function mount(rootId, session) {
     const root = document.getElementById(rootId);
     if (!root || !session) return;
+    if (session.role !== "superadmin") {
+      root.innerHTML =
+        '<p class="ef-loading" style="color:#b91c1c">Accès refusé — Evo Finance est réservé au Super Admin.</p>';
+      return;
+    }
 
-    const scope = session.role === "superadmin" ? "platform" : "campus";
     state.session = session;
-    state.scope = scope;
+    state.scope = "platform";
     root.innerHTML = '<p class="ef-loading">Chargement des données financières…</p>';
 
     try {
-      state.data = await loadData(session, scope);
+      state.data = await loadData(session);
       if (!state.data.transactions && state.data.byUniversity) {
         state.data.transactions = [];
         (state.data.byUniversity || []).forEach((g) => {
@@ -643,7 +626,7 @@ const SAC_EVO_FINANCE = (function () {
       return;
     }
 
-    root.innerHTML = shellHtml(session, scope);
+    root.innerHTML = shellHtml(session);
     showPanel(root, "revenus");
 
     root.querySelectorAll(".ef-nav button").forEach((btn) => {
@@ -651,7 +634,11 @@ const SAC_EVO_FINANCE = (function () {
     });
     root.querySelector("#efRefresh")?.addEventListener("click", () => mount(rootId, session));
     root.querySelector("#efLogout")?.addEventListener("click", () => {
-      if (typeof SAC_SESSION !== "undefined") SAC_SESSION.logout("index.html");
+      const target =
+        typeof SAC_PORTAL !== "undefined"
+          ? SAC_PORTAL.loginUrlForRole("superadmin")
+          : "evofinance/";
+      if (typeof SAC_SESSION !== "undefined") SAC_SESSION.logout(target);
     });
   }
 

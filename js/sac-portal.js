@@ -96,6 +96,27 @@ const SAC_PORTAL = (function () {
       adminPortal: true,
       logoFile: "../" + PLATFORM_LOGO,
     },
+    evofinance: {
+      id: "evofinance",
+      role: "superadmin",
+      slug: "evofinance",
+      title: "Evo Finance",
+      orgName: "Trésorerie plateforme — Evo-smartUni",
+      hostHints: ["finance.", "evofinance."],
+      pathPrefix: "/evofinance",
+      accent: "#0f766e",
+      accentDark: "#0d5c56",
+      themeColor: "#0f766e",
+      icon: "💎",
+      emailPlaceholder: "djemcibamba@gmail.com",
+      btnLabel: "Accéder à Evo Finance",
+      lead:
+        "Revenus, trésorerie, transferts, rapports et sécurité financière de la plateforme nationale.",
+      notice: "Accès ultra-restreint — Super Admin uniquement. Toute opération est journalisée.",
+      dashboard: "evo-finance.html",
+      adminPortal: true,
+      logoFile: "../" + PLATFORM_LOGO,
+    },
     devcenter: {
       id: "devcenter",
       role: "developpeur",
@@ -214,6 +235,7 @@ const SAC_PORTAL = (function () {
     if (role === "superadmin") return siteUrl("superadmin/");
     if (role === "universite") return siteUrl("admin-uni/");
     if (role === "evomonitor") return siteUrl("evomonitor/");
+    if (role === "evofinance") return siteUrl("evofinance/");
     if (role === "developpeur") return siteUrl("devcenter/");
     if (role === "techmanager") return siteUrl("techmanager/");
     if (role === "auteur") return siteUrl("evodigitalbooks/");
@@ -234,6 +256,7 @@ const SAC_PORTAL = (function () {
       ministere: "dashboard-admin.html",
       superadmin: "dashboard-admin.html",
       evomonitor: "dashboard-evomonitor.html",
+      evofinance: "evo-finance.html",
       developpeur: "dashboard-devcenter.html",
       techmanager: "dashboard-techmanager.html",
       auteur: "dashboard-evodigitalbooks.html",
@@ -260,6 +283,7 @@ const SAC_PORTAL = (function () {
       superadmin: "superadmin",
       universite: "admin-uni",
       evomonitor: "evomonitor",
+      evofinance: "evofinance",
       devcenter: "devcenter",
       techmanager: "techmanager",
     };
@@ -338,6 +362,7 @@ const SAC_PORTAL = (function () {
     if (!def || !session || !session.role) return false;
     if (session.role === def.role) return false;
     if (def.id === "evomonitor" && session.role === "superadmin") return false;
+    if (def.id === "evofinance" && session.role === "superadmin") return false;
     if (def.id === "devcenter" && (session.role === "developpeur" || session.role === "superadmin"))
       return false;
     if (def.id === "techmanager" && (session.role === "techmanager" || session.role === "superadmin"))
@@ -351,6 +376,7 @@ const SAC_PORTAL = (function () {
     if (portalId === "superadmin") return siteUrl("superadmin/");
     if (portalId === "admin-uni") return siteUrl("admin-uni/");
     if (portalId === "evomonitor") return siteUrl("evomonitor/");
+    if (portalId === "evofinance") return siteUrl("evofinance/");
     if (portalId === "devcenter") return siteUrl("devcenter/");
     if (portalId === "techmanager") return siteUrl("techmanager/");
     return siteUrl("connexion.html");

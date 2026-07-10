@@ -34,13 +34,16 @@
           SAC_SESSION.getSession?.();
       }
       if (!session?.identifiant) {
-        window.location.replace("connexion-admin.html?next=" + encodeURIComponent("evo-finance.html"));
+        window.location.replace("evofinance/?next=" + encodeURIComponent("evo-finance.html"));
         return;
       }
-      const role = session.role;
-      if (role !== "superadmin" && role !== "universite") {
-        alert("Evo Finance est réservé au Super Admin et aux administrateurs université.");
-        window.location.replace("index.html");
+      if (session.role !== "superadmin") {
+        alert("Evo Finance est réservé au Super Admin. Accédez-y via le portail /evofinance/.");
+        if (typeof SAC_PORTAL !== "undefined") {
+          window.location.replace(SAC_PORTAL.loginUrlForRole(session.role));
+        } else {
+          window.location.replace("index.html");
+        }
         return;
       }
       if (typeof SAC_API !== "undefined" && SAC_API.ensureWritableApiSession) {
