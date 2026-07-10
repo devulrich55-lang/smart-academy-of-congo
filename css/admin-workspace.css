@@ -723,6 +723,7 @@ body.ws-ministry-mode .nav-tab {
 
 /* ——— Live Ministère ↔ universités ——— */
 .ws-only-ministere-hidden { display: none !important; }
+body.ws-ministry-mode .ws-ministry-excluded { display: none !important; }
 
 .min-live-wrap .page-desc { margin-bottom: 1rem; }
 

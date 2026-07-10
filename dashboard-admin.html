@@ -63,7 +63,7 @@
       <button type="button" class="nav-tab nav-tab--priority ws-only-super-hidden" data-section="edb-auteurs" id="tabEdbAuthors" hidden>📖 Auteurs EvoDigitalBooks</button>
       <button type="button" class="nav-tab nav-tab--priority" data-section="activites">📋 Activités</button>
       <button type="button" class="nav-tab nav-tab--priority ws-only-ministere-hidden" data-section="publier" id="tabPublier">📢 Publier</button>
-      <button type="button" class="nav-tab nav-tab--priority ws-only-ministere-hidden" data-section="bibliotheque" id="tabBibliotheque">📚 Bibliothèque numérique</button>
+      <button type="button" class="nav-tab nav-tab--priority ws-only-ministere-hidden ws-ministry-excluded" data-section="bibliotheque" id="tabBibliotheque" hidden>📚 Bibliothèque numérique</button>
       <button type="button" class="nav-tab nav-tab--priority ws-only-ministere-hidden" data-section="stages" id="tabStages">💼 Stages & emplois</button>
       <button type="button" class="nav-tab nav-tab--priority ws-only-ministere-hidden" data-section="live" id="tabLive">🎥 Espace live</button>
       <button type="button" class="nav-tab nav-tab--priority" data-section="create" id="tabCreate" hidden>➕ Créer un compte</button>
@@ -194,7 +194,7 @@
         </div>
       </div>
 
-      <div class="panel panel--ws ws-only-ministere-hidden" id="ministryLibraryAccueil" style="margin-top:1rem;">
+      <div class="panel panel--ws ws-only-ministere-hidden ws-ministry-excluded" id="ministryLibraryAccueil" hidden style="margin-top:1rem;">
         <div class="panel__head" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.5rem;">
           <h2>📚 Publication — Bibliothèque numérique</h2>
           <button type="button" class="btn btn--ghost btn--sm" data-goto="bibliotheque">Gérer tous les livres →</button>
@@ -211,7 +211,7 @@
           <button type="button" class="btn btn--role" data-goto="administrateurs">👥 Voir tous les administrateurs</button>
           <button type="button" class="btn btn--role" data-goto="activites">📋 Journal d'activités</button>
           <button type="button" class="btn btn--role ws-only-ministere-hidden" data-goto="publier" id="btnQuickPublier">📢 Publier sur le panneau public</button>
-          <button type="button" class="btn btn--role ws-only-ministere-hidden" data-goto="bibliotheque" id="btnQuickBibliotheque">📚 Gérer la bibliothèque</button>
+          <button type="button" class="btn btn--role ws-only-ministere-hidden ws-ministry-excluded" data-goto="bibliotheque" id="btnQuickBibliotheque" hidden>📚 Gérer la bibliothèque</button>
           <button type="button" class="btn btn--role ws-only-ministere-hidden" data-goto="live" id="btnQuickLive">🎥 Live avec les universités</button>
           <button type="button" class="btn btn--role ws-only-super-hidden" data-goto="create" id="btnQuickCreate">➕ Créer un compte</button>
           <button type="button" class="btn btn--role ws-only-super-hidden" data-goto="validations" id="btnQuickValidations" hidden>✅ Valider inscriptions étudiants</button>
@@ -602,7 +602,7 @@
     </section>
 
     <!-- BIBLIOTHÈQUE NUMÉRIQUE (Ministère uniquement) -->
-    <section class="page-section ws-only-ministere-hidden" id="section-bibliotheque">
+    <section class="page-section ws-only-ministere-hidden ws-ministry-excluded" id="section-bibliotheque" hidden>
       <h1 class="page-title">Bibliothèque numérique nationale</h1>
       <p class="page-desc">
         Publiez les livres numériques officiels (PDF, EPUB, documents FR/EN).
@@ -843,8 +843,8 @@
   <script src="js/sac-platform-registry.js?v=20260625a"></script>
   <script src="js/sac-tariffs.js?v=20260623b"></script>
   <script src="js/sac-admin-activities.js?v=20260629a"></script>
-  <script src="js/sac-ministry-hub.js?v=20260710i"></script>
-  <script src="js/sac-admin-dashboard.js?v=20260710i"></script>
+  <script src="js/sac-ministry-hub.js?v=20260710j"></script>
+  <script src="js/sac-admin-dashboard.js?v=20260710j"></script>
   <script>
     SAC_ADMIN_DASHBOARD.init().catch(function (err) {
       console.error("[SAC_ADMIN_DASHBOARD] init:", err);

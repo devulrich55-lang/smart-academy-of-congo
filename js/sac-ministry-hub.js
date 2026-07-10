@@ -1,5 +1,5 @@
 /**
- * Hub Ministère — 11 activités nationales (MESU)
+ * Hub Ministère — 10 activités nationales (MESU)
  */
 const SAC_MINISTRY_HUB = (function () {
   const MODULES = [
@@ -58,13 +58,6 @@ const SAC_MINISTRY_HUB = (function () {
       icon: "✅",
       label: "Accréditations",
       short: "Filières & agréments",
-    },
-    {
-      id: "bibliotheque",
-      section: "bibliotheque",
-      icon: "📚",
-      label: "Bibliothèque",
-      short: "Référentiels officiels",
     },
     {
       id: "messagerie",

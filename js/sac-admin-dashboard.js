@@ -2,7 +2,7 @@
  * Tableau de bord institutionnel — Ministère / Super Admin
  */
 const SAC_ADMIN_DASHBOARD = (function () {
-  const BUILD = "20260710i";
+  const BUILD = "20260710j";
   const PRESENCE_REFRESH_MS = 20000;
   const PRESENCE_ROLE_LABELS = {
     etudiant: "Étudiants",
@@ -240,12 +240,6 @@ const SAC_ADMIN_DASHBOARD = (function () {
           onChange: () => SAC_HOME_NEWS.renderPublicPreview("ministryPublicPreview"),
         });
         SAC_HOME_NEWS.renderPublicPreview("ministryPublicPreview");
-      }
-    }
-    if (id === "bibliotheque" && typeof SAC_LIBRARY !== "undefined") {
-      const session = SAC_SESSION.getSession();
-      if (session?.role === "ministere") {
-        SAC_LIBRARY.initMinistryPublisher(session, "libraryPublisherRoot", { showList: true });
       }
     }
     if (id === "stages" && typeof SAC_CAREERS !== "undefined") {
@@ -1124,13 +1118,11 @@ const SAC_ADMIN_DASHBOARD = (function () {
     }
 
     if (isMinistere) {
-      document.getElementById("tabBibliotheque")?.removeAttribute("hidden");
-      document.getElementById("btnQuickBibliotheque")?.removeAttribute("hidden");
       document.getElementById("tabLive")?.removeAttribute("hidden");
       document.getElementById("tabPublier")?.removeAttribute("hidden");
       document.getElementById("btnQuickPublier")?.removeAttribute("hidden");
       document.getElementById("btnQuickLive")?.removeAttribute("hidden");
-      document.querySelectorAll(".ws-only-ministere-hidden").forEach((el) => {
+      document.querySelectorAll(".ws-only-ministere-hidden:not(.ws-ministry-excluded)").forEach((el) => {
         el.classList.remove("ws-only-ministere-hidden");
       });
       if (typeof SAC_MINISTRY_HUB !== "undefined") {
