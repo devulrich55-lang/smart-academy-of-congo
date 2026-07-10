@@ -14,15 +14,15 @@
   "categories": ["education", "productivity"],
   "icons": [
     {
-      "src": "/evo-uni.jpeg",
+      "src": "/logo_pro.png",
       "sizes": "512x512",
-      "type": "image/jpeg",
+      "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/evo-uni.jpeg",
+      "src": "/logo_pro.png",
       "sizes": "192x192",
-      "type": "image/jpeg",
+      "type": "image/png",
       "purpose": "any"
     },
     {

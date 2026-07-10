@@ -120,6 +120,11 @@
   box-shadow: none;
 }
 
+.app-install-btn.is-loading {
+  opacity: 0.85;
+  cursor: wait;
+}
+
 .app-install-btn--ghost {
   margin-top: 0.65rem;
   background: rgba(12, 61, 110, 0.08);
@@ -198,4 +203,65 @@
 
 .app-install-toast.show {
   opacity: 1;
+}
+
+.app-install-share {
+  margin-top: 1.25rem;
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+.app-install-share summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: #0c3d6e;
+}
+
+.app-install-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 20000;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+}
+
+.app-install-modal[hidden] {
+  display: none !important;
+}
+
+.app-install-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+}
+
+.app-install-modal__card {
+  position: relative;
+  z-index: 1;
+  width: min(100%, 420px);
+  background: #fff;
+  border-radius: 18px;
+  padding: 1.25rem;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.25);
+}
+
+.app-install-modal__card h3 {
+  margin: 0 0 0.75rem;
+}
+
+.app-install-modal__steps {
+  margin: 0.5rem 0 0;
+  padding-left: 1.15rem;
+  line-height: 1.55;
+  color: #475569;
+  font-size: 0.9rem;
+}
+
+.app-install-modal__dl {
+  margin-top: 0.75rem;
+}
+
+body.app-install-modal-open {
+  overflow: hidden;
 }

@@ -9,6 +9,10 @@
   var DESKTOP_HINT_KEY = "sac_pwa_desktop_hint_dismissed";
   var deferredPrompt = null;
 
+  function siteRoot() {
+    return "/";
+  }
+
   function assetBase() {
     if (typeof SAC_MOBILE !== "undefined" && SAC_MOBILE.assetBase) {
       return SAC_MOBILE.assetBase();
@@ -120,9 +124,6 @@
         "<span>Application bureau — Windows, Mac ou Linux (Chrome / Edge)</span>" +
         "</div>" +
         '<button type="button" class="sac-install-banner__btn" id="sacInstallBtn">Installer</button>' +
-        '<a class="sac-install-banner__link" href="' +
-        assetBase() +
-        'app/">Guide</a>' +
         '<button type="button" class="sac-install-banner__close" aria-label="Fermer">✕</button>';
     } else {
       bar.innerHTML =
@@ -156,15 +157,28 @@
     }
   }
 
+  function ensureServiceWorker() {
+    if (!("serviceWorker" in navigator)) {
+      return Promise.resolve(false);
+    }
+    return navigator.serviceWorker
+      .register(siteRoot() + "sw.js", { scope: siteRoot(), updateViaCache: "none" })
+      .then(function () {
+        return true;
+      })
+      .catch(function () {
+        return false;
+      });
+  }
+
   function registerServiceWorker() {
     if (!("serviceWorker" in navigator)) return;
-    var base = assetBase();
+    if (document.readyState === "complete") {
+      ensureServiceWorker();
+      return;
+    }
     window.addEventListener("load", function () {
-      navigator.serviceWorker
-        .register(base + "sw.js", { scope: base || "/", updateViaCache: "none" })
-        .catch(function () {
-          /* hors ligne ou navigateur incompatible */
-        });
+      ensureServiceWorker();
     });
   }
 
@@ -188,6 +202,30 @@
         showInstallBanner("ios");
       }, 2500);
     }
+  }
+
+  function waitForInstallPrompt(timeoutMs) {
+    var ms = Number(timeoutMs) || 10000;
+    return new Promise(function (resolve) {
+      if (deferredPrompt) {
+        resolve(deferredPrompt);
+        return;
+      }
+      var settled = false;
+      function finish() {
+        if (settled) return;
+        settled = true;
+        resolve(deferredPrompt || null);
+      }
+      function onReady() {
+        finish();
+      }
+      window.addEventListener("sac-pwa-install-ready", onReady, { once: true });
+      setTimeout(function () {
+        window.removeEventListener("sac-pwa-install-ready", onReady);
+        finish();
+      }, ms);
+    });
   }
 
   function promptInstall() {
@@ -216,6 +254,8 @@
     isDesktopOs: isDesktopOs,
     isMobileViewport: isMobileViewport,
     assetBase: assetBase,
+    ensureServiceWorker: ensureServiceWorker,
+    waitForInstallPrompt: waitForInstallPrompt,
     canInstall: function () {
       return !!deferredPrompt;
     },

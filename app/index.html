@@ -3,95 +3,80 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <meta name="description" content="Téléchargez et installez Evo-smartUni sur PC, Android ou iPhone — accès rapide depuis le bureau ou l'écran d'accueil." />
+  <meta name="description" content="Téléchargez Evo-smartUni en un clic — PC, Android ou iPhone." />
   <meta name="theme-color" content="#0c3d6e" />
-  <title>Télécharger Evo-smartUni — PC &amp; mobile</title>
-  <link rel="manifest" href="../manifest.webmanifest" />
-  <link rel="icon" href="../evo-uni.jpeg" type="image/jpeg" />
-  <link rel="apple-touch-icon" href="../evo-uni.jpeg" />
+  <title>Télécharger Evo-smartUni</title>
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="icon" href="/evo-uni.jpeg" type="image/jpeg" />
+  <link rel="apple-touch-icon" href="/evo-uni.jpeg" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="../css/app-install.css?v=20260710a" />
-  <script src="../js/sac-config.js?v=20260703f"></script>
+  <link rel="stylesheet" href="/css/app-install.css?v=20260710c" />
+  <script src="/js/sac-config.js"></script>
 </head>
 <body class="app-install-page">
   <div class="app-install-shell">
     <header class="app-install-hero">
-      <img src="../evo-uni.jpeg" alt="Evo-smartUni" width="88" height="88" />
+      <img src="/evo-uni.jpeg" alt="Evo-smartUni" width="88" height="88" />
       <h1>Télécharger Evo-smartUni</h1>
-      <p>Installez l'application sur votre <strong>PC</strong> (Windows, Mac) ou votre <strong>téléphone</strong> pour un accès rapide — notes, frais, live et campus.</p>
+      <p>Un seul clic — tout se passe sur cette page. Aucune autre page à ouvrir.</p>
     </header>
 
     <main class="app-install-card">
       <div class="app-install-tabs" role="tablist" aria-label="Plateforme">
-        <button type="button" class="app-install-tab" data-app-platform="desktop" role="tab">💻 PC</button>
+        <button type="button" class="app-install-tab is-active" data-app-platform="desktop" role="tab">💻 PC</button>
         <button type="button" class="app-install-tab" data-app-platform="android" role="tab">📱 Android</button>
         <button type="button" class="app-install-tab" data-app-platform="ios" role="tab">🍎 iPhone</button>
       </div>
 
       <div data-app-panel="desktop">
-        <h2>Installation sur ordinateur</h2>
-        <p class="app-install-lead">Windows, Mac ou Linux — fonctionne comme une application bureau (Chrome, Edge, Brave).</p>
+        <p class="app-install-lead">Windows, Mac — application bureau installée en un clic.</p>
       </div>
       <div data-app-panel="android" hidden>
-        <h2>Installation Android</h2>
-        <p class="app-install-lead">Ajoutez Evo-smartUni à l'écran d'accueil via Chrome.</p>
+        <p class="app-install-lead">Android — installation directe depuis cette page.</p>
       </div>
       <div data-app-panel="ios" hidden>
-        <h2>Installation iPhone / iPad</h2>
-        <p class="app-install-lead">Ajoutez l'icône via Safari — pas d'App Store requis.</p>
+        <p class="app-install-lead">iPhone — instructions affichées sur cette page après le clic.</p>
       </div>
 
-      <button type="button" class="app-install-btn app-install-btn--primary" id="btnInstallApp" disabled>
-        💻 Installer Evo-smartUni
+      <button type="button" class="app-install-btn app-install-btn--primary" id="btnInstallApp">
+        ⬇️ Télécharger Evo-smartUni
       </button>
-      <a href="../connexion.html?source=app" class="app-install-btn app-install-btn--ghost" id="btnOpenLogin">
-        Se connecter sur le site
-      </a>
+      <button type="button" class="app-install-btn app-install-btn--primary" id="btnInstallIos" hidden>
+        ⬇️ Télécharger sur iPhone
+      </button>
 
       <div class="app-install-badge app-install-badge--warn" id="installStatusBadge">
-        Chargement…
+        Préparation…
       </div>
 
-      <p class="app-install-share-label">Lien de téléchargement à partager</p>
-      <div class="app-install-link-box" id="installShareLink">—</div>
-      <button type="button" class="app-install-btn app-install-btn--ghost" id="btnCopyInstallLink">
-        📋 Copier le lien de téléchargement
-      </button>
-
-      <ol class="app-install-steps" id="installDesktopSteps" hidden>
-        <li>Ouvrez ce lien dans <strong>Google Chrome</strong> ou <strong>Microsoft Edge</strong> sur votre PC.</li>
-        <li>Cliquez sur l'icône <strong>⊕ Installer</strong> dans la barre d'adresse (ou menu <strong>⋮</strong> → <strong>Installer Evo-smartUni</strong>).</li>
-        <li>Confirmez — l'application apparaît sur le <strong>bureau</strong> et dans le menu <strong>Démarrer</strong> (Windows) ou le <strong>Dock</strong> (Mac).</li>
-        <li>Lancez Evo-smartUni comme n'importe quelle application, sans ouvrir le navigateur.</li>
-      </ol>
-
-      <ol class="app-install-steps" id="installManualSteps" hidden>
-        <li>Ouvrez ce lien dans <strong>Google Chrome</strong> (pas Facebook ni WhatsApp).</li>
-        <li>Appuyez sur le menu <strong>⋮</strong> en haut à droite.</li>
-        <li>Choisissez <strong>« Installer l'application »</strong> ou <strong>« Ajouter à l'écran d'accueil »</strong>.</li>
-        <li>Confirmez — l'icône Evo-smartUni apparaît sur votre téléphone.</li>
-      </ol>
-
-      <ol class="app-install-steps" id="installIosSteps" hidden>
-        <li>Ouvrez ce lien dans <strong>Safari</strong> sur iPhone ou iPad.</li>
-        <li>Appuyez sur <strong>Partager</strong> (icône carré avec flèche).</li>
-        <li>Choisissez <strong>« Sur l'écran d'accueil »</strong>.</li>
-        <li>Validez — Evo-smartUni s'ouvre comme une application.</li>
-      </ol>
+      <details class="app-install-share">
+        <summary>Partager le lien de téléchargement</summary>
+        <div class="app-install-link-box" id="installShareLink">—</div>
+        <button type="button" class="app-install-btn app-install-btn--ghost" id="btnCopyInstallLink">
+          📋 Copier le lien
+        </button>
+      </details>
     </main>
 
     <footer class="app-install-footer">
-      <a href="../index.html">← Retour à l'accueil</a>
-      ·
-      <a href="../connexion.html">Connexion</a>
+      <a href="/index.html">← Accueil</a>
     </footer>
+  </div>
+
+  <div class="app-install-modal" id="appInstallModal" hidden>
+    <div class="app-install-modal__backdrop" id="appInstallModalBackdrop"></div>
+    <div class="app-install-modal__card" role="dialog" aria-labelledby="appInstallModalTitle">
+      <h3 id="appInstallModalTitle">Installation</h3>
+      <div id="appInstallModalBody"></div>
+      <button type="button" class="app-install-btn app-install-btn--ghost" id="appInstallModalClose">Fermer</button>
+    </div>
   </div>
 
   <div class="app-install-toast" id="appInstallToast" role="status" aria-live="polite"></div>
 
-  <script src="../js/sac-pwa.js?v=20260710a"></script>
-  <script src="../js/sac-app-install.js?v=20260710b"></script>
+  <script src="/js/sac-pwa.js?v=20260710c"></script>
+  <script src="/js/sac-app-install.js?v=20260710c"></script>
 </body>
 </html>
