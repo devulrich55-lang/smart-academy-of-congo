@@ -265,3 +265,33 @@
 body.app-install-modal-open {
   overflow: hidden;
 }
+
+.app-install-hint {
+  margin-top: 1rem;
+  padding: 0.9rem 1rem;
+  border-radius: 14px;
+  background: rgba(12, 61, 110, 0.08);
+  border: 1px solid rgba(12, 61, 110, 0.15);
+  font-size: 0.88rem;
+  color: #334155;
+  line-height: 1.5;
+}
+
+.app-install-hint strong {
+  display: block;
+  margin-bottom: 0.35rem;
+  color: #0c3d6e;
+}
+
+.app-install-hint__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.35rem;
+  height: 1.35rem;
+  border-radius: 999px;
+  background: #0c3d6e;
+  color: #fff;
+  font-size: 0.9rem;
+  vertical-align: middle;
+}

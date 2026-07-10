@@ -6,6 +6,8 @@
   "start_url": "/connexion.html?source=pwa",
   "scope": "/",
   "display": "standalone",
+  "display_override": ["standalone", "browser"],
+  "prefer_related_applications": false,
   "orientation": "any",
   "background_color": "#ffffff",
   "theme_color": "#0c3d6e",

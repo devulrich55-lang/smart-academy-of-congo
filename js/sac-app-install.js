@@ -62,20 +62,11 @@
     document.body.classList.remove("app-install-modal-open");
   }
 
-  function downloadDesktopShortcut() {
-    var target = window.location.origin.replace(/\/+$/, "") + "/connexion.html?source=pwa";
-    var content = "[InternetShortcut]\r\nURL=" + target + "\r\nIconIndex=0\r\n";
-    var blob = new Blob([content], { type: "application/octet-stream" });
-    var a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = "Evo-smartUni.url";
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(function () {
-      URL.revokeObjectURL(a.href);
-    }, 1000);
-    toast("Raccourci Evo-smartUni téléchargé — double-cliquez pour ouvrir l'application.");
+  function bindRetryButton() {
+    document.getElementById("btnRetryInstall")?.addEventListener("click", function () {
+      hideModal();
+      runInstall();
+    });
   }
 
   function showFallbackModal(platform) {
@@ -94,20 +85,17 @@
 
     if (platform === "desktop") {
       showModal(
-        "Finaliser sur cette page",
-        "<p>L'installation automatique n'est pas encore disponible dans ce navigateur.</p>" +
-          "<p><strong>Option 1 — Installation application (recommandé)</strong></p>" +
+        "Installer depuis cette page",
+        "<p>Chrome bloque les fichiers raccourci — utilisez l'installation application intégrée au navigateur :</p>" +
           "<ol class='app-install-modal__steps'>" +
-          "<li>Restez sur cette page dans <strong>Chrome</strong> ou <strong>Edge</strong></li>" +
-          "<li>Cliquez l'icône <strong>⊕ Installer</strong> dans la barre d'adresse</li>" +
-          "<li>Confirmez — Evo-smartUni s'installe sur le bureau</li>" +
+          "<li>Restez sur <strong>cette page</strong> (ne fermez pas la fenêtre)</li>" +
+          "<li>En haut à droite de la barre d'adresse, cliquez <strong>⊕ Installer</strong></li>" +
+          "<li>Ou menu <strong>⋮</strong> → <strong>Installer Evo-smartUni</strong></li>" +
+          "<li>Confirmez — l'application apparaît sur le bureau et le menu Démarrer</li>" +
           "</ol>" +
-          "<p><strong>Option 2 — Raccourci bureau</strong></p>" +
-          "<button type='button' class='app-install-btn app-install-btn--ghost app-install-modal__dl' id='btnDownloadShortcut'>⬇️ Télécharger le raccourci Evo-smartUni</button>"
+          "<button type='button' class='app-install-btn app-install-btn--primary app-install-modal__dl' id='btnRetryInstall'>↻ Réessayer l'installation automatique</button>"
       );
-      document.getElementById("btnDownloadShortcut")?.addEventListener("click", function () {
-        downloadDesktopShortcut();
-      });
+      bindRetryButton();
       return;
     }
 
@@ -118,8 +106,10 @@
         "<li>Menu <strong>⋮</strong> en haut à droite</li>" +
         "<li><strong>Installer l'application</strong> ou <strong>Ajouter à l'écran d'accueil</strong></li>" +
         "<li>Confirmez — l'icône apparaît sur votre téléphone</li>" +
-        "</ol>"
+        "</ol>" +
+        "<button type='button' class='app-install-btn app-install-btn--primary app-install-modal__dl' id='btnRetryInstall'>↻ Réessayer l'installation automatique</button>"
     );
+    bindRetryButton();
   }
 
   function setButtonLoading(btn, loading) {
@@ -133,6 +123,7 @@
     var btn = document.getElementById("btnInstallApp");
     var iosBtn = document.getElementById("btnInstallIos");
     var badge = document.getElementById("installStatusBadge");
+    var hint = document.getElementById("appInstallHint");
     var linkEl = document.getElementById("installShareLink");
     if (linkEl) linkEl.textContent = installUrl();
 
@@ -147,6 +138,7 @@
         badge.className = "app-install-badge";
         badge.textContent = "✓ Evo-smartUni est prête — ouvrez-la depuis le bureau ou l'écran d'accueil";
       }
+      if (hint) hint.hidden = true;
       return;
     }
 
@@ -156,10 +148,14 @@
       btn.hidden = platform === "ios";
       btn.style.display = platform === "ios" ? "none" : "";
       btn.disabled = false;
-      if (!installing) btn.textContent = "⬇️ Télécharger Evo-smartUni";
+      btn.textContent = "⬇️ Télécharger Evo-smartUni";
     }
     if (iosBtn) {
       iosBtn.hidden = platform !== "ios";
+    }
+
+    if (hint) {
+      hint.hidden = !(platform === "desktop" && !canInstall);
     }
 
     if (badge) {
@@ -167,7 +163,9 @@
       if (platform === "ios") {
         badge.textContent = "Appuyez sur Télécharger — instructions iPhone sur cette page";
       } else if (canInstall) {
-        badge.textContent = "✓ Prêt — un clic lance le téléchargement / l'installation";
+        badge.textContent = "✓ Prêt — un clic ouvre la fenêtre d'installation";
+      } else if (platform === "desktop") {
+        badge.textContent = "Cliquez Télécharger, ou utilisez l'icône ⊕ Installer en haut à droite";
       } else {
         badge.textContent = "Cliquez Télécharger — l'installation se lance sur cette page";
       }
@@ -185,8 +183,9 @@
 
     if (installing) return;
     installing = true;
+    hideModal();
     setButtonLoading(btn, true);
-    if (btn) btn.textContent = "⏳ Téléchargement en cours…";
+    if (btn) btn.textContent = "⏳ Installation en cours…";
 
     var pwa = typeof SAC_PWA !== "undefined" ? SAC_PWA : null;
 
@@ -211,8 +210,11 @@
         return false;
       })
       .then(function () {
+        return fetch("/connexion.html", { cache: "no-store" }).catch(function () {});
+      })
+      .then(function () {
         if (pwa && pwa.waitForInstallPrompt) {
-          return pwa.waitForInstallPrompt(12000);
+          return pwa.waitForInstallPrompt(15000);
         }
         return null;
       })
@@ -224,9 +226,6 @@
           toast("✓ Evo-smartUni installée — ouvrez-la depuis le bureau ou le menu Démarrer.");
           finish();
           return;
-        }
-        if (platform === "desktop") {
-          downloadDesktopShortcut();
         }
         showFallbackModal(platform);
         finish();
@@ -258,6 +257,7 @@
 
     window.addEventListener("appinstalled", function () {
       installing = false;
+      hideModal();
       toast("✓ Evo-smartUni installée avec succès !");
       updateUi();
     });
@@ -298,6 +298,7 @@
     }
     setTimeout(updateUi, 800);
     setTimeout(updateUi, 3000);
+    setTimeout(updateUi, 8000);
   }
 
   if (document.readyState === "loading") {

@@ -12,8 +12,13 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/css/app-install.css?v=20260710c" />
+  <link rel="stylesheet" href="/css/app-install.css?v=20260710d" />
   <script src="/js/sac-config.js"></script>
+  <script>
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/sw.js", { scope: "/", updateViaCache: "none" });
+    }
+  </script>
 </head>
 <body class="app-install-page">
   <div class="app-install-shell">
@@ -51,6 +56,11 @@
         Préparation…
       </div>
 
+      <div class="app-install-hint" id="appInstallHint" hidden>
+        <strong>Installation sur cette page</strong>
+        <p>Regardez en haut à droite de la barre d'adresse Chrome ou Edge → cliquez l'icône <span class="app-install-hint__icon">⊕</span> <strong>Installer</strong>, puis confirmez.</p>
+      </div>
+
       <details class="app-install-share">
         <summary>Partager le lien de téléchargement</summary>
         <div class="app-install-link-box" id="installShareLink">—</div>
@@ -76,7 +86,7 @@
 
   <div class="app-install-toast" id="appInstallToast" role="status" aria-live="polite"></div>
 
-  <script src="/js/sac-pwa.js?v=20260710c"></script>
-  <script src="/js/sac-app-install.js?v=20260710c"></script>
+  <script src="/js/sac-pwa.js?v=20260710d"></script>
+  <script src="/js/sac-app-install.js?v=20260710d"></script>
 </body>
 </html>
