@@ -2,7 +2,7 @@
  * Tableau de bord institutionnel — Ministère / Super Admin
  */
 const SAC_ADMIN_DASHBOARD = (function () {
-  const BUILD = "20260710h";
+  const BUILD = "20260710i";
   const PRESENCE_REFRESH_MS = 20000;
   const PRESENCE_ROLE_LABELS = {
     etudiant: "Étudiants",
@@ -224,6 +224,10 @@ const SAC_ADMIN_DASHBOARD = (function () {
     document.querySelectorAll(".nav-tab[data-section]").forEach((tab) => {
       tab.classList.toggle("active", tab.dataset.section === id);
     });
+    const session = SAC_SESSION.getSession();
+    if (session?.role === "ministere" && typeof SAC_MINISTRY_HUB !== "undefined") {
+      SAC_MINISTRY_HUB.onSectionShow(id, session, showSection);
+    }
     if (id === "activites") reloadActivities();
     if (id === "live" && typeof SAC_MINISTRY_LIVE !== "undefined") {
       const session = SAC_SESSION.getSession();
@@ -252,7 +256,7 @@ const SAC_ADMIN_DASHBOARD = (function () {
     }
     if (id === "accueil" && typeof SAC_LIBRARY !== "undefined") {
       const session = SAC_SESSION.getSession();
-      if (session?.role === "ministere") {
+      if (session?.role === "ministere" && typeof SAC_MINISTRY_HUB === "undefined") {
         SAC_LIBRARY.initMinistryPublisher(session, "libraryPublisherAccueil", { showList: false });
       }
     }
@@ -1129,10 +1133,8 @@ const SAC_ADMIN_DASHBOARD = (function () {
       document.querySelectorAll(".ws-only-ministere-hidden").forEach((el) => {
         el.classList.remove("ws-only-ministere-hidden");
       });
-      if (typeof SAC_LIBRARY !== "undefined") {
-        safeRun("initLibraryAccueil", () =>
-          SAC_LIBRARY.initMinistryPublisher(session, "libraryPublisherAccueil", { showList: false })
-        );
+      if (typeof SAC_MINISTRY_HUB !== "undefined") {
+        SAC_MINISTRY_HUB.setupMinistryLayout();
       }
     }
 
@@ -1144,15 +1146,24 @@ const SAC_ADMIN_DASHBOARD = (function () {
       SAC_SESSION.logout(target);
     });
 
-    document.querySelectorAll(".nav-tab[data-section]").forEach((tab) => {
-      tab.addEventListener("click", () => showSection(tab.dataset.section));
-    });
+    const navTabs = document.querySelector(".nav-tabs");
+    if (navTabs && !navTabs.dataset.sacDelegated) {
+      navTabs.dataset.sacDelegated = "1";
+      navTabs.addEventListener("click", (e) => {
+        const tab = e.target.closest(".nav-tab[data-section]");
+        if (tab?.dataset.section) showSection(tab.dataset.section);
+      });
+    }
     document.querySelectorAll("[data-goto]").forEach((btn) => {
       btn.addEventListener("click", () => showSection(btn.dataset.goto));
     });
 
     if (isSuper && typeof SAC_PLATFORM_REGISTRY !== "undefined") {
       SAC_PLATFORM_REGISTRY.bindUnlock(session, showSection, toast);
+    }
+
+    if (isMinistere && typeof SAC_MINISTRY_HUB !== "undefined") {
+      SAC_MINISTRY_HUB.onSectionShow("accueil", session, showSection);
     }
 
     const onFilter = () => refresh(session, isSuper);

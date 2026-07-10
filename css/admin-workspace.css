@@ -605,6 +605,122 @@ body[data-ws-role="universite"] {
   color: #b91c1c;
 }
 
+/* ——— Hub Ministère (11 activités) ——— */
+body.ws-ministry-mode .nav-tabs {
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+body.ws-ministry-mode .nav-tab {
+  font-size: 0.78rem;
+  padding: 0.45rem 0.65rem;
+}
+
+.mh-title {
+  font-family: "Playfair Display", Georgia, serif;
+  font-size: 1.35rem;
+  margin: 0 0 1rem;
+}
+
+.mh-kpi-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 0.75rem;
+}
+
+.mh-kpi {
+  background: var(--surface, #fff);
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 12px;
+  padding: 1rem;
+  text-align: center;
+}
+
+.mh-kpi strong {
+  display: block;
+  font-size: 1.5rem;
+  color: var(--primary, #0c3d6e);
+}
+
+.mh-kpi span {
+  font-size: 0.82rem;
+  color: var(--muted, #64748b);
+}
+
+.mh-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 0.75rem;
+}
+
+.mh-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 12px;
+  background: var(--surface, #fff);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.mh-card:hover {
+  border-color: var(--primary, #0c3d6e);
+  box-shadow: 0 4px 14px rgba(12, 61, 110, 0.08);
+}
+
+.mh-card__icon {
+  font-size: 1.35rem;
+}
+
+.mh-card strong {
+  font-size: 0.92rem;
+}
+
+.mh-card span:last-child {
+  font-size: 0.78rem;
+  color: var(--muted, #64748b);
+  line-height: 1.35;
+}
+
+.mh-alert {
+  padding: 0.65rem 0.85rem;
+  border-radius: 8px;
+  background: #eff6ff;
+  border: 1px solid #93c5fd;
+  color: #1e40af;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+}
+
+.mh-alert--warn {
+  background: #fff7ed;
+  border-color: #fdba74;
+  color: #9a3412;
+}
+
+.mh-tag {
+  display: inline-block;
+  padding: 0.15rem 0.45rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.mh-tag--ok { background: #dcfce7; color: #166534; }
+.mh-tag--wait { background: #fef3c7; color: #92400e; }
+.mh-tag--bad { background: #fee2e2; color: #991b1b; }
+
+.mh-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
 /* ——— Live Ministère ↔ universités ——— */
 .ws-only-ministere-hidden { display: none !important; }
 

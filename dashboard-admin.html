@@ -104,6 +104,9 @@
 
       <p class="page-desc">Vue d'ensemble de la gouvernance institutionnelle sur la plateforme nationale.</p>
 
+      <div id="ministryNationalRoot" class="ws-only-ministere-hidden" hidden></div>
+
+      <div id="ministryLegacyAccueil">
       <div class="ws-kpi-grid">
         <div class="ws-kpi">
           <div class="ws-kpi__icon">👥</div>
@@ -216,6 +219,7 @@
           <button type="button" class="btn btn--role ws-only-super-hidden" data-goto="sauvegarde" id="btnQuickSauvegarde" hidden>🗄️ Sauvegarde & restauration</button>
           <button type="button" class="btn btn--ghost" data-goto="securite">🔒 Politique de sécurité</button>
         </div>
+      </div>
       </div>
     </section>
 
@@ -625,6 +629,47 @@
       <div id="ministryLiveRoot"></div>
     </section>
 
+    <!-- HUB MINISTÈRE — modules nationaux -->
+    <section class="page-section ws-only-ministere-hidden" id="section-etablissements">
+      <h1 class="page-title">Validation des établissements</h1>
+      <div id="ministryEtabRoot"></div>
+    </section>
+
+    <section class="page-section ws-only-ministere-hidden" id="section-diplomes">
+      <h1 class="page-title">Vérification des diplômes</h1>
+      <div id="ministryDiplomaRoot"></div>
+    </section>
+
+    <section class="page-section ws-only-ministere-hidden" id="section-performances">
+      <h1 class="page-title">Suivi des performances</h1>
+      <div id="ministryPerfRoot"></div>
+    </section>
+
+    <section class="page-section ws-only-ministere-hidden" id="section-inspections">
+      <h1 class="page-title">Gestion des inspections</h1>
+      <div id="ministryInspectRoot"></div>
+    </section>
+
+    <section class="page-section ws-only-ministere-hidden" id="section-plaintes">
+      <h1 class="page-title">Gestion des plaintes</h1>
+      <div id="ministryComplaintRoot"></div>
+    </section>
+
+    <section class="page-section ws-only-ministere-hidden" id="section-accreditations">
+      <h1 class="page-title">Gestion des accréditations</h1>
+      <div id="ministryAccredRoot"></div>
+    </section>
+
+    <section class="page-section ws-only-ministere-hidden" id="section-messagerie">
+      <h1 class="page-title">Messagerie officielle</h1>
+      <div id="ministryMsgRoot"></div>
+    </section>
+
+    <section class="page-section ws-only-ministere-hidden" id="section-rapports">
+      <h1 class="page-title">Rapports & exportation</h1>
+      <div id="ministryReportRoot"></div>
+    </section>
+
     <!-- REGISTRE NATIONAL (Super Admin — accès discret) -->
     <section class="page-section ws-registry-secret" id="section-registry" hidden aria-hidden="true">
       <div id="platformRegistryRoot"></div>
@@ -798,7 +843,8 @@
   <script src="js/sac-platform-registry.js?v=20260625a"></script>
   <script src="js/sac-tariffs.js?v=20260623b"></script>
   <script src="js/sac-admin-activities.js?v=20260629a"></script>
-  <script src="js/sac-admin-dashboard.js?v=20260710h"></script>
+  <script src="js/sac-ministry-hub.js?v=20260710i"></script>
+  <script src="js/sac-admin-dashboard.js?v=20260710i"></script>
   <script>
     SAC_ADMIN_DASHBOARD.init().catch(function (err) {
       console.error("[SAC_ADMIN_DASHBOARD] init:", err);
