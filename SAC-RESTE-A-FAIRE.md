@@ -12,7 +12,7 @@
 | Bibliothèque compte Ministère | ✅ Retirée (réservée à la plateforme publique) |
 | Renouvellement inscription 30/07 | ✅ Code frontend + API local — vérifier déploiement API Render |
 | MFA staff | ✅ Désactivé par défaut en prod (mot de passe seul) |
-| Performances / inspections / plaintes / accréditations | ⏳ UI placeholder — API nationale à venir |
+| Performances / inspections / plaintes / accréditations | ✅ Modules fonctionnels (registre EvoSU + API diplômes / réclamations) |
 | Statuts universités (suspendre) | ⚠️ Registre local + lecture `verified` API — blocage serveur à brancher |
 | Evo Finance paie employés | ⚠️ localStorage — agrégation revenus OK via API |
 

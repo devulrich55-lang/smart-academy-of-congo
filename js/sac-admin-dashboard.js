@@ -2,7 +2,7 @@
  * Tableau de bord institutionnel — Ministère / Super Admin
  */
 const SAC_ADMIN_DASHBOARD = (function () {
-  const BUILD = "20260710k";
+  const BUILD = "20260710l";
   const PRESENCE_REFRESH_MS = 20000;
   const PRESENCE_ROLE_LABELS = {
     etudiant: "Étudiants",
