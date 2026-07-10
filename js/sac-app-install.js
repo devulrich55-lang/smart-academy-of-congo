@@ -85,15 +85,12 @@
 
     if (platform === "desktop") {
       showModal(
-        "Installer depuis cette page",
-        "<p>Chrome bloque les fichiers raccourci — utilisez l'installation application intégrée au navigateur :</p>" +
-          "<ol class='app-install-modal__steps'>" +
-          "<li>Restez sur <strong>cette page</strong> (ne fermez pas la fenêtre)</li>" +
-          "<li>En haut à droite de la barre d'adresse, cliquez <strong>⊕ Installer</strong></li>" +
-          "<li>Ou menu <strong>⋮</strong> → <strong>Installer Evo-smartUni</strong></li>" +
-          "<li>Confirmez — l'application apparaît sur le bureau et le menu Démarrer</li>" +
-          "</ol>" +
-          "<button type='button' class='app-install-btn app-install-btn--primary app-install-modal__dl' id='btnRetryInstall'>↻ Réessayer l'installation automatique</button>"
+        "Une dernière étape — sur cette page",
+        "<p class='app-install-modal__success'>✓ Chrome est prêt à installer Evo-smartUni.</p>" +
+          "<p><strong>Cliquez l'icône <span class='app-install-hint__icon'>⊕</span> Installer</strong> en haut à droite de la barre d'adresse (à côté de l'URL).</p>" +
+          "<p>Puis confirmez — l'application apparaît sur le <strong>bureau</strong> et dans le menu <strong>Démarrer</strong>.</p>" +
+          "<p class='app-install-modal__alt'>Alternative : menu <strong>⋮</strong> → <strong>Installer Evo-smartUni</strong></p>" +
+          "<button type='button' class='app-install-btn app-install-btn--primary app-install-modal__dl' id='btnRetryInstall'>↻ Réouvrir la fenêtre d'installation</button>"
       );
       bindRetryButton();
       return;
