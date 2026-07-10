@@ -945,7 +945,7 @@ const SAC_EDB = (function () {
     return items.slice(0, 6);
   }
 
-  async function mountAuthorPublisher(session, rootId) {
+  async function mountAuthorPublisher(session, rootId, initialPanel) {
     const root = document.getElementById(rootId);
     if (!root) return;
 
@@ -1040,21 +1040,30 @@ const SAC_EDB = (function () {
       "<li>✓ Proposez un extrait gratuit</li>" +
       "</ul></div></div></section>" +
       '<section class="edb-panel" id="edbPanelBooks" hidden><div class="edb-card-panel"><h2>Mes livres</h2><div id="edbBooksTable"></div></div></section>' +
-      '<section class="edb-panel" id="edbPanelPublish" hidden><div class="edb-card-panel"><h2>Publier un livre</h2>' +
+      '<section class="edb-panel" id="edbPanelPublish" hidden><div class="edb-card-panel edb-card-panel--publish"><h2>Publier un livre</h2>' +
       '<p class="edb-dash__sub">Visible dans EvoDigitalBooks et la bibliothèque nationale · 75 % auteur / 25 % plateforme</p>' +
-      '<form id="edbPublishForm" class="edb-form"><div class="edb-form__grid">' +
-      '<div class="fg"><label>Titre *</label><input type="text" class="fi" id="edbTitle" required minlength="2" /></div>' +
-      '<div class="fg"><label>Catégorie *</label><select class="fi" id="edbCategory" required>' +
+      '<form id="edbPublishForm" class="edb-form edb-publish-form">' +
+      '<div class="edb-form__section"><h3 class="edb-form__section-title">Informations</h3>' +
+      '<div class="edb-form__grid">' +
+      '<div class="fg"><label for="edbTitle">Titre *</label><input type="text" class="fi" id="edbTitle" required minlength="2" placeholder="Titre du livre" /></div>' +
+      '<div class="fg"><label for="edbCategory">Catégorie *</label><select class="fi" id="edbCategory" required>' +
       categoriesSelectHtml() +
       "</select></div>" +
-      '<div class="fg" style="grid-column:1/-1"><label>Description</label><textarea class="fi" id="edbDesc" rows="3"></textarea></div>' +
-      '<div class="fg"><label class="chk"><input type="checkbox" id="edbFree" /> Livre gratuit</label></div>' +
-      '<div class="fg" id="edbPriceWrap"><label>Prix (USD) *</label><input type="number" class="fi" id="edbPrice" min="0.5" step="0.01" value="5" /></div>' +
-      '<div class="fg"><label>Couverture *</label><input type="file" class="fi" id="edbCover" accept="image/*" required /></div>' +
-      '<div class="fg"><label>Fichier (PDF/EPUB, max 50 Mo) *</label><input type="file" class="fi" id="edbFile" accept=".pdf,.epub,application/pdf" required /></div>' +
-      "</div>" +
-      '<p class="edb-fee-hint" id="edbFeeHint"></p>' +
-      '<button type="submit" class="edb-btn-primary">Publier dans la bibliothèque</button></form></div></section>' +
+      '<div class="fg fg--full"><label for="edbDesc">Description</label><textarea class="fi" id="edbDesc" rows="4" placeholder="Résumé, public cible, contenu…"></textarea></div>' +
+      "</div></div>" +
+      '<div class="edb-form__section"><h3 class="edb-form__section-title">Tarification</h3>' +
+      '<div class="edb-form__grid edb-form__grid--pricing">' +
+      '<div class="fg fg--full"><label class="chk edb-chk-free"><input type="checkbox" id="edbFree" /> Livre gratuit (accessible sans paiement)</label></div>' +
+      '<div class="fg" id="edbPriceWrap"><label for="edbPrice">Prix (USD) *</label><input type="number" class="fi" id="edbPrice" min="0.5" step="0.01" value="5" /></div>' +
+      '<div class="fg edb-fee-box"><p class="edb-fee-hint" id="edbFeeHint"></p></div>' +
+      "</div></div>" +
+      '<div class="edb-form__section"><h3 class="edb-form__section-title">Fichiers</h3>' +
+      '<div class="edb-form__grid edb-form__grid--files">' +
+      '<div class="fg"><label for="edbCover">Couverture *</label><div class="edb-file-field"><input type="file" class="edb-file-input" id="edbCover" accept="image/*" required /><label class="edb-file-btn" for="edbCover">Choisir une image</label><span class="edb-file-name" id="edbCoverName">Aucun fichier</span></div></div>' +
+      '<div class="fg"><label for="edbFile">Livre (PDF/EPUB, max 50 Mo) *</label><div class="edb-file-field"><input type="file" class="edb-file-input" id="edbFile" accept=".pdf,.epub,application/pdf" required /><label class="edb-file-btn" for="edbFile">Choisir le fichier</label><span class="edb-file-name" id="edbFileName">Aucun fichier</span></div></div>' +
+      "</div></div>" +
+      '<div class="edb-form__actions"><button type="submit" class="edb-btn-primary edb-btn-primary--wide">Publier dans la bibliothèque</button></div>' +
+      "</form></div></section>" +
       '<section class="edb-panel" id="edbPanelSales" hidden><div class="edb-card-panel"><h2>Commandes & ventes</h2><p class="edb-empty">Les ventes Mobile Money apparaissent ici après achat. Revenus estimés : <strong>' +
       formatMoney(stats.revenue) +
       "</strong></p></div></section>" +
@@ -1076,6 +1085,15 @@ const SAC_EDB = (function () {
     root.querySelectorAll(".edb-dash__nav-item[data-edb-panel]").forEach((btn) => {
       btn.addEventListener("click", () => showPanel(btn.dataset.edbPanel));
     });
+
+    const startPanel =
+      initialPanel ||
+      (window.location.hash === "#publish"
+        ? "publish"
+        : window.location.hash === "#books"
+          ? "books"
+          : "dashboard");
+    showPanel(startPanel);
 
     document.getElementById("edbDashLogout")?.addEventListener("click", () => {
       if (typeof SAC_SESSION !== "undefined") SAC_SESSION.logout("evodigitalbooks/");
@@ -1140,6 +1158,19 @@ const SAC_EDB = (function () {
     priceInp?.addEventListener("input", updateFeeHint);
     updateFeeHint();
 
+    function bindFileName(inputId, labelId) {
+      const inp = document.getElementById(inputId);
+      const lbl = document.getElementById(labelId);
+      if (!inp || !lbl) return;
+      inp.addEventListener("change", () => {
+        const f = inp.files?.[0];
+        lbl.textContent = f ? f.name : "Aucun fichier";
+        lbl.classList.toggle("is-set", !!f);
+      });
+    }
+    bindFileName("edbCover", "edbCoverName");
+    bindFileName("edbFile", "edbFileName");
+
     document.getElementById("edbPublishForm")?.addEventListener("submit", async (e) => {
       e.preventDefault();
       const btn = e.target.querySelector('button[type="submit"]');
@@ -1164,7 +1195,7 @@ const SAC_EDB = (function () {
         alert("Livre publié — visible dans EvoDigitalBooks et la bibliothèque.");
         e.target.reset();
         updateFeeHint();
-        await mountAuthorPublisher(session, rootId);
+        await mountAuthorPublisher(session, rootId, "books");
       } catch (err) {
         alert(err.message || "Publication impossible.");
       } finally {

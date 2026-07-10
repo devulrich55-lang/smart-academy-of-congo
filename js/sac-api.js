@@ -118,11 +118,26 @@ const SAC_API = (function () {
     INVALID_PAYLOAD: "Contenu rejeté par le serveur — vérifiez le mot de passe et les champs texte.",
     CREATE_NOT_PERSISTED:
       "Le compte n'a pas été retrouvé sur le serveur — base API éphémère ou session invalide.",
+    CREATE_FAILED:
+      "Publication impossible — vérifiez les fichiers (PDF/EPUB, couverture) et réessayez.",
+    LIBRARY_SCHEMA:
+      "Base bibliothèque à mettre à jour — redéployez l'API Render (API-1).",
+    FILE_TOO_LARGE: "Fichier trop volumineux (max 50 Mo par fichier).",
+    INVALID_INPUT: "Champs invalides — vérifiez le titre, la catégorie et le prix.",
   };
 
-  function apiErrorMessage(data, status) {
+  function apiErrorMessage(data, status, pathHint) {
+    const path = String(pathHint || "");
+    const isLibrary =
+      /\/library|\/edb\//i.test(path) ||
+      (typeof window !== "undefined" &&
+        /dashboard-evodigitalbooks|evodigitalbooks/i.test(window.location.pathname || ""));
     if (typeof data?.detail === "string" && data.detail.trim()) {
-      return data.detail.trim();
+      const detail = data.detail.trim();
+      if (/internal server error/i.test(detail) && isLibrary) {
+        return "Erreur serveur lors de la publication — redéployez l'API Render (API-1) puis réessayez.";
+      }
+      return detail;
     }
     const payload =
       data && data.detail && typeof data.detail === "object" && !Array.isArray(data.detail)
@@ -133,7 +148,10 @@ const SAC_API = (function () {
       (payload && payload.message) || ERROR_MESSAGES[code] || code || "";
     if (msg) return msg;
     if (status === 500) {
-      return "Erreur serveur API — vérifiez les Logs de API-1 sur Render (réseau social).";
+      if (isLibrary) {
+        return "Erreur serveur lors de la publication — vérifiez les logs API-1 sur Render (bibliothèque EvoDigitalBooks).";
+      }
+      return "Erreur serveur API — vérifiez les logs API-1 sur Render.";
     }
     if (status === 404) {
       if (code === "STUDENT_NOT_FOUND") return msg;
@@ -570,7 +588,7 @@ const SAC_API = (function () {
         data && data.detail && typeof data.detail === "object" && !Array.isArray(data.detail)
           ? data.detail
           : data;
-      const err = new Error(apiErrorMessage(data, res.status));
+      const err = new Error(apiErrorMessage(data, res.status, path));
       err.code = payload.error || data.error;
       err.status = res.status;
       if (res.status === 429) {
@@ -2662,10 +2680,14 @@ const SAC_API = (function () {
     }
 
     if (!res.ok) {
-      const err = new Error(apiErrorMessage(data, res.status));
-      err.code = data.error;
+      const payload =
+        data && data.detail && typeof data.detail === "object" && !Array.isArray(data.detail)
+          ? data.detail
+          : data;
+      const err = new Error(apiErrorMessage(data, res.status, path));
+      err.code = payload.error || data.error;
       err.status = res.status;
-      if (data.error === "USER_NOT_FOUND" || data.error === "TOKEN_EXPIRED") {
+      if (payload.error === "USER_NOT_FOUND" || payload.error === "TOKEN_EXPIRED") {
         err.sessionInvalid = true;
         clearClientSession();
       }
