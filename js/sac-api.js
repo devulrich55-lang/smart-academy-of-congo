@@ -1791,6 +1791,24 @@ const SAC_API = (function () {
     return platformRequest("/platform/library" + q, { auth: false });
   }
 
+  /** Bibliothèque avec session — fichiers payants si l'utilisateur a acheté. */
+  async function listDigitalLibraryForUser(countryCode) {
+    const cc = countryCode ? String(countryCode).toUpperCase() : "";
+    const q = cc ? "?country=" + encodeURIComponent(cc) : "";
+    const path = "/platform/library" + q;
+    if (useBearerAuth() && !hasAuthTokens()) {
+      await ensureApiSession({ soft: true });
+    }
+    if (hasAuthTokens() || (typeof document !== "undefined" && document.cookie.indexOf("sac_access=") >= 0)) {
+      try {
+        return await request(path, { softAuth: true, timeoutMs: 20000 });
+      } catch (err) {
+        if (err?.status !== 401) throw err;
+      }
+    }
+    return platformRequest(path, { auth: false });
+  }
+
   async function lookupDictionary(word, lang) {
     const params = new URLSearchParams();
     params.set("q", String(word || "").trim());
@@ -1867,6 +1885,10 @@ const SAC_API = (function () {
       body: JSON.stringify(payload || {}),
       softAuth: true,
     });
+  }
+
+  async function listMyEdbPurchases() {
+    return request("/platform/edb/purchases/me", { timeoutMs: 15000 });
   }
 
   async function listCampusDiplomasManage() {
@@ -2799,6 +2821,7 @@ const SAC_API = (function () {
     getProfessorPresence,
     listHomeNews,
     listDigitalLibrary,
+    listDigitalLibraryForUser,
     lookupDictionary,
     translateDictionary,
     listDictionaryLanguages,
@@ -2811,6 +2834,7 @@ const SAC_API = (function () {
     listPendingEdbAuthors,
     approveEdbAuthor,
     recordEdbPurchase,
+    listMyEdbPurchases,
     listCampusDiplomasManage,
     listMyDiplomas,
     issueDiploma,

@@ -53,6 +53,18 @@ const SAC_SESSION = (function () {
     ) {
       SAC_UNIVERSITY_LOGO.registerForUniversity(session);
     }
+    if (typeof SAC_EDB !== "undefined" && session) {
+      if (SAC_EDB.syncPurchasesFromApi) {
+        SAC_EDB.syncPurchasesFromApi(session).catch(function () {});
+      }
+      if (SAC_EDB.syncEdbCatalogFromApi) {
+        const cc =
+          typeof SAC_AFRICA_COUNTRIES !== "undefined"
+            ? SAC_AFRICA_COUNTRIES.getStoredCountry()
+            : null;
+        SAC_EDB.syncEdbCatalogFromApi(cc, session).catch(function () {});
+      }
+    }
   }
 
   function clearSession() {

@@ -588,7 +588,14 @@ const SAC_LIBRARY = (function () {
       try {
         const online = await SAC_API.ensureOnline();
         if (online) {
-          const data = await SAC_API.listDigitalLibrary(cc);
+          const session =
+            typeof SAC_SESSION !== "undefined" && SAC_SESSION.getSession
+              ? SAC_SESSION.getSession()
+              : null;
+          const data =
+            session && SAC_API.listDigitalLibraryForUser
+              ? await SAC_API.listDigitalLibraryForUser(cc)
+              : await SAC_API.listDigitalLibrary(cc);
           items = (data?.items || []).filter(isPublishedBook);
           items = filterByCountry(items, cc);
         }
@@ -609,7 +616,11 @@ const SAC_LIBRARY = (function () {
     }
     if (typeof SAC_EDB !== "undefined" && SAC_EDB.listLibraryBooks) {
       try {
-        const edb = await SAC_EDB.listLibraryBooks(cc);
+        const session =
+          typeof SAC_SESSION !== "undefined" && SAC_SESSION.getSession
+            ? SAC_SESSION.getSession()
+            : null;
+        const edb = await SAC_EDB.listLibraryBooks(cc, session);
         const ids = new Set(items.map((x) => x.id));
         edb.forEach((b) => {
           if (!ids.has(b.id)) items.push(b);

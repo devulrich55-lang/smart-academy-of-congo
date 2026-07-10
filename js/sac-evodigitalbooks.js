@@ -138,7 +138,7 @@ const SAC_EDB = (function () {
     const b = { ...book };
     b.source = SOURCE;
     b.authorRole = "auteur";
-    b.isFree = !!b.isFree;
+    b.isFree = !!(b.isFree ?? b.is_free ?? b.free ?? (Number(b.price || 0) <= 0));
     b.is_free = b.isFree;
     b.free = b.isFree;
     b.accessType = b.isFree ? "free" : "paid";
@@ -147,6 +147,135 @@ const SAC_EDB = (function () {
       delete b.file_url;
     }
     return b;
+  }
+
+  function mapApiBookToLocal(item) {
+    const isFree = !!(
+      item.isFree ??
+      item.is_free ??
+      item.free ??
+      (Number(item.price || 0) <= 0 && item.accessType !== "paid")
+    );
+    return {
+      id: item.id,
+      title: item.title || "",
+      author: item.author || "",
+      authorEmail: normEmail(item.authorEmail || item.authorId || ""),
+      authorMobileMoney: item.authorMobileMoney || "",
+      category: item.category || "roman",
+      description: item.description || "",
+      language: item.language || "fr",
+      countryCode: String(item.countryCode || "CD").toUpperCase(),
+      isFree,
+      price: Number(item.price) || 0,
+      currency: String(item.currency || "USD").toUpperCase(),
+      fileUrl: item.fileUrl || item.file_url || "",
+      coverUrl: item.coverUrl || item.cover_url || "",
+      cover_url: item.coverUrl || item.cover_url || "",
+      file_url: item.fileUrl || item.file_url || "",
+      source: SOURCE,
+      authorRole: item.authorRole || "auteur",
+      published: item.published !== false,
+      status: "published",
+      createdAt: item.createdAt || item.created_at || "",
+      updatedAt: item.updatedAt || item.updated_at || "",
+    };
+  }
+
+  function isEdbLibraryItem(item) {
+    if (!item) return false;
+    return (
+      item.source === SOURCE ||
+      item.authorRole === "auteur" ||
+      String(item.id || "").indexOf("edb_") === 0
+    );
+  }
+
+  function mergeBooksFromApi(apiItems) {
+    const filtered = (apiItems || []).filter(isEdbLibraryItem);
+    if (!filtered.length) return;
+    const local = readBooks();
+    const byId = {};
+    local.forEach((b) => {
+      byId[b.id] = b;
+    });
+    filtered.forEach((item) => {
+      const mapped = mapApiBookToLocal(item);
+      const prev = byId[mapped.id];
+      if (prev) {
+        byId[mapped.id] = {
+          ...prev,
+          ...mapped,
+          fileUrl: mapped.fileUrl || prev.fileUrl || "",
+          file_url: mapped.fileUrl || prev.file_url || prev.fileUrl || "",
+        };
+      } else {
+        byId[mapped.id] = mapped;
+      }
+    });
+    writeBooks(Object.values(byId));
+  }
+
+  async function syncEdbCatalogFromApi(countryCode, session) {
+    if (typeof SAC_API === "undefined") return;
+    try {
+      const online = await SAC_API.ensureOnline(false, { maxWaitMs: 15000 });
+      if (!online) return;
+      let data;
+      if (session && SAC_API.listDigitalLibraryForUser) {
+        if (SAC_API.ensureApiSession) await SAC_API.ensureApiSession({ soft: true });
+        data = await SAC_API.listDigitalLibraryForUser(countryCode);
+      } else if (SAC_API.listDigitalLibrary) {
+        data = await SAC_API.listDigitalLibrary(countryCode);
+      } else {
+        return;
+      }
+      mergeBooksFromApi(data?.items || []);
+    } catch (err) {
+      console.warn("[SAC_EDB] sync catalog:", err.message || err);
+    }
+  }
+
+  async function syncAuthorBooksFromApi(session) {
+    if (!session || session.role !== "auteur") return;
+    if (typeof SAC_API === "undefined" || !SAC_API.listDigitalLibraryManage) return;
+    try {
+      const online = await SAC_API.ensureOnline(false, { maxWaitMs: 15000 });
+      if (!online) return;
+      if (SAC_API.ensureApiSession) await SAC_API.ensureApiSession({ soft: true });
+      const data = await SAC_API.listDigitalLibraryManage();
+      const email = normEmail(session.identifiant || session.email);
+      const mine = (data?.items || []).filter(
+        (x) =>
+          isEdbLibraryItem(x) &&
+          normEmail(x.authorEmail || x.authorId || "") === email
+      );
+      mergeBooksFromApi(mine.length ? mine : (data?.items || []).filter(isEdbLibraryItem));
+    } catch (err) {
+      console.warn("[SAC_EDB] sync author books:", err.message || err);
+    }
+  }
+
+  async function syncPurchasesFromApi(session) {
+    const email = normEmail(session?.identifiant || session?.email);
+    if (!email || typeof SAC_API === "undefined" || !SAC_API.listMyEdbPurchases) return;
+    try {
+      const online = await SAC_API.ensureOnline(false, { maxWaitMs: 12000 });
+      if (!online) return;
+      if (SAC_API.ensureApiSession) await SAC_API.ensureApiSession({ soft: true });
+      const data = await SAC_API.listMyEdbPurchases();
+      const ids = Array.isArray(data?.bookIds) ? data.bookIds : [];
+      if (!ids.length) return;
+      const map = readPurchasesMap();
+      const list = Array.isArray(map[email]) ? map[email].slice() : [];
+      ids.forEach((id) => {
+        if (id && !list.includes(id)) list.push(id);
+      });
+      map[email] = list;
+      writeJson(PURCHASES_KEY, map);
+    } catch (err) {
+      console.warn("[SAC_EDB] sync purchases:", err.message || err);
+    }
   }
 
   async function registerAuthor(payload) {
@@ -311,9 +440,10 @@ const SAC_EDB = (function () {
     return dev.ok;
   }
 
-  function recordPurchase(bookId, session, meta) {
+  async function recordPurchase(bookId, session, meta) {
     const email = normEmail(session?.identifiant || session?.email);
     if (!email || !bookId) return;
+    const deviceId = getDeviceId();
     const map = readPurchasesMap();
     const list = Array.isArray(map[email]) ? map[email].slice() : [];
     if (!list.includes(bookId)) list.push(bookId);
@@ -322,12 +452,24 @@ const SAC_EDB = (function () {
     registerDevice(session);
     bumpSales(bookId);
     if (typeof SAC_API !== "undefined" && SAC_API.recordEdbPurchase) {
-      SAC_API.recordEdbPurchase({ bookId, email, ...meta }).catch(() => {});
+      try {
+        await SAC_API.recordEdbPurchase({
+          bookId,
+          email,
+          deviceId,
+          authorEmail: meta?.authorEmail || "",
+          ...meta,
+        });
+      } catch (err) {
+        console.warn("[SAC_EDB] record purchase API:", err.message || err);
+      }
     }
     window.dispatchEvent(new CustomEvent("sac-edb-purchase", { detail: { bookId } }));
   }
 
-  async function listLibraryBooks(countryCode) {
+  async function listLibraryBooks(countryCode, session) {
+    await syncEdbCatalogFromApi(countryCode, session || null);
+    if (session) await syncPurchasesFromApi(session);
     let items = readBooks().filter((b) => b.published !== false && b.status === "published");
     if (countryCode) {
       const cc = String(countryCode).toUpperCase();
@@ -499,7 +641,7 @@ const SAC_EDB = (function () {
     root.querySelectorAll("[data-edb-read]").forEach((btn) => {
       btn.addEventListener("click", () => {
         const book = fullById[btn.dataset.edbRead] || byId[btn.dataset.edbRead];
-        openBook(book, session);
+        void openBook(book, session);
       });
     });
     root.querySelectorAll("[data-edb-buy]").forEach((btn) => {
@@ -510,16 +652,21 @@ const SAC_EDB = (function () {
     });
   }
 
-  function openBook(book, session) {
+  async function openBook(book, session) {
     if (!book) return;
-    const full = readBooks().find((b) => b.id === book.id) || book;
+    let full = readBooks().find((b) => b.id === book.id) || book;
     if (!hasAccess(full, session)) {
       openPurchaseDialog(full, session);
       return;
     }
-    const url = absUrl(full.fileUrl || full.file_url);
+    let url = absUrl(full.fileUrl || full.file_url);
     if (!url) {
-      alert("Fichier indisponible.");
+      await syncEdbCatalogFromApi(null, session);
+      full = readBooks().find((b) => b.id === book.id) || full;
+      url = absUrl(full.fileUrl || full.file_url);
+    }
+    if (!url) {
+      alert("Fichier indisponible — reconnectez-vous ou réessayez dans un instant.");
       return;
     }
     window.open(url, "_blank", "noopener");
@@ -577,6 +724,7 @@ const SAC_EDB = (function () {
             authorShare: fees.authorShare,
             platformFee: fees.platformFee,
             currency,
+            deviceId: getDeviceId(),
           },
           onPinPrompt() {
             return prompt("Code PIN Mobile Money :") || "";
@@ -593,11 +741,13 @@ const SAC_EDB = (function () {
           "Limite de " + MAX_DEVICES_PER_ACCOUNT + " appareils atteinte pour ce compte. Retirez un appareil ou contactez le support."
         );
       }
-      recordPurchase(full.id, session, {
+      await recordPurchase(full.id, session, {
         amount: fees.total,
         authorShare: fees.authorShare,
         platformFee: fees.platformFee,
         authorMobileMoney: mmReceiver,
+        authorEmail: full.authorEmail || "",
+        currency: full.currency || "USD",
       });
       alert("Achat confirmé — vous pouvez maintenant lire le livre.");
       openBook(full, session);
@@ -615,7 +765,7 @@ const SAC_EDB = (function () {
       typeof SAC_AFRICA_COUNTRIES !== "undefined"
         ? SAC_AFRICA_COUNTRIES.getStoredCountry()
         : "CD";
-    const all = await listLibraryBooks(cc);
+    const all = await listLibraryBooks(cc, session);
     const free = all.filter((b) => b.isFree);
     const paid = all.filter((b) => !b.isFree);
     const bestsellers = sortBestsellers(all).slice(0, 8);
@@ -651,7 +801,7 @@ const SAC_EDB = (function () {
     bindStoreActions(root, all, session);
   }
 
-  function mountAuthorPublisher(session, rootId) {
+  async function mountAuthorPublisher(session, rootId) {
     const root = document.getElementById(rootId);
     if (!root) return;
 
@@ -668,6 +818,9 @@ const SAC_EDB = (function () {
         '<p><a href="../evodigitalbooks/">Retour au portail</a></p></div>';
       return;
     }
+
+    await syncAuthorBooksFromApi(session);
+    await syncPurchasesFromApi(session);
 
     const books = getAuthorBooks(session);
     root.innerHTML =
@@ -844,6 +997,8 @@ const SAC_EDB = (function () {
     publishBook,
     hasAccess,
     recordPurchase,
+    syncPurchasesFromApi,
+    syncEdbCatalogFromApi,
     mountStorefront,
     mountAuthorPublisher,
     mountAuthorValidation,
@@ -856,9 +1011,25 @@ const SAC_EDB = (function () {
 })();
 
 if (typeof document !== "undefined") {
-  try {
-    SAC_EDB.syncBooksToLibraryCache();
-  } catch {
-    /* ignore */
-  }
+  (async function bootstrapEdb() {
+    try {
+      const session =
+        typeof SAC_SESSION !== "undefined" && SAC_SESSION.getSession
+          ? SAC_SESSION.getSession()
+          : null;
+      const cc =
+        typeof SAC_AFRICA_COUNTRIES !== "undefined"
+          ? SAC_AFRICA_COUNTRIES.getStoredCountry()
+          : null;
+      await SAC_EDB.syncEdbCatalogFromApi(cc, session);
+      if (session) await SAC_EDB.syncPurchasesFromApi(session);
+      SAC_EDB.syncBooksToLibraryCache();
+    } catch {
+      try {
+        SAC_EDB.syncBooksToLibraryCache();
+      } catch {
+        /* ignore */
+      }
+    }
+  })();
 }
