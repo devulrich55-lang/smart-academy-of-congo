@@ -1,7 +1,7 @@
 /**
  * Service Worker Evo-smartUni — coque hors-ligne (shell statique)
  */
-const CACHE = "sac-pwa-v20260710d";
+const CACHE = "sac-pwa-v20260710e";
 const SHELL = [
   "/",
   "/index.html",
@@ -24,7 +24,6 @@ const SHELL = [
   "/js/sac-app-install.js",
   "/css/app-install.css",
   "/evo-uni.jpeg",
-  "/logo_pro.png",
 ];
 
 self.addEventListener("install", (event) => {
