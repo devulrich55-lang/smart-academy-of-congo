@@ -2,7 +2,7 @@
  * Tableau de bord institutionnel — Ministère / Super Admin
  */
 const SAC_ADMIN_DASHBOARD = (function () {
-  const BUILD = "20260709d";
+  const BUILD = "20260710h";
   const PRESENCE_REFRESH_MS = 20000;
   const PRESENCE_ROLE_LABELS = {
     etudiant: "Étudiants",
@@ -240,7 +240,7 @@ const SAC_ADMIN_DASHBOARD = (function () {
     }
     if (id === "bibliotheque" && typeof SAC_LIBRARY !== "undefined") {
       const session = SAC_SESSION.getSession();
-      if (session?.role === "ministere" || session?.role === "superadmin") {
+      if (session?.role === "ministere") {
         SAC_LIBRARY.initMinistryPublisher(session, "libraryPublisherRoot", { showList: true });
       }
     }
@@ -252,7 +252,7 @@ const SAC_ADMIN_DASHBOARD = (function () {
     }
     if (id === "accueil" && typeof SAC_LIBRARY !== "undefined") {
       const session = SAC_SESSION.getSession();
-      if (session?.role === "ministere" || session?.role === "superadmin") {
+      if (session?.role === "ministere") {
         SAC_LIBRARY.initMinistryPublisher(session, "libraryPublisherAccueil", { showList: false });
       }
     }
@@ -1119,14 +1119,9 @@ const SAC_ADMIN_DASHBOARD = (function () {
       }
     }
 
-    if (isMinistere || isSuper) {
+    if (isMinistere) {
       document.getElementById("tabBibliotheque")?.removeAttribute("hidden");
       document.getElementById("btnQuickBibliotheque")?.removeAttribute("hidden");
-      document.getElementById("section-bibliotheque")?.classList.remove("ws-only-ministere-hidden");
-      document.getElementById("ministryLibraryAccueil")?.classList.remove("ws-only-ministere-hidden");
-    }
-
-    if (isMinistere) {
       document.getElementById("tabLive")?.removeAttribute("hidden");
       document.getElementById("tabPublier")?.removeAttribute("hidden");
       document.getElementById("btnQuickPublier")?.removeAttribute("hidden");
@@ -1134,9 +1129,6 @@ const SAC_ADMIN_DASHBOARD = (function () {
       document.querySelectorAll(".ws-only-ministere-hidden").forEach((el) => {
         el.classList.remove("ws-only-ministere-hidden");
       });
-    }
-
-    if (isMinistere || isSuper) {
       if (typeof SAC_LIBRARY !== "undefined") {
         safeRun("initLibraryAccueil", () =>
           SAC_LIBRARY.initMinistryPublisher(session, "libraryPublisherAccueil", { showList: false })
