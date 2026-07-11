@@ -1726,6 +1726,27 @@ const SAC_API = (function () {
     return request("/admin/institutional/" + encodeURIComponent(email), { method: "DELETE" });
   }
 
+  async function patchInstitutionalAdmin(email, payload) {
+    return request("/admin/institutional/" + encodeURIComponent(String(email || "").trim()), {
+      method: "PATCH",
+      body: JSON.stringify(payload || {}),
+    });
+  }
+
+  async function getFinancePayroll() {
+    return request("/admin/finance/payroll", { softAuth: true });
+  }
+
+  async function saveFinancePayroll(email, payload) {
+    return request(
+      "/admin/finance/payroll/" + encodeURIComponent(String(email || "").trim()),
+      {
+        method: "PUT",
+        body: JSON.stringify(payload || {}),
+      }
+    );
+  }
+
   async function getAdminActivitiesSummary() {
     return request("/admin/activities/summary");
   }
@@ -3008,6 +3029,9 @@ const SAC_API = (function () {
     createInstitutionalAdmin,
     seedInstitutionalFacultySections,
     deleteInstitutionalAdmin,
+    patchInstitutionalAdmin,
+    getFinancePayroll,
+    saveFinancePayroll,
     getAdminActivitiesSummary,
     listAdminActivities,
     deleteAdminActivities,

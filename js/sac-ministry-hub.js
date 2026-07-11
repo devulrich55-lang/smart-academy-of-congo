@@ -98,6 +98,9 @@ const SAC_MINISTRY_HUB = (function () {
   }
 
   function resolveUniversityStatus(admin, statuses, key) {
+    if (typeof SAC_MINISTRY_REGISTRY !== "undefined") {
+      return SAC_MINISTRY_REGISTRY.resolveDisplayStatus(admin);
+    }
     const local = statuses[key];
     if (local === "suspended") return "suspended";
     if (admin?.verified === false || admin?.active === false) return "pending";
@@ -225,6 +228,13 @@ const SAC_MINISTRY_HUB = (function () {
           stats.professors = summary.byRole.professeur;
         }
         stats.byProvince = aggregateByProvince(list);
+        if (stats.students > 0 && stats.byProvince.length) {
+          const totalUnis = stats.universities || 1;
+          stats.byProvince = stats.byProvince.map((p) => ({
+            ...p,
+            students: Math.round((stats.students * p.universities) / totalUnis),
+          }));
+        }
       }
       if (typeof SAC_API !== "undefined" && SAC_API.getPublicPlatformStats) {
         const pub = await SAC_API.getPublicPlatformStats();
@@ -284,7 +294,9 @@ const SAC_MINISTRY_HUB = (function () {
               esc(p.province) +
               "</td><td>" +
               p.universities +
-              '</td><td style="color:var(--muted)">—</td></tr>'
+              "</td><td>" +
+              (p.students != null ? "~" + Number(p.students).toLocaleString("fr-FR") : "—") +
+              "</td></tr>"
           )
           .join("")
       : '<tr><td colspan="3" style="text-align:center;color:var(--muted)">Aucun campus avec province renseignée</td></tr>';
@@ -402,16 +414,22 @@ const SAC_MINISTRY_HUB = (function () {
         : '<p class="page-desc">Aucune université enregistrée pour votre pays. Demandez au Super Admin la création d\'un compte « Admin université ».</p>');
 
     root.querySelectorAll("[data-uni-action]").forEach((btn) => {
-      btn.addEventListener("click", () => {
+      btn.addEventListener("click", async () => {
         const row = btn.closest("[data-uni-email]");
         const email = row?.getAttribute("data-uni-email");
         if (!email) return;
         const action = btn.dataset.uniAction;
-        const store2 = readStore();
-        const statuses2 = { ...(store2.universityStatus || {}) };
-        if (action === "approve" || action === "reactivate") statuses2[email] = "approved";
-        else if (action === "suspend") statuses2[email] = "suspended";
-        writeStore({ universityStatus: statuses2 });
+        let status = "approved";
+        if (action === "suspend") status = "suspended";
+        else if (action === "approve" || action === "reactivate") status = "approved";
+        if (typeof SAC_MINISTRY_REGISTRY !== "undefined" && SAC_MINISTRY_REGISTRY.setUniversityStatusWithApi) {
+          await SAC_MINISTRY_REGISTRY.setUniversityStatusWithApi(email, status);
+        } else {
+          const store2 = readStore();
+          const statuses2 = { ...(store2.universityStatus || {}) };
+          statuses2[email] = status;
+          writeStore({ universityStatus: statuses2 });
+        }
         mountEstablishments(root, session);
       });
     });

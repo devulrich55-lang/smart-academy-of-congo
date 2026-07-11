@@ -13,8 +13,8 @@
 | Renouvellement inscription 30/07 | ✅ Code frontend + API local — vérifier déploiement API Render |
 | MFA staff | ✅ Désactivé par défaut en prod (mot de passe seul) |
 | Performances / inspections / plaintes / accréditations | ✅ Modules fonctionnels (registre EvoSU + API diplômes / réclamations) |
-| Statuts universités (suspendre) | ⚠️ Registre local + lecture `verified` API — blocage serveur à brancher |
-| Evo Finance paie employés | ⚠️ localStorage — agrégation revenus OK via API |
+| Statuts universités (suspendre) | ✅ Blocage portail + dashboard ; sync API PATCH si déployée |
+| Evo Finance paie employés | ✅ Sync API `/admin/finance/payroll` + repli localStorage |
 
 ---
 

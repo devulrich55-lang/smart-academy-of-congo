@@ -199,6 +199,44 @@ const SAC_EVO_FINANCE = (function () {
     }
   }
 
+  function writePayrollConfig(all) {
+    localStorage.setItem(PAYROLL_STORAGE_KEY, JSON.stringify(all));
+  }
+
+  async function syncPayrollFromApi() {
+    if (typeof SAC_API === "undefined" || !SAC_API.getFinancePayroll) return;
+    try {
+      if (SAC_API.ensureWritableApiSession) {
+        await SAC_API.ensureWritableApiSession({ soft: true, timeoutMs: 12000 });
+      }
+      const data = await SAC_API.getFinancePayroll();
+      const remote = data?.payroll || data?.rows || data;
+      if (!remote || typeof remote !== "object") return;
+      const local = readPayrollConfig();
+      Object.keys(remote).forEach((email) => {
+        const key = String(email).trim().toLowerCase();
+        const row = remote[email] || remote[key];
+        if (row && typeof row === "object") {
+          local[key] = { ...local[key], ...row };
+        }
+      });
+      writePayrollConfig(local);
+    } catch {
+      /* repli local */
+    }
+  }
+
+  async function pushPayrollToApi(email) {
+    if (typeof SAC_API === "undefined" || !SAC_API.saveFinancePayroll) return;
+    const key = String(email || "").trim().toLowerCase();
+    if (!key) return;
+    try {
+      await SAC_API.saveFinancePayroll(key, payrollForEmployee(key));
+    } catch {
+      /* local conservé */
+    }
+  }
+
   function payrollForEmployee(email) {
     const key = String(email || "").trim().toLowerCase();
     const cfg = readPayrollConfig()[key] || {};
@@ -218,7 +256,8 @@ const SAC_EVO_FINANCE = (function () {
     if (field === "autoPay") row.autoPay = !!value;
     else row[field] = Number(value) || 0;
     all[key] = row;
-    localStorage.setItem(PAYROLL_STORAGE_KEY, JSON.stringify(all));
+    writePayrollConfig(all);
+    void pushPayrollToApi(key);
   }
 
   async function loadEmployees(session) {
@@ -251,6 +290,7 @@ const SAC_EVO_FINANCE = (function () {
         );
       });
       state.employees = staff;
+      await syncPayrollFromApi();
       return staff;
     } catch (err) {
       state.employeesError = err.message || "Impossible de charger les employés.";
@@ -417,7 +457,7 @@ const SAC_EVO_FINANCE = (function () {
       "</tr></thead><tbody>" +
       rows +
       "</tbody></table></div>" +
-      '<p class="ef-placeholder" style="margin-top:1rem">Historique des paiements employés — synchronisation bancaire en cours d\'intégration.</p></div>'
+      '<p class="ef-placeholder" style="margin-top:1rem">Historique des paiements employés — synchronisation API (/admin/finance/payroll) avec repli local.</p></div>'
     );
   }
 

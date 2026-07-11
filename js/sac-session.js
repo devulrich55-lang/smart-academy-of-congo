@@ -439,6 +439,10 @@ const SAC_SESSION = (function () {
         SAC_ENROLLMENT_RENEWAL.mountBanner(current);
       }
     }
+    if (typeof SAC_MINISTRY_REGISTRY !== "undefined" && SAC_MINISTRY_REGISTRY.shouldBlockSession(current)) {
+      SAC_MINISTRY_REGISTRY.enforceAccess(current);
+      return null;
+    }
     return current;
   }
 

@@ -136,6 +136,14 @@
           if (countryCode && typeof SAC_AFRICA_COUNTRIES !== "undefined") {
             SAC_AFRICA_COUNTRIES.setPortalCountry(def.id, countryCode);
           }
+          if (
+            session?.role === "universite" &&
+            typeof SAC_MINISTRY_REGISTRY !== "undefined" &&
+            SAC_MINISTRY_REGISTRY.shouldBlockSession(session)
+          ) {
+            alert(SAC_MINISTRY_REGISTRY.BLOCK_MSG);
+            return;
+          }
           SAC_SESSION.saveSession(session);
           const target =
             typeof SAC_PORTAL.portalDashboardUrl === "function"
