@@ -1747,6 +1747,15 @@ const SAC_API = (function () {
     );
   }
 
+  async function listPlatformGradesManage() {
+    try {
+      const data = await request("/platform/grades/manage");
+      return data.grades || [];
+    } catch {
+      return [];
+    }
+  }
+
   async function getAdminActivitiesSummary() {
     return request("/admin/activities/summary");
   }
@@ -3032,6 +3041,7 @@ const SAC_API = (function () {
     patchInstitutionalAdmin,
     getFinancePayroll,
     saveFinancePayroll,
+    listPlatformGradesManage,
     getAdminActivitiesSummary,
     listAdminActivities,
     deleteAdminActivities,

@@ -32,6 +32,9 @@ const SAC_INSTITUTIONAL = (function () {
           if (a.role === "universite" && a.logoUrl) SAC_UNIVERSITY_LOGO.registerForUniversity(a);
         });
       }
+      if (typeof SAC_MINISTRY_REGISTRY !== "undefined" && SAC_MINISTRY_REGISTRY.syncFromAdmins) {
+        SAC_MINISTRY_REGISTRY.syncFromAdmins(adminsCache);
+      }
       return { summary: summaryCache, admins: adminsCache, offline: false };
     } catch (err) {
       console.warn("[SAC_INSTITUTIONAL]", err.message || err);

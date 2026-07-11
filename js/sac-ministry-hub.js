@@ -498,11 +498,47 @@ const SAC_MINISTRY_HUB = (function () {
         : '<p class="page-desc">Aucun diplôme enregistré sur la plateforme pour le moment.</p>');
   }
 
+  function loadLocalGrades() {
+    const keys = ["sac_grades", "sac_platform_grades"];
+    const merged = [];
+    keys.forEach((key) => {
+      try {
+        const raw = JSON.parse(localStorage.getItem(key) || "[]");
+        if (Array.isArray(raw)) merged.push(...raw);
+      } catch {
+        /* ignore */
+      }
+    });
+    if (typeof SAC_GRADES !== "undefined" && SAC_GRADES.getAll) {
+      try {
+        return SAC_GRADES.getAll();
+      } catch {
+        return merged;
+      }
+    }
+    return merged;
+  }
+
+  function aggregateGradeStats(grades) {
+    const byUni = {};
+    (grades || []).forEach((g) => {
+      const u = g.universite || g.universityName || "—";
+      if (!byUni[u]) byUni[u] = { total: 0, passed: 0, sum: 0 };
+      const avg = Number(g.avg);
+      if (!Number.isFinite(avg)) return;
+      byUni[u].total += 1;
+      byUni[u].sum += avg;
+      if (avg >= 10) byUni[u].passed += 1;
+    });
+    return byUni;
+  }
+
   async function mountPerformances(root, session) {
     if (!root) return;
     root.innerHTML = "<p class=\"page-desc\">Chargement des indicateurs…</p>";
     const stats = await loadNationalStats(session);
     let diplomas = [];
+    let grades = [];
     try {
       if (typeof SAC_API !== "undefined" && SAC_API.listCampusDiplomasManage) {
         diplomas = (await SAC_API.listCampusDiplomasManage()) || [];
@@ -510,42 +546,75 @@ const SAC_MINISTRY_HUB = (function () {
     } catch {
       diplomas = [];
     }
-    const byUni = {};
+    try {
+      if (typeof SAC_API !== "undefined" && SAC_API.listPlatformGradesManage) {
+        const remote = await SAC_API.listPlatformGradesManage();
+        if (remote?.length) grades = remote;
+      }
+    } catch {
+      /* repli local */
+    }
+    if (!grades.length) grades = loadLocalGrades();
+
+    const dipByUni = {};
     diplomas.forEach((d) => {
       const u = d.universite || d.universityName || "—";
-      byUni[u] = (byUni[u] || 0) + 1;
+      dipByUni[u] = (dipByUni[u] || 0) + 1;
     });
-    const uniRows = Object.entries(byUni)
-      .sort((a, b) => b[1] - a[1])
-      .map(
-        ([name, count]) =>
+    const gradeByUni = aggregateGradeStats(grades);
+    const uniNames = [...new Set([...Object.keys(dipByUni), ...Object.keys(gradeByUni)])].sort();
+    const uniRows = uniNames
+      .map((name) => {
+        const g = gradeByUni[name];
+        const passRate =
+          g && g.total > 0 ? Math.round((100 * g.passed) / g.total) + " %" : "—";
+        const avg =
+          g && g.total > 0 ? (g.sum / g.total).toFixed(1) : "—";
+        return (
           "<tr><td>" +
           esc(name) +
           "</td><td>" +
-          count +
-          '</td><td style="color:var(--muted)">—</td></tr>'
-      )
+          (dipByUni[name] || 0) +
+          "</td><td>" +
+          (g?.total || 0) +
+          "</td><td>" +
+          passRate +
+          "</td><td>" +
+          avg +
+          "</td></tr>"
+        );
+      })
       .join("");
 
+    const totalGrades = grades.filter((g) => Number.isFinite(Number(g.avg))).length;
+    const nationalPass =
+      totalGrades > 0
+        ? Math.round(
+            (100 * grades.filter((g) => Number(g.avg) >= 10).length) / totalGrades
+          )
+        : null;
+
     root.innerHTML =
-      "<p class=\"page-desc\">Indicateurs nationaux consolidés à partir du registre diplômes et des statistiques plateforme.</p>" +
+      "<p class=\"page-desc\">Indicateurs nationaux — diplômes, cotes campus et taux de réussite (moyenne ≥ 10).</p>" +
       '<div class="mh-kpi-row" style="margin-bottom:1rem">' +
       '<div class="mh-kpi"><strong>' +
       diplomas.length +
-      "</strong><span>Diplômes enregistrés</span></div>" +
+      "</strong><span>Diplômes</span></div>" +
       '<div class="mh-kpi"><strong>' +
       stats.students.toLocaleString("fr-FR") +
-      "</strong><span>Étudiants inscrits</span></div>" +
+      "</strong><span>Étudiants</span></div>" +
       '<div class="mh-kpi"><strong>' +
-      Object.keys(byUni).length +
-      "</strong><span>Universités avec diplômés</span></div></div>" +
-      '<div class="panel panel--ws"><div class="panel__head"><h2>Diplômés par établissement</h2></div>' +
+      totalGrades +
+      "</strong><span>Cotes saisies</span></div>" +
+      '<div class="mh-kpi"><strong>' +
+      (nationalPass != null ? nationalPass + " %" : "—") +
+      "</strong><span>Réussite nationale</span></div></div>" +
+      '<div class="panel panel--ws"><div class="panel__head"><h2>Performances par établissement</h2></div>' +
       '<div class="panel__body ws-table-wrap"><table class="ws-table"><thead><tr>' +
-      "<th>Université</th><th>Diplômés</th><th>Taux de réussite</th></tr></thead><tbody>" +
+      "<th>Université</th><th>Diplômés</th><th>Cotes</th><th>Taux réussite</th><th>Moyenne</th></tr></thead><tbody>" +
       (uniRows ||
-        '<tr><td colspan="3" style="text-align:center;color:var(--muted)">Aucun diplôme enregistré</td></tr>') +
-      "</tbody></table></div></div>" +
-      '<p class="ws-field-hint" style="margin-top:0.75rem">Le taux de réussite par faculté sera disponible lors de la synchronisation des notes campus.</p>';
+        '<tr><td colspan="5" style="text-align:center;color:var(--muted)">Aucune donnée — saisie des cotes par les professeurs ou déploiement API grades/manage</td></tr>') +
+      "</tbody></table></div></div>";
   }
 
   function mountInspections(root, session) {

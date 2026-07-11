@@ -15,6 +15,8 @@
 | Performances / inspections / plaintes / accréditations | ✅ Modules fonctionnels (registre EvoSU + API diplômes / réclamations) |
 | Statuts universités (suspendre) | ✅ Blocage portail + dashboard ; sync API PATCH si déployée |
 | Evo Finance paie employés | ✅ Sync API `/admin/finance/payroll` + repli localStorage |
+| Taux de réussite (performances) | ✅ Agrégation cotes locales + API `grades/manage` (patch API) |
+| Patch API ministère/finance | 📦 Dossier `api-patches/` prêt à copier dans l'API |
 
 ---
 

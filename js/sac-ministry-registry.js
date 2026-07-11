@@ -44,16 +44,39 @@ const SAC_MINISTRY_REGISTRY = (function () {
 
   function resolveDisplayStatus(admin) {
     const key = normEmail(admin?.email || admin?.id);
+    const apiStatus = admin?.ministryStatus || admin?.ministry_status;
+    if (apiStatus === "suspended") return "suspended";
     const local = getStatuses()[key];
     if (local === "suspended") return "suspended";
     if (admin?.verified === false || admin?.active === false) return "pending";
-    if (local === "pending") return "pending";
+    if (local === "pending" || apiStatus === "pending") return "pending";
     return "approved";
+  }
+
+  function syncFromAdmins(admins) {
+    const statuses = { ...getStatuses() };
+    let changed = false;
+    (admins || [])
+      .filter((a) => a.role === "universite")
+      .forEach((a) => {
+        const key = normEmail(a.email);
+        const apiStatus = a.ministryStatus || a.ministry_status;
+        if (apiStatus && statuses[key] !== apiStatus) {
+          statuses[key] = apiStatus;
+          changed = true;
+        }
+      });
+    if (changed) writeStore({ universityStatus: statuses });
+    return statuses;
   }
 
   function shouldBlockSession(session) {
     if (!session || session.role !== "universite") return false;
-    return isUniversitySuspended(session.email || session.identifiant);
+    const email = session.email || session.identifiant;
+    if (session.ministryStatus === "suspended" || session.ministry_status === "suspended") {
+      return true;
+    }
+    return isUniversitySuspended(email);
   }
 
   function enforceAccess(session) {
@@ -93,6 +116,7 @@ const SAC_MINISTRY_REGISTRY = (function () {
     setUniversityStatusWithApi,
     isUniversitySuspended,
     resolveDisplayStatus,
+    syncFromAdmins,
     shouldBlockSession,
     enforceAccess,
   };
