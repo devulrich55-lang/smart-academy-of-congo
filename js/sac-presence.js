@@ -57,21 +57,34 @@ const SAC_PRESENCE = (function () {
     return fallback;
   }
 
-  /** Session locale (professeur, recteur…) sans JWT — valide sur Render. */
-  function localSessionOnline() {
-    if (typeof SAC_SESSION === "undefined") return false;
-    const session =
-      (typeof SAC_SESSION.getActiveSession === "function" && SAC_SESSION.getActiveSession()) ||
-      (typeof SAC_SESSION.getSession === "function" && SAC_SESSION.getSession());
+  /** Session dashboard valide — locale, API ou mixte (professeur sur Render). */
+  function hasActiveDashboardSession(fallbackSession) {
+    const session = liveSession(fallbackSession);
     if (!session?.identifiant || !session?.role) return false;
-    if (session.authSource === "api") return false;
+
     if (typeof SAC_IDENTITY !== "undefined" && typeof SAC_IDENTITY.findUserByLoginId === "function") {
       const user = SAC_IDENTITY.findUserByLoginId(
         SAC_IDENTITY.getLocalUsers?.() || [],
         session.identifiant
       );
-      return !!user;
+      if (user) return true;
     }
+
+    if (session.authSource === "api" || session.serverSynced) return true;
+    if (session.userId && session.userId !== session.identifiant) return true;
+
+    if (
+      typeof SAC_API !== "undefined" &&
+      typeof SAC_API.hasAuthTokens === "function" &&
+      SAC_API.hasAuthTokens()
+    ) {
+      return true;
+    }
+
+    if (typeof SAC_SESSION !== "undefined" && typeof SAC_SESSION.isLoggedIn === "function") {
+      return SAC_SESSION.isLoggedIn();
+    }
+
     return session.authSource === "local";
   }
 
@@ -85,9 +98,6 @@ const SAC_PRESENCE = (function () {
   }
 
   async function ensureAuthForPresence() {
-    if (typeof SAC_API.ensureWritableApiSession === "function") {
-      return SAC_API.ensureWritableApiSession({ soft: true, timeoutMs: 15000 });
-    }
     if (typeof SAC_API.ensureApiSession === "function") {
       return SAC_API.ensureApiSession({ soft: true, timeoutMs: 15000 });
     }
@@ -106,8 +116,8 @@ const SAC_PRESENCE = (function () {
     presencePingAvailable = true;
   }
 
-  async function sessionLooksOnline() {
-    if (localSessionOnline()) return true;
+  async function sessionLooksOnline(fallbackSession) {
+    if (hasActiveDashboardSession(fallbackSession)) return true;
     const authed = await ensureAuthForPresence();
     if (authed) return true;
     if (typeof SAC_API.me !== "function") return false;
@@ -121,7 +131,7 @@ const SAC_PRESENCE = (function () {
     safeCall(hooks?.onSelfConnecting);
 
     try {
-      const sessionOk = await sessionLooksOnline();
+      const sessionOk = await sessionLooksOnline(activeSession);
       if (sessionOk) {
         safeCall(hooks?.onSelfOnline, true);
         if (presencePingAvailable !== false) {
@@ -142,17 +152,19 @@ const SAC_PRESENCE = (function () {
         await SAC_API.ensureOnline(true, { maxWaitMs: 20000 });
       }
 
-      const retryOk = await sessionLooksOnline();
+      const retryOk = await sessionLooksOnline(activeSession);
       if (retryOk) {
         safeCall(hooks?.onSelfOnline, true);
         return;
       }
 
-      safeCall(hooks?.onSelfOnline, false);
+      safeCall(hooks?.onSelfOnline, hasActiveDashboardSession(activeSession));
     } catch {
-      const online = await sessionLooksOnline().catch(function () {
-        return false;
-      });
+      const online =
+        hasActiveDashboardSession(activeSession) ||
+        (await sessionLooksOnline(activeSession).catch(function () {
+          return false;
+        }));
       safeCall(hooks?.onSelfOnline, online);
     }
   }
@@ -161,11 +173,12 @@ const SAC_PRESENCE = (function () {
     if (!isApiReady()) return;
     const activeSession = liveSession(session);
     try {
-      const sessionOk = await sessionLooksOnline();
+      const sessionOk = await sessionLooksOnline(activeSession);
       if (
         typeof SAC_API.hasAuthTokens === "function" &&
         !SAC_API.hasAuthTokens() &&
-        !sessionOk
+        !sessionOk &&
+        !hasActiveDashboardSession(activeSession)
       ) {
         return;
       }
@@ -205,14 +218,23 @@ const SAC_PRESENCE = (function () {
   }
 
   function start(session, hooks = {}) {
-    if (!session || !isApiReady()) return { stop() {} };
+    if (!session) return { stop() {} };
     let stopped = false;
     let hbTimer = null;
     let viewTimer = null;
     const onSelfConnecting = bindSelfConnecting("selfPresence", "profilePresence");
+    const onSelfOnline =
+      hooks.onSelfOnline || bindSelfPresence("selfPresence", "profilePresence");
     const mergedHooks = Object.assign({}, hooks, {
       onSelfConnecting: hooks.onSelfConnecting || onSelfConnecting,
+      onSelfOnline,
     });
+
+    if (hasActiveDashboardSession(session)) {
+      safeCall(onSelfOnline, true);
+    }
+
+    if (!isApiReady()) return { stop() {} };
 
     const runHeartbeat = async () => {
       if (stopped) return;
