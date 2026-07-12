@@ -464,12 +464,26 @@ const SAC_EDB = (function () {
           bio,
           role: "auteur",
         });
-        if (data?.author) Object.assign(author, attachMobileFields({}, authorMobileNumbers(data.author)));
-      } catch (err) {
-        if (!/localhost|127\.0\.0\.1/i.test(location.hostname)) {
-          console.warn("[SAC_EDB] register API:", err.message || err);
+        if (data?.author) {
+          Object.assign(author, attachMobileFields({}, authorMobileNumbers(data.author)));
+          author.serverSynced = true;
+          if (data.author.id) author.id = data.author.id;
+          if (data.author.status) author.status = data.author.status;
         }
+      } catch (err) {
+        const isLocal = /localhost|127\.0\.0\.1/i.test(location.hostname);
+        if (err.status === 409) {
+          throw new Error("Un compte auteur existe déjà pour cet e-mail.");
+        }
+        if (!isLocal) {
+          throw new Error(
+            err.message || "Inscription serveur impossible — réessayez ou contactez le support."
+          );
+        }
+        console.warn("[SAC_EDB] register API (local only):", err.message || err);
       }
+    } else if (!/localhost|127\.0\.0\.1/i.test(location.hostname)) {
+      throw new Error("Connexion API requise pour enregistrer votre inscription auteur.");
     }
 
     const list = readAuthors();
@@ -485,6 +499,7 @@ const SAC_EDB = (function () {
         nom: penName.split(/\s+/).slice(1).join(" ") || penName,
         password,
         authorStatus: "pending",
+        serverSynced: !!author.serverSynced,
         mobileMoney: author.mobileMoney,
         mobileMoney2: author.mobileMoney2,
         mobileMoney3: author.mobileMoney3,
@@ -539,7 +554,7 @@ const SAC_EDB = (function () {
   }
 
   function mergeAuthorsFromApi(apiAuthors) {
-    if (!Array.isArray(apiAuthors) || !apiAuthors.length) return;
+    if (!Array.isArray(apiAuthors)) return;
     const list = readAuthors();
     const byEmail = {};
     list.forEach((a) => {
@@ -552,6 +567,94 @@ const SAC_EDB = (function () {
       byEmail[key] = merged;
     });
     writeAuthors(Object.values(byEmail));
+  }
+
+  function upsertLocalAuthor(author) {
+    if (!author?.email) return null;
+    const key = normEmail(author.email);
+    const list = readAuthors();
+    const idx = list.findIndex((a) => normEmail(a.email) === key);
+    const merged = attachMobileFields(
+      {
+        ...(idx >= 0 ? list[idx] : {}),
+        ...author,
+        email: key,
+        status: author.status || (idx >= 0 ? list[idx].status : "pending"),
+      },
+      authorMobileNumbers(author)
+    );
+    if (idx >= 0) list[idx] = merged;
+    else list.push(merged);
+    writeAuthors(list);
+    return merged;
+  }
+
+  function mirrorAuthorStatusToSession(session, author) {
+    if (!session || !author) return session;
+    const status = author.status || session.authorStatus || "pending";
+    const merged = {
+      ...session,
+      authorStatus: status,
+      penName: author.penName || session.penName,
+      displayName: author.penName || session.displayName || session.penName,
+    };
+    if (typeof SAC_SESSION !== "undefined" && SAC_SESSION.saveSession) {
+      SAC_SESSION.saveSession(merged);
+    }
+    if (typeof SAC_IDENTITY !== "undefined") {
+      const users = SAC_IDENTITY.getLocalUsers();
+      const email = normEmail(session.identifiant || session.email);
+      const ui = users.findIndex((u) => normEmail(u.email) === email);
+      if (ui >= 0) {
+        users[ui].authorStatus = status;
+        if (author.penName) {
+          users[ui].prenom = author.penName.split(/\s+/)[0] || author.penName;
+          users[ui].nom = author.penName.split(/\s+/).slice(1).join(" ") || author.penName;
+        }
+        if (typeof SAC_IDENTITY.persistLocalUsers === "function") {
+          SAC_IDENTITY.persistLocalUsers(users);
+        } else {
+          localStorage.setItem("sac_users", JSON.stringify(users));
+        }
+      }
+    }
+    return merged;
+  }
+
+  async function syncAuthorProfileFromApi(session) {
+    if (!session || session.role !== "auteur") return session;
+    const email = normEmail(session.identifiant || session.email);
+    let localAuthor = authorByEmail(email);
+
+    if (typeof SAC_API !== "undefined") {
+      try {
+        const online = await SAC_API.ensureOnline(false, { maxWaitMs: 15000 });
+        if (online) {
+          if (SAC_API.ensureApiSession) await SAC_API.ensureApiSession({ soft: true });
+          let author = null;
+          if (SAC_API.getEdbAuthorMe) {
+            try {
+              const data = await SAC_API.getEdbAuthorMe();
+              author = data?.author || null;
+            } catch (err) {
+              if (err.status !== 404 && err.status !== 401 && SAC_API.getEdbAuthor) {
+                const data = await SAC_API.getEdbAuthor(email);
+                author = data?.author || null;
+              }
+            }
+          } else if (SAC_API.getEdbAuthor) {
+            const data = await SAC_API.getEdbAuthor(email);
+            author = data?.author || null;
+          }
+          if (author) localAuthor = upsertLocalAuthor(author);
+        }
+      } catch (err) {
+        console.warn("[SAC_EDB] sync author profile:", err.message || err);
+      }
+    }
+
+    if (localAuthor) return mirrorAuthorStatusToSession(session, localAuthor);
+    return session;
   }
 
   async function listPendingAuthors() {
@@ -1499,6 +1602,9 @@ const SAC_EDB = (function () {
       return;
     }
 
+    root.innerHTML = '<p class="edb-loading">Vérification du compte auteur…</p>';
+    session = await syncAuthorProfileFromApi(session);
+
     if (!isAuthorApproved(session)) {
       root.innerHTML =
         '<div class="edb-pending">' +
@@ -1901,6 +2007,7 @@ const SAC_EDB = (function () {
     recordPurchase,
     syncPurchasesFromApi,
     syncEdbCatalogFromApi,
+    syncAuthorProfileFromApi,
     mountStorefront,
     mountAuthorPublisher,
     mountAuthorValidation,

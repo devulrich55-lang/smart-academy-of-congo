@@ -570,6 +570,11 @@ const SAC_IDENTITY = (function () {
       sectionApproval: repaired.sectionApproval || null,
       sectionRejectionReason: repaired.sectionRejectionReason || null,
       sectionApprovedAt: repaired.sectionApprovedAt || null,
+      authorStatus: repaired.authorStatus || null,
+      penName:
+        repaired.penName ||
+        [repaired.prenom, repaired.nom].filter(Boolean).join(" ").trim() ||
+        null,
       departement: repaired.departement || null,
       inscriptionFee: repaired.inscriptionFee || null,
       universityFees: repaired.universityFees || null,

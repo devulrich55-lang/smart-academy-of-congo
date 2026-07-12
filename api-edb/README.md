@@ -17,8 +17,9 @@ app.include_router(edb_router, prefix="/api")
 
 4. Brancher `_get_edb_service()` dans `edb.py` vers votre `get_db()` et `hash_password()`.
 5. Ajouter le rôle **`auteur`** dans la table users / contraintes RBAC (login `/auth/login`).
-6. Lors de l'approbation auteur (`status=approved`), créer ou activer l'utilisateur `role=auteur`.
-7. Les livres publiés passent par **`POST /api/platform/library`** avec :
+6. Lors de l'approbation auteur (`status=approved`), créer ou activer l'utilisateur `role=auteur` (login `/auth/login`).
+7. Le dashboard auteur interroge **`GET /api/platform/edb/authors/me`** pour afficher le statut validé.
+8. Les livres publiés passent par **`POST /api/platform/library`** avec :
    - `source: "evodigitalbooks"`
    - `authorRole: "auteur"`
    - `authorEmail`, `authorMobileMoney` (numéro choisi par l'acheteur parmi 1 à 3)
@@ -39,6 +40,8 @@ Corps : `{ "mobileMoney": "+243…", "mobileMoney2": "", "mobileMoney3": "" }`
 | Méthode | Route | Rôle |
 |---------|-------|------|
 | POST | `/api/platform/edb/authors/register` | Public |
+| GET | `/api/platform/edb/authors/me` | auteur |
+| GET | `/api/platform/edb/authors/{email}` | auteur (soi) / superadmin |
 | GET | `/api/platform/edb/authors/pending` | superadmin |
 | PATCH | `/api/platform/edb/authors/{email}/status` | superadmin |
 | PATCH | `/api/platform/edb/authors/{email}/payment-numbers` | auteur |

@@ -4,6 +4,8 @@ Monter dans main.py : app.include_router(edb_router, prefix="/api")
 
 Endpoints :
   POST   /platform/edb/authors/register
+  GET    /platform/edb/authors/me              (auteur connecté)
+  GET    /platform/edb/authors/{email}         (auteur / superadmin)
   GET    /platform/edb/authors/pending        (superadmin)
   PATCH  /platform/edb/authors/{email}/status (superadmin)
   POST   /platform/edb/purchases
@@ -65,6 +67,23 @@ def _require_superadmin(user=Depends(lambda: None)):
     return user
 
 
+def _require_authenticated(user=Depends(lambda: None)):
+    """Remplacer par get_current_user."""
+    return user
+
+
+def _user_email(user) -> str:
+    if isinstance(user, dict):
+        return str(user.get("email") or user.get("identifiant") or "").strip().lower()
+    return str(getattr(user, "email", None) or getattr(user, "identifiant", "") or "").strip().lower()
+
+
+def _user_role(user) -> str:
+    if isinstance(user, dict):
+        return str(user.get("role") or "").strip().lower()
+    return str(getattr(user, "role", None) or "").strip().lower()
+
+
 @router.post("/platform/edb/authors/register")
 async def register_edb_author(body: AuthorRegisterBody):
     try:
@@ -88,10 +107,41 @@ async def register_edb_author(body: AuthorRegisterBody):
         raise HTTPException(400, detail={"error": code})
 
 
+@router.get("/platform/edb/authors/me")
+async def get_my_edb_author(user=Depends(_require_authenticated)):
+    role = _user_role(user)
+    if role not in ("auteur", "superadmin"):
+        raise HTTPException(403, detail={"error": "FORBIDDEN"})
+    email = _user_email(user)
+    if not email:
+        raise HTTPException(401, detail={"error": "AUTH_REQUIRED"})
+    svc = _get_edb_service()
+    author = svc.get_author_by_email(email)
+    if not author:
+        raise HTTPException(404, detail={"error": "AUTHOR_NOT_FOUND"})
+    return {"ok": True, "author": author}
+
+
 @router.get("/platform/edb/authors/pending")
 async def list_pending_edb_authors(_user=Depends(_require_superadmin)):
     svc = _get_edb_service()
     return {"ok": True, "authors": svc.list_pending_authors()}
+
+
+@router.get("/platform/edb/authors/{email}")
+async def get_edb_author(email: str, user=Depends(_require_authenticated)):
+    role = _user_role(user)
+    key = email.strip().lower()
+    viewer = _user_email(user)
+    if role not in ("auteur", "superadmin"):
+        raise HTTPException(403, detail={"error": "FORBIDDEN"})
+    if role == "auteur" and viewer != key:
+        raise HTTPException(403, detail={"error": "FORBIDDEN"})
+    svc = _get_edb_service()
+    author = svc.get_author_by_email(key)
+    if not author:
+        raise HTTPException(404, detail={"error": "AUTHOR_NOT_FOUND"})
+    return {"ok": True, "author": author}
 
 
 @router.patch("/platform/edb/authors/{email}/status")

@@ -443,6 +443,13 @@ const SAC_SESSION = (function () {
       SAC_MINISTRY_REGISTRY.enforceAccess(current);
       return null;
     }
+    if (
+      current.role === "auteur" &&
+      typeof SAC_EDB !== "undefined" &&
+      SAC_EDB.syncAuthorProfileFromApi
+    ) {
+      current = (await SAC_EDB.syncAuthorProfileFromApi(current)) || current;
+    }
     return current;
   }
 

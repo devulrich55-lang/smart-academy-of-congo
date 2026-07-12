@@ -1930,6 +1930,14 @@ const SAC_API = (function () {
     return uploadFormData("/platform/library/upload", formData);
   }
 
+  async function getEdbAuthorMe() {
+    return request("/platform/edb/authors/me");
+  }
+
+  async function getEdbAuthor(email) {
+    return request("/platform/edb/authors/" + encodeURIComponent(email));
+  }
+
   async function registerEdbAuthor(payload) {
     return request("/platform/edb/authors/register", {
       method: "POST",
@@ -2916,6 +2924,8 @@ const SAC_API = (function () {
     deleteDigitalLibraryBook,
     uploadDigitalLibraryFile,
     registerEdbAuthor,
+    getEdbAuthorMe,
+    getEdbAuthor,
     listPendingEdbAuthors,
     approveEdbAuthor,
     updateEdbAuthorPaymentNumbers,

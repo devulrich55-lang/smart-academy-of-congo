@@ -31,7 +31,7 @@
       if (typeof SAC_API !== "undefined" && SAC_API.ensureWritableApiSession) {
         await SAC_API.ensureWritableApiSession({ soft: true });
       }
-      SAC_EDB.mountAuthorPublisher(session, "edbAuthorRoot");
+      await SAC_EDB.mountAuthorPublisher(session, "edbAuthorRoot");
     })();
   </script>
   <script src="js/sac-mobile.js" defer></script>
