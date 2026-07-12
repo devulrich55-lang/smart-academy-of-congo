@@ -503,12 +503,43 @@ const SAC_EDB = (function () {
         mobileMoney: author.mobileMoney,
         mobileMoney2: author.mobileMoney2,
         mobileMoney3: author.mobileMoney3,
-        serverSynced: false,
       });
       localStorage.setItem("sac_users", JSON.stringify(users));
     }
 
     return author;
+  }
+
+  async function ensureLocalAuthorProfile(session) {
+    if (!session) return null;
+    const email = normEmail(session.identifiant || session.email);
+    if (!email) return null;
+
+    let author = authorByEmail(email);
+    if (author) return author;
+
+    await syncAuthorProfileFromApi(session);
+    author = authorByEmail(email);
+    if (author) return author;
+
+    const mobileFromUser = {};
+    if (typeof SAC_IDENTITY !== "undefined") {
+      const user = SAC_IDENTITY.getLocalUsers().find((u) => normEmail(u.email) === email);
+      if (user) {
+        mobileFromUser.mobileMoney = user.mobileMoney || "";
+        mobileFromUser.mobileMoney2 = user.mobileMoney2 || "";
+        mobileFromUser.mobileMoney3 = user.mobileMoney3 || "";
+      }
+    }
+
+    return upsertLocalAuthor({
+      id: "edb_author_" + email.replace(/[^a-z0-9]+/gi, "_").slice(0, 48),
+      email,
+      penName: session.penName || session.displayName || session.prenom || email,
+      status: session.authorStatus || "approved",
+      createdAt: new Date().toISOString(),
+      ...mobileFromUser,
+    });
   }
 
   async function updateAuthorPaymentNumbers(session, payload) {
@@ -517,11 +548,23 @@ const SAC_EDB = (function () {
     }
     const email = normEmail(session.identifiant || session.email);
     const numbers = validateAuthorMobileNumbers(parseMobileNumbers(payload));
+    await ensureLocalAuthorProfile(session);
     const list = readAuthors();
-    const idx = list.findIndex((a) => normEmail(a.email) === email);
-    if (idx < 0) throw new Error("Profil auteur introuvable.");
+    let idx = list.findIndex((a) => normEmail(a.email) === email);
+    if (idx < 0) {
+      upsertLocalAuthor({
+        id: "edb_author_" + Date.now(),
+        email,
+        penName: session.penName || session.displayName || email,
+        status: "approved",
+        createdAt: new Date().toISOString(),
+      });
+      idx = readAuthors().findIndex((a) => normEmail(a.email) === email);
+    }
+    if (idx < 0) throw new Error("Profil auteur introuvable — reconnectez-vous.");
     list[idx] = attachMobileFields({ ...list[idx] }, numbers);
     writeAuthors(list);
+    const savedIdx = idx;
     if (typeof SAC_IDENTITY !== "undefined") {
       const users = SAC_IDENTITY.getLocalUsers();
       const ui = users.findIndex((u) => normEmail(u.email) === email);
@@ -541,8 +584,12 @@ const SAC_EDB = (function () {
           mobileMoney3: numbers[2] || "",
         });
         if (data?.author) {
-          list[idx] = attachMobileFields({ ...list[idx] }, authorMobileNumbers(data.author));
-          writeAuthors(list);
+          const fresh = readAuthors();
+          const fi = fresh.findIndex((a) => normEmail(a.email) === email);
+          if (fi >= 0) {
+            fresh[fi] = attachMobileFields({ ...fresh[fi] }, authorMobileNumbers(data.author));
+            writeAuthors(fresh);
+          }
         }
       } catch (err) {
         if (!/localhost|127\.0\.0\.1/i.test(location.hostname)) {
@@ -550,7 +597,7 @@ const SAC_EDB = (function () {
         }
       }
     }
-    return list[idx];
+    return readAuthors().find((a) => normEmail(a.email) === email) || readAuthors()[savedIdx];
   }
 
   function mergeAuthorsFromApi(apiAuthors) {
@@ -1614,6 +1661,9 @@ const SAC_EDB = (function () {
       return;
     }
 
+    const authorProfile = (await ensureLocalAuthorProfile(session)) || {};
+    const authorMmList = authorMobileNumbers(authorProfile);
+
     await syncAuthorBooksFromApi(session);
     const displayName = authorDisplayName(session);
     const books = getAuthorBooks(session);
@@ -1726,13 +1776,13 @@ const SAC_EDB = (function () {
       '<form id="edbPaymentsForm" class="edb-form">' +
       '<div class="edb-form__grid">' +
       '<div class="fg"><label for="edbMm1">Numéro principal *</label><input type="tel" class="fi" id="edbMm1" required placeholder="+243…" value="' +
-      esc(authorMobileNumbers(authorByEmail(session.identifiant || session.email))[0] || "") +
+      esc(authorMmList[0] || "") +
       '" /></div>' +
       '<div class="fg"><label for="edbMm2">Numéro 2 (optionnel)</label><input type="tel" class="fi" id="edbMm2" placeholder="+243…" value="' +
-      esc(authorMobileNumbers(authorByEmail(session.identifiant || session.email))[1] || "") +
+      esc(authorMmList[1] || "") +
       '" /></div>' +
       '<div class="fg"><label for="edbMm3">Numéro 3 (optionnel)</label><input type="tel" class="fi" id="edbMm3" placeholder="+243…" value="' +
-      esc(authorMobileNumbers(authorByEmail(session.identifiant || session.email))[2] || "") +
+      esc(authorMmList[2] || "") +
       '" /></div></div>' +
       '<div class="edb-form__actions"><button type="submit" class="edb-btn-primary">Enregistrer les numéros</button></div>' +
       "</form></div></section>" +
