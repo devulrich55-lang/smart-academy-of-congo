@@ -365,6 +365,7 @@ const SAC_LIBRARY = (function () {
       '<div class="lib-purchase-modal__tabs">' +
       '<button type="button" class="lib-purchase-tab lib-purchase-tab--active" data-lib-pay-method="orange">🟠 Orange Money</button>' +
       '<button type="button" class="lib-purchase-tab" data-lib-pay-method="mpesa">📱 M-Pesa</button>' +
+      '<button type="button" class="lib-purchase-tab" data-lib-pay-method="airtel">🔴 Airtel Money</button>' +
       "</div></div>" +
       '<label class="lib-purchase-field">Téléphone (Mobile Money)<input type="tel" id="libPurchasePhone" placeholder="+243…" autocomplete="tel" /></label>' +
       '<p class="lib-purchase-modal__status" id="libPurchaseStatus" hidden></p>' +

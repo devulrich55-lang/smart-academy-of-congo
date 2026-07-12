@@ -1175,7 +1175,12 @@ const SAC_EDB = (function () {
   function renderEdbPayDest(modal, method, full, fees, mmReceiver, currency) {
     const box = modal.querySelector("#edbPayDestInfo");
     if (!box) return;
-    const provider = method === "mpesa" ? "M-Pesa (Vodacom)" : "Orange Money";
+    const provider =
+      method === "mpesa"
+        ? "M-Pesa (Vodacom)"
+        : method === "airtel"
+          ? "Airtel Money"
+          : "Orange Money";
     const masked = maskMmPhone(mmReceiver);
     box.innerHTML =
       "<div class='pay-dest-secure'><span class='pay-shield-badge'>Compte auteur</span></div>" +
@@ -1227,6 +1232,7 @@ const SAC_EDB = (function () {
       '<div class="pay-methods pay-methods--bar pay-methods--edb" id="edbPayMethods">' +
       '<button type="button" class="pay-method is-active" data-edb-pay-method="orange">🟠 Orange Money</button>' +
       '<button type="button" class="pay-method" data-edb-pay-method="mpesa">📱 M-Pesa</button>' +
+      '<button type="button" class="pay-method" data-edb-pay-method="airtel">🔴 Airtel Money</button>' +
       "</div>" +
       '<div id="edbPayDestInfo" class="pay-bank-card pay-bank-card--dest"></div>' +
       '<div id="edbPayAuthorMmWrap" class="pay-confirm-box pay-modal__field" hidden>' +
@@ -1772,7 +1778,7 @@ const SAC_EDB = (function () {
       formatMoney(stats.revenue) +
       "</strong></p></div></section>" +
       '<section class="edb-panel" id="edbPanelPayments" hidden><div class="edb-card-panel"><h2>Numéros Mobile Money</h2>' +
-      '<p class="edb-dash__sub">Enregistrez jusqu\'à <strong>3 numéros</strong> pour faciliter les achats (Orange Money, M-Pesa, etc.). Les clients choisissent le numéro lors du paiement.</p>' +
+      '<p class="edb-dash__sub">Enregistrez jusqu\'à <strong>3 numéros</strong> pour faciliter les achats (Orange Money, M-Pesa, Airtel Money). Les clients choisissent le numéro lors du paiement.</p>' +
       '<form id="edbPaymentsForm" class="edb-form edb-payments-form">' +
       '<div class="edb-form__grid edb-form__grid--payments">' +
       '<div class="fg"><label for="edbMm1">Numéro principal *</label>' +

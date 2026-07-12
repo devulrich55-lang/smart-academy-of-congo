@@ -1,10 +1,11 @@
 /**
- * Mobile Money EvoSU — Orange Money & M-Pesa via API (sandbox ou FlexPay)
+ * Mobile Money EvoSU — Orange Money, M-Pesa & Airtel Money via API (sandbox ou FlexPay)
  */
 const SAC_MOBILE_MONEY = (function () {
   const PROVIDERS = {
     orange: { name: "Orange Money", icon: "🟠" },
     mpesa: { name: "M-Pesa", icon: "📱" },
+    airtel: { name: "Airtel Money", icon: "🔴" },
   };
 
   function esc(s) {

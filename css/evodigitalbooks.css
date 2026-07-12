@@ -779,7 +779,12 @@ body.platform-library-mode .edb-pay-overlay .pay-confirm-hint {
   color: #fff !important;
 }
 .pay-methods--edb {
-  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+}
+@media (max-width: 520px) {
+  .pay-methods--edb {
+    grid-template-columns: 1fr !important;
+  }
 }
 .pay-modal__fields--single {
   grid-template-columns: 1fr !important;

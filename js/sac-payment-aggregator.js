@@ -9,6 +9,7 @@ const SAC_PAYMENT_AGGREGATOR = (function () {
     bank_cdf: "Banque CDF",
     orange: "Orange Money",
     mpesa: "M-Pesa",
+    airtel: "Airtel Money",
     mobile: "Mobile Money",
   };
 

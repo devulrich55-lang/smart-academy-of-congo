@@ -57,6 +57,24 @@ const SAC_PRESENCE = (function () {
     return fallback;
   }
 
+  /** Session locale (professeur, recteur…) sans JWT — valide sur Render. */
+  function localSessionOnline() {
+    if (typeof SAC_SESSION === "undefined") return false;
+    const session =
+      (typeof SAC_SESSION.getActiveSession === "function" && SAC_SESSION.getActiveSession()) ||
+      (typeof SAC_SESSION.getSession === "function" && SAC_SESSION.getSession());
+    if (!session?.identifiant || !session?.role) return false;
+    if (session.authSource === "api") return false;
+    if (typeof SAC_IDENTITY !== "undefined" && typeof SAC_IDENTITY.findUserByLoginId === "function") {
+      const user = SAC_IDENTITY.findUserByLoginId(
+        SAC_IDENTITY.getLocalUsers?.() || [],
+        session.identifiant
+      );
+      return !!user;
+    }
+    return session.authSource === "local";
+  }
+
   function canFetchSectionPresence(role) {
     return role === "section" || role === "assistant" || role === "universite";
   }
@@ -89,6 +107,7 @@ const SAC_PRESENCE = (function () {
   }
 
   async function sessionLooksOnline() {
+    if (localSessionOnline()) return true;
     const authed = await ensureAuthForPresence();
     if (authed) return true;
     if (typeof SAC_API.me !== "function") return false;
