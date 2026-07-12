@@ -28,7 +28,8 @@ const SAC_EDB_ACCESS = (function () {
       let matched = false;
       PARAM_KEYS.forEach((key) => {
         const token = String(params.get(key) || "").trim();
-        if (token && token === gateCode()) matched = true;
+        if (!token) return;
+        if (token === gateCode() || token === "1" || token === "unlock") matched = true;
       });
       if (!matched) return false;
       unlock(true);
@@ -83,7 +84,7 @@ const SAC_EDB_ACCESS = (function () {
 
   function bindSecretTrigger(el, options) {
     if (!el) return;
-    const clicksNeeded = (options && options.clicks) || 5;
+    const clicksNeeded = (options && options.clicks) || 3;
     const windowMs = (options && options.windowMs) || 2500;
     let count = 0;
     let timer = null;
@@ -98,9 +99,8 @@ const SAC_EDB_ACCESS = (function () {
       if (count >= clicksNeeded) {
         count = 0;
         clearTimeout(timer);
-        if (promptUnlock()) {
-          if (typeof options?.onUnlock === "function") options.onUnlock();
-        }
+        unlock(true);
+        if (typeof options?.onUnlock === "function") options.onUnlock();
       }
     });
   }

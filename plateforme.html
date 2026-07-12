@@ -117,7 +117,7 @@
   <script src="js/sac-mobile-money.js"></script>
   <script src="js/sac-library.js?v=20260710b"></script>
   <script src="js/sac-evodigitalbooks.js?v=20260712d"></script>
-  <script src="js/sac-edb-access.js?v=20260712d"></script>
+  <script src="js/sac-edb-access.js?v=20260712e"></script>
   <script>
     (async function () {
       const panelLibrary = document.getElementById("panel-library");
@@ -165,7 +165,7 @@
         const topbar = document.querySelector(".topbar");
         SAC_EDB_ACCESS.mountSecretLink(topbar, "evodigitalbooks/");
         SAC_EDB_ACCESS.bindSecretTrigger(document.getElementById("libTopbarBrand"), {
-          clicks: 5,
+          clicks: 3,
           onUnlock: () => SAC_EDB_ACCESS.mountSecretLink(topbar, "evodigitalbooks/"),
         });
         window.addEventListener("sac-edb-access-unlock", () => {

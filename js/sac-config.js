@@ -35,11 +35,11 @@
     window.SAC_API_PROXY_ORIGIN = origin;
     // resolveApiBase() teste le proxy puis bascule sur l'API directe si besoin
   }
-  window.SAC_JS_BUILD = "20260712d";
+  window.SAC_JS_BUILD = "20260712e";
   window.SAC_RENDER_FRONTEND = RENDER_FRONTEND_CANONICAL;
   window.SAC_PLATFORM_LOGO = "evo-uni.jpeg";
   window.SAC_PLATFORM_LOGO_ALT = "Evo-smartUni";
-  /** Code accès portail auteur EvoDigitalBooks (?edb=CODE ou 5 clics sur la marque bibliothèque) */
+  /** Lien direct optionnel : ?edb=1 — ou 3 clics sur « Bibliothèque Numérique » */
   window.SAC_EDB_AUTHOR_GATE = "evobooks2026";
 
   function sacGuardScriptSrc() {
