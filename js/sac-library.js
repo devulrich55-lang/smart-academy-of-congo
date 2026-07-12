@@ -103,6 +103,28 @@ const SAC_LIBRARY = (function () {
     }
   }
 
+  function removeCachedBook(bookId) {
+    const id = String(bookId || "").trim();
+    if (!id) return;
+    cacheItems(readCache().filter((x) => String(x?.id || "") !== id));
+  }
+
+  function isCatalogBookDeleted(item) {
+    if (!item?.id) return false;
+    if (
+      typeof SAC_EDB !== "undefined" &&
+      SAC_EDB.isBookDeleted &&
+      SAC_EDB.isBookDeleted(item.id)
+    ) {
+      return true;
+    }
+    return false;
+  }
+
+  function filterCatalogBooks(items) {
+    return (items || []).filter((item) => item && !isCatalogBookDeleted(item));
+  }
+
   function readCache() {
     try {
       return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
@@ -596,7 +618,7 @@ const SAC_LIBRARY = (function () {
             session && SAC_API.listDigitalLibraryForUser
               ? await SAC_API.listDigitalLibraryForUser(cc)
               : await SAC_API.listDigitalLibrary(cc);
-          items = (data?.items || []).filter(isPublishedBook);
+          items = filterCatalogBooks((data?.items || []).filter(isPublishedBook));
           items = filterByCountry(items, cc);
         }
       } catch {
@@ -604,7 +626,7 @@ const SAC_LIBRARY = (function () {
       }
     }
     if (!items.length) {
-      const cached = filterByCountry(readCache().filter(isPublishedBook), cc);
+      const cached = filterCatalogBooks(filterByCountry(readCache().filter(isPublishedBook), cc));
       if (cached.length) items = cached;
     }
     if (!items.length && typeof SAC_PLATFORM !== "undefined" && SAC_PLATFORM.getLibrary) {
@@ -620,7 +642,7 @@ const SAC_LIBRARY = (function () {
           typeof SAC_SESSION !== "undefined" && SAC_SESSION.getSession
             ? SAC_SESSION.getSession()
             : null;
-        const edb = await SAC_EDB.listLibraryBooks(cc, session);
+        const edb = filterCatalogBooks(await SAC_EDB.listLibraryBooks(cc, session));
         const ids = new Set(items.map((x) => x.id));
         edb.forEach((b) => {
           if (!ids.has(b.id)) items.push(b);
@@ -1084,6 +1106,7 @@ const SAC_LIBRARY = (function () {
     createBook,
     updateBook,
     deleteBook,
+    removeCachedBook,
     initMinistryPublisher,
     absUrl,
     isBookFree,

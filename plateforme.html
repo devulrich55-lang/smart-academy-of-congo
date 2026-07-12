@@ -522,6 +522,12 @@
           () => allBooks
         );
         window.addEventListener("sac-library-purchase", () => applyLibraryFilters());
+        window.addEventListener("sac-library-refresh", () => {
+          renderLibrary().catch(() => {});
+        });
+        window.addEventListener("sac-edb-catalog-refresh", () => {
+          renderLibrary().catch(() => {});
+        });
       }
     })();
   </script>

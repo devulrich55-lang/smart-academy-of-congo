@@ -11,6 +11,7 @@ const SAC_EDB = (function () {
   const DEVICES_KEY = "sac_edb_devices";
   const SALES_KEY = "sac_edb_sales";
   const DEVICE_ID_KEY = "sac_edb_device_id";
+  const DELETED_KEY = "sac_edb_deleted_ids";
 
   const PLATFORM_FEE_RATE = 0.25;
   const AUTHOR_SHARE_RATE = 0.75;
@@ -68,6 +69,64 @@ const SAC_EDB = (function () {
   function writeBooks(list) {
     writeJson(BOOKS_KEY, list);
     syncBooksToLibraryCache(list);
+  }
+
+  function readDeletedIds() {
+    const raw = readJson(DELETED_KEY, []);
+    return new Set(Array.isArray(raw) ? raw.map((id) => String(id)) : []);
+  }
+
+  function writeDeletedIds(set) {
+    writeJson(DELETED_KEY, Array.from(set || []));
+  }
+
+  function markBookDeleted(bookId) {
+    const id = String(bookId || "").trim();
+    if (!id) return;
+    const set = readDeletedIds();
+    set.add(id);
+    writeDeletedIds(set);
+  }
+
+  function unmarkBookDeleted(bookId) {
+    const id = String(bookId || "").trim();
+    if (!id) return;
+    const set = readDeletedIds();
+    if (!set.delete(id)) return;
+    writeDeletedIds(set);
+  }
+
+  function isBookDeleted(bookId) {
+    return readDeletedIds().has(String(bookId || "").trim());
+  }
+
+  function purgeBookFromAllCaches(bookId) {
+    const id = String(bookId || "").trim();
+    if (!id) return;
+    writeBooks(readBooks().filter((b) => b.id !== id));
+    try {
+      const cacheKey = "sac_digital_library_cache";
+      const existing = readJson(cacheKey, []);
+      writeJson(
+        cacheKey,
+        existing.filter((x) => String(x?.id || "") !== id)
+      );
+    } catch {
+      /* ignore */
+    }
+    try {
+      const legacy = readJson("sac_library_items", []);
+      writeJson(
+        "sac_library_items",
+        legacy.filter((x) => String(x?.id || "") !== id)
+      );
+    } catch {
+      /* ignore */
+    }
+    if (typeof SAC_LIBRARY !== "undefined" && SAC_LIBRARY.removeCachedBook) {
+      SAC_LIBRARY.removeCachedBook(id);
+    }
+    markBookDeleted(id);
   }
 
   function readSales() {
@@ -184,8 +243,14 @@ const SAC_EDB = (function () {
   }
 
   function syncBooksToLibraryCache(books) {
+    const deleted = readDeletedIds();
     const published = (books || readBooks())
-      .filter((b) => b.published !== false && b.status === "published")
+      .filter(
+        (b) =>
+          b.published !== false &&
+          b.status === "published" &&
+          !deleted.has(String(b.id || ""))
+      )
       .map((b) => publicBookView(b, true));
     try {
       const cacheKey = "sac_digital_library_cache";
@@ -259,15 +324,25 @@ const SAC_EDB = (function () {
   }
 
   function mergeBooksFromApi(apiItems) {
-    const filtered = (apiItems || []).filter(isEdbLibraryItem);
-    if (!filtered.length) return;
+    const deleted = readDeletedIds();
+    const filtered = (apiItems || [])
+      .filter(isEdbLibraryItem)
+      .filter((item) => !deleted.has(String(item?.id || "")))
+      .map(mapApiBookToLocal);
+    const apiIds = new Set(filtered.map((b) => b.id));
     const local = readBooks();
     const byId = {};
     local.forEach((b) => {
-      byId[b.id] = b;
+      if (deleted.has(String(b.id || ""))) return;
+      const isPublished = b.published !== false && b.status === "published";
+      if (!isPublished) {
+        byId[b.id] = b;
+        return;
+      }
+      if (apiIds.has(b.id)) byId[b.id] = b;
     });
     filtered.forEach((item) => {
-      const mapped = mapApiBookToLocal(item);
+      const mapped = item;
       const prev = byId[mapped.id];
       if (prev) {
         byId[mapped.id] = {
@@ -634,7 +709,13 @@ const SAC_EDB = (function () {
   async function listLibraryBooks(countryCode, session) {
     await syncEdbCatalogFromApi(countryCode, session || null);
     if (session) await syncPurchasesFromApi(session);
-    let items = readBooks().filter((b) => b.published !== false && b.status === "published");
+    const deleted = readDeletedIds();
+    let items = readBooks().filter(
+      (b) =>
+        b.published !== false &&
+        b.status === "published" &&
+        !deleted.has(String(b.id || ""))
+    );
     if (countryCode) {
       const cc = String(countryCode).toUpperCase();
       items = items.filter((b) => !b.countryCode || b.countryCode === cc || b.countryCode === "ALL");
@@ -697,6 +778,7 @@ const SAC_EDB = (function () {
     const idx = list.findIndex((b) => b.id === book.id);
     if (idx >= 0) list[idx] = book;
     else list.push(book);
+    unmarkBookDeleted(book.id);
     writeBooks(list);
 
     const libPayload = {
@@ -752,18 +834,18 @@ const SAC_EDB = (function () {
 
     const sales = readSales()[id] || 0;
     let confirmMsg =
-      "Supprimer « " +
+      "Supprimer définitivement « " +
       (book.title || "ce livre") +
-      " » ?\n\nIl disparaîtra du catalogue EvoDigitalBooks et de la bibliothèque nationale.";
+      " » ?\n\nLe document sera retiré du serveur, de la base de données et du catalogue pour tous les utilisateurs.";
     if (sales > 0) {
       confirmMsg +=
         "\n\n" +
         sales +
         " vente(s) déjà enregistrée(s) — les acheteurs conservent l'accès au fichier.";
     }
-    confirmMsg += "\n\nVous pourrez republier une version corrigée ensuite.";
     if (!confirm(confirmMsg)) return false;
 
+    let serverDeleted = false;
     if (typeof SAC_API !== "undefined" && SAC_API.deleteDigitalLibraryBook) {
       await SAC_API.ensureOnline(true);
       if (SAC_API.ensureWritableApiSession) {
@@ -775,20 +857,30 @@ const SAC_EDB = (function () {
       }
       try {
         await SAC_API.deleteDigitalLibraryBook(id);
+        serverDeleted = true;
       } catch (err) {
-        if (err.status === 403) {
-          throw new Error("Suppression refusée — vérifiez que vous êtes bien l'auteur.");
-        }
         if (err.status === 404) {
-          /* déjà absent côté serveur */
+          serverDeleted = true;
+        } else if (err.status === 403) {
+          throw new Error("Suppression refusée — reconnectez-vous ou contactez le support.");
         } else {
-          throw new Error(err.message || "Suppression impossible sur le serveur.");
+          throw new Error(
+            err.message ||
+              "Suppression impossible sur le serveur. Le livre reste visible tant que la suppression n'est pas confirmée par l'API."
+          );
         }
       }
+    } else {
+      throw new Error("Connexion API requise pour supprimer définitivement ce livre.");
     }
 
-    writeBooks(readBooks().filter((b) => b.id !== id));
-    window.dispatchEvent(new CustomEvent("sac-edb-catalog-refresh"));
+    if (!serverDeleted) {
+      throw new Error("Suppression serveur non confirmée.");
+    }
+
+    purgeBookFromAllCaches(id);
+    window.dispatchEvent(new CustomEvent("sac-edb-catalog-refresh", { detail: { bookId: id } }));
+    window.dispatchEvent(new CustomEvent("sac-library-refresh", { detail: { bookId: id } }));
     return true;
   }
 
@@ -1804,6 +1896,7 @@ const SAC_EDB = (function () {
     getAuthorBooks,
     publishBook,
     deleteAuthorBook,
+    isBookDeleted,
     hasAccess,
     recordPurchase,
     syncPurchasesFromApi,

@@ -35,3 +35,17 @@ git push
 ```
 
 Manual Deploy sur **smart-academy-of-congo-api-1**.
+
+## Suppression définitive bibliothèque / EvoDigitalBooks
+
+Copier aussi :
+- `app/services/library_delete.py`
+- `app/routes/platform_library_delete.py` (ou fusionner dans `platform_library.py`)
+
+La route `DELETE /api/platform/library/{id}` doit :
+1. **Supprimer la ligne** en base (pas seulement `published=false`)
+2. **Effacer les fichiers** uploadés (PDF, couverture)
+3. Autoriser l'**auteur** à supprimer ses livres (`author_email` = session)
+4. Autoriser **ministère / superadmin** pour tout document
+
+Sans ce patch API, le frontend refuse la suppression locale si le serveur ne confirme pas.
