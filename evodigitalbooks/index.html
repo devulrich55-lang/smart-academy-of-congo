@@ -43,9 +43,13 @@
         </ul>
       </aside>
       <section class="portal-card">
-        <div id="edbPortalTabs" style="display:flex;gap:0.5rem;margin-bottom:1rem;">
-          <button type="button" class="btn btn--role btn--sm" id="edbTabLogin">Connexion</button>
-          <button type="button" class="btn btn--ghost btn--sm" id="edbTabRegister">Créer un compte auteur</button>
+        <div class="edb-portal-tabs" id="edbPortalTabs" role="tablist" aria-label="Connexion ou inscription auteur">
+          <button type="button" class="edb-portal-tabs__btn is-active" id="edbTabLogin" role="tab" aria-selected="true" aria-controls="edbLoginPanel">
+            <span class="edb-portal-tabs__icon" aria-hidden="true">🔐</span> Connexion
+          </button>
+          <button type="button" class="edb-portal-tabs__btn" id="edbTabRegister" role="tab" aria-selected="false" aria-controls="edbRegisterPanel">
+            <span class="edb-portal-tabs__icon" aria-hidden="true">✍️</span> Créer un compte auteur
+          </button>
         </div>
 
         <div id="edbLoginPanel">
@@ -119,19 +123,46 @@
   <script src="../js/sac-session.js"></script>
   <script src="../js/sac-api.js"></script>
   <script src="../js/sac-evodigitalbooks.js"></script>
+  <script src="../js/sac-edb-access.js"></script>
   <script src="../js/portal-login.js"></script>
   <script>
     (function () {
+      const session =
+        typeof SAC_SESSION !== "undefined" && SAC_SESSION.getSession
+          ? SAC_SESSION.getSession()
+          : null;
+      if (
+        typeof SAC_EDB_ACCESS !== "undefined" &&
+        !SAC_EDB_ACCESS.enforceAuthorPortal(session, "../evodigitalbooks.html")
+      ) {
+        return;
+      }
+
       const loginPanel = document.getElementById("edbLoginPanel");
       const regPanel = document.getElementById("edbRegisterPanel");
-      document.getElementById("edbTabLogin")?.addEventListener("click", () => {
+      const tabLogin = document.getElementById("edbTabLogin");
+      const tabRegister = document.getElementById("edbTabRegister");
+
+      function showLoginTab() {
         loginPanel.hidden = false;
         regPanel.hidden = true;
-      });
-      document.getElementById("edbTabRegister")?.addEventListener("click", () => {
+        tabLogin?.classList.add("is-active");
+        tabRegister?.classList.remove("is-active");
+        tabLogin?.setAttribute("aria-selected", "true");
+        tabRegister?.setAttribute("aria-selected", "false");
+      }
+
+      function showRegisterTab() {
         loginPanel.hidden = true;
         regPanel.hidden = false;
-      });
+        tabRegister?.classList.add("is-active");
+        tabLogin?.classList.remove("is-active");
+        tabRegister?.setAttribute("aria-selected", "true");
+        tabLogin?.setAttribute("aria-selected", "false");
+      }
+
+      tabLogin?.addEventListener("click", showLoginTab);
+      tabRegister?.addEventListener("click", showRegisterTab);
 
       document.getElementById("edbRegisterForm")?.addEventListener("submit", async (e) => {
         e.preventDefault();
@@ -160,7 +191,7 @@
       });
 
       if (location.search.includes("register=1")) {
-        document.getElementById("edbTabRegister")?.click();
+        showRegisterTab();
       }
     })();
   </script>

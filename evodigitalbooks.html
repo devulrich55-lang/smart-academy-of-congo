@@ -22,11 +22,11 @@
       <img src="evo-uni.jpeg" alt="" width="40" height="40" style="border-radius:8px;" />
       <strong>EvoDigitalBooks</strong>
     </a>
-    <nav style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center;">
-      <a href="plateforme.html" class="btn btn--ghost btn--sm" style="color:#e9d5ff;">Bibliothèque nationale</a>
-      <a href="evodigitalbooks/" class="btn btn--ghost btn--sm" style="color:#e9d5ff;">Espace auteur</a>
+    <nav class="edb-public-nav" style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center;">
+      <a href="plateforme.html" class="edb-nav-btn edb-nav-btn--ghost">Bibliothèque nationale</a>
+      <a href="evodigitalbooks/" class="edb-nav-btn edb-nav-btn--ghost" data-edb-author-only hidden>Espace auteur</a>
       <span id="edbUserLabel" style="font-size:0.85rem;opacity:0.85;"></span>
-      <button type="button" class="btn btn--role btn--sm" id="edbLoginBtn">Connexion</button>
+      <button type="button" class="edb-nav-btn edb-nav-btn--primary" id="edbLoginBtn">Connexion</button>
     </nav>
   </header>
 
@@ -36,8 +36,8 @@
       <h1>Livres numériques d'auteurs certifiés</h1>
       <p>Nouveautés, best-sellers, ouvrages gratuits et payants. Paiement Mobile Money — fichier réservé aux acheteurs (max. 3 appareils par compte).</p>
       <div class="edb-hero__actions">
-        <a href="evodigitalbooks/?register=1" class="btn btn--role">Devenir auteur</a>
-        <a href="#edbNew" class="btn btn--ghost" style="border-color:rgba(255,255,255,0.4);color:#fff;">Voir les nouveautés</a>
+        <a href="evodigitalbooks/?register=1" class="edb-nav-btn edb-nav-btn--primary" data-edb-author-only hidden>Devenir auteur</a>
+        <a href="#edbNew" class="edb-nav-btn edb-nav-btn--ghost edb-nav-btn--on-hero">Voir les nouveautés</a>
       </div>
     </div>
 
@@ -51,9 +51,17 @@
   <script src="js/sac-mobile-money.js"></script>
   <script src="js/sac-library.js"></script>
   <script src="js/sac-evodigitalbooks.js"></script>
+  <script src="js/sac-edb-access.js"></script>
   <script>
     (async function () {
       const session = SAC_SESSION.getSession();
+      if (typeof SAC_EDB_ACCESS !== "undefined") {
+        SAC_EDB_ACCESS.refreshAuthorNav(session);
+        window.addEventListener("sac-edb-access-unlock", () => {
+          SAC_EDB_ACCESS.refreshAuthorNav(SAC_SESSION.getSession());
+        });
+      }
+
       const label = document.getElementById("edbUserLabel");
       const loginBtn = document.getElementById("edbLoginBtn");
       if (session?.identifiant) {
@@ -69,7 +77,13 @@
           };
         }
       } else if (loginBtn) {
-        loginBtn.onclick = () => { location.href = "connexion.html?role=etudiant&next=evodigitalbooks.html"; };
+        loginBtn.onclick = () => {
+          if (typeof SAC_EDB_ACCESS !== "undefined" && SAC_EDB_ACCESS.hasAccess(null)) {
+            location.href = "evodigitalbooks/";
+            return;
+          }
+          location.href = "connexion.html?role=etudiant&next=evodigitalbooks.html";
+        };
       }
 
       await SAC_EDB.mountStorefront("edbStoreRoot", session);

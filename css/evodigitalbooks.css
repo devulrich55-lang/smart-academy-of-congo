@@ -18,6 +18,45 @@
   gap: 0.75rem;
   margin-top: 1.25rem;
 }
+
+/* Boutons navigation catalogue public EvoDigitalBooks */
+.edb-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.55rem 1.1rem;
+  border-radius: 999px;
+  font-size: 0.88rem;
+  font-weight: 700;
+  text-decoration: none;
+  border: 1.5px solid transparent;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, box-shadow 0.2s, transform 0.15s;
+  font-family: inherit;
+}
+.edb-nav-btn--primary {
+  background: linear-gradient(135deg, #a78bfa, #7c3aed);
+  color: #fff;
+  box-shadow: 0 6px 18px rgba(124, 58, 237, 0.4);
+}
+.edb-nav-btn--primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 22px rgba(124, 58, 237, 0.5);
+}
+.edb-nav-btn--ghost {
+  background: rgba(255, 255, 255, 0.08);
+  color: #e9d5ff;
+  border-color: rgba(233, 213, 255, 0.35);
+}
+.edb-nav-btn--ghost:hover {
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+}
+.edb-nav-btn--on-hero {
+  border-color: rgba(255, 255, 255, 0.4);
+  color: #fff;
+}
 .edb-hero__badge {
   display: inline-block;
   background: rgba(255,255,255,0.15);
@@ -236,6 +275,49 @@
 }
 .portal-page--edb { --portal-accent: #7c3aed; --portal-accent-dark: #5b21b6; }
 .portal-page--edb .portal-hero { background: linear-gradient(160deg, #1a0f2e, #4c1d95); }
+
+/* Onglets Connexion / Inscription auteur */
+.edb-portal-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.35rem;
+  padding: 0.4rem;
+  margin-bottom: 1.35rem;
+  background: linear-gradient(180deg, #f8fafc, #f1f5f9);
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+.edb-portal-tabs__btn {
+  border: none;
+  background: transparent;
+  padding: 0.82rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #64748b;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, box-shadow 0.2s, transform 0.15s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  line-height: 1.2;
+}
+.edb-portal-tabs__btn:hover:not(.is-active) {
+  color: #5b21b6;
+  background: rgba(124, 58, 237, 0.08);
+}
+.edb-portal-tabs__btn.is-active {
+  background: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%);
+  color: #fff;
+  box-shadow: 0 6px 18px rgba(124, 58, 237, 0.38);
+  transform: translateY(-1px);
+}
+.edb-portal-tabs__btn .edb-portal-tabs__icon {
+  font-size: 1.05rem;
+  line-height: 1;
+}
 
 /* ——— Dashboard auteur (EvoBooks) ——— */
 .edb-dash-page {

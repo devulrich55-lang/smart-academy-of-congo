@@ -22,10 +22,9 @@
   <div class="app-shell">
     <main class="main">
       <div class="topbar">
-        <div class="lib-topbar-brand">📚 Bibliothèque Numérique</div>
-        <a href="evodigitalbooks.html" class="btn btn--ghost btn--sm" style="white-space:nowrap;">📖 EvoDigitalBooks</a>
+        <div class="lib-topbar-brand" id="libTopbarBrand" title="Bibliothèque Numérique">📚 Bibliothèque Numérique</div>
         <input id="globalSearch" class="search" type="search" placeholder="Rechercher un livre, un auteur, une catégorie…" />
-        <div id="headerActions"></div>
+        <div id="headerActions" class="lib-topbar-actions"></div>
       </div>
 
       <section class="lib-mockup-hero" id="platformHero" style="background-image: linear-gradient(180deg, rgba(8,12,20,0.22), rgba(31,24,20,0.72) 78%, #1f1814), url('bibliotheque.jpeg')">
@@ -117,7 +116,8 @@
   <script src="js/sac-api.js?v=20260629a"></script>
   <script src="js/sac-mobile-money.js"></script>
   <script src="js/sac-library.js?v=20260710b"></script>
-  <script src="js/sac-evodigitalbooks.js?v=20260710b"></script>
+  <script src="js/sac-evodigitalbooks.js?v=20260712d"></script>
+  <script src="js/sac-edb-access.js?v=20260712d"></script>
   <script>
     (async function () {
       const panelLibrary = document.getElementById("panel-library");
@@ -159,6 +159,18 @@
             '<a href="index.html" class="btn btn--ghost">Accueil</a>' +
             '<a href="connexion.html" class="btn btn--primary">Connexion</a>';
         }
+      }
+
+      if (typeof SAC_EDB_ACCESS !== "undefined") {
+        const topbar = document.querySelector(".topbar");
+        SAC_EDB_ACCESS.mountSecretLink(topbar, "evodigitalbooks/");
+        SAC_EDB_ACCESS.bindSecretTrigger(document.getElementById("libTopbarBrand"), {
+          clicks: 5,
+          onUnlock: () => SAC_EDB_ACCESS.mountSecretLink(topbar, "evodigitalbooks/"),
+        });
+        window.addEventListener("sac-edb-access-unlock", () => {
+          SAC_EDB_ACCESS.mountSecretLink(topbar, "evodigitalbooks/");
+        });
       }
 
       document.body.classList.add("platform-library-mode");
