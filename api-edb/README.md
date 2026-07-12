@@ -21,7 +21,18 @@ app.include_router(edb_router, prefix="/api")
 7. Les livres publiés passent par **`POST /api/platform/library`** avec :
    - `source: "evodigitalbooks"`
    - `authorRole: "auteur"`
-   - `authorEmail`, `authorMobileMoney`
+   - `authorEmail`, `authorMobileMoney` (numéro choisi par l'acheteur parmi 1 à 3)
+
+## Numéros Mobile Money auteur
+
+Chaque auteur peut enregistrer **jusqu'à 3 numéros** (`mobileMoney`, `mobileMoney2`, `mobileMoney3`).
+Lors de l'achat, le client sélectionne le numéro utilisé pour le paiement.
+
+| Méthode | Route | Rôle |
+|---------|-------|------|
+| PATCH | `/api/platform/edb/authors/{email}/payment-numbers` | auteur / superadmin |
+
+Corps : `{ "mobileMoney": "+243…", "mobileMoney2": "", "mobileMoney3": "" }`
 
 ## Endpoints
 
@@ -30,6 +41,7 @@ app.include_router(edb_router, prefix="/api")
 | POST | `/api/platform/edb/authors/register` | Public |
 | GET | `/api/platform/edb/authors/pending` | superadmin |
 | PATCH | `/api/platform/edb/authors/{email}/status` | superadmin |
+| PATCH | `/api/platform/edb/authors/{email}/payment-numbers` | auteur |
 | POST | `/api/platform/edb/purchases` | Authentifié / soft |
 | GET | `/api/platform/edb/purchases/me` | Acheteur |
 
@@ -38,7 +50,7 @@ app.include_router(edb_router, prefix="/api")
 Le frontend envoie `metadata` à `/payments/mobile/initiate` :
 
 - `purpose: "evodigitalbooks"`
-- `authorMobileMoney` — numéro récepteur auteur
+- `authorMobileMoney` — numéro récepteur auteur (choisi parmi 1 à 3)
 - `authorShare` (75 %) · `platformFee` (25 %)
 
 Adapter `payment_service.py` pour router le versement vers l'auteur.

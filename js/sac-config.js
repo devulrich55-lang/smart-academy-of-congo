@@ -35,7 +35,7 @@
     window.SAC_API_PROXY_ORIGIN = origin;
     // resolveApiBase() teste le proxy puis bascule sur l'API directe si besoin
   }
-  window.SAC_JS_BUILD = "20260711a";
+  window.SAC_JS_BUILD = "20260712a";
   window.SAC_RENDER_FRONTEND = RENDER_FRONTEND_CANONICAL;
   window.SAC_PLATFORM_LOGO = "evo-uni.jpeg";
   window.SAC_PLATFORM_LOGO_ALT = "Evo-smartUni";

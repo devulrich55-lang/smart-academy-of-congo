@@ -1949,6 +1949,13 @@ const SAC_API = (function () {
     });
   }
 
+  async function updateEdbAuthorPaymentNumbers(email, payload) {
+    return request("/platform/edb/authors/" + encodeURIComponent(email) + "/payment-numbers", {
+      method: "PATCH",
+      body: JSON.stringify(payload || {}),
+    });
+  }
+
   async function recordEdbPurchase(payload) {
     return request("/platform/edb/purchases", {
       method: "POST",
@@ -2911,6 +2918,7 @@ const SAC_API = (function () {
     registerEdbAuthor,
     listPendingEdbAuthors,
     approveEdbAuthor,
+    updateEdbAuthorPaymentNumbers,
     recordEdbPurchase,
     listMyEdbPurchases,
     listCampusDiplomasManage,

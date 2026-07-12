@@ -84,9 +84,18 @@
               <input type="password" id="edbRegPassword" class="portal-input" required minlength="8" />
             </div>
             <div class="portal-field">
-              <label for="edbRegMobile">Mobile Money (réception paiements) *</label>
+              <label for="edbRegMobile">Mobile Money principal (réception paiements) *</label>
               <input type="tel" id="edbRegMobile" class="portal-input" required placeholder="+243…" />
-              <p class="portal-field-hint">Les acheteurs paient via Orange / M-Pesa — vous recevez 75 % sur ce numéro.</p>
+              <p class="portal-field-hint">Numéro principal — les acheteurs paient via Orange / M-Pesa (75 % pour vous).</p>
+            </div>
+            <div class="portal-field">
+              <label for="edbRegMobile2">Mobile Money 2 (optionnel)</label>
+              <input type="tel" id="edbRegMobile2" class="portal-input" placeholder="+243…" />
+            </div>
+            <div class="portal-field">
+              <label for="edbRegMobile3">Mobile Money 3 (optionnel)</label>
+              <input type="tel" id="edbRegMobile3" class="portal-input" placeholder="+243…" />
+              <p class="portal-field-hint">Jusqu'à 3 numéros — l'acheteur choisit celui qu'il utilise lors du paiement.</p>
             </div>
             <div class="portal-field">
               <label for="edbRegBio">Biographie courte</label>
@@ -134,6 +143,8 @@
             email: document.getElementById("edbRegEmail").value,
             password: document.getElementById("edbRegPassword").value,
             mobileMoney: document.getElementById("edbRegMobile").value,
+            mobileMoney2: document.getElementById("edbRegMobile2").value,
+            mobileMoney3: document.getElementById("edbRegMobile3").value,
             bio: document.getElementById("edbRegBio").value,
           });
           alert(

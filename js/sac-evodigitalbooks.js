@@ -85,6 +85,70 @@ const SAC_EDB = (function () {
     return readAuthors().find((a) => normEmail(a.email) === key) || null;
   }
 
+  function parseMobileNumbers(payload) {
+    const fromArray = Array.isArray(payload?.mobileMoneyNumbers)
+      ? payload.mobileMoneyNumbers
+      : [];
+    const fields = [
+      payload?.mobileMoney,
+      payload?.mobileMoney2,
+      payload?.mobileMoney3,
+      payload?.mobile_money,
+      payload?.mobile_money_2,
+      payload?.mobile_money_3,
+      ...fromArray,
+    ];
+    const seen = new Set();
+    const out = [];
+    fields.forEach((raw) => {
+      const n = String(raw || "").trim();
+      if (!n) return;
+      const key = n.replace(/\s/g, "");
+      if (seen.has(key)) return;
+      seen.add(key);
+      out.push(n);
+    });
+    return out.slice(0, 3);
+  }
+
+  function authorMobileNumbers(authorOrBook) {
+    if (!authorOrBook) return [];
+    if (Array.isArray(authorOrBook.mobileMoneyNumbers) && authorOrBook.mobileMoneyNumbers.length) {
+      return authorOrBook.mobileMoneyNumbers.filter(Boolean).slice(0, 3);
+    }
+    return parseMobileNumbers(authorOrBook);
+  }
+
+  function validateAuthorMobileNumbers(numbers) {
+    if (!numbers.length) {
+      throw new Error("Indiquez au moins un numéro Mobile Money (réception des paiements).");
+    }
+    if (typeof SAC_IDENTITY !== "undefined") {
+      numbers.forEach((n, i) => {
+        const ph = SAC_IDENTITY.validatePhone(n);
+        if (!ph.ok) {
+          throw new Error("Numéro Mobile Money " + (i + 1) + " invalide.");
+        }
+      });
+    }
+    return numbers;
+  }
+
+  function formatMobileNumbersList(numbers) {
+    const list = authorMobileNumbers({ mobileMoneyNumbers: numbers });
+    if (!list.length) return "—";
+    return list.map((n) => esc(n)).join("<br>");
+  }
+
+  function attachMobileFields(target, numbers) {
+    const list = numbers.slice(0, 3);
+    target.mobileMoney = list[0] || "";
+    target.mobileMoney2 = list[1] || "";
+    target.mobileMoney3 = list[2] || "";
+    target.mobileMoneyNumbers = list;
+    return target;
+  }
+
   function isAuthorApproved(session) {
     if (!session || session.role !== "auteur") return false;
     const a = authorByEmail(session.identifiant || session.email);
@@ -161,7 +225,10 @@ const SAC_EDB = (function () {
       title: item.title || "",
       author: item.author || "",
       authorEmail: normEmail(item.authorEmail || item.authorId || ""),
-      authorMobileMoney: item.authorMobileMoney || "",
+      authorMobileMoney: item.authorMobileMoney || authorMobileNumbers(item)[0] || "",
+      authorMobileMoney2: item.authorMobileMoney2 || "",
+      authorMobileMoney3: item.authorMobileMoney3 || "",
+      authorMobileMoneyNumbers: authorMobileNumbers(item),
       category: item.category || "roman",
       description: item.description || "",
       language: item.language || "fr",
@@ -282,7 +349,7 @@ const SAC_EDB = (function () {
     const email = normEmail(payload.email);
     const password = payload.password || "";
     const penName = String(payload.penName || payload.prenom || "").trim();
-    const mobileMoney = String(payload.mobileMoney || payload.mobile_money || "").trim();
+    const mobileNumbers = validateAuthorMobileNumbers(parseMobileNumbers(payload));
     const bio = String(payload.bio || "").trim();
 
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -291,23 +358,23 @@ const SAC_EDB = (function () {
     if (typeof SAC_IDENTITY !== "undefined") {
       const pw = SAC_IDENTITY.validatePassword(password);
       if (!pw.ok) throw new Error(pw.message);
-      const ph = SAC_IDENTITY.validatePhone(mobileMoney);
-      if (!ph.ok) throw new Error("Numéro Mobile Money invalide (réception des paiements).");
     } else {
       if (password.length < 8) throw new Error("Mot de passe : 8 caractères minimum.");
     }
     if (!penName || penName.length < 2) throw new Error("Indiquez votre nom d'auteur.");
     if (authorByEmail(email)) throw new Error("Un compte auteur existe déjà pour cet e-mail.");
 
-    const author = {
-      id: "edb_author_" + Date.now(),
-      email,
-      penName,
-      mobileMoney,
-      bio,
-      status: "pending",
-      createdAt: new Date().toISOString(),
-    };
+    const author = attachMobileFields(
+      {
+        id: "edb_author_" + Date.now(),
+        email,
+        penName,
+        bio,
+        status: "pending",
+        createdAt: new Date().toISOString(),
+      },
+      mobileNumbers
+    );
 
     if (typeof SAC_API !== "undefined" && SAC_API.registerEdbAuthor) {
       try {
@@ -316,11 +383,13 @@ const SAC_EDB = (function () {
           email,
           password,
           penName,
-          mobileMoney,
+          mobileMoney: author.mobileMoney,
+          mobileMoney2: author.mobileMoney2 || "",
+          mobileMoney3: author.mobileMoney3 || "",
           bio,
           role: "auteur",
         });
-        if (data?.author) Object.assign(author, data.author);
+        if (data?.author) Object.assign(author, attachMobileFields({}, authorMobileNumbers(data.author)));
       } catch (err) {
         if (!/localhost|127\.0\.0\.1/i.test(location.hostname)) {
           console.warn("[SAC_EDB] register API:", err.message || err);
@@ -341,13 +410,57 @@ const SAC_EDB = (function () {
         nom: penName.split(/\s+/).slice(1).join(" ") || penName,
         password,
         authorStatus: "pending",
-        mobileMoney,
+        mobileMoney: author.mobileMoney,
+        mobileMoney2: author.mobileMoney2,
+        mobileMoney3: author.mobileMoney3,
         serverSynced: false,
       });
       localStorage.setItem("sac_users", JSON.stringify(users));
     }
 
     return author;
+  }
+
+  async function updateAuthorPaymentNumbers(session, payload) {
+    if (!isAuthorApproved(session)) {
+      throw new Error("Compte auteur non validé.");
+    }
+    const email = normEmail(session.identifiant || session.email);
+    const numbers = validateAuthorMobileNumbers(parseMobileNumbers(payload));
+    const list = readAuthors();
+    const idx = list.findIndex((a) => normEmail(a.email) === email);
+    if (idx < 0) throw new Error("Profil auteur introuvable.");
+    list[idx] = attachMobileFields({ ...list[idx] }, numbers);
+    writeAuthors(list);
+    if (typeof SAC_IDENTITY !== "undefined") {
+      const users = SAC_IDENTITY.getLocalUsers();
+      const ui = users.findIndex((u) => normEmail(u.email) === email);
+      if (ui >= 0) {
+        users[ui].mobileMoney = numbers[0] || "";
+        users[ui].mobileMoney2 = numbers[1] || "";
+        users[ui].mobileMoney3 = numbers[2] || "";
+        localStorage.setItem("sac_users", JSON.stringify(users));
+      }
+    }
+    if (typeof SAC_API !== "undefined" && SAC_API.updateEdbAuthorPaymentNumbers) {
+      try {
+        await SAC_API.ensureOnline(true);
+        const data = await SAC_API.updateEdbAuthorPaymentNumbers(email, {
+          mobileMoney: numbers[0] || "",
+          mobileMoney2: numbers[1] || "",
+          mobileMoney3: numbers[2] || "",
+        });
+        if (data?.author) {
+          list[idx] = attachMobileFields({ ...list[idx] }, authorMobileNumbers(data.author));
+          writeAuthors(list);
+        }
+      } catch (err) {
+        if (!/localhost|127\.0\.0\.1/i.test(location.hostname)) {
+          console.warn("[SAC_EDB] update payment numbers API:", err.message || err);
+        }
+      }
+    }
+    return list[idx];
   }
 
   function mergeAuthorsFromApi(apiAuthors) {
@@ -360,7 +473,8 @@ const SAC_EDB = (function () {
     apiAuthors.forEach((a) => {
       const key = normEmail(a.email);
       if (!key) return;
-      byEmail[key] = { ...byEmail[key], ...a, email: key };
+      const merged = attachMobileFields({ ...byEmail[key], ...a, email: key }, authorMobileNumbers(a));
+      byEmail[key] = merged;
     });
     writeAuthors(Object.values(byEmail));
   }
@@ -539,6 +653,7 @@ const SAC_EDB = (function () {
     }
     const email = normEmail(session.identifiant || session.email);
     const author = authorByEmail(email);
+    const authorMm = authorMobileNumbers(author);
     const title = String(raw.title || "").trim();
     if (!title || title.length < 2) throw new Error("Titre requis.");
     const category = raw.category || "roman";
@@ -550,31 +665,33 @@ const SAC_EDB = (function () {
     if (!fileUrl) throw new Error("Fichier du livre requis (PDF, EPUB…).");
     if (!coverUrl) throw new Error("Couverture requise.");
 
-    const book = {
-      id: raw.id || "edb_" + Date.now(),
-      title,
-      author: author?.penName || session.displayName || email,
-      authorEmail: email,
-      authorMobileMoney: author?.mobileMoney || raw.authorMobileMoney || "",
-      category,
-      description: String(raw.description || "").trim(),
-      language: raw.language || "fr",
-      countryCode: String(raw.countryCode || "CD").toUpperCase(),
-      isFree,
-      price,
-      currency: String(raw.currency || "USD").toUpperCase(),
-      fileUrl,
-      coverUrl,
-      cover_url: coverUrl,
-      file_url: fileUrl,
-      source: SOURCE,
-      authorRole: "auteur",
-      published: true,
-      status: "published",
-      platformFeeRate: PLATFORM_FEE_RATE,
-      createdAt: raw.id ? raw.createdAt : new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
+    const book = attachMobileFields(
+      {
+        id: raw.id || "edb_" + Date.now(),
+        title,
+        author: author?.penName || session.displayName || email,
+        authorEmail: email,
+        category,
+        description: String(raw.description || "").trim(),
+        language: raw.language || "fr",
+        countryCode: String(raw.countryCode || "CD").toUpperCase(),
+        isFree,
+        price,
+        currency: String(raw.currency || "USD").toUpperCase(),
+        fileUrl,
+        coverUrl,
+        cover_url: coverUrl,
+        file_url: fileUrl,
+        source: SOURCE,
+        authorRole: "auteur",
+        published: true,
+        status: "published",
+        platformFeeRate: PLATFORM_FEE_RATE,
+        createdAt: raw.id ? raw.createdAt : new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+      authorMm.length ? authorMm : authorMobileNumbers({ authorMobileMoney: raw.authorMobileMoney })
+    );
 
     const list = readBooks();
     const idx = list.findIndex((b) => b.id === book.id);
@@ -870,6 +987,11 @@ const SAC_EDB = (function () {
       '<button type="button" class="pay-method" data-edb-pay-method="mpesa">📱 M-Pesa</button>' +
       "</div>" +
       '<div id="edbPayDestInfo" class="pay-bank-card pay-bank-card--dest"></div>' +
+      '<div id="edbPayAuthorMmWrap" class="pay-confirm-box pay-modal__field" hidden>' +
+      '<label for="edbPayAuthorMm">Numéro auteur (réception 75 %)</label>' +
+      '<select class="fi" id="edbPayAuthorMm"></select>' +
+      "<p class=\"pay-confirm-hint\">Choisissez le numéro Mobile Money de l'auteur si plusieurs sont enregistrés.</p>" +
+      "</div>" +
       '<div id="edbPayMainStep">' +
       '<div class="pay-modal__fields pay-modal__fields--single">' +
       '<div class="pay-confirm-box pay-modal__field">' +
@@ -914,14 +1036,10 @@ const SAC_EDB = (function () {
         });
         if (modal._payContext) {
           const ctx = modal._payContext;
-          renderEdbPayDest(
-            modal,
-            activeMethod,
-            ctx.full,
-            ctx.fees,
-            ctx.mmReceiver,
-            ctx.currency
-          );
+          const mm =
+            modal.querySelector("#edbPayAuthorMm")?.value || ctx.mmReceiver || authorMobileNumbers(ctx.full)[0];
+          ctx.mmReceiver = mm;
+          renderEdbPayDest(modal, activeMethod, ctx.full, ctx.fees, mm, ctx.currency);
         }
       });
     });
@@ -934,6 +1052,14 @@ const SAC_EDB = (function () {
       if (e.target === modal) closeEdbPayModal(modal);
     });
     modal.querySelector(".pay-modal")?.addEventListener("click", (e) => e.stopPropagation());
+
+    modal.querySelector("#edbPayAuthorMm")?.addEventListener("change", () => {
+      if (!modal._payContext) return;
+      const ctx = modal._payContext;
+      const mm = modal.querySelector("#edbPayAuthorMm")?.value || ctx.mmReceiver;
+      ctx.mmReceiver = mm;
+      renderEdbPayDest(modal, modal._getPayMethod(), ctx.full, ctx.fees, mm, ctx.currency);
+    });
 
     return modal;
   }
@@ -1019,19 +1145,45 @@ const SAC_EDB = (function () {
     const full = readBooks().find((b) => b.id === book.id) || book;
     const author = authorByEmail(full.authorEmail);
     const fees = splitFee(full.price);
-    const mmReceiver = full.authorMobileMoney || author?.mobileMoney || "";
+    const mmList = authorMobileNumbers(full).length
+      ? authorMobileNumbers(full)
+      : authorMobileNumbers(author);
+    const mmReceiver = mmList[0] || "";
     const currency = String(full.currency || "USD").toUpperCase();
     const modal = ensureEdbPurchaseModal();
     const confirmBtn = modal.querySelector("#edbPayConfirm");
     const phoneInput = modal.querySelector("#edbPayPhone");
+    const mmWrap = modal.querySelector("#edbPayAuthorMmWrap");
+    const mmSelect = modal.querySelector("#edbPayAuthorMm");
 
-    modal._payContext = { full, fees, mmReceiver, currency };
+    modal._payContext = { full, fees, mmReceiver, currency, mmList };
     modal.querySelector("#edbPayFeeLabel").textContent =
       (full.title || "Livre") + " — " + (full.author || "Auteur");
     modal.querySelector("#edbPayAmount").textContent = formatMoney(fees.total, currency);
     modal.querySelectorAll("[data-edb-pay-method]").forEach((b) => {
       b.classList.toggle("is-active", b.dataset.edbPayMethod === "orange");
     });
+    if (mmSelect) {
+      if (mmList.length > 1) {
+        mmWrap.hidden = false;
+        mmSelect.innerHTML = mmList
+          .map(
+            (n, i) =>
+              '<option value="' +
+              esc(n) +
+              '">Numéro ' +
+              (i + 1) +
+              " — " +
+              esc(maskMmPhone(n)) +
+              "</option>"
+          )
+          .join("");
+        mmSelect.value = mmList[0];
+      } else {
+        mmWrap.hidden = true;
+        mmSelect.innerHTML = "";
+      }
+    }
     renderEdbPayDest(modal, "orange", full, fees, mmReceiver, currency);
     if (phoneInput) {
       phoneInput.value =
@@ -1043,6 +1195,11 @@ const SAC_EDB = (function () {
 
     confirmBtn.onclick = async () => {
       const phone = phoneInput?.value?.trim();
+      const mmReceiverSelected =
+        modal.querySelector("#edbPayAuthorMm")?.value ||
+        modal._payContext?.mmReceiver ||
+        mmList[0] ||
+        "";
       if (!phone) {
         setEdbPayStatus(modal, "Indiquez votre numéro Mobile Money.", true);
         phoneInput?.focus();
@@ -1069,7 +1226,7 @@ const SAC_EDB = (function () {
               bookId: full.id,
               bookTitle: full.title,
               authorEmail: full.authorEmail,
-              authorMobileMoney: mmReceiver,
+              authorMobileMoney: mmReceiverSelected,
               authorShare: fees.authorShare,
               platformFee: fees.platformFee,
               currency,
@@ -1111,7 +1268,7 @@ const SAC_EDB = (function () {
           amount: fees.total,
           authorShare: fees.authorShare,
           platformFee: fees.platformFee,
-          authorMobileMoney: mmReceiver,
+          authorMobileMoney: mmReceiverSelected,
           authorEmail: full.authorEmail || "",
           currency,
         });
@@ -1281,6 +1438,7 @@ const SAC_EDB = (function () {
       '<button type="button" class="edb-dash__nav-item" data-edb-panel="books">📚 Mes livres</button>' +
       '<button type="button" class="edb-dash__nav-item" data-edb-panel="publish">➕ Ajouter un livre</button>' +
       '<button type="button" class="edb-dash__nav-item" data-edb-panel="sales">🛒 Ventes</button>' +
+      '<button type="button" class="edb-dash__nav-item" data-edb-panel="payments">💳 Mobile Money</button>' +
       '<a class="edb-dash__nav-item" href="evodigitalbooks.html">🌐 Catalogue public</a>' +
       '<a class="edb-dash__nav-item" href="plateforme.html">🏛 Bibliothèque nationale</a>' +
       "</nav>" +
@@ -1365,6 +1523,21 @@ const SAC_EDB = (function () {
       '<section class="edb-panel" id="edbPanelSales" hidden><div class="edb-card-panel"><h2>Commandes & ventes</h2><p class="edb-empty">Les ventes Mobile Money apparaissent ici après achat. Revenus estimés : <strong>' +
       formatMoney(stats.revenue) +
       "</strong></p></div></section>" +
+      '<section class="edb-panel" id="edbPanelPayments" hidden><div class="edb-card-panel"><h2>Numéros Mobile Money</h2>' +
+      '<p class="edb-dash__sub">Enregistrez jusqu\'à <strong>3 numéros</strong> pour faciliter les achats (Orange Money, M-Pesa, etc.). Les clients choisissent le numéro lors du paiement.</p>' +
+      '<form id="edbPaymentsForm" class="edb-form">' +
+      '<div class="edb-form__grid">' +
+      '<div class="fg"><label for="edbMm1">Numéro principal *</label><input type="tel" class="fi" id="edbMm1" required placeholder="+243…" value="' +
+      esc(authorMobileNumbers(authorByEmail(session.identifiant || session.email))[0] || "") +
+      '" /></div>' +
+      '<div class="fg"><label for="edbMm2">Numéro 2 (optionnel)</label><input type="tel" class="fi" id="edbMm2" placeholder="+243…" value="' +
+      esc(authorMobileNumbers(authorByEmail(session.identifiant || session.email))[1] || "") +
+      '" /></div>' +
+      '<div class="fg"><label for="edbMm3">Numéro 3 (optionnel)</label><input type="tel" class="fi" id="edbMm3" placeholder="+243…" value="' +
+      esc(authorMobileNumbers(authorByEmail(session.identifiant || session.email))[2] || "") +
+      '" /></div></div>' +
+      '<div class="edb-form__actions"><button type="submit" class="edb-btn-primary">Enregistrer les numéros</button></div>' +
+      "</form></div></section>" +
       "</div></div>";
 
     function showPanel(name) {
@@ -1458,6 +1631,30 @@ const SAC_EDB = (function () {
       });
     }
     renderBooksTable();
+
+    document.getElementById("edbPaymentsForm")?.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const btn = e.target.querySelector('button[type="submit"]');
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = "Enregistrement…";
+      }
+      try {
+        await updateAuthorPaymentNumbers(session, {
+          mobileMoney: document.getElementById("edbMm1")?.value || "",
+          mobileMoney2: document.getElementById("edbMm2")?.value || "",
+          mobileMoney3: document.getElementById("edbMm3")?.value || "",
+        });
+        alert("Numéros Mobile Money enregistrés.");
+      } catch (err) {
+        alert(err.message || "Enregistrement impossible.");
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = "Enregistrer les numéros";
+        }
+      }
+    });
 
     const freeCb = document.getElementById("edbFree");
     const priceWrap = document.getElementById("edbPriceWrap");
@@ -1553,9 +1750,9 @@ const SAC_EDB = (function () {
             esc(a.penName) +
             "</strong></td><td>" +
             esc(a.email) +
-            "</td><td><code>" +
-            esc(a.mobileMoney) +
-            "</code></td><td>" +
+            "</td><td>" +
+            formatMobileNumbersList(authorMobileNumbers(a)) +
+            "</td><td>" +
             esc((a.createdAt || "").slice(0, 10)) +
             '</td><td class="col-actions">' +
             '<button type="button" class="btn btn--role btn--xs" data-edb-approve="' +
@@ -1599,6 +1796,7 @@ const SAC_EDB = (function () {
     AUTHOR_SHARE_RATE,
     MAX_DEVICES_PER_ACCOUNT,
     registerAuthor,
+    updateAuthorPaymentNumbers,
     listPendingAuthors,
     setAuthorStatus,
     isAuthorApproved,

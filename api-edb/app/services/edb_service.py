@@ -22,6 +22,25 @@ def split_fee(amount: float) -> dict[str, float]:
     return {"total": total, "platform_fee": platform_fee, "author_share": author_share}
 
 
+def _author_row_to_dict(r) -> dict[str, Any]:
+    return {
+        "id": r[0],
+        "email": r[1],
+        "penName": r[2],
+        "mobileMoney": r[3],
+        "mobileMoney2": r[4] or "",
+        "mobileMoney3": r[5] or "",
+        "bio": r[6] or "",
+        "status": r[7],
+        "createdAt": r[8] if len(r) > 8 else "",
+    }
+
+
+_AUTHOR_SELECT = """
+    id, email, pen_name, mobile_money, mobile_money_2, mobile_money_3, bio, status, created_at
+"""
+
+
 class EdbService:
     def __init__(self, get_db):
         self.get_db = get_db
@@ -33,6 +52,8 @@ class EdbService:
         pen_name: str,
         mobile_money: str,
         bio: str = "",
+        mobile_money_2: str = "",
+        mobile_money_3: str = "",
     ) -> dict[str, Any]:
         email = email.strip().lower()
         conn = self.get_db()
@@ -44,10 +65,21 @@ class EdbService:
         cur.execute(
             """
             INSERT INTO edb_authors
-            (id, email, pen_name, mobile_money, bio, password_hash, status, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, 'pending', ?)
+            (id, email, pen_name, mobile_money, mobile_money_2, mobile_money_3,
+             bio, password_hash, status, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)
             """,
-            (author_id, email, pen_name, mobile_money, bio or "", password_hash, _now()),
+            (
+                author_id,
+                email,
+                pen_name,
+                mobile_money,
+                mobile_money_2 or "",
+                mobile_money_3 or "",
+                bio or "",
+                password_hash,
+                _now(),
+            ),
         )
         conn.commit()
         return {
@@ -55,6 +87,8 @@ class EdbService:
             "email": email,
             "penName": pen_name,
             "mobileMoney": mobile_money,
+            "mobileMoney2": mobile_money_2 or "",
+            "mobileMoney3": mobile_money_3 or "",
             "status": "pending",
         }
 
@@ -62,24 +96,13 @@ class EdbService:
         conn = self.get_db()
         cur = conn.cursor()
         cur.execute(
-            """
-            SELECT id, email, pen_name, mobile_money, bio, status, created_at
+            f"""
+            SELECT {_AUTHOR_SELECT.strip()}
             FROM edb_authors WHERE status = 'pending' ORDER BY created_at DESC
             """
         )
         rows = cur.fetchall()
-        return [
-            {
-                "id": r[0],
-                "email": r[1],
-                "penName": r[2],
-                "mobileMoney": r[3],
-                "bio": r[4],
-                "status": r[5],
-                "createdAt": r[6],
-            }
-            for r in rows
-        ]
+        return [_author_row_to_dict(r) for r in rows]
 
     def set_author_status(self, email: str, status: str, reviewer: str = "") -> dict[str, Any]:
         email = email.strip().lower()
@@ -99,37 +122,52 @@ class EdbService:
             raise ValueError("AUTHOR_NOT_FOUND")
         conn.commit()
         cur.execute(
-            "SELECT id, email, pen_name, mobile_money, status FROM edb_authors WHERE email = ?",
+            f"SELECT {_AUTHOR_SELECT.strip()} FROM edb_authors WHERE email = ?",
             (email,),
         )
         r = cur.fetchone()
-        return {
-            "id": r[0],
-            "email": r[1],
-            "penName": r[2],
-            "mobileMoney": r[3],
-            "status": r[4],
-        }
+        return _author_row_to_dict(r)
+
+    def update_author_payment_numbers(
+        self,
+        email: str,
+        mobile_money: str,
+        mobile_money_2: str = "",
+        mobile_money_3: str = "",
+    ) -> dict[str, Any]:
+        email = email.strip().lower()
+        conn = self.get_db()
+        cur = conn.cursor()
+        cur.execute(
+            """
+            UPDATE edb_authors
+            SET mobile_money = ?, mobile_money_2 = ?, mobile_money_3 = ?
+            WHERE email = ?
+            """,
+            (mobile_money, mobile_money_2 or "", mobile_money_3 or "", email),
+        )
+        if cur.rowcount == 0:
+            raise ValueError("AUTHOR_NOT_FOUND")
+        conn.commit()
+        cur.execute(
+            f"SELECT {_AUTHOR_SELECT.strip()} FROM edb_authors WHERE email = ?",
+            (email,),
+        )
+        r = cur.fetchone()
+        return _author_row_to_dict(r)
 
     def get_author_by_email(self, email: str) -> dict[str, Any] | None:
         email = email.strip().lower()
         conn = self.get_db()
         cur = conn.cursor()
         cur.execute(
-            "SELECT id, email, pen_name, mobile_money, bio, status FROM edb_authors WHERE email = ?",
+            f"SELECT {_AUTHOR_SELECT.strip()} FROM edb_authors WHERE email = ?",
             (email,),
         )
         r = cur.fetchone()
         if not r:
             return None
-        return {
-            "id": r[0],
-            "email": r[1],
-            "penName": r[2],
-            "mobileMoney": r[3],
-            "bio": r[4],
-            "status": r[5],
-        }
+        return _author_row_to_dict(r)
 
     def _device_count(self, cur: sqlite3.Cursor, buyer_email: str) -> int:
         cur.execute(
@@ -234,3 +272,10 @@ class EdbService:
             conn.commit()
         except OSError:
             pass
+        cur = conn.cursor()
+        for col in ("mobile_money_2", "mobile_money_3"):
+            try:
+                cur.execute(f"ALTER TABLE edb_authors ADD COLUMN {col} TEXT DEFAULT ''")
+                conn.commit()
+            except sqlite3.OperationalError:
+                pass

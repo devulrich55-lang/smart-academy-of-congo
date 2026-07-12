@@ -27,8 +27,16 @@ class AuthorRegisterBody(BaseModel):
     password: str = Field(min_length=8)
     penName: str = Field(min_length=2)
     mobileMoney: str = Field(min_length=8)
+    mobileMoney2: str = ""
+    mobileMoney3: str = ""
     bio: str = ""
     role: str = "auteur"
+
+
+class AuthorPaymentBody(BaseModel):
+    mobileMoney: str = Field(min_length=8)
+    mobileMoney2: str = ""
+    mobileMoney3: str = ""
 
 
 class AuthorStatusBody(BaseModel):
@@ -68,6 +76,8 @@ async def register_edb_author(body: AuthorRegisterBody):
             password_hash=password_hash,
             pen_name=body.penName,
             mobile_money=body.mobileMoney,
+            mobile_money_2=body.mobileMoney2,
+            mobile_money_3=body.mobileMoney3,
             bio=body.bio,
         )
         return {"ok": True, "author": author}
@@ -94,6 +104,28 @@ async def set_edb_author_status(
         svc = _get_edb_service()
         reviewer = getattr(user, "email", None) or getattr(user, "identifiant", "") or ""
         author = svc.set_author_status(email, body.status, reviewer)
+        return {"ok": True, "author": author}
+    except ValueError as e:
+        if str(e) == "AUTHOR_NOT_FOUND":
+            raise HTTPException(404, detail={"error": "AUTHOR_NOT_FOUND"})
+        raise HTTPException(400, detail={"error": str(e)})
+
+
+@router.patch("/platform/edb/authors/{email}/payment-numbers")
+async def update_edb_author_payment_numbers(
+    email: str,
+    body: AuthorPaymentBody,
+    user=Depends(_require_superadmin),
+):
+    """Remplacer Depends par get_current_user — l'auteur ne peut modifier que son profil."""
+    try:
+        svc = _get_edb_service()
+        author = svc.update_author_payment_numbers(
+            email,
+            body.mobileMoney,
+            body.mobileMoney2,
+            body.mobileMoney3,
+        )
         return {"ok": True, "author": author}
     except ValueError as e:
         if str(e) == "AUTHOR_NOT_FOUND":

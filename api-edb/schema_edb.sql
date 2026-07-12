@@ -6,6 +6,8 @@ CREATE TABLE IF NOT EXISTS edb_authors (
   email TEXT NOT NULL UNIQUE,
   pen_name TEXT NOT NULL,
   mobile_money TEXT NOT NULL,
+  mobile_money_2 TEXT DEFAULT '',
+  mobile_money_3 TEXT DEFAULT '',
   bio TEXT DEFAULT '',
   password_hash TEXT NOT NULL,
   status TEXT NOT NULL DEFAULT 'pending',
