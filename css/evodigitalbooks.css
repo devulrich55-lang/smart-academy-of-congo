@@ -430,7 +430,42 @@
 .edb-dash__header-actions {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.65rem;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.edb-dash__logout {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.58rem 1.05rem;
+  border-radius: 999px;
+  border: 1.5px solid #fecaca;
+  background: #fff;
+  color: #b91c1c;
+  font-size: 0.86rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  font-family: inherit;
+  line-height: 1.2;
+  transition: background 0.2s, border-color 0.2s, box-shadow 0.2s, transform 0.15s;
+}
+.edb-dash__logout-icon {
+  font-size: 1rem;
+  line-height: 1;
+  opacity: 0.9;
+}
+.edb-dash__logout:hover {
+  background: #fef2f2;
+  border-color: #f87171;
+  box-shadow: 0 4px 14px rgba(239, 68, 68, 0.18);
+  transform: translateY(-1px);
+}
+.edb-dash__logout:active {
+  transform: translateY(0);
 }
 .edb-dash__pill {
   background: #dcfce7;
@@ -562,6 +597,81 @@
 }
 .edb-btn-primary:hover { filter: brightness(1.05); }
 .edb-btn-primary:disabled { opacity: 0.6; cursor: wait; }
+
+/* Formulaire Mobile Money — dashboard auteur */
+.edb-payments-form .edb-form__grid--payments {
+  grid-template-columns: 1fr;
+  gap: 1.15rem;
+  max-width: 520px;
+}
+.edb-payments-form .fg {
+  margin: 0;
+}
+.edb-payments-form .fg label {
+  display: block;
+  font-size: 0.88rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  color: #334155;
+}
+.edb-input-phone {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.15rem 0.9rem 0.15rem 0.8rem;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #fafafa, #f8fafc);
+  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+}
+.edb-input-phone:focus-within {
+  border-color: #8b5cf6;
+  background: #fff;
+  box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.14);
+}
+.edb-input-phone__icon {
+  flex-shrink: 0;
+  font-size: 1.15rem;
+  line-height: 1;
+  opacity: 0.85;
+}
+.edb-payments-form .edb-input-phone .fi {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  padding: 0.82rem 0;
+  font-size: 1.02rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: #0f172a;
+  box-shadow: none;
+}
+.edb-payments-form .edb-input-phone .fi:focus {
+  outline: none;
+  box-shadow: none;
+}
+.edb-payments-form .edb-input-phone .fi::placeholder {
+  color: #94a3b8;
+  font-weight: 400;
+}
+.edb-form__actions--payments {
+  margin-top: 1.35rem;
+  padding-top: 0;
+  border-top: none;
+  max-width: 520px;
+}
+.edb-form__actions--payments .edb-btn-primary {
+  width: 100%;
+  padding: 0.9rem 1.5rem;
+  border-radius: 12px;
+  font-size: 1rem;
+  box-shadow: 0 8px 22px rgba(124, 58, 237, 0.28);
+}
+.edb-form__actions--payments .edb-btn-primary:hover {
+  box-shadow: 0 10px 26px rgba(124, 58, 237, 0.34);
+}
+
 .edb-table {
   width: 100%;
   border-collapse: collapse;
@@ -712,5 +822,17 @@ body.platform-library-mode .edb-pay-overlay .pay-confirm-hint {
   .edb-form__grid--pricing,
   .edb-form__grid--files {
     grid-template-columns: 1fr;
+  }
+  .edb-dash__header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .edb-dash__header-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .edb-payments-form .edb-form__grid--payments,
+  .edb-form__actions--payments {
+    max-width: none;
   }
 }

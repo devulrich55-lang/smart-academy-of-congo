@@ -1699,7 +1699,7 @@ const SAC_EDB = (function () {
       ' 👋</h1><p class="edb-dash__sub">Espace auteur EvoDigitalBooks</p></div>' +
       '<div class="edb-dash__header-actions">' +
       '<span class="edb-dash__pill">✓ Auteur vérifié</span>' +
-      '<button type="button" class="btn btn--ghost btn--sm" id="edbDashLogout">Déconnexion</button>' +
+      '<button type="button" class="edb-dash__logout" id="edbDashLogout"><span class="edb-dash__logout-icon" aria-hidden="true">⎋</span> Déconnexion</button>' +
       "</div></header>" +
       '<section class="edb-panel" id="edbPanelDashboard">' +
       '<div class="edb-stats">' +
@@ -1773,18 +1773,24 @@ const SAC_EDB = (function () {
       "</strong></p></div></section>" +
       '<section class="edb-panel" id="edbPanelPayments" hidden><div class="edb-card-panel"><h2>Numéros Mobile Money</h2>' +
       '<p class="edb-dash__sub">Enregistrez jusqu\'à <strong>3 numéros</strong> pour faciliter les achats (Orange Money, M-Pesa, etc.). Les clients choisissent le numéro lors du paiement.</p>' +
-      '<form id="edbPaymentsForm" class="edb-form">' +
-      '<div class="edb-form__grid">' +
-      '<div class="fg"><label for="edbMm1">Numéro principal *</label><input type="tel" class="fi" id="edbMm1" required placeholder="+243…" value="' +
+      '<form id="edbPaymentsForm" class="edb-form edb-payments-form">' +
+      '<div class="edb-form__grid edb-form__grid--payments">' +
+      '<div class="fg"><label for="edbMm1">Numéro principal *</label>' +
+      '<div class="edb-input-phone"><span class="edb-input-phone__icon" aria-hidden="true">📱</span>' +
+      '<input type="tel" class="fi" id="edbMm1" required placeholder="+243 812 345 678" inputmode="tel" autocomplete="tel" value="' +
       esc(authorMmList[0] || "") +
-      '" /></div>' +
-      '<div class="fg"><label for="edbMm2">Numéro 2 (optionnel)</label><input type="tel" class="fi" id="edbMm2" placeholder="+243…" value="' +
-      esc(authorMmList[1] || "") +
-      '" /></div>' +
-      '<div class="fg"><label for="edbMm3">Numéro 3 (optionnel)</label><input type="tel" class="fi" id="edbMm3" placeholder="+243…" value="' +
-      esc(authorMmList[2] || "") +
       '" /></div></div>' +
-      '<div class="edb-form__actions"><button type="submit" class="edb-btn-primary">Enregistrer les numéros</button></div>' +
+      '<div class="fg"><label for="edbMm2">Numéro 2 (optionnel)</label>' +
+      '<div class="edb-input-phone"><span class="edb-input-phone__icon" aria-hidden="true">📱</span>' +
+      '<input type="tel" class="fi" id="edbMm2" placeholder="+243 998 765 432" inputmode="tel" autocomplete="tel" value="' +
+      esc(authorMmList[1] || "") +
+      '" /></div></div>' +
+      '<div class="fg"><label for="edbMm3">Numéro 3 (optionnel)</label>' +
+      '<div class="edb-input-phone"><span class="edb-input-phone__icon" aria-hidden="true">📱</span>' +
+      '<input type="tel" class="fi" id="edbMm3" placeholder="+243 900 000 000" inputmode="tel" autocomplete="tel" value="' +
+      esc(authorMmList[2] || "") +
+      '" /></div></div></div>' +
+      '<div class="edb-form__actions edb-form__actions--payments"><button type="submit" class="edb-btn-primary edb-btn-primary--wide">Enregistrer les numéros</button></div>' +
       "</form></div></section>" +
       "</div></div>";
 
